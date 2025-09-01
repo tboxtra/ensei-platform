@@ -1,0 +1,743 @@
+openapi: 3.0.3
+info:
+  title: Ensei Platform API
+  description: API for mission-based social media engagement platform
+  version: 1.0.0
+  contact:
+    name: Ensei Platform
+    url: https://ensei.com
+
+servers:
+  - url: http://localhost:3001
+    description: Development server
+  - url: https://api.ensei.com
+    description: Production server
+
+paths:
+  /v1/missions:
+    post:
+      summary: Create a new mission
+      description: Create either a fixed or degen mission with pricing calculation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CreateFixedMissionRequest'
+                - $ref: '#/components/schemas/CreateDegenMissionRequest'
+      responses:
+        '200':
+          description: Mission created successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/FixedMissionResponse'
+                  - $ref: '#/components/schemas/DegenMissionResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    get:
+      summary: List missions
+      description: Get a list of all missions
+      responses:
+        '200':
+          description: List of missions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  missions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Mission'
+
+  /v1/missions/{id}/submit:
+    post:
+      summary: Submit proof for a mission
+      description: Submit proof of mission completion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubmissionRequest'
+      responses:
+        '200':
+          description: Submission created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+        '400':
+          description: Invalid submission data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Mission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/submissions/{id}/review:
+    post:
+      summary: Review a submission
+      description: Approve or reject a mission submission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewDecisionRequest'
+      responses:
+        '200':
+          description: Review completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+        '400':
+          description: Invalid review data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Submission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/meta/degen-presets:
+    get:
+      summary: Get degen mission presets
+      description: Get available duration presets for degen missions
+      responses:
+        '200':
+          description: List of degen presets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  presets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DegenPreset'
+
+  /v1/fund-mission:
+    post:
+      summary: Fund a mission with USD
+      description: Process TonConnect funding for mission creation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - missionId
+                - amount
+              properties:
+                missionId:
+                  type: string
+                  format: uuid
+                  description: ID of the mission to fund
+                amount:
+                  type: number
+                  minimum: 0.01
+                  description: Amount in USD
+      responses:
+        '200':
+          description: Funding receipt created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FundingReceiptResponse'
+        '400':
+          description: Invalid funding data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/fund-mission/{receiptId}:
+    get:
+      summary: Get funding receipt status
+      description: Check the status of a funding receipt
+      parameters:
+        - name: receiptId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Funding receipt status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FundingReceiptResponse'
+        '404':
+          description: Receipt not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/withdrawals:
+    post:
+      summary: Request withdrawal
+      description: Request withdrawal of honors to USD
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - honorsAmount
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: User ID requesting withdrawal
+                honorsAmount:
+                  type: integer
+                  minimum: 1
+                  description: Amount in honors to withdraw
+      responses:
+        '200':
+          description: Withdrawal request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithdrawalResponse'
+        '400':
+          description: Invalid withdrawal data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/withdrawals/{withdrawalId}:
+    get:
+      summary: Get withdrawal status
+      description: Check the status of a withdrawal request
+      parameters:
+        - name: withdrawalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Withdrawal status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithdrawalResponse'
+        '404':
+          description: Withdrawal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/withdrawals/user/{userId}:
+    get:
+      summary: Get user withdrawal history
+      description: Get all withdrawals for a specific user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User withdrawal history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                  withdrawals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WithdrawalResponse'
+
+  /v1/convert/honors-to-usd:
+    post:
+      summary: Convert honors to USD
+      description: Convert honors amount to USD equivalent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - honors
+              properties:
+                honors:
+                  type: integer
+                  minimum: 0
+                  description: Amount in honors
+      responses:
+        '200':
+          description: Conversion result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  honors:
+                    type: integer
+                  usd:
+                    type: number
+                  formatted:
+                    type: string
+                    example: "$1.00"
+
+  /v1/convert/usd-to-honors:
+    post:
+      summary: Convert USD to honors
+      description: Convert USD amount to honors equivalent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - usd
+              properties:
+                usd:
+                  type: number
+                  minimum: 0
+                  description: Amount in USD
+      responses:
+        '200':
+          description: Conversion result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usd:
+                    type: number
+                  honors:
+                    type: integer
+                  formatted:
+                    type: string
+                    example: "450 Honors"
+
+components:
+  schemas:
+    Platform:
+      type: string
+      enum: [twitter, instagram, tiktok, facebook, whatsapp, snapchat, telegram]
+      description: Social media platform
+
+    MissionType:
+      type: string
+      enum: [engage, content, ambassador]
+      description: Type of mission
+
+    MissionModel:
+      type: string
+      enum: [fixed, degen]
+      description: Mission model
+
+    TargetProfile:
+      type: string
+      enum: [all, premium]
+      description: Target audience profile
+
+    TaskType:
+      type: string
+      description: Type of task (varies by platform and mission type)
+
+    CreateFixedMissionRequest:
+      type: object
+      required:
+        - model
+        - platform
+        - type
+        - target
+        - cap
+        - tasks
+      properties:
+        model:
+          type: string
+          enum: [fixed]
+        platform:
+          $ref: '#/components/schemas/Platform'
+        type:
+          $ref: '#/components/schemas/MissionType'
+        target:
+          $ref: '#/components/schemas/TargetProfile'
+        cap:
+          type: integer
+          minimum: 60
+          description: Maximum number of participants
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskType'
+          minItems: 1
+          description: List of tasks to complete
+
+    CreateDegenMissionRequest:
+      type: object
+      required:
+        - model
+        - platform
+        - type
+        - target
+        - durationHours
+        - winnersCap
+        - tasks
+      properties:
+        model:
+          type: string
+          enum: [degen]
+        platform:
+          $ref: '#/components/schemas/Platform'
+        type:
+          $ref: '#/components/schemas/MissionType'
+        target:
+          $ref: '#/components/schemas/TargetProfile'
+        durationHours:
+          type: integer
+          description: Duration in hours (must match preset)
+        winnersCap:
+          type: integer
+          minimum: 1
+          description: Maximum number of winners
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskType'
+          description: List of tasks (can be empty for degen)
+
+    FixedMissionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        model:
+          type: string
+          enum: [fixed]
+        total_cost_usd:
+          type: number
+        total_cost_honors:
+          type: integer
+        per_user_honors:
+          type: integer
+
+    DegenMissionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        model:
+          type: string
+          enum: [degen]
+        total_cost_usd:
+          type: number
+        total_cost_honors:
+          type: integer
+        user_pool_honors:
+          type: integer
+        per_winner_honors:
+          type: integer
+
+    Mission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        creator_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        platform:
+          $ref: '#/components/schemas/Platform'
+        mission_type:
+          $ref: '#/components/schemas/MissionType'
+        mission_model:
+          $ref: '#/components/schemas/MissionModel'
+        target_profile:
+          $ref: '#/components/schemas/TargetProfile'
+        status:
+          type: string
+          enum: [draft, active, paused, completed, cancelled]
+        created_at:
+          type: string
+          format: date-time
+
+    CreateSubmissionRequest:
+      type: object
+      required:
+        - userId
+        - proofs
+      properties:
+        userId:
+          type: string
+          format: uuid
+        proofs:
+          type: array
+          items:
+            type: object
+            required:
+              - type
+              - content
+            properties:
+              type:
+                type: string
+                enum: [screenshot, video, link]
+              content:
+                type: string
+                description: Proof content (base64 for images, URL for links)
+
+    SubmissionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        created_at:
+          type: string
+          format: date-time
+
+    ReviewDecisionRequest:
+      type: object
+      required:
+        - action
+        - reviewerId
+      properties:
+        action:
+          type: string
+          enum: [approve, reject]
+        reviewerId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          description: Optional reason for rejection
+
+    ReviewResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [approve, reject]
+        reviewed_at:
+          type: string
+          format: date-time
+
+    DegenPreset:
+      type: object
+      properties:
+        hours:
+          type: integer
+        costUSD:
+          type: number
+        maxWinners:
+          type: integer
+        label:
+          type: string
+
+    FundingReceiptResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: number
+        honorsAmount:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+        timestamp:
+          type: string
+          format: date-time
+        txHash:
+          type: string
+
+    WithdrawalResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        honorsAmount:
+          type: integer
+        usdAmount:
+          type: number
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        txHash:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+
+    RefundRequest:
+      type: object
+      required:
+        - reason
+        - requestedBy
+      properties:
+        reason:
+          type: string
+          enum: [incomplete, cancelled, expired, manual]
+          description: Reason for refund request
+        requestedBy:
+          type: string
+          format: uuid
+          description: User ID requesting the refund
+        notes:
+          type: string
+          description: Optional notes about the refund request
+
+    RefundResponse:
+      type: object
+      properties:
+        missionId:
+          type: string
+          format: uuid
+        model:
+          type: string
+          enum: [fixed, degen]
+        totalRefundHonors:
+          type: integer
+        totalRefundUsd:
+          type: number
+        reason:
+          type: string
+        breakdown:
+          type: object
+          properties:
+            unusedSlots:
+              type: integer
+            unusedTimeHours:
+              type: integer
+            timeRemainingPercentage:
+              type: integer
+            baseRefund:
+              type: integer
+            platformFeeRefund:
+              type: integer
+
+    TelegramProofValidationRequest:
+      type: object
+      required:
+        - proofType
+        - channelId
+      properties:
+        proofType:
+          type: string
+          enum: [join_channel, react_to_post, reply_in_group, share_invite, channel_post]
+        channelId:
+          type: string
+        messageId:
+          type: string
+        inviteLink:
+          type: string
+        screenshot:
+          type: string
+        telegramUsername:
+          type: string
+
+    TelegramProofValidationResponse:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+        validationData:
+          type: object
+          additionalProperties: true
+
+    TelegramChannelResponse:
+      type: object
+      properties:
+        channelId:
+          type: string
+        channelName:
+          type: string
+        channelUsername:
+          type: string
+        memberCount:
+          type: integer
+        isVerified:
+          type: boolean
+        inviteLink:
+          type: string

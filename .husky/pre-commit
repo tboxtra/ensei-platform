@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run linting on changed files
+echo "📝 Running linting on changed files..."
+yarn turbo run lint:changed
+
+# Run tests on changed files
+echo "🧪 Running tests on changed files..."
+yarn turbo run test:changed
+
+echo "✅ Pre-commit checks completed!"

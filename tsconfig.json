@@ -1,0 +1,96 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": [
+            "ES2022",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "allowJs": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "noEmit": true,
+        "esModuleInterop": true,
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "jsx": "preserve",
+        "incremental": true,
+        "plugins": [
+            {
+                "name": "next"
+            }
+        ],
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "./apps/web/src/*"
+            ],
+            "@ensei/*": [
+                "./packages/*/src"
+            ]
+        }
+    },
+    "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.js",
+        "**/*.jsx"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "build",
+        ".next",
+        "coverage"
+    ],
+    "references": [
+        {
+            "path": "./packages/shared-types"
+        },
+        {
+            "path": "./packages/validation-schemas"
+        },
+        {
+            "path": "./packages/api-client"
+        },
+        {
+            "path": "./packages/ui-components"
+        },
+        {
+            "path": "./packages/blockchain-utils"
+        },
+        {
+            "path": "./services/api-gateway"
+        },
+        {
+            "path": "./services/mission-engine"
+        },
+        {
+            "path": "./services/payment-service"
+        },
+        {
+            "path": "./services/verification-service"
+        },
+        {
+            "path": "./services/notification-service"
+        },
+        {
+            "path": "./services/analytics-service"
+        },
+        {
+            "path": "./apps/web"
+        },
+        {
+            "path": "./apps/mobile"
+        },
+        {
+            "path": "./apps/telegram-bot"
+        },
+        {
+            "path": "./apps/admin-dashboard"
+        }
+    ]
+}

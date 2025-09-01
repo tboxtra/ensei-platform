@@ -1,0 +1,125 @@
+# ==========================================================
+#  Ensei Platform — Cursor Guardrails (.cursorrules)
+#  Place this file at the monorepo root.
+# ==========================================================
+
+workspace:
+  root: "."
+  allowOutsideRoot: false
+  deniedGlobs:
+    - "**/node_modules/**"
+    - "**/.turbo/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/.next/**"
+    - "./index.html"
+    - "./app.js"
+    - "./styles.css"
+
+conventions:
+  language: "TypeScript"
+  style: "ESLint + Prettier"
+  packageManager: "yarn"
+  monorepoTool: "turbo"
+
+guardrails:
+  - "Do NOT create duplicate constants. Use the single source of truth in packages/shared-types and services/mission-engine."
+  - "Every new request/response must have a Zod schema in packages/validation-schemas and types in packages/shared-types."
+  - "API gateway is thin: import pricing and task logic from services/mission-engine; do not re-implement math in routes or clients."
+  - "Update docs/api/openapi.yaml and regenerate packages/api-client when API contracts change."
+  - "Implement ALL social media mission categories (Engage, Content, Ambassador) for Twitter, Instagram, TikTok, Facebook, WhatsApp, Snapchat, Telegram."
+  - "Keep Telegram platform fully supported (engage/content/ambassador) and include Twitter ‘Follow’ in Engage."
+  - "Degen: unlimited applicants, time-boxed, winner-cap per preset, user pool = 50% of creator USD cost; Premium multiplies total cost ×5 (never ×4)."
+  - "USD↔Honors rate is 1 USD = 450 Honors (exported from shared-types)."
+  - "Prefer small, composable commits with clear scopes."
+
+paths:
+  sharedTypes: "packages/shared-types/src"
+  validationSchemas: "packages/validation-schemas/src"
+  apiGateway: "services/api-gateway/src"
+  missionEngine: "services/mission-engine/src"
+  webApp: "apps/web"
+  adminApp: "apps/admin-dashboard"
+  telegramApp: "apps/telegram-bot"
+
+requiredFiles:
+  - "packages/shared-types/src/pricing.ts"
+  - "packages/shared-types/src/missions.ts"
+  - "services/mission-engine/src/index.ts"
+  - "services/mission-engine/src/pricing/fixed.ts"
+  - "services/mission-engine/src/pricing/degen.ts"
+  - "services/mission-engine/src/tasks/catalog.ts"
+  - "packages/validation-schemas/src/mission/createFixedMission.schema.ts"
+  - "packages/validation-schemas/src/mission/createDegenMission.schema.ts"
+  - "services/api-gateway/src/index.ts"
+  - "services/api-gateway/src/routes/missions.ts"
+
+pricingTruth:
+  honorsPerUsd: 450
+  premiumMultiplier: 5
+  userPoolFactor: 0.5
+  degenPresets:
+    - { hours: 1,   costUSD: 15,   maxWinners: 1,  label: "1 hr" }
+    - { hours: 3,   costUSD: 30,   maxWinners: 2,  label: "3 hrs" }
+    - { hours: 6,   costUSD: 80,   maxWinners: 3,  label: "6 hrs" }
+    - { hours: 8,   costUSD: 150,  maxWinners: 3,  label: "8 hrs" }
+    - { hours: 12,  costUSD: 180,  maxWinners: 5,  label: "12 hrs" }
+    - { hours: 18,  costUSD: 300,  maxWinners: 5,  label: "18 hrs" }
+    - { hours: 24,  costUSD: 400,  maxWinners: 5,  label: "24 hrs" }
+    - { hours: 36,  costUSD: 500,  maxWinners: 10, label: "36 hrs" }
+    - { hours: 48,  costUSD: 600,  maxWinners: 10, label: "48 hrs" }
+    - { hours: 72,  costUSD: 800,  maxWinners: 10, label: "3 days" }
+    - { hours: 96,  costUSD: 1000, maxWinners: 10, label: "4 days" }
+    - { hours: 168, costUSD: 1500, maxWinners: 10, label: "7 days" }
+    - { hours: 240, costUSD: 2000, maxWinners: 10, label: "10 days" }
+
+platformTasks:
+  twitter:
+    engage:     [ "like", "follow", "retweet", "comment", "quote" ]
+    content:    [ "meme", "thread", "article", "videoreview" ]
+    ambassador: [ "pfp", "name_bio_keywords", "pinned_tweet", "poll", "spaces", "community_raid" ]
+  instagram:
+    engage:     [ "like", "comment", "follow", "story_repost" ]
+    content:    [ "feed_post", "reel", "carousel", "meme" ]
+    ambassador: [ "pfp", "hashtag_in_bio", "story_highlight" ]
+  tiktok:
+    engage:     [ "like", "comment", "repost_duet", "follow" ]
+    content:    [ "skit", "challenge", "product_review", "status_style" ]
+    ambassador: [ "pfp", "hashtag_in_bio", "pinned_branded_video" ]
+  facebook:
+    engage:     [ "like", "comment", "follow", "share_post" ]
+    content:    [ "group_post", "video", "meme_flyer" ]
+    ambassador: [ "pfp", "bio_keyword", "pinned_post" ]
+  whatsapp:
+    engage:     [ "status_50_views" ]
+    content:    [ "flyer_clip_status", "broadcast_message" ]
+    ambassador: [ "pfp", "keyword_in_about" ]
+  snapchat:
+    engage:     [ "story_100_views", "snap_repost" ]
+    content:    [ "meme_flyer_snap", "branded_snap_video" ]
+    ambassador: [ "pfp_avatar", "hashtag_in_profile", "branded_lens" ]
+  telegram:
+    engage:     [ "join_channel", "react_to_post", "reply_in_group", "share_invite" ]
+    content:    [ "channel_post", "short_video_in_channel", "guide_thread" ]
+    ambassador: [ "pfp", "mention_in_bio", "pin_invite_link" ]
+
+commands:
+  install: "yarn install"
+  buildAll: "yarn build"
+  devApi: "cd services/api-gateway && yarn dev"
+  devWeb: "cd apps/web && yarn dev"
+  testAll: "yarn test"
+  apiHealth: "curl -sf http://localhost:3001/health"
+
+reviewChecklist:
+  - "Are all new endpoints validated with Zod from packages/validation-schemas?"
+  - "Are API responses/types exported via packages/api-client?"
+  - "Did we avoid duplicating pricing logic outside mission-engine?"
+  - "Does the UI (apps/web) fetch presets and pricing from the API (not re-compute locally)?"
+  - "Are ALL platform tasks (Engage, Content, Ambassador) supported as defined in platformTasks?"
+  - "Are Telegram tasks and Twitter Follow included?"
+  - "Did we add tests (unit/integration) and update docs/api/openapi.yaml?"
+
+warningMessage: >
+  You are working inside the Ensei monorepo root. Do not create files outside this tree.
+  If a path is missing, create it under apps/, services/, or packages/ as appropriate.

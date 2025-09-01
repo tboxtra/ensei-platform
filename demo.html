@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ensei Platform - Frontend Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ensei-primary': '#A4E493',
+                        'ensei-secondary': '#BCA2FF'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-ensei-primary">Ensei Platform</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#dashboard" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                    <a href="#mission-creator" class="text-gray-600 hover:text-gray-900">Create Mission</a>
+                    <a href="#admin" class="text-gray-600 hover:text-gray-900">Admin</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Ensei Platform Demo</h1>
+            <p class="text-xl text-gray-600 mb-8">Mission-based social media engagement platform with Telegram support
+            </p>
+            <div class="flex justify-center space-x-4">
+                <a href="#mission-creator"
+                    class="bg-ensei-primary text-white px-6 py-3 rounded-lg hover:bg-green-500 transition-colors">
+                    Create Mission
+                </a>
+                <a href="#dashboard"
+                    class="bg-ensei-secondary text-white px-6 py-3 rounded-lg hover:bg-purple-500 transition-colors">
+                    View Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Mission Creator Section -->
+        <section id="mission-creator" class="mb-12">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Mission Creator</h2>
+
+                <!-- Platform Selection -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Select Platform</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button
+                            class="platform-chip bg-blue-100 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors"
+                            data-platform="twitter">
+                            🐦 Twitter
+                        </button>
+                        <button
+                            class="platform-chip bg-pink-100 text-pink-800 px-4 py-2 rounded-lg hover:bg-pink-200 transition-colors"
+                            data-platform="instagram">
+                            📸 Instagram
+                        </button>
+                        <button
+                            class="platform-chip bg-red-100 text-red-800 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors"
+                            data-platform="tiktok">
+                            🎵 TikTok
+                        </button>
+                        <button
+                            class="platform-chip bg-blue-100 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors"
+                            data-platform="telegram">
+                            📱 Telegram
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mission Type -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Mission Type</h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button
+                            class="type-chip bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors"
+                            data-type="engage">
+                            🎯 Engage
+                        </button>
+                        <button
+                            class="type-chip bg-purple-100 text-purple-800 px-4 py-2 rounded-lg hover:bg-purple-200 transition-colors"
+                            data-type="content">
+                            ✍️ Content
+                        </button>
+                        <button
+                            class="type-chip bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg hover:bg-yellow-200 transition-colors"
+                            data-type="ambassador">
+                            👑 Ambassador
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mission Model -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Mission Model</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button
+                            class="model-chip bg-gray-100 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                            data-model="fixed">
+                            📊 Fixed
+                        </button>
+                        <button
+                            class="model-chip bg-orange-100 text-orange-800 px-4 py-2 rounded-lg hover:bg-orange-200 transition-colors"
+                            data-model="degen">
+                            ⚡ Degen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Telegram Tasks (shown when Telegram is selected) -->
+                <div id="telegram-tasks" class="mb-6 hidden">
+                    <h3 class="text-lg font-semibold mb-3">Telegram Tasks</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div class="task-chip bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg">
+                            <input type="checkbox" class="mr-2" data-task="join_channel">
+                            Join Channel
+                        </div>
+                        <div class="task-chip bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg">
+                            <input type="checkbox" class="mr-2" data-task="react_to_post">
+                            React to Post
+                        </div>
+                        <div class="task-chip bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg">
+                            <input type="checkbox" class="mr-2" data-task="reply_in_group">
+                            Reply in Group
+                        </div>
+                        <div class="task-chip bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg">
+                            <input type="checkbox" class="mr-2" data-task="share_invite">
+                            Share Invite
+                        </div>
+                        <div class="task-chip bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg">
+                            <input type="checkbox" class="mr-2" data-task="channel_post">
+                            Channel Post
+                        </div>
+                        <div class="task-chip bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg">
+                            <input type="checkbox" class="mr-2" data-task="pfp">
+                            Change PFP
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Degen Controls (shown when Degen is selected) -->
+                <div id="degen-controls" class="mb-6 hidden">
+                    <h3 class="text-lg font-semibold mb-3">Degen Mission Settings</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                            <select id="duration-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <option value="1">1 hour - $15</option>
+                                <option value="8" selected>8 hours - $150</option>
+                                <option value="24">24 hours - $600</option>
+                                <option value="72">72 hours - $1800</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Winners Cap</label>
+                            <select id="winners-cap" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <option value="1">1 winner</option>
+                                <option value="3" selected>3 winners</option>
+                                <option value="5">5 winners</option>
+                                <option value="10">10 winners</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fixed Controls (shown when Fixed is selected) -->
+                <div id="fixed-controls" class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Fixed Mission Settings</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Participant Cap</label>
+                            <input type="number" id="participant-cap" value="100" min="60"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Rewards per User
+                                (Honors)</label>
+                            <input type="number" id="rewards-per-user" value="500"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Premium Toggle -->
+                <div class="mb-6">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="premium-toggle" class="mr-3 h-4 w-4 text-ensei-primary">
+                        <label for="premium-toggle" class="text-lg font-semibold">Premium Mission (5× cost
+                            multiplier)</label>
+                    </div>
+                </div>
+
+                <!-- Price Preview -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Price Preview</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-ensei-primary" id="total-cost">$150</div>
+                            <div class="text-sm text-gray-600">Total Cost</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-ensei-secondary" id="honors-pool">33,750</div>
+                            <div class="text-sm text-gray-600">Honors Pool</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600" id="per-winner">11,250</div>
+                            <div class="text-sm text-gray-600">Per Winner</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create Button -->
+                <button id="create-mission"
+                    class="w-full bg-ensei-primary text-white py-3 rounded-lg hover:bg-green-500 transition-colors font-semibold">
+                    Create Mission
+                </button>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="mb-12">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Dashboard</h2>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-ensei-primary">12</div>
+                        <div class="text-sm text-gray-600">Active Missions</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-ensei-secondary">1,250</div>
+                        <div class="text-sm text-gray-600">Total Participants</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600">$2,450</div>
+                        <div class="text-sm text-gray-600">Total Spent</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-600">89%</div>
+                        <div class="text-sm text-gray-600">Success Rate</div>
+                    </div>
+                </div>
+
+                <!-- Recent Missions -->
+                <h3 class="text-lg font-semibold mb-4">Recent Missions</h3>
+                <div class="space-y-4">
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="font-semibold">Twitter Engagement Campaign</h4>
+                                <p class="text-sm text-gray-600">🐦 Twitter • Engage • Fixed</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold text-green-600">$150</div>
+                                <div class="text-sm text-gray-600">75/100 participants</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="font-semibold">Telegram Community Growth</h4>
+                                <p class="text-sm text-gray-600">📱 Telegram • Ambassador • Degen</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold text-green-600">$750</div>
+                                <div class="text-sm text-gray-600">3 winners • 8h remaining</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Section -->
+        <section id="admin" class="mb-12">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h2>
+
+                <!-- Review Queue -->
+                <h3 class="text-lg font-semibold mb-4">Review Queue</h3>
+                <div class="space-y-4">
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="font-semibold">Submission #1234</h4>
+                                <p class="text-sm text-gray-600">Twitter Engagement Campaign • @user123</p>
+                                <p class="text-sm text-gray-500">Proof: Screenshot of retweet</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button
+                                    class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Approve</button>
+                                <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Reject</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="font-semibold">Submission #1235</h4>
+                                <p class="text-sm text-gray-600">Telegram Community Growth • @user456</p>
+                                <p class="text-sm text-gray-500">Proof: Channel join screenshot</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button
+                                    class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Approve</button>
+                                <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Reject</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Status -->
+        <section class="mb-12">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">API Status</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">✅</div>
+                        <div class="text-sm text-gray-600">API Gateway</div>
+                        <div class="text-xs text-gray-500">Port 3002</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">✅</div>
+                        <div class="text-sm text-gray-600">Web App</div>
+                        <div class="text-xs text-gray-500">Port 3001</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">✅</div>
+                        <div class="text-sm text-gray-600">Admin Dashboard</div>
+                        <div class="text-xs text-gray-500">Port 3000</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Interactive functionality
+        let selectedPlatform = 'twitter';
+        let selectedType = 'engage';
+        let selectedModel = 'fixed';
+        let isPremium = false;
+
+        // Platform selection
+        document.querySelectorAll('.platform-chip').forEach(chip => {
+            chip.addEventListener('click', function () {
+                document.querySelectorAll('.platform-chip').forEach(c => c.classList.remove('ring-2', 'ring-ensei-primary'));
+                this.classList.add('ring-2', 'ring-ensei-primary');
+                selectedPlatform = this.dataset.platform;
+
+                // Show/hide Telegram tasks
+                const telegramTasks = document.getElementById('telegram-tasks');
+                if (selectedPlatform === 'telegram') {
+                    telegramTasks.classList.remove('hidden');
+                } else {
+                    telegramTasks.classList.add('hidden');
+                }
+
+                updatePricing();
+            });
+        });
+
+        // Type selection
+        document.querySelectorAll('.type-chip').forEach(chip => {
+            chip.addEventListener('click', function () {
+                document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('ring-2', 'ring-ensei-primary'));
+                this.classList.add('ring-2', 'ring-ensei-primary');
+                selectedType = this.dataset.type;
+                updatePricing();
+            });
+        });
+
+        // Model selection
+        document.querySelectorAll('.model-chip').forEach(chip => {
+            chip.addEventListener('click', function () {
+                document.querySelectorAll('.model-chip').forEach(c => c.classList.remove('ring-2', 'ring-ensei-primary'));
+                this.classList.add('ring-2', 'ring-ensei-primary');
+                selectedModel = this.dataset.model;
+
+                // Show/hide controls
+                const degenControls = document.getElementById('degen-controls');
+                const fixedControls = document.getElementById('fixed-controls');
+
+                if (selectedModel === 'degen') {
+                    degenControls.classList.remove('hidden');
+                    fixedControls.classList.add('hidden');
+                } else {
+                    degenControls.classList.add('hidden');
+                    fixedControls.classList.remove('hidden');
+                }
+
+                updatePricing();
+            });
+        });
+
+        // Premium toggle
+        document.getElementById('premium-toggle').addEventListener('change', function () {
+            isPremium = this.checked;
+            updatePricing();
+        });
+
+        // Update pricing based on selections
+        function updatePricing() {
+            let totalCost = 0;
+            let honorsPool = 0;
+            let perWinner = 0;
+
+            if (selectedModel === 'degen') {
+                const duration = parseInt(document.getElementById('duration-select').value);
+                const winnersCap = parseInt(document.getElementById('winners-cap').value);
+
+                // Degen pricing logic
+                const baseCost = duration === 1 ? 15 : duration === 8 ? 150 : duration === 24 ? 600 : 1800;
+                totalCost = isPremium ? baseCost * 5 : baseCost;
+                honorsPool = Math.round(totalCost * 450 * 0.5); // 50% to user pool
+                perWinner = Math.floor(honorsPool / winnersCap);
+            } else {
+                const cap = parseInt(document.getElementById('participant-cap').value);
+                const rewardsPerUser = parseInt(document.getElementById('rewards-per-user').value);
+
+                // Fixed pricing logic
+                const totalRewards = cap * rewardsPerUser;
+                totalCost = isPremium ? (totalRewards * 2 * 5) / 450 : (totalRewards * 2) / 450;
+                honorsPool = totalRewards;
+                perWinner = rewardsPerUser;
+            }
+
+            document.getElementById('total-cost').textContent = `$${totalCost.toFixed(0)}`;
+            document.getElementById('honors-pool').textContent = honorsPool.toLocaleString();
+            document.getElementById('per-winner').textContent = perWinner.toLocaleString();
+        }
+
+        // Create mission button
+        document.getElementById('create-mission').addEventListener('click', function () {
+            const missionData = {
+                platform: selectedPlatform,
+                type: selectedType,
+                model: selectedModel,
+                premium: isPremium,
+                timestamp: new Date().toISOString()
+            };
+
+            alert(`Mission created!\n\nPlatform: ${selectedPlatform}\nType: ${selectedType}\nModel: ${selectedModel}\nPremium: ${isPremium}\n\nCheck the console for full data.`);
+            console.log('Mission Data:', missionData);
+        });
+
+        // Initialize
+        document.querySelector('.platform-chip').click();
+        document.querySelector('.type-chip').click();
+        document.querySelector('.model-chip').click();
+    </script>
+</body>
+
+</html>
