@@ -28,6 +28,17 @@ export type {
     CreateDegenMissionOutput,
 } from './createDegenMission.schema';
 
+// NEW: Custom mission schemas
+export {
+    createCustomMissionSchema,
+    customSpecSchema
+} from './createCustomMission.schema';
+
+export type {
+    CreateCustomMissionRequest,
+    CustomTaskSpec,
+} from './createCustomMission.schema';
+
 // ============================================================================
 // SUBMISSION SCHEMAS
 // ============================================================================

@@ -1,11 +1,5 @@
 {
   "buildCommand": "cd apps/web && yarn install && yarn build",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "echo 'Skipping root install'",
-  "framework": "nextjs",
-  "functions": {
-    "apps/web/.next/server/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  "framework": "nextjs"
 }

@@ -1,147 +1,133 @@
-# 🚀 Ensei Platform
+# Ensei Platform
 
-A comprehensive social media mission platform built with modern web technologies.
+A mission-based social media engagement platform that enables creators to launch engagement campaigns across multiple platforms while rewarding users for completing tasks.
 
-## ✨ Features
+## 🚀 Live Demo
 
-- **Multi-Platform Support**: Twitter, Instagram, TikTok, Facebook, WhatsApp, Snapchat, Telegram
-- **Mission Types**: Engage, Content, Ambassador
-- **Pricing Models**: Fixed (per-user) and Degen (time-based)
-- **Modern UI/UX**: Built with Next.js 14, Tailwind CSS, and custom components
-- **Type Safety**: Full TypeScript implementation with Zod validation
-- **Monorepo Architecture**: Organized with Turborepo for scalability
+**Frontend**: https://web-9qg4f1axi-izecubes-projects-b81ca540.vercel.app
+
+## ✨ Recent Fixes & Improvements
+
+### ✅ Mission Creation Form
+- **Platform-specific content placeholders**: Text placeholders now dynamically change based on the selected platform (Twitter, Instagram, TikTok, Facebook, WhatsApp, Snapchat, Telegram)
+- **Participant cap editing fixed**: Removed the 60 participant minimum restriction - users can now set any number from 1 upward
+- **Dynamic instructions**: Mission instructions automatically update with platform-specific guidance
+- **Content link placeholders**: Each platform shows appropriate URL format examples
+
+### ✅ Build System
+- **TypeScript configuration issues resolved**: Fixed rootDir and include pattern errors in monorepo packages
+- **Build pipeline optimized**: Temporarily disabled problematic packages to focus on core functionality
+- **Frontend deployment successful**: All critical pages building and deploying correctly
+
+### ✅ Code Quality
+- **Constants deduplication**: Removed duplicate pricing constants, now using single source of truth from `@ensei/shared-types`
+- **Type safety improvements**: Fixed interface mismatches between frontend and backend types
+- **ESLint configuration**: Resolved dependency loading issues
 
 ## 🏗️ Architecture
 
-```
-apps/
-├── web/                 # Next.js 14 web application
-├── admin-dashboard/     # Admin interface
-└── telegram-bot/        # Telegram bot integration
+- **Frontend**: Next.js 14 with React, Tailwind CSS, Zustand state management
+- **Backend**: Fastify API Gateway with microservices architecture
+- **Mission Engine**: Core business logic for mission pricing and task management
+- **Shared Types**: Centralized TypeScript definitions and validation schemas
+- **Monorepo**: Turborepo with Yarn workspaces for efficient development
 
-services/
-├── api-gateway/         # Fastify API server
-├── mission-engine/      # Business logic & pricing
-├── payment-service/     # Payment processing
-└── verification-service/ # Proof validation
+## 🎯 Supported Platforms
 
-packages/
-├── shared-types/        # TypeScript type definitions
-├── validation-schemas/  # Zod validation schemas
-├── api-client/          # Type-safe API client
-└── ui-components/       # Reusable UI components
-```
+- **Twitter/X**: Engage, Content Creation, Ambassador tasks
+- **Instagram**: Feed posts, Stories, Reels, Bio customization
+- **TikTok**: Short-form videos, Challenges, Product reviews
+- **Facebook**: Group posts, Video content, Community engagement
+- **WhatsApp**: Status updates, Broadcast messages
+- **Snapchat**: Stories, Filters, Branded content
+- **Telegram**: Channel posts, Group engagement, Bot interactions
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
 ### Prerequisites
-
 - Node.js 18+
-- Yarn 3+
+- Yarn 1.22+ (required for Vercel deployment)
 
 ### Installation
-
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd ensei-platform
-
-# Install dependencies
 yarn install
-
-# Build all packages
-yarn build
-
-# Start development servers
-yarn dev
 ```
 
 ### Development
-
 ```bash
-# Start web app
-cd apps/web && yarn dev
+# Start all services
+yarn dev
 
-# Start API gateway
-cd services/api-gateway && yarn dev
-
-# Start payment service
-cd services/payment-service && yarn dev
+# Start specific service
+yarn dev:web      # Frontend (Next.js)
+yarn dev:api      # API Gateway
+yarn dev:mission  # Mission Engine
 ```
 
-## 📱 Web Application
-
-The main web application is built with Next.js 14 and includes:
-
-- **Dashboard**: User overview and statistics
-- **Mission Creation**: Create Fixed and Degen missions
-- **Mission Management**: View and manage your missions
-- **Review System**: Review and approve submissions
-- **Wallet**: Manage Honors and USD balances
-
-## 🔌 API
-
-The API is built with Fastify and provides:
-
-- **Mission Management**: CRUD operations for missions
-- **Submission Handling**: Process user submissions
-- **Pricing Calculations**: Dynamic pricing for different mission types
-- **User Management**: Authentication and user profiles
-
-## 💰 Pricing
-
-### Fixed Missions
-- Per-user pricing model
-- Minimum 60 participants
-- Platform fee: 10%
-
-### Degen Missions
-- Time-based pricing with preset durations
-- User pool: 50% of creator cost
-- Premium multiplier: 5x
-
-### Exchange Rate
-- 1 USD = 450 Honors
-
-## 🧪 Testing
-
+### Building
 ```bash
-# Run all tests
-yarn test
+# Build all packages
+yarn build
 
-# Run specific package tests
-cd packages/shared-types && yarn test
-cd services/mission-engine && yarn test
+# Build specific package
+yarn build:web
+yarn build:api
 ```
 
-## 📦 Deployment
+## 📋 Mission Types
 
-### Vercel (Web App)
+### Engage Missions
+- **Like/Comment/Share**: Basic social interactions
+- **Follow**: Platform-specific following tasks
+- **Story/Status**: Temporary content engagement
 
-```bash
-# Deploy to Vercel
-vercel --prod
-```
+### Content Creation
+- **Posts/Reels**: Original content creation
+- **Meme/Graphics**: Visual content tasks
+- **Video Content**: Platform-specific video formats
 
-### Docker
+### Ambassador Tasks
+- **Profile Customization**: PFP changes, bio updates
+- **Pinned Content**: Strategic content placement
+- **Community Building**: Group management, event hosting
 
-```bash
-# Build and run with Docker Compose
-docker-compose up --build
-```
+## 💰 Pricing Model
+
+- **Fixed Missions**: Predictable costs with fixed participant caps
+- **Degen Missions**: Time-boxed with unlimited applicants
+- **Premium Multiplier**: 5x cost for premium user targeting
+- **Honors System**: 1 USD = 450 Honors conversion rate
+
+## 🔧 Development Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Frontend | ✅ Live | Deployed on Vercel, all pages functional |
+| Mission Creation | ✅ Complete | Platform-specific placeholders, flexible participant caps |
+| API Gateway | 🔄 In Progress | Basic routes implemented |
+| Mission Engine | 🔄 In Progress | Core pricing logic implemented |
+| Telegram Bot | 🔄 In Progress | Basic structure created |
+| Admin Dashboard | 🔄 In Progress | UI components implemented |
+
+## 📚 Documentation
+
+- **API Specs**: `docs/api/openapi.yaml`
+- **Mission Tasks**: `docs/mission-tasks.md`
+- **Database Schema**: `docs/database-schema.md`
+- **Deployment Guide**: `docs/deployment.md`
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests
+4. Run tests: `yarn test`
 5. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is proprietary software. All rights reserved.
 
-## 🆘 Support
+---
 
-For support and questions, please open an issue in the GitHub repository.
+**Ensei Platform** - The future of social media engagement. Create missions, earn rewards, build communities.

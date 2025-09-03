@@ -1,4 +1,5 @@
 import { ApiClient } from '../client';
+import type { TaskType } from '@ensei/shared-types';
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -33,7 +34,7 @@ describe('ApiClient', () => {
                 type: 'engage' as const,
                 target: 'all' as const,
                 cap: 100,
-                tasks: ['like', 'retweet']
+                tasks: ['like', 'retweet'] as TaskType[]
             };
 
             const result = await client.createMission(request);
@@ -72,7 +73,7 @@ describe('ApiClient', () => {
                 target: 'all' as const,
                 durationHours: 8,
                 winnersCap: 3,
-                tasks: ['like', 'retweet']
+                tasks: ['like', 'retweet'] as TaskType[]
             };
 
             const result = await client.createMission(request);
@@ -96,7 +97,7 @@ describe('ApiClient', () => {
                 type: 'engage' as const,
                 target: 'all' as const,
                 cap: 50, // Invalid: less than 60
-                tasks: ['like']
+                tasks: ['like'] as TaskType[]
             };
 
             await expect(client.createMission(request)).rejects.toThrow('Invalid mission data');

@@ -1,5 +1,5 @@
 // Basic types for mission engine
-export type Platform = 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'whatsapp' | 'snapchat' | 'telegram';
+export type Platform = 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'whatsapp' | 'snapchat' | 'telegram' | 'custom';
 export type MissionType = 'engage' | 'content' | 'ambassador';
 export type MissionModel = 'fixed' | 'degen';
 export type TargetProfile = 'all' | 'premium';

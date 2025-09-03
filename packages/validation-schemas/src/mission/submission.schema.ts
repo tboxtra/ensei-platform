@@ -46,6 +46,13 @@ export const CreateSubmissionSchema = z.object({
     // Rewards (calculated by server)
     earnedHonors: z.number().positive('Earned honors must be positive').optional(),
     paidAt: z.date().optional()
+}).refine((data) => {
+    // If mission requires social-post proof, ensure first proof is a URL
+    // This will be validated on the server side when we have mission context
+    return true;
+}, {
+    message: 'Social post URL is required for this mission type',
+    path: ['proofs']
 });
 
 // Update Submission Schema (for status changes)

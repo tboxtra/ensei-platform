@@ -1,6 +1,6 @@
-/** @type {import('next').NextConfig} */
+/** @type {import("next").NextConfig} */
 const nextConfig = {
-    transpilePackages: ['@ensei/shared-types', '@ensei/api-client'],
+    // Standalone configuration for Vercel deployment
 }
 
 module.exports = nextConfig

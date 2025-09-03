@@ -119,6 +119,17 @@ export const TASK_CATALOG: Record<Platform, Record<MissionType, Partial<Record<T
             channel_join: 400,
             group_join: 300
         }
+    },
+    custom: {
+        engage: {
+            custom_task: 100
+        },
+        content: {
+            custom_task: 200
+        },
+        ambassador: {
+            custom_task: 150
+        }
     }
 };
 

@@ -2,8 +2,8 @@
   "name": "@ensei/shared-types",
   "version": "1.0.0",
   "description": "Shared TypeScript types for Ensei Platform",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],

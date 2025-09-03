@@ -105,6 +105,48 @@ export const ReviewStatsSchema = z.object({
     rejectionBreakdown: z.record(RejectionReasonSchema, z.number().int().min(0)).optional()
 });
 
+// Review vote creation schema
+export const createReviewVoteSchema = z.object({
+    assignmentId: z.string().uuid(),
+    rating: z.union([
+        z.literal(1),
+        z.literal(2),
+        z.literal(3),
+        z.literal(4),
+        z.literal(5)
+    ]),
+    commentLink: z.string().url().min(1), // reviewer's comment URL on submitter's post
+}).strict();
+
+// Review assignment response schema
+export const reviewAssignmentSchema = z.object({
+    id: z.string().uuid(),
+    missionId: z.string().uuid(),
+    submissionId: z.string().uuid(),
+    reviewerUserId: z.string().uuid(),
+    status: z.enum(['pending', 'completed', 'expired']),
+    createdAt: z.string().datetime(),
+
+    // Mission details for context
+    mission: z.object({
+        id: z.string().uuid(),
+        title: z.string(),
+        platform: z.string(),
+        type: z.string(),
+    }),
+
+    // Submission details for review
+    submission: z.object({
+        id: z.string().uuid(),
+        userId: z.string().uuid(),
+        proofs: z.array(z.string().url()),
+        submittedAt: z.string().datetime(),
+    }),
+}).strict();
+
+// Review queue response schema
+export const reviewQueueSchema = z.array(reviewAssignmentSchema);
+
 // Type exports
 export type ReviewAction = z.infer<typeof ReviewActionSchema>;
 export type RejectionReason = z.infer<typeof RejectionReasonSchema>;

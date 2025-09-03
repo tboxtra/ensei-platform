@@ -1,4 +1,4 @@
-export type Platform = 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'whatsapp' | 'snapchat' | 'telegram';
+export type Platform = 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'whatsapp' | 'snapchat' | 'telegram' | 'custom';
 
 export type MissionType = 'engage' | 'content' | 'ambassador';
 
@@ -6,21 +6,35 @@ export type MissionModel = 'fixed' | 'degen';
 
 export type TargetProfile = 'all' | 'premium';
 
+// NEW: Custom platform task specification
+export interface CustomTaskSpec {
+  customTitle: string;
+  customDescription?: string;
+  avgTimeMinutes: number;      // creator-provided
+  proofMode?: 'social-post' | 'api';
+  apiVerifierKey?: string;     // e.g., 'steam_playtime', 'spotify_listen', 'http_ping'
+}
+
+// NEW: Global proof requirement
+export type ProofRequirement =
+  | { mode: 'social-post'; networks?: Platform[] } // networks optional filter (e.g., [twitter, instagram])
+  | { mode: 'api'; verifierKey: string };          // uses verification-service
+
 export type TaskType =
   // Twitter tasks
-  | 'like' | 'retweet' | 'comment' | 'quote'
+  | 'like' | 'retweet' | 'comment' | 'quote' | 'follow'
   | 'meme' | 'thread' | 'article' | 'videoreview'
   | 'pfp' | 'name_bio_keywords' | 'pinned_tweet' | 'poll' | 'spaces' | 'community_raid'
 
   // Instagram tasks
-  | 'follow' | 'story_repost'
+  | 'story_repost'
   | 'feed_post' | 'reel' | 'carousel'
   | 'hashtag_in_bio' | 'story_highlight'
 
   // TikTok tasks
   | 'repost_duet'
   | 'skit' | 'challenge' | 'product_review' | 'status_style'
-  | 'hashtag_in_bio' | 'pinned_branded_video'
+  | 'pinned_branded_video'
 
   // Facebook tasks
   | 'share_post'
@@ -34,7 +48,6 @@ export type TaskType =
 
   // Snapchat tasks
   | 'story_100_views' | 'snap_repost'
-  | 'story_highlight'
 
   // Telegram tasks
   | 'channel_post' | 'group_message'
@@ -72,6 +85,9 @@ export interface CreateMissionRequest {
   per_winner_honors?: number;
   winners_cap?: number;
 
+  // NEW: Custom platform specification
+  customSpec?: CustomTaskSpec;
+
   // Optional platform-specific fields
   tweet_url?: string;
   tg_invite?: string;
@@ -95,6 +111,13 @@ export interface Mission {
   user_pool_honors?: number;
   per_winner_honors?: number;
   winners_cap?: number;
+
+  // NEW: Custom platform specification
+  customSpec?: CustomTaskSpec;
+
+  // NEW: Global proof requirement
+  proofRequirement: ProofRequirement;
+
   status: 'active' | 'completed' | 'cancelled';
   created_at: Date;
   expires_at: Date;
@@ -107,11 +130,15 @@ export interface MissionSubmission {
   mission_id: string;
   user_id: string;
   proofs: Proof[];
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected';
   submitted_at: Date;
   reviewed_at?: Date;
   reviewer_id?: string;
   rejection_reason?: string;
+
+  // NEW: Rating fields for decentralized reviews
+  ratingAvg?: number;    // computed from 5 votes
+  ratingCount?: number;  // always 5 when completed
 }
 
 export interface Proof {

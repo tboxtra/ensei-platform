@@ -362,3 +362,6 @@ Task 11: Security & Auth
 	•	Refund Logic: Task 9.5.
 	•	Premium Feature Flag: ff.premium_rewards_multiplier.
 	•	Canonical Degen Presets: Use only 2025-09 spec table.
+
+
+Check docs/PRODUCT_TECH_UPDATE.md for additional update

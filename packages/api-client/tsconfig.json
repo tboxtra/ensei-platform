@@ -1,9 +1,21 @@
 {
-    "extends": "../../tsconfig.json",
     "compilerOptions": {
+        "target": "ES2020",
+        "module": "commonjs",
+        "lib": [
+            "ES2020"
+        ],
         "outDir": "./dist",
         "declaration": true,
         "composite": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": false,
         "baseUrl": ".",
         "paths": {
             "@ensei/shared-types": [
@@ -17,6 +29,7 @@
     "exclude": [
         "dist",
         "node_modules",
-        "__tests__"
+        "**/*.test.ts",
+        "**/*.spec.ts"
     ]
 }

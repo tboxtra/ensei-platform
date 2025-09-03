@@ -10,15 +10,19 @@ export type UserStatus = 'active' | 'suspended' | 'banned';
 export type UserRole = 'user' | 'creator' | 'admin' | 'moderator';
 
 export type MissionStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
-export type SubmissionStatus = 'pending' | 'approved' | 'rejected' | 'disputed';
+export type SubmissionStatus = 'pending' | 'accepted' | 'rejected' | 'disputed';
 
-export type LedgerEntryType = 
+// NEW: Review assignment status
+export type ReviewAssignmentStatus = 'pending' | 'completed' | 'expired';
+
+export type LedgerEntryType =
   | 'mission_creation'
   | 'mission_reward'
   | 'withdrawal'
   | 'refund'
   | 'bonus'
-  | 'penalty';
+  | 'penalty'
+  | 'reviewer_payout'; // NEW: Reviewer rewards
 
 export type WithdrawalStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
@@ -43,19 +47,19 @@ export interface User {
   created_at: Date;
   updated_at: Date;
   last_active_at: Date;
-  
+
   // Social media profiles
   twitter_handle?: string;
   instagram_handle?: string;
   tiktok_handle?: string;
   facebook_handle?: string;
   telegram_username?: string;
-  
+
   // Verification
   email_verified: boolean;
   phone_verified: boolean;
   kyc_verified: boolean;
-  
+
   // Settings
   notification_preferences: NotificationPreferences;
   privacy_settings: PrivacySettings;
@@ -72,18 +76,18 @@ export interface Mission {
   tasks: MissionTask[];
   premium: boolean;
   target_profile: TargetProfile;
-  
+
   // Fixed model fields
   cap?: number;
   rewards_per_user?: number;
-  
+
   // Degen model fields
   duration_hours?: number;
   winners_cap?: number;
   total_cost_usd?: number;
   user_pool_honors?: number;
   per_winner_honors?: number;
-  
+
   // Status and metadata
   status: MissionStatus;
   created_at: Date;
@@ -91,16 +95,16 @@ export interface Mission {
   expires_at: Date;
   started_at?: Date;
   completed_at?: Date;
-  
+
   // Statistics
   submissions_count: number;
   approved_count: number;
   rejected_count: number;
   total_rewards_distributed: number;
-  
+
   // Platform-specific data
   platform_data?: Record<string, any>;
-  
+
   // Creator reference
   creator?: User;
 }
@@ -114,7 +118,7 @@ export interface MissionTask {
   base_honors: number;
   proof_requirements: ProofRequirement[];
   created_at: Date;
-  
+
   // Mission reference
   mission?: Mission;
 }
@@ -136,14 +140,14 @@ export interface Submission {
   reviewed_at?: Date;
   reviewer_id?: string;
   rejection_reason?: string;
-  
+
   // Proofs
   proofs: Proof[];
-  
+
   // Rewards
   earned_honors: number;
   paid_at?: Date;
-  
+
   // References
   mission?: Mission;
   user?: User;
@@ -161,7 +165,7 @@ export interface Proof {
   verified_at?: Date;
   ai_verification_result?: AIVerificationResult;
   created_at: Date;
-  
+
   // References
   submission?: Submission;
   task?: MissionTask;
@@ -188,7 +192,7 @@ export interface LedgerEntry {
   description: string;
   metadata?: Record<string, any>;
   created_at: Date;
-  
+
   // References
   user?: User;
 }
@@ -205,7 +209,7 @@ export interface Withdrawal {
   processed_at?: Date;
   failed_at?: Date;
   failure_reason?: string;
-  
+
   // References
   user?: User;
 }

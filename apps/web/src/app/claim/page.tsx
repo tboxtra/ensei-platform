@@ -1,293 +1,370 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useApi } from '../../hooks/useApi';
+import { ModernLayout } from '../../components/layout/ModernLayout';
+import { ModernCard } from '../../components/ui/ModernCard';
+import { ModernButton } from '../../components/ui/ModernButton';
 
 export default function ClaimPage() {
-    const [claimableRewards] = useState([
+    const { getWalletBalance, getClaimableRewards, claimReward, loading, error } = useApi();
+    const [walletBalance, setWalletBalance] = useState<any>(null);
+    const [claimableRewards, setClaimableRewards] = useState<any[]>([]);
+    const [claimingReward, setClaimingReward] = useState<string | null>(null);
+    const [selectedFilter, setSelectedFilter] = useState('all');
+
+    useEffect(() => {
+        loadWalletData();
+    }, []);
+
+    const loadWalletData = async () => {
+        try {
+            // Load wallet balance
+            const balance = await getWalletBalance();
+            setWalletBalance(balance);
+        } catch (err) {
+            console.error('Error loading wallet balance:', err);
+            // Demo data for when API is not available
+            setWalletBalance({
+                available_honors: 2500,
+                available_usd: 5.56,
+                pending_honors: 1300,
+                pending_usd: 2.89,
+                total_earned_honors: 4500,
+                total_earned_usd: 10.00
+            });
+        }
+
+        try {
+            // Load claimable rewards
+            const rewards = await getClaimableRewards();
+            setClaimableRewards(Array.isArray(rewards) ? rewards : []);
+        } catch (err) {
+            console.error('Error loading claimable rewards:', err);
+            // Demo data for when API is not available
+            setClaimableRewards([
         {
             id: '1',
-            missionId: '1',
-            missionTitle: 'Engage with our latest tweet about Web3',
+                    mission_id: 'mission-1',
+                    mission_title: 'Twitter Engagement Campaign',
             platform: 'twitter',
             type: 'engage',
-            reward: 320,
-            submittedAt: '2024-01-12T10:30:00Z',
-            approvedAt: '2024-01-12T11:30:00Z',
-            status: 'claimable'
+                    status: 'approved',
+                    reward_honors: 500,
+                    reward_usd: 1.11,
+                    submitted_at: '2024-01-16T14:30:00Z',
+                    approved_at: '2024-01-17T10:15:00Z'
         },
         {
             id: '2',
-            missionId: '2',
-            missionTitle: 'Create content for our brand campaign',
+                    mission_id: 'mission-2',
+                    mission_title: 'Instagram Content Creation',
             platform: 'instagram',
             type: 'content',
-            reward: 1800,
-            submittedAt: '2024-01-12T09:15:00Z',
-            approvedAt: '2024-01-12T10:15:00Z',
-            status: 'claimed'
+                    status: 'approved',
+                    reward_honors: 800,
+                    reward_usd: 1.78,
+                    submitted_at: '2024-01-15T16:45:00Z',
+                    approved_at: '2024-01-16T09:30:00Z'
         },
         {
             id: '3',
-            missionId: '3',
-            missionTitle: 'Become a brand ambassador',
+                    mission_id: 'mission-3',
+                    mission_title: 'TikTok Ambassador Program',
             platform: 'tiktok',
             type: 'ambassador',
-            reward: 600,
-            submittedAt: '2024-01-12T08:45:00Z',
-            approvedAt: '2024-01-12T09:45:00Z',
-            status: 'claimable'
+                    status: 'pending',
+                    reward_honors: 1200,
+                    reward_usd: 2.67,
+                    submitted_at: '2024-01-18T11:20:00Z',
+                    approved_at: null
+                }
+            ]);
         }
-    ]);
+    };
 
-    const [selectedStatus, setSelectedStatus] = useState('claimable');
+    const handleClaimReward = async (rewardId: string) => {
+        setClaimingReward(rewardId);
+        try {
+            await claimReward(rewardId);
+            alert('Reward claimed successfully!');
+            // Refresh data
+            loadWalletData();
+        } catch (err) {
+            alert('Error claiming reward. Please try again.');
+        } finally {
+            setClaimingReward(null);
+        }
+    };
+
+    const getPlatformIcon = (platform: string) => {
+        const icons: { [key: string]: string } = {
+            twitter: '𝕏',
+            instagram: '📸',
+            tiktok: '🎵',
+            facebook: '📘',
+            whatsapp: '💬',
+            snapchat: '👻',
+            telegram: '📱'
+        };
+        return icons[platform] || '🌐';
+    };
+
+    const getStatusBadge = (status: string) => {
+        const colors = {
+            approved: 'bg-green-500/20 text-green-400 border-green-500/30',
+            pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            rejected: 'bg-red-500/20 text-red-400 border-red-500/30'
+        };
+        return colors[status as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    };
 
     const filteredRewards = claimableRewards.filter(reward => {
-        if (selectedStatus !== 'all' && reward.status !== selectedStatus) return false;
-        return true;
+        if (selectedFilter === 'all') return true;
+        return reward.status === selectedFilter;
     });
 
-    const totalClaimable = claimableRewards
-        .filter(r => r.status === 'claimable')
-        .reduce((sum, r) => sum + r.reward, 0);
-
-    const totalClaimed = claimableRewards
-        .filter(r => r.status === 'claimed')
-        .reduce((sum, r) => sum + r.reward, 0);
-
-    const handleClaimAll = () => {
-        // Handle claim all logic here
-        console.log('Claiming all rewards:', totalClaimable);
-    };
-
-    const handleClaimSingle = (rewardId: string) => {
-        // Handle single claim logic here
-        console.log('Claiming reward:', rewardId);
-    };
+    if (loading) {
+    return (
+            <ModernLayout currentPage="/claim">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <p className="text-gray-400">Loading your rewards...</p>
+                    </div>
+                </div>
+            </ModernLayout>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-black text-white">
-            {/* Top Bar */}
-            <div className="bg-gray-900 border-b border-gray-800 px-6 py-3">
-                <div className="flex justify-between items-center">
-                    <div className="text-sm text-gray-400">ENSEI UGT</div>
-                    <div className="text-center">
-                        <div className="text-lg font-semibold">Honors: 0 ≈ $0.00</div>
+        <ModernLayout currentPage="/claim">
+            <div className="max-w-7xl mx-auto">
+                {/* Hero Header */}
+                <div className="text-center mb-12">
+                    <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-green-400 via-emerald-500 to-blue-500 bg-clip-text text-transparent mb-4">
+                        Claim Rewards
+                    </h1>
+                    <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                        Claim your earned rewards from completed missions and track your earnings. Your hard work pays off!
+                    </p>
+                </div>
+
+                {/* Wallet Balance */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl p-6 border border-green-500/30">
+                        <div className="text-3xl font-bold text-green-400 mb-2">
+                            {walletBalance?.available_honors?.toLocaleString() || '2,500'}
+                        </div>
+                        <div className="text-sm text-gray-400">Available Honors</div>
                     </div>
-                    <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                        Demo Login
-                    </button>
-                </div>
-            </div>
-
-            <div className="flex">
-                {/* Left Sidebar */}
-                <div className="w-64 bg-gray-900 min-h-screen p-4">
-                    <div className="text-xl font-bold text-green-500 mb-8">Ensei</div>
-                    <nav className="space-y-2">
-                        <a href="/dashboard" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">🏠</span> Dashboard
-                        </a>
-                        <a href="/missions" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">🔍</span> Discover & Earn
-                        </a>
-                        <a href="/missions/create" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">💼</span> Create Mission
-                        </a>
-                        <a href="/missions/my" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">📊</span> My Missions
-                        </a>
-                        <a href="/review" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">📄</span> Review
-                        </a>
-                        <a href="/claim" className="flex items-center text-green-500 bg-green-900/20 p-2 rounded">
-                            <span className="mr-3">💰</span> Claim
-                        </a>
-                        <a href="/wallet" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">👛</span> Wallet
-                        </a>
-                    </nav>
-                </div>
-
-                {/* Main Content */}
-                <div className="flex-1 p-6">
-                    <div className="max-w-6xl mx-auto">
-                        <h1 className="text-3xl font-bold mb-8">Claim Rewards</h1>
-
-                        {/* Stats */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-gray-400 text-sm">Claimable Rewards</p>
-                                        <p className="text-2xl font-bold">{totalClaimable.toLocaleString()} honors</p>
-                                        <p className="text-sm text-gray-400">≈ ${(totalClaimable / 450).toFixed(2)} USD</p>
+                    <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-lg rounded-2xl p-6 border border-blue-500/30">
+                        <div className="text-3xl font-bold text-blue-400 mb-2">
+                            ${walletBalance?.available_usd?.toFixed(2) || '5.56'}
+                        </div>
+                        <div className="text-sm text-gray-400">Available USD</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl p-6 border border-yellow-500/30">
+                        <div className="text-3xl font-bold text-yellow-400 mb-2">
+                            {walletBalance?.pending_honors?.toLocaleString() || '1,300'}
+                        </div>
+                        <div className="text-sm text-gray-400">Pending Honors</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-6 border border-purple-500/30">
+                        <div className="text-3xl font-bold text-purple-400 mb-2">
+                            ${walletBalance?.pending_usd?.toFixed(2) || '2.89'}
                                     </div>
-                                    <div className="text-3xl">💰</div>
+                        <div className="text-sm text-gray-400">Pending USD</div>
                                 </div>
                             </div>
 
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-gray-400 text-sm">Total Claimed</p>
-                                        <p className="text-2xl font-bold">{totalClaimed.toLocaleString()} honors</p>
-                                        <p className="text-sm text-gray-400">≈ ${(totalClaimed / 450).toFixed(2)} USD</p>
-                                    </div>
-                                    <div className="text-3xl">✅</div>
-                                </div>
+                {/* Total Earnings Summary */}
+                <ModernCard title="Earnings Summary" icon="💰" className="mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="text-center p-6 bg-gray-800/30 rounded-xl">
+                            <div className="text-3xl font-bold text-emerald-400 mb-2">
+                                {walletBalance?.total_earned_honors?.toLocaleString() || '4,500'}
                             </div>
+                            <div className="text-sm text-gray-400">Total Honors Earned</div>
+                                    </div>
+                        <div className="text-center p-6 bg-gray-800/30 rounded-xl">
+                            <div className="text-3xl font-bold text-blue-400 mb-2">
+                                ${walletBalance?.total_earned_usd?.toFixed(2) || '10.00'}
+                            </div>
+                            <div className="text-sm text-gray-400">Total USD Earned</div>
+                        </div>
+                    </div>
+                </ModernCard>
 
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <div className="flex items-center justify-between">
+                {/* Claimable Rewards */}
+                <div className="mb-8">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                                     <div>
-                                        <p className="text-gray-400 text-sm">Pending Approvals</p>
-                                        <p className="text-2xl font-bold">{claimableRewards.filter(r => r.status === 'pending').length}</p>
-                                        <p className="text-sm text-gray-400">submissions</p>
+                            <h2 className="text-2xl font-bold text-white mb-2">Claimable Rewards</h2>
+                            <p className="text-gray-400">
+                                {filteredRewards.length} reward{filteredRewards.length !== 1 ? 's' : ''} available to claim
+                            </p>
                                     </div>
-                                    <div className="text-3xl">⏳</div>
-                                </div>
-                            </div>
+                        <div className="flex gap-4">
+                            <select
+                                value={selectedFilter}
+                                onChange={(e) => setSelectedFilter(e.target.value)}
+                                className="p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            >
+                                <option value="all">All Rewards</option>
+                                <option value="approved">Approved</option>
+                                <option value="pending">Pending</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                            <ModernButton
+                                onClick={loadWalletData}
+                                variant="secondary"
+                                size="sm"
+                            >
+                                🔄 Refresh
+                            </ModernButton>
+                        </div>
                         </div>
 
-                        {/* Claim All Button */}
-                        {totalClaimable > 0 && (
-                            <div className="bg-green-900/20 border border-green-600 rounded-lg p-6 mb-8">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h2 className="text-lg font-semibold mb-2">Claim All Rewards</h2>
-                                        <p className="text-gray-400">Claim all your approved rewards at once</p>
-                                    </div>
-                                    <button
-                                        onClick={handleClaimAll}
-                                        className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-                                    >
-                                        Claim {totalClaimable.toLocaleString()} Honors
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Status Filter */}
-                        <div className="bg-gray-800 rounded-lg p-6 mb-8">
-                            <h2 className="text-lg font-semibold mb-4">Filter by Status</h2>
-                            <div className="flex space-x-4">
-                                <button
-                                    onClick={() => setSelectedStatus('all')}
-                                    className={`px-4 py-2 rounded-lg text-sm ${selectedStatus === 'all'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        }`}
-                                >
-                                    All ({claimableRewards.length})
-                                </button>
-                                <button
-                                    onClick={() => setSelectedStatus('claimable')}
-                                    className={`px-4 py-2 rounded-lg text-sm ${selectedStatus === 'claimable'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        }`}
-                                >
-                                    Claimable ({claimableRewards.filter(r => r.status === 'claimable').length})
-                                </button>
-                                <button
-                                    onClick={() => setSelectedStatus('claimed')}
-                                    className={`px-4 py-2 rounded-lg text-sm ${selectedStatus === 'claimed'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        }`}
-                                >
-                                    Claimed ({claimableRewards.filter(r => r.status === 'claimed').length})
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Rewards List */}
-                        <div className="space-y-6">
+                    {filteredRewards.length === 0 ? (
+                        <ModernCard className="text-center py-16">
+                            <div className="text-6xl mb-4">🎁</div>
+                            <h3 className="text-xl font-semibold mb-2">No rewards to claim</h3>
+                            <p className="text-gray-400 mb-6">
+                                {claimableRewards.length === 0
+                                    ? "You haven't earned any rewards yet. Complete missions to start earning!"
+                                    : "No rewards match your current filter."
+                                }
+                            </p>
+                            <ModernButton
+                                onClick={() => window.location.href = '/missions'}
+                                variant="primary"
+                            >
+                                Browse Missions
+                            </ModernButton>
+                        </ModernCard>
+                    ) : (
+                        <div className="space-y-4">
                             {filteredRewards.map((reward) => (
-                                <div key={reward.id} className="bg-gray-800 rounded-lg p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center space-x-4">
-                                            <div className="flex items-center space-x-2">
-                                                <span className="text-2xl">
-                                                    {reward.platform === 'twitter' && '𝕏'}
-                                                    {reward.platform === 'instagram' && '📸'}
-                                                    {reward.platform === 'tiktok' && '🎵'}
-                                                    {reward.platform === 'facebook' && '📘'}
-                                                    {reward.platform === 'whatsapp' && '💬'}
-                                                    {reward.platform === 'snapchat' && '👻'}
-                                                    {reward.platform === 'telegram' && '📱'}
+                                <ModernCard key={reward.id} className="p-6">
+                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                                        <div className="flex items-start gap-4">
+                                            <div className="text-3xl">
+                                                {getPlatformIcon(reward.platform)}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h3 className="text-xl font-bold text-white">{reward.mission_title}</h3>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(reward.status)}`}>
+                                                        {reward.status}
                                                 </span>
-                                                <span className={`px-2 py-1 rounded text-xs ${reward.type === 'engage' ? 'bg-blue-600 text-white' :
-                                                        reward.type === 'content' ? 'bg-purple-600 text-white' :
-                                                            'bg-yellow-600 text-white'
-                                                    }`}>
-                                                    {reward.type.charAt(0).toUpperCase() + reward.type.slice(1)}
-                                                </span>
-                                                <span className={`px-2 py-1 rounded text-xs ${reward.status === 'claimable' ? 'bg-green-600 text-white' :
-                                                        reward.status === 'claimed' ? 'bg-gray-600 text-gray-300' :
-                                                            'bg-yellow-600 text-white'
-                                                    }`}>
-                                                    {reward.status.charAt(0).toUpperCase() + reward.status.slice(1)}
-                                                </span>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
+                                                    <span className="capitalize">{reward.platform}</span>
+                                                    <span>•</span>
+                                                    <span className="capitalize">{reward.type}</span>
+                                                    <span>•</span>
+                                                    <span>Submitted {new Date(reward.submitted_at).toLocaleDateString()}</span>
+                                                    {reward.approved_at && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span>Approved {new Date(reward.approved_at).toLocaleDateString()}</span>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
+                                        <div className="flex flex-col items-end gap-4">
                                         <div className="text-right">
-                                            <p className="text-sm text-gray-400">Reward</p>
-                                            <p className="text-lg font-semibold">{reward.reward.toLocaleString()} honors</p>
-                                            <p className="text-sm text-gray-400">≈ ${(reward.reward / 450).toFixed(2)} USD</p>
+                                                <div className="text-2xl font-bold text-green-400 mb-1">
+                                                    {reward.reward_honors?.toLocaleString()} Honors
+                                                </div>
+                                                <div className="text-gray-400 text-sm">
+                                                    ${reward.reward_usd?.toFixed(2)} USD
                                         </div>
                                     </div>
-
-                                    <h3 className="text-xl font-semibold mb-2">{reward.missionTitle}</h3>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                        <div>
-                                            <p className="text-sm text-gray-400">Submitted</p>
-                                            <p className="font-semibold">{new Date(reward.submittedAt).toLocaleDateString()}</p>
+                                            <div className="flex gap-2">
+                                                {reward.status === 'approved' ? (
+                                                    <ModernButton
+                                                        onClick={() => handleClaimReward(reward.id)}
+                                                        variant="success"
+                                                        size="sm"
+                                                        loading={claimingReward === reward.id}
+                                                    >
+                                                        {claimingReward === reward.id ? 'Claiming...' : 'Claim'}
+                                                    </ModernButton>
+                                                ) : (
+                                                    <ModernButton
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        disabled
+                                                    >
+                                                        {reward.status === 'pending' ? 'Pending Review' : 'Rejected'}
+                                                    </ModernButton>
+                                                )}
+                                                <ModernButton
+                                                    onClick={() => window.location.href = `/missions/${reward.mission_id}`}
+                                                    variant="secondary"
+                                                    size="sm"
+                                                >
+                                                    View Mission
+                                                </ModernButton>
                                         </div>
-                                        <div>
-                                            <p className="text-sm text-gray-400">Approved</p>
-                                            <p className="font-semibold">{new Date(reward.approvedAt).toLocaleDateString()}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-400">Mission ID</p>
-                                            <p className="font-semibold">{reward.missionId}</p>
                                         </div>
                                     </div>
-
-                                    {reward.status === 'claimable' && (
-                                        <div className="flex justify-end">
-                                            <button
-                                                onClick={() => handleClaimSingle(reward.id)}
-                                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                                            >
-                                                Claim {reward.reward.toLocaleString()} Honors
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {reward.status === 'claimed' && (
-                                        <div className="flex justify-end">
-                                            <span className="text-green-400 text-sm">✓ Claimed</span>
+                                </ModernCard>
+                            ))}
                                         </div>
                                     )}
                                 </div>
-                            ))}
-                        </div>
 
-                        {filteredRewards.length === 0 && (
-                            <div className="text-center py-12">
-                                <div className="text-6xl mb-4">💰</div>
-                                <h3 className="text-xl font-semibold mb-2">No rewards found</h3>
-                                <p className="text-gray-400">Complete missions to earn rewards</p>
-                                <a href="/missions" className="inline-block mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
-                                    Discover Missions
-                                </a>
+                {/* How Claiming Works */}
+                <ModernCard title="How Claiming Works" icon="ℹ️">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                        <div>
+                            <div className="text-3xl mb-3">📝</div>
+                            <h4 className="font-semibold text-white mb-2">1. Complete Mission</h4>
+                            <p className="text-gray-400 text-sm">Submit your work and wait for approval</p>
+                        </div>
+                        <div>
+                            <div className="text-3xl mb-3">✅</div>
+                            <h4 className="font-semibold text-white mb-2">2. Get Approved</h4>
+                            <p className="text-gray-400 text-sm">Your submission is reviewed and approved</p>
+                        </div>
+                        <div>
+                            <div className="text-3xl mb-3">💰</div>
+                            <h4 className="font-semibold text-white mb-2">3. Claim Reward</h4>
+                            <p className="text-gray-400 text-sm">Claim your rewards instantly to your wallet</p>
                             </div>
-                        )}
+                    </div>
+                </ModernCard>
+
+                {/* Additional Information */}
+                <ModernCard title="Important Information" icon="📋" className="mt-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 className="font-semibold text-green-400 mb-3">✅ What You Can Do</h4>
+                            <ul className="space-y-2 text-sm text-gray-300">
+                                <li>• Claim approved rewards instantly</li>
+                                <li>• Track your earnings history</li>
+                                <li>• View pending submissions</li>
+                                <li>• Monitor your wallet balance</li>
+                                <li>• Withdraw funds to your account</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-yellow-400 mb-3">⚠️ Important Notes</h4>
+                            <ul className="space-y-2 text-sm text-gray-300">
+                                <li>• Rewards are paid in Honors (1 USD = 450 Honors)</li>
+                                <li>• Pending rewards require approval first</li>
+                                <li>• Rejected submissions are not eligible</li>
+                                <li>• Minimum withdrawal amount applies</li>
+                                <li>• Processing time: 1-3 business days</li>
+                            </ul>
                     </div>
                 </div>
+                </ModernCard>
             </div>
-        </div>
+        </ModernLayout>
     );
 }

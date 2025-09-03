@@ -8,6 +8,7 @@ interface ModernButtonProps {
     size?: 'sm' | 'md' | 'lg';
     disabled?: boolean;
     loading?: boolean;
+    type?: 'button' | 'submit' | 'reset';
 }
 
 export function ModernButton({
@@ -17,7 +18,8 @@ export function ModernButton({
     variant = 'primary',
     size = 'md',
     disabled = false,
-    loading = false
+    loading = false,
+    type = 'button'
 }: ModernButtonProps) {
     const baseClasses = 'font-medium transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black';
 
@@ -38,6 +40,7 @@ export function ModernButton({
 
     return (
         <button
+            type={type}
             onClick={onClick}
             disabled={disabled || loading}
             className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabledClasses} ${className}`}

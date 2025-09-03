@@ -3,6 +3,10 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { missionRoutes } from './routes/missions';
+import { walletRoutes } from './routes/wallet';
+import { rewardsRoutes } from './routes/rewards';
+import { reviewRoutes } from './routes/review';
+import { authRoutes } from './auth';
 
 const fastify = Fastify({
     logger: true
@@ -34,7 +38,11 @@ const start = async () => {
         });
 
         // Register routes
+        await fastify.register(authRoutes);
         await fastify.register(missionRoutes);
+        await fastify.register(walletRoutes);
+        await fastify.register(rewardsRoutes);
+        await fastify.register(reviewRoutes);
 
         // Health check
         fastify.get('/health', async (request, reply) => {

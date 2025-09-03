@@ -6,6 +6,7 @@ import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
 import { ModernInput } from '../../../components/ui/ModernInput';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
+import CustomMissionForm from '../../../components/missions/CustomMissionForm';
 
 // Constants
 const TASK_PRICES = {
@@ -139,7 +140,7 @@ const TASK_PRICES = {
 const HONORS_PER_USD = 450;
 const PREMIUM_COST_MULTIPLIER = 5;
 const USER_POOL_FACTOR = 0.5;
-const PLATFORM_FEE_RATE = 0.1;
+const PLATFORM_FEE_RATE = 1.0; // 100% platform fee
 
 // Helper function to get task price safely
 const getTaskPrice = (platform: string, type: string, task: string): number => {
@@ -178,17 +179,50 @@ const AUDIENCE_PRESETS = [
   { hours: 240, label: 'Massive (240h)', description: 'Maximum exposure' }
 ];
 
+// Platform-specific content placeholders
+const PLATFORM_CONTENT_PLACEHOLDERS = {
+  twitter: {
+    contentLink: 'https://x.com/username/status/123',
+    instructions: 'Be constructive, relevant and supportive. Engage meaningfully with the content.'
+  },
+  instagram: {
+    contentLink: 'https://instagram.com/p/post_id',
+    instructions: 'Create engaging content that resonates with the community. Use relevant hashtags.'
+  },
+  tiktok: {
+    contentLink: 'https://tiktok.com/@username/video/video_id',
+    instructions: 'Create trending content that fits the platform style. Use popular sounds and effects.'
+  },
+  facebook: {
+    contentLink: 'https://facebook.com/groups/group_id/permalink/post_id',
+    instructions: 'Share valuable content that adds to the group discussion. Be community-focused.'
+  },
+  whatsapp: {
+    contentLink: 'https://wa.me/phone_number',
+    instructions: 'Share the message with your contacts. Be authentic and personal in your approach.'
+  },
+  snapchat: {
+    contentLink: 'https://snapchat.com/add/username',
+    instructions: 'Create engaging snaps that capture attention. Use creative filters and effects.'
+  },
+  telegram: {
+    contentLink: 'https://t.me/channel_name',
+    instructions: 'Join the channel and participate actively. Share valuable insights and engage with others.'
+  }
+};
+
 export default function CreateMissionPage() {
-  const { createMission, loading, error } = useApi();
+  const { createMission, loading, error, apiAvailable } = useApi();
 
   const [selectedPlatform, setSelectedPlatform] = useState('twitter');
   const [selectedType, setSelectedType] = useState('engage');
   const [selectedModel, setSelectedModel] = useState('fixed');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [isPremium, setIsPremium] = useState(false);
-  const [tweetLink, setTweetLink] = useState('https://x.com/username/status/123');
-  const [instructions, setInstructions] = useState('Be constructive, relevant and supportive.');
+  const [contentLink, setContentLink] = useState(PLATFORM_CONTENT_PLACEHOLDERS.twitter.contentLink);
+  const [instructions, setInstructions] = useState(PLATFORM_CONTENT_PLACEHOLDERS.twitter.instructions);
   const [cap, setCap] = useState(100);
+  const [capInput, setCapInput] = useState('100');
   const [rewardPerUser, setRewardPerUser] = useState(0);
   const [duration, setDuration] = useState(24);
 
@@ -196,9 +230,57 @@ export default function CreateMissionPage() {
   const [selectedDegenPreset, setSelectedDegenPreset] = useState(DEGEN_PRESETS[3]); // 8h default
   const [winnersCap, setWinnersCap] = useState(3);
 
+  // Custom platform state
+  const [customTitle, setCustomTitle] = useState('');
+  const [customTimeMinutes, setCustomTimeMinutes] = useState(30);
+  const [customProofMode, setCustomProofMode] = useState<'social-post' | 'api'>('social-post');
+  const [customApiVerifier, setCustomApiVerifier] = useState('');
+  const [customDescription, setCustomDescription] = useState('');
+
+  // Update content placeholders when platform changes
+  const handlePlatformChange = (platform: string) => {
+    setSelectedPlatform(platform);
+    setSelectedTasks([]);
+
+    // Reset custom platform fields when switching away from custom
+    if (platform !== 'custom') {
+      setCustomTitle('');
+      setCustomTimeMinutes(30);
+      setCustomProofMode('social-post');
+      setCustomApiVerifier('');
+      setCustomDescription('');
+    }
+
+    const placeholders = PLATFORM_CONTENT_PLACEHOLDERS[platform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS];
+    if (placeholders) {
+      setContentLink(placeholders.contentLink);
+      setInstructions(placeholders.instructions);
+    }
+  };
+
   // Calculate total price
   const calculateTotalPrice = () => {
-    if (selectedModel === 'fixed') {
+    if (selectedPlatform === 'custom') {
+      // Custom platform pricing: $8/hour rate
+      const hourlyRate = 8; // USD per hour
+      const timeInHours = customTimeMinutes / 60;
+      const baseCost = hourlyRate * timeInHours;
+      const platformFee = baseCost * PLATFORM_FEE_RATE;
+      const totalWithFee = baseCost + platformFee;
+      const finalUSD = isPremium ? totalWithFee * PREMIUM_COST_MULTIPLIER : totalWithFee;
+
+      return {
+        honors: finalUSD * HONORS_PER_USD,
+        usd: finalUSD,
+        perUserHonors: baseCost * HONORS_PER_USD,
+        breakdown: {
+          baseCost,
+          timeInHours,
+          platformFee,
+          premium: isPremium
+        }
+      };
+    } else if (selectedModel === 'fixed') {
       const taskHonors = selectedTasks.reduce((total, task) => {
         const price = getTaskPrice(selectedPlatform, selectedType, task);
         return total + price;
@@ -228,7 +310,9 @@ export default function CreateMissionPage() {
       }, 0);
 
       const baseCost = selectedDegenPreset.costUSD * (taskHonors > 0 ? taskHonors / 100 : 1);
-      const totalUSD = isPremium ? baseCost * PREMIUM_COST_MULTIPLIER : baseCost;
+      const platformFee = baseCost * PLATFORM_FEE_RATE;
+      const totalWithFee = baseCost + platformFee;
+      const totalUSD = isPremium ? totalWithFee * PREMIUM_COST_MULTIPLIER : totalWithFee;
       const userPoolHonors = Math.floor(totalUSD * HONORS_PER_USD * USER_POOL_FACTOR);
       const perWinnerHonors = Math.floor(userPoolHonors / winnersCap);
 
@@ -240,6 +324,7 @@ export default function CreateMissionPage() {
         breakdown: {
           taskHonors,
           baseCost,
+          platformFee,
           premium: isPremium
         }
       };
@@ -247,44 +332,43 @@ export default function CreateMissionPage() {
   };
 
   const totalPrice = calculateTotalPrice();
-  const availableTasks = Object.keys(TASK_PRICES[selectedPlatform as keyof typeof TASK_PRICES]?.[selectedType as keyof typeof TASK_PRICES.twitter] || {});
+  const availableTasks = selectedPlatform === 'custom'
+    ? ['custom_task']
+    : Object.keys(TASK_PRICES[selectedPlatform as keyof typeof TASK_PRICES]?.[selectedType as keyof typeof TASK_PRICES.twitter] || {});
 
   return (
     <ModernLayout currentPage="/missions/create">
-      <div className="max-w-5xl mx-auto">
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center space-x-8">
-            {[
-              { step: 1, title: 'Platform', active: true, completed: true },
-              { step: 2, title: 'Type', active: true, completed: true },
-              { step: 3, title: 'Details', active: true, completed: false },
-              { step: 4, title: 'Budget', active: false, completed: false }
-            ].map((item) => (
-              <div key={item.step} className="flex items-center">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 ${item.completed
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                  : item.active
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                    : 'bg-gray-700 text-gray-400'
-                  }`}>
-                  {item.completed ? '✓' : item.step}
-                </div>
-                <span className={`ml-3 font-medium ${item.active ? 'text-white' : 'text-gray-400'}`}>
-                  {item.title}
-                </span>
-              </div>
-            ))}
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Create New Mission</h1>
+          <p className="text-sm sm:text-base text-gray-400">Design and launch your social media mission</p>
         </div>
 
+        {/* API Status Indicator */}
+        {!apiAvailable && (
+          <div className="mb-6">
+            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-2xl p-4">
+              <div className="flex items-center space-x-3">
+                <span className="text-xl">⚠️</span>
+                <div>
+                  <h3 className="text-base font-semibold text-yellow-400 mb-1">Demo Mode</h3>
+                  <p className="text-yellow-200 text-sm">
+                    Backend service is not available. Using fallback data for demonstration.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Platform Selection */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-gray-800/50">
-          <h3 className="text-xl font-bold mb-6 flex items-center">
-            <span className="mr-3 text-2xl">🌐</span>
+        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+          <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">🌐</span>
             Choose Platform
           </h3>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[
               { id: 'twitter', icon: '𝕏', name: 'Twitter/X', color: 'from-blue-500 to-blue-600' },
               { id: 'instagram', icon: '📸', name: 'Instagram', color: 'from-pink-500 to-purple-600' },
@@ -292,33 +376,31 @@ export default function CreateMissionPage() {
               { id: 'facebook', icon: '📘', name: 'Facebook', color: 'from-blue-600 to-blue-700' },
               { id: 'whatsapp', icon: '💬', name: 'WhatsApp', color: 'from-green-500 to-green-600' },
               { id: 'snapchat', icon: '👻', name: 'Snapchat', color: 'from-yellow-400 to-orange-500' },
-              { id: 'telegram', icon: '📱', name: 'Telegram', color: 'from-blue-400 to-blue-500' }
+              { id: 'telegram', icon: '📱', name: 'Telegram', color: 'from-blue-400 to-blue-500' },
+              { id: 'custom', icon: '⚡', name: 'Custom', color: 'from-purple-500 to-indigo-600' }
             ].map((platform) => (
               <button
                 key={platform.id}
-                onClick={() => {
-                  setSelectedPlatform(platform.id);
-                  setSelectedTasks([]);
-                }}
-                className={`p-6 rounded-xl flex flex-col items-center transition-all duration-300 transform hover:scale-105 ${selectedPlatform === platform.id
+                onClick={() => handlePlatformChange(platform.id)}
+                className={`p-3 sm:p-4 lg:p-6 rounded-xl flex flex-col items-center transition-all duration-300 transform hover:scale-105 ${selectedPlatform === platform.id
                   ? `bg-gradient-to-br ${platform.color} text-white shadow-xl`
                   : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                   }`}
               >
-                <span className="text-3xl mb-2">{platform.icon}</span>
-                <span className="text-sm font-medium">{platform.name}</span>
+                <span className="text-2xl sm:text-3xl mb-1 sm:mb-2">{platform.icon}</span>
+                <span className="text-xs sm:text-sm font-medium text-center">{platform.name}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Mission Type */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-gray-800/50">
-          <h3 className="text-xl font-bold mb-6 flex items-center">
-            <span className="mr-3 text-2xl">🎯</span>
+        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+          <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">🎯</span>
             Mission Type
           </h3>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {[
               { id: 'engage', icon: '🎯', name: 'Engage', description: 'Interact with content', color: 'from-blue-500 to-purple-600' },
               { id: 'content', icon: '✍️', name: 'Content Creation', description: 'Create original content', color: 'from-green-500 to-emerald-600' },
@@ -330,78 +412,80 @@ export default function CreateMissionPage() {
                   setSelectedType(type.id);
                   setSelectedTasks([]);
                 }}
-                className={`p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${selectedType === type.id
+                className={`p-4 sm:p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${selectedType === type.id
                   ? `bg-gradient-to-br ${type.color} text-white shadow-xl`
                   : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                   }`}
               >
-                <div className="text-3xl mb-3">{type.icon}</div>
-                <div className="font-bold text-lg mb-2">{type.name}</div>
-                <div className="text-sm opacity-90">{type.description}</div>
+                <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">{type.icon}</div>
+                <div className="font-bold text-base sm:text-lg mb-1 sm:mb-2">{type.name}</div>
+                <div className="text-xs sm:text-sm opacity-90">{type.description}</div>
               </button>
             ))}
           </div>
         </div>
 
         {/* Mission Model */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-gray-800/50">
-          <h3 className="text-xl font-bold mb-6 flex items-center">
-            <span className="mr-3 text-2xl">⚙️</span>
-            Mission Model
-          </h3>
-          <div className="grid grid-cols-2 gap-6">
-            {[
-              {
-                id: 'fixed',
-                icon: '📊',
-                name: 'Fixed Mission',
-                description: 'Fixed participants, task-based pricing',
-                features: ['Predictable costs', 'Fixed timeline', 'Task-based rewards'],
-                color: 'from-purple-500 to-indigo-600'
-              },
-              {
-                id: 'degen',
-                icon: '⚡',
-                name: 'Degen Mission',
-                description: 'Time-boxed, unlimited applicants',
-                features: ['Unlimited applicants', 'Time-based rewards', 'Competitive pool'],
-                color: 'from-orange-500 to-red-600'
-              }
-            ].map((model) => (
-              <button
-                key={model.id}
-                onClick={() => setSelectedModel(model.id)}
-                className={`p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${selectedModel === model.id
-                  ? `bg-gradient-to-br ${model.color} text-white shadow-xl`
-                  : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                  }`}
-              >
-                <div className="text-3xl mb-3">{model.icon}</div>
-                <div className="font-bold text-xl mb-2">{model.name}</div>
-                <div className="text-sm opacity-90 mb-4">{model.description}</div>
-                <ul className="space-y-1">
-                  {model.features.map((feature, index) => (
-                    <li key={index} className="text-sm flex items-center">
-                      <span className="mr-2">•</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </button>
-            ))}
+        {selectedPlatform !== 'custom' && (
+          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚙️</span>
+              Mission Model
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              {[
+                {
+                  id: 'fixed',
+                  icon: '📊',
+                  name: 'Fixed Mission',
+                  description: 'Fixed participants, task-based pricing',
+                  features: ['Predictable costs', 'Fixed timeline', 'Task-based rewards'],
+                  color: 'from-purple-500 to-indigo-600'
+                },
+                {
+                  id: 'degen',
+                  icon: '⚡',
+                  name: 'Degen Mission',
+                  description: 'Time-boxed, unlimited applicants',
+                  features: ['Unlimited applicants', 'Time-based rewards', 'Competitive pool'],
+                  color: 'from-orange-500 to-red-600'
+                }
+              ].map((model) => (
+                <button
+                  key={model.id}
+                  onClick={() => setSelectedModel(model.id)}
+                  className={`p-4 sm:p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${selectedModel === model.id
+                    ? `bg-gradient-to-br ${model.color} text-white shadow-xl`
+                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                    }`}
+                >
+                  <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">{model.icon}</div>
+                  <div className="font-bold text-lg sm:text-xl mb-1 sm:mb-2">{model.name}</div>
+                  <div className="text-xs sm:text-sm opacity-90 mb-3 sm:mb-4">{model.description}</div>
+                  <ul className="space-y-1">
+                    {model.features.map((feature, index) => (
+                      <li key={index} className="text-xs sm:text-sm flex items-center">
+                        <span className="mr-2">•</span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Degen-specific controls */}
-        {selectedModel === 'degen' && (
-          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-gray-800/50">
-            <h3 className="text-xl font-bold mb-6 flex items-center">
-              <span className="mr-3 text-2xl">⚡</span>
+        {selectedPlatform !== 'custom' && selectedModel === 'degen' && (
+          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚡</span>
               Degen Settings
             </h3>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-medium mb-3">Duration & Cost</label>
+                <label className="block text-sm font-medium mb-2 sm:mb-3">Duration & Cost</label>
                 <select
                   value={selectedDegenPreset.hours}
                   onChange={(e) => {
@@ -411,7 +495,7 @@ export default function CreateMissionPage() {
                       setWinnersCap(Math.min(winnersCap, preset.maxWinners));
                     }
                   }}
-                  className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                  className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 >
                   {DEGEN_PRESETS.map((preset) => (
                     <option key={preset.hours} value={preset.hours}>
@@ -421,11 +505,11 @@ export default function CreateMissionPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-3">Winners Cap</label>
+                <label className="block text-sm font-medium mb-2 sm:mb-3">Winners Cap</label>
                 <select
                   value={winnersCap}
                   onChange={(e) => setWinnersCap(parseInt(e.target.value))}
-                  className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                  className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 >
                   {Array.from({ length: selectedDegenPreset.maxWinners }, (_, i) => i + 1).map((num) => (
                     <option key={num} value={num}>
@@ -439,35 +523,42 @@ export default function CreateMissionPage() {
         )}
 
         {/* Fixed-specific controls */}
-        {selectedModel === 'fixed' && (
-          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-gray-800/50">
-            <h3 className="text-xl font-bold mb-6 flex items-center">
-              <span className="mr-3 text-2xl">📊</span>
+        {selectedPlatform !== 'custom' && selectedModel === 'fixed' && (
+          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📊</span>
               Fixed Mission Settings
             </h3>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-medium mb-3">Participant Cap</label>
+                <label className="block text-sm font-medium mb-2 sm:mb-3">Participant Cap</label>
                 <input
                   type="number"
-                  value={cap}
+                  value={capInput}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    setCap(value >= 60 ? value : 60);
+                    setCapInput(e.target.value);
+                    const value = parseInt(e.target.value) || 0;
+                    setCap(value);
                   }}
-                  min="60"
-                  className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                  onBlur={() => {
+                    if (cap < 60 && cap > 0) {
+                      setCap(60);
+                      setCapInput('60');
+                    }
+                  }}
+                  min="1"
+                  className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                   placeholder="Enter participant cap"
                 />
-                <p className="text-xs text-gray-400 mt-2">Minimum: 60 participants</p>
+                <p className="text-xs text-gray-400 mt-2">Minimum: 60 participants (auto-corrected to 60 if below)</p>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-3">Reward per User (Honors)</label>
-                <div className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white">
-                  <div className="text-lg font-bold text-green-400">
+                <label className="block text-sm font-medium mb-2 sm:mb-3">Reward per User (Honors)</label>
+                <div className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white">
+                  <div className="text-base sm:text-lg font-bold text-green-400">
                     {totalPrice.perUserHonors || 0} Honors
                   </div>
-                  <div className="text-sm text-gray-400">
+                  <div className="text-xs sm:text-sm text-gray-400">
                     ≈ ${((totalPrice.perUserHonors || 0) / HONORS_PER_USD).toFixed(2)} USD
                   </div>
                 </div>
@@ -477,173 +568,210 @@ export default function CreateMissionPage() {
           </div>
         )}
 
-        {/* Task Selection */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-gray-800/50">
-          <h3 className="text-xl font-bold mb-6 flex items-center">
-            <span className="mr-3 text-2xl">📋</span>
-            Select Tasks
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {availableTasks.map((task) => {
-              const price = getTaskPrice(selectedPlatform, selectedType, task);
-              const isSelected = selectedTasks.includes(task);
-
-              return (
-                <button
-                  key={task}
-                  onClick={() => {
-                    if (isSelected) {
-                      setSelectedTasks(selectedTasks.filter(t => t !== task));
-                    } else {
-                      setSelectedTasks([...selectedTasks, task]);
-                    }
-                  }}
-                  className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${isSelected
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                    }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium capitalize">{task.replace(/_/g, ' ')}</div>
-                      <div className="text-sm opacity-75">{price} honors</div>
-                    </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-white' : 'border-gray-500'
-                      }`}>
-                      {isSelected && <span className="text-white">✓</span>}
-                    </div>
+        {/* Custom Platform Participant Info */}
+        {selectedPlatform === 'custom' && (
+          <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-purple-500/30">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">👥</span>
+              Custom Platform Settings
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-2 sm:mb-3">Participant Cap</label>
+                <div className="p-3 sm:p-4 bg-black/30 rounded-xl">
+                  <div className="text-xl sm:text-2xl font-bold text-purple-400 mb-1">
+                    100 Participants
                   </div>
-                </button>
-              );
-            })}
+                  <div className="text-xs sm:text-sm text-gray-400">
+                    Fixed cap for custom missions
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 sm:mb-3">Duration</label>
+                <div className="p-3 sm:p-4 bg-black/30 rounded-xl">
+                  <div className="text-xl sm:text-2xl font-bold text-purple-400 mb-1">
+                    {Math.ceil(customTimeMinutes / 60)} Hours
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-400">
+                    Based on completion time
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Custom Platform Form */}
+        {selectedPlatform === 'custom' && (
+          <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-purple-500/30">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚡</span>
+              Custom Platform Configuration
+            </h3>
+            <CustomMissionForm
+              onSubmit={(data) => {
+                setCustomTitle(data.customTitle);
+                setCustomTimeMinutes(data.avgTimeMinutes);
+                setCustomProofMode(data.proofMode);
+                setCustomApiVerifier(data.apiVerifierKey || '');
+                setCustomDescription(data.customDescription || '');
+              }}
+            />
+          </div>
+        )}
+
+        {/* Task Selection */}
+        {selectedPlatform !== 'custom' && (
+          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📋</span>
+              Select Tasks
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {availableTasks.map((task) => {
+                const price = getTaskPrice(selectedPlatform, selectedType, task);
+                const isSelected = selectedTasks.includes(task);
+
+                return (
+                  <button
+                    key={task}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedTasks(selectedTasks.filter(t => t !== task));
+                      } else {
+                        setSelectedTasks([...selectedTasks, task]);
+                      }
+                    }}
+                    className={`p-3 sm:p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${isSelected
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                      : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                      }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium capitalize text-sm sm:text-base">{task.replace(/_/g, ' ')}</div>
+                        <div className="text-xs sm:text-sm opacity-75">{price} honors</div>
+                      </div>
+                      <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-white' : 'border-gray-500'
+                        }`}>
+                        {isSelected && <span className="text-white text-xs sm:text-sm">✓</span>}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Premium Toggle */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-gray-800/50">
-          <h3 className="text-xl font-bold mb-6 flex items-center">
-            <span className="mr-3 text-2xl">👑</span>
+        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+          <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">👑</span>
             Target Audience
           </h3>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <button
               onClick={() => setIsPremium(false)}
-              className={`p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${!isPremium
+              className={`p-4 sm:p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${!isPremium
                 ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                 }`}
             >
-              <div className="text-3xl mb-3">🌍</div>
-              <div className="font-bold text-lg mb-2">All Users</div>
-              <div className="text-sm opacity-90">Standard pricing</div>
+              <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🌍</div>
+              <div className="font-bold text-base sm:text-lg mb-1 sm:mb-2">All Users</div>
+              <div className="text-xs sm:text-sm opacity-90">Standard pricing</div>
             </button>
             <button
               onClick={() => setIsPremium(true)}
-              className={`p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${isPremium
+              className={`p-4 sm:p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${isPremium
                 ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                 }`}
             >
-              <div className="text-3xl mb-3">👑</div>
-              <div className="font-bold text-lg mb-2">Premium Users</div>
-              <div className="text-sm opacity-90">5x multiplier</div>
+              <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">👑</div>
+              <div className="font-bold text-base sm:text-lg mb-1 sm:mb-2">Premium Users</div>
+              <div className="text-xs sm:text-sm opacity-90">5x multiplier</div>
             </button>
           </div>
         </div>
 
         {/* Mission Details */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-gray-800/50">
-          <h3 className="text-xl font-bold mb-6 flex items-center">
-            <span className="mr-3 text-2xl">📝</span>
+        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+          <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📝</span>
             Mission Details
           </h3>
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-3">Content Link</label>
+              <label className="block text-sm font-medium mb-2 sm:mb-3">Content Link</label>
               <input
                 type="url"
-                value={tweetLink}
-                onChange={(e) => setTweetLink(e.target.value)}
-                className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
-                placeholder="https://x.com/username/status/123"
+                value={contentLink}
+                onChange={(e) => setContentLink(e.target.value)}
+                className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                placeholder={selectedPlatform === 'custom' ? "Enter your custom content link (e.g., website, app, document)" : PLATFORM_CONTENT_PLACEHOLDERS[selectedPlatform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS]?.contentLink || "Enter content link"}
               />
+              {selectedPlatform === 'custom' && (
+                <p className="text-xs text-gray-400 mt-2">
+                  Link to your custom content that users need to engage with (e.g., website, app, document, video, etc.)
+                </p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-3">Instructions</label>
+              <label className="block text-sm font-medium mb-2 sm:mb-3">Instructions</label>
               <textarea
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
                 rows={4}
-                className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 resize-none"
-                placeholder="Be constructive, relevant and supportive."
+                className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 resize-none text-sm sm:text-base"
+                placeholder={PLATFORM_CONTENT_PLACEHOLDERS[selectedPlatform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS]?.instructions || "Enter mission instructions"}
               />
             </div>
           </div>
         </div>
 
         {/* Price Preview */}
-        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-green-500/30">
-          <h3 className="text-xl font-bold mb-6 flex items-center">
-            <span className="mr-3 text-2xl">💰</span>
+        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-green-500/30">
+          <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
+            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">💰</span>
             Price Preview
           </h3>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-black/30 rounded-xl p-6">
-              <div className="text-3xl font-bold text-green-400 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div className="bg-black/30 rounded-xl p-4 sm:p-6">
+              <div className="text-2xl sm:text-3xl font-bold text-green-400 mb-1 sm:mb-2">
                 ${totalPrice.usd.toFixed(2)}
               </div>
-              <div className="text-sm text-gray-400">Total Cost (USD)</div>
+              <div className="text-xs sm:text-sm text-gray-400">Total Cost (USD)</div>
             </div>
-            <div className="bg-black/30 rounded-xl p-6">
-              <div className="text-2xl font-bold text-blue-400 mb-2">
+            <div className="bg-black/30 rounded-xl p-4 sm:p-6">
+              <div className="text-xl sm:text-2xl font-bold text-blue-400 mb-1 sm:mb-2">
                 {totalPrice.honors.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-400">Total Honors</div>
+              <div className="text-xs sm:text-sm text-gray-400">Total Honors</div>
             </div>
           </div>
 
-          {selectedModel === 'fixed' && (
-            <div className="mt-6 bg-black/30 rounded-xl p-6">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-400">Cap:</span>
-                  <span className="ml-2 font-medium">{cap} users</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Per User:</span>
-                  <span className="ml-2 font-medium">{totalPrice.perUserHonors || 0} honors</span>
+          {selectedPlatform === 'custom' && (
+            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-black/30 rounded-xl">
+              <div className="text-center">
+                <div className="text-base sm:text-lg font-semibold text-white mb-2">Custom Platform Pricing</div>
+                <div className="text-xs sm:text-sm text-gray-400 space-y-1">
+                  <div>• Base Rate: $8/hour</div>
+                  <div>• Time: {customTimeMinutes} minutes (${(customTimeMinutes / 60 * 8).toFixed(2)})</div>
+                  <div>• Platform Fee: 100% (${(customTimeMinutes / 60 * 8).toFixed(2)})</div>
+                  {isPremium && <div>• Premium Multiplier: 5x</div>}
                 </div>
               </div>
             </div>
           )}
 
-          {selectedModel === 'degen' && (
-            <div className="mt-6 bg-black/30 rounded-xl p-6">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-400">Duration:</span>
-                  <span className="ml-2 font-medium">{selectedDegenPreset.label}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Winners:</span>
-                  <span className="ml-2 font-medium">{winnersCap}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Pool:</span>
-                  <span className="ml-2 font-medium">{totalPrice.userPoolHonors?.toLocaleString() || 0} honors</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Per Winner:</span>
-                  <span className="ml-2 font-medium">{totalPrice.perWinnerHonors?.toLocaleString() || 0} honors</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {error && (
-          <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-6 mb-8">
-            <p className="text-red-400 text-sm">
+          <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
+            <p className="text-red-400 text-xs sm:text-sm">
               <strong>Error:</strong> {error}
             </p>
           </div>
@@ -652,17 +780,43 @@ export default function CreateMissionPage() {
         <ModernButton
           onClick={async () => {
             try {
+              // Validate custom platform fields
+              if (selectedPlatform === 'custom') {
+                if (!customTitle.trim()) {
+                  alert('Please enter a custom mission title');
+                  return;
+                }
+                if (customTimeMinutes < 1 || customTimeMinutes > 1440) {
+                  alert('Please enter a valid completion time between 1 and 1440 minutes');
+                  return;
+                }
+                if (customProofMode === 'api' && !customApiVerifier.trim()) {
+                  alert('Please select an API verifier for API verification mode');
+                  return;
+                }
+              }
+
               const missionData = {
                 platform: selectedPlatform,
                 type: selectedType,
                 model: selectedModel as 'fixed' | 'degen',
                 tasks: selectedTasks,
-                cap: selectedModel === 'fixed' ? cap : undefined,
-                durationHours: selectedModel === 'degen' ? selectedDegenPreset.hours : undefined,
+                cap: selectedPlatform === 'custom' ? 100 : (selectedModel === 'fixed' ? cap : undefined),
+                durationHours: selectedPlatform === 'custom' ? Math.ceil(customTimeMinutes / 60) : (selectedModel === 'fixed' ? duration : undefined),
                 winnersCap: selectedModel === 'degen' ? winnersCap : undefined,
                 isPremium,
-                tweetLink,
+                tweetLink: contentLink,
                 instructions,
+                // Custom platform data
+                ...(selectedPlatform === 'custom' && {
+                  customSpec: {
+                    customTitle,
+                    customDescription,
+                    avgTimeMinutes: customTimeMinutes,
+                    proofMode: customProofMode,
+                    apiVerifierKey: customProofMode === 'api' ? customApiVerifier : undefined,
+                  }
+                })
               };
 
               await createMission(missionData);
@@ -671,7 +825,7 @@ export default function CreateMissionPage() {
               console.error('Failed to create mission:', err);
             }
           }}
-          disabled={loading || selectedTasks.length === 0}
+          disabled={loading || (selectedPlatform !== 'custom' && selectedTasks.length === 0)}
           loading={loading}
           variant="success"
           size="lg"

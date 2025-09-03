@@ -24,9 +24,9 @@ export interface RefundRequest {
 
 export class RefundCalculator {
   private static instance: RefundCalculator;
-  
-  private constructor() {}
-  
+
+  private constructor() { }
+
   static getInstance(): RefundCalculator {
     if (!RefundCalculator.instance) {
       RefundCalculator.instance = new RefundCalculator();
@@ -38,17 +38,18 @@ export class RefundCalculator {
    * Calculate refund for a fixed mission
    */
   calculateFixedRefund(mission: Mission, currentParticipants: number): RefundCalculation {
-    if (mission.mission_model !== 'fixed') {
+    if (mission.model !== 'fixed') {
       throw new Error('Mission is not a fixed mission');
     }
 
-    const unusedSlots = (mission.participant_cap || 0) - currentParticipants;
-    const unusedSlotsPercentage = unusedSlots / (mission.participant_cap || 1);
-    
-    // Calculate refund based on unused slots
-    const baseRefund = Math.floor(mission.total_cost_honors * unusedSlotsPercentage);
+    const unusedSlots = (mission.cap || 0) - currentParticipants;
+    const unusedSlotsPercentage = unusedSlots / (mission.cap || 1);
+
+    // Calculate refund based on unused slots - we need to estimate total cost honors
+    const estimatedTotalCostHonors = (mission.total_cost_usd || 0) * 450; // 1 USD = 450 Honors
+    const baseRefund = Math.floor(estimatedTotalCostHonors * unusedSlotsPercentage);
     const platformFeeRefund = Math.floor(baseRefund * 0.1); // 10% platform fee refund
-    
+
     const totalRefundHonors = baseRefund + platformFeeRefund;
     const totalRefundUsd = totalRefundHonors / 450; // 1 USD = 450 Honors
 
@@ -57,7 +58,7 @@ export class RefundCalculator {
       model: 'fixed',
       totalRefundHonors,
       totalRefundUsd,
-      reason: `Unused participant slots: ${unusedSlots}/${mission.participant_cap}`,
+      reason: `Unused participant slots: ${unusedSlots}/${mission.cap}`,
       breakdown: {
         unusedSlots,
         baseRefund,
@@ -70,14 +71,14 @@ export class RefundCalculator {
    * Calculate refund for a degen mission
    */
   calculateDegenRefund(mission: Mission, currentTime: Date): RefundCalculation {
-    if (mission.mission_model !== 'degen') {
+    if (mission.model !== 'degen') {
       throw new Error('Mission is not a degen mission');
     }
 
     const now = currentTime.getTime();
-    const startTime = new Date(mission.starts_at || 0).getTime();
-    const endTime = new Date(mission.ends_at || 0).getTime();
-    
+    const startTime = new Date(mission.started_at || 0).getTime();
+    const endTime = new Date(mission.expires_at || 0).getTime();
+
     if (now >= endTime) {
       // Mission has ended, no refund
       return {
@@ -98,14 +99,15 @@ export class RefundCalculator {
     const totalDurationMs = endTime - startTime;
     const elapsedMs = now - startTime;
     const remainingMs = endTime - now;
-    
+
     const timeRemainingPercentage = remainingMs / totalDurationMs;
     const unusedTimeHours = Math.floor(remainingMs / (1000 * 60 * 60));
 
     // Calculate refund based on remaining time
-    const baseRefund = Math.floor(mission.total_cost_honors * timeRemainingPercentage);
+    const estimatedTotalCostHonors = (mission.total_cost_usd || 0) * 450; // 1 USD = 450 Honors
+    const baseRefund = Math.floor(estimatedTotalCostHonors * timeRemainingPercentage);
     const platformFeeRefund = Math.floor(baseRefund * 0.1); // 10% platform fee refund
-    
+
     const totalRefundHonors = baseRefund + platformFeeRefund;
     const totalRefundUsd = totalRefundHonors / 450;
 
@@ -128,13 +130,13 @@ export class RefundCalculator {
    * Calculate refund for any mission type
    */
   calculateRefund(mission: Mission, currentParticipants: number, currentTime: Date): RefundCalculation {
-    switch (mission.mission_model) {
+    switch (mission.model) {
       case 'fixed':
         return this.calculateFixedRefund(mission, currentParticipants);
       case 'degen':
         return this.calculateDegenRefund(mission, currentTime);
       default:
-        throw new Error(`Unknown mission model: ${mission.mission_model}`);
+        throw new Error(`Unknown mission model: ${mission.model}`);
     }
   }
 
@@ -160,7 +162,7 @@ export class RefundCalculator {
   } {
     try {
       const refund = this.calculateRefund(mission, currentParticipants, currentTime);
-      
+
       return {
         eligible: refund.totalRefundHonors > 0,
         reason: refund.reason,

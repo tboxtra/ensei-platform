@@ -123,3 +123,14 @@ reviewChecklist:
 warningMessage: >
   You are working inside the Ensei monorepo root. Do not create files outside this tree.
   If a path is missing, create it under apps/, services/, or packages/ as appropriate.
+
+  Don't forget to check docs/PROMPTS/ENSEI_DEV_PROMPT.md for additional instructions.
+  Don't forget to check docs/PRODUCT_TECH_UPDATE.md for additional update
+  Don't forget to check docs/REPO_STRUCTURE.md for the repo structure
+  Don't forget to check docs/DEVELOPMENT.md for the development guide
+  Don't forget to check docs/API_CONTRACTS.md for the API contracts
+  Don't forget to check docs/UI_COMPONENTS.md for the UI components
+  Don't forget to check docs/BLOCKCHAIN_UTILS.md for the blockchain utils
+  Don't forget to check docs/TESTING.md for the testing guide
+  Don't forget to check docs/ENVIRONMENT_VARIABLES.md for the environment variables
+  Don't forget to check docs/TROUBLESHOOTING.md for the troubleshooting guide

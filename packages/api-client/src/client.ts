@@ -17,6 +17,11 @@ import type {
     ConvertHonorsToUsdResponse,
     ConvertUsdToHonorsRequest,
     ConvertUsdToHonorsResponse,
+    RefundRequest,
+    RefundResponse,
+    TelegramProofValidationRequest,
+    TelegramProofValidationResponse,
+    TelegramChannelResponse,
     ErrorResponse
 } from './types';
 

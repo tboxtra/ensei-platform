@@ -84,6 +84,33 @@ interface Transaction {
     status: 'completed' | 'pending';
 }
 
+interface LoginRequest {
+    email: string;
+    password: string;
+}
+
+interface RegisterRequest {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    agreeToTerms: boolean;
+    agreeToMarketing?: boolean;
+}
+
+interface AuthResponse {
+    user: {
+        id: string;
+        email: string;
+        name: string;
+        firstName: string;
+        lastName: string;
+        avatar: string;
+        joinedAt: string;
+    };
+    token: string;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 export function useApi() {
@@ -98,9 +125,13 @@ export function useApi() {
         setError(null);
 
         try {
+            // Get token from localStorage for authenticated requests
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
                     ...options.headers,
                 },
                 ...options,
@@ -109,6 +140,14 @@ export function useApi() {
             if (!response.ok) {
                 if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+                }
+                if (response.status === 401) {
+                    // Clear invalid token
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                    }
+                    throw new Error('Authentication failed. Please log in again.');
                 }
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
@@ -124,6 +163,76 @@ export function useApi() {
             setLoading(false);
         }
     }, []);
+
+    // Authentication APIs
+    const login = useCallback(async (credentials: LoginRequest): Promise<AuthResponse> => {
+        try {
+            const response = await makeRequest<AuthResponse>('/v1/auth/login', {
+                method: 'POST',
+                body: JSON.stringify(credentials),
+            });
+
+            // Store token and user data
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('token', response.token);
+                localStorage.setItem('user', JSON.stringify(response.user));
+            }
+
+            return response;
+        } catch (err) {
+            throw err;
+        }
+    }, [makeRequest]);
+
+    const register = useCallback(async (userData: RegisterRequest): Promise<AuthResponse> => {
+        try {
+            const response = await makeRequest<AuthResponse>('/v1/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(userData),
+            });
+
+            // Store token and user data
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('token', response.token);
+                localStorage.setItem('user', JSON.stringify(response.user));
+            }
+
+            return response;
+        } catch (err) {
+            throw err;
+        }
+    }, [makeRequest]);
+
+    const logout = useCallback(async (): Promise<void> => {
+        try {
+            // Call logout endpoint if available
+            await makeRequest('/v1/auth/logout', {
+                method: 'POST',
+            });
+        } catch (err) {
+            // Even if logout fails, clear local storage
+            console.warn('Logout API call failed, but clearing local storage:', err);
+        } finally {
+            // Always clear local storage
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+        }
+    }, [makeRequest]);
+
+    const getCurrentUser = useCallback(async (): Promise<any> => {
+        try {
+            return await makeRequest('/v1/auth/me');
+        } catch (err) {
+            // If getting current user fails, clear invalid session
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+            throw err;
+        }
+    }, [makeRequest]);
 
     // Mission APIs
     const createMission = useCallback(async (missionData: CreateMissionRequest): Promise<Mission> => {
@@ -148,6 +257,13 @@ export function useApi() {
     // Submission APIs
     const submitMission = useCallback(async (missionId: string, submissionData: any): Promise<any> => {
         return makeRequest(`/v1/missions/${missionId}/submit`, {
+            method: 'POST',
+            body: JSON.stringify(submissionData),
+        });
+    }, [makeRequest]);
+
+    const participateInMission = useCallback(async (missionId: string, submissionData: any): Promise<any> => {
+        return makeRequest(`/v1/missions/${missionId}/participate`, {
             method: 'POST',
             body: JSON.stringify(submissionData),
         });
@@ -199,16 +315,21 @@ export function useApi() {
 
     // Meta APIs
     const getDegenPresets = useCallback(async (): Promise<any[]> => {
-        return makeRequest<any[]>('/v1/meta/degen-presets');
+        return makeRequest<any[]>('/v1/presets');
     }, [makeRequest]);
 
     const getTaskCatalog = useCallback(async (): Promise<any> => {
-        return makeRequest<any>('/v1/meta/task-catalog');
+        return makeRequest<any>('/v1/tasks');
     }, [makeRequest]);
 
     return {
         loading,
         error,
+        // Auth methods
+        login,
+        register,
+        logout,
+        getCurrentUser,
         // Mission methods
         createMission,
         getMissions,
@@ -216,6 +337,7 @@ export function useApi() {
         getMyMissions,
         // Submission methods
         submitMission,
+        participateInMission,
         getSubmissions,
         reviewSubmission,
         // Claim methods

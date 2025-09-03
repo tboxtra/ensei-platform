@@ -1,291 +1,374 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useApi } from '../../../hooks/useApi';
+import { ModernLayout } from '../../../components/layout/ModernLayout';
+import { ModernCard } from '../../../components/ui/ModernCard';
+import { ModernButton } from '../../../components/ui/ModernButton';
 
 export default function MyMissionsPage() {
-    const [myMissions] = useState([
+    const { getMyMissions, loading, error } = useApi();
+    const [missions, setMissions] = useState<any[]>([]);
+    const [filteredMissions, setFilteredMissions] = useState<any[]>([]);
+    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [selectedPlatform, setSelectedPlatform] = useState('all');
+    const [selectedType, setSelectedType] = useState('all');
+    const [sortBy, setSortBy] = useState('created');
+
+    useEffect(() => {
+        loadMyMissions();
+    }, []);
+
+    useEffect(() => {
+        filterAndSortMissions();
+    }, [missions, selectedStatus, selectedPlatform, selectedType, sortBy]);
+
+    const loadMyMissions = async () => {
+        try {
+            const data = await getMyMissions();
+            setMissions(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Error loading my missions:', err);
+            // Demo data for when API is not available
+            setMissions([
         {
             id: '1',
             platform: 'twitter',
             type: 'engage',
-            title: 'Engage with our latest tweet about Web3',
-            description: 'Like, retweet, and comment on our latest post about blockchain technology',
+                    model: 'fixed',
+                    title: 'Twitter Engagement Campaign',
             status: 'active',
             participants: 45,
-            maxParticipants: 100,
-            reward: 320,
-            totalCost: 32000,
-            endsAt: '2024-01-15T10:00:00Z',
-            tasks: ['like', 'retweet', 'comment'],
-            submissions: 23
+                    submissions: 23,
+                    approved_submissions: 18,
+                    pending_submissions: 5,
+                    total_cost_honors: 1000,
+                    total_cost_usd: 2.22,
+                    cap: 100,
+                    completion_rate: 75,
+                    created_at: '2024-01-15T10:00:00Z',
+                    ends_at: '2024-12-31T23:59:59Z'
         },
         {
             id: '2',
             platform: 'instagram',
             type: 'content',
-            title: 'Create content for our brand campaign',
-            description: 'Create engaging content showcasing our new product line',
+                    model: 'degen',
+                    title: 'Instagram Content Creation',
             status: 'completed',
-            participants: 20,
-            maxParticipants: 20,
-            reward: 1800,
-            totalCost: 36000,
-            endsAt: '2024-01-10T10:00:00Z',
-            tasks: ['feed_post', 'reel'],
-            submissions: 20
+                    participants: 30,
+                    submissions: 28,
+                    approved_submissions: 25,
+                    pending_submissions: 3,
+                    total_cost_honors: 1500,
+                    total_cost_usd: 3.33,
+                    cap: 50,
+                    completion_rate: 83,
+                    created_at: '2024-01-10T14:30:00Z',
+                    ends_at: '2024-01-20T23:59:59Z'
         },
         {
             id: '3',
             platform: 'tiktok',
             type: 'ambassador',
-            title: 'Become a brand ambassador',
-            description: 'Change your profile picture and bio to represent our brand',
-            status: 'active',
-            participants: 12,
-            maxParticipants: 50,
-            reward: 600,
-            totalCost: 30000,
-            endsAt: '2024-01-18T10:00:00Z',
-            tasks: ['pfp', 'hashtag_in_bio'],
-            submissions: 12
+                    model: 'fixed',
+                    title: 'TikTok Ambassador Program',
+                    status: 'draft',
+                    participants: 0,
+                    submissions: 0,
+                    approved_submissions: 0,
+                    pending_submissions: 0,
+                    total_cost_honors: 800,
+                    total_cost_usd: 1.78,
+                    cap: 75,
+                    completion_rate: 0,
+                    created_at: '2024-01-20T09:15:00Z',
+                    ends_at: '2024-02-20T23:59:59Z'
+                }
+            ]);
         }
-    ]);
+    };
 
-    const [selectedStatus, setSelectedStatus] = useState('all');
-
-    const filteredMissions = myMissions.filter(mission => {
+    const filterAndSortMissions = () => {
+        let filtered = missions.filter(mission => {
         if (selectedStatus !== 'all' && mission.status !== selectedStatus) return false;
+            if (selectedPlatform !== 'all' && mission.platform !== selectedPlatform) return false;
+            if (selectedType !== 'all' && mission.type !== selectedType) return false;
         return true;
     });
 
+        // Sort missions
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case 'created':
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                case 'reward':
+                    return (b.total_cost_honors || 0) - (a.total_cost_honors || 0);
+                case 'participants':
+                    return (b.participants || 0) - (a.participants || 0);
+                case 'completion':
+                    return (b.completion_rate || 0) - (a.completion_rate || 0);
+                default:
+                    return 0;
+            }
+        });
+
+        setFilteredMissions(filtered);
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'active': return 'text-green-400';
+            case 'completed': return 'text-blue-400';
+            case 'draft': return 'text-yellow-400';
+            case 'paused': return 'text-orange-400';
+            default: return 'text-gray-400';
+        }
+    };
+
+    const getStatusBadge = (status: string) => {
+        const colors = {
+            active: 'bg-green-500/20 text-green-400 border-green-500/30',
+            completed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            draft: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            paused: 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+        };
+        return colors[status as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    };
+
+    const getPlatformIcon = (platform: string) => {
+        const icons: { [key: string]: string } = {
+            twitter: '𝕏',
+            instagram: '📸',
+            tiktok: '🎵',
+            facebook: '📘',
+            whatsapp: '💬',
+            snapchat: '👻',
+            telegram: '📱'
+        };
+        return icons[platform] || '🌐';
+    };
+
+    if (loading) {
     return (
-        <div className="min-h-screen bg-black text-white">
-            {/* Top Bar */}
-            <div className="bg-gray-900 border-b border-gray-800 px-6 py-3">
-                <div className="flex justify-between items-center">
-                    <div className="text-sm text-gray-400">ENSEI UGT</div>
+            <ModernLayout currentPage="/missions/my">
+                <div className="flex items-center justify-center min-h-[400px]">
                     <div className="text-center">
-                        <div className="text-lg font-semibold">Honors: 0 ≈ $0.00</div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <p className="text-gray-400">Loading your missions...</p>
                     </div>
-                    <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                        Demo Login
-                    </button>
                 </div>
-            </div>
+            </ModernLayout>
+        );
+    }
 
-            <div className="flex">
-                {/* Left Sidebar */}
-                <div className="w-64 bg-gray-900 min-h-screen p-4">
-                    <div className="text-xl font-bold text-green-500 mb-8">Ensei</div>
-                    <nav className="space-y-2">
-                        <a href="/dashboard" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">🏠</span> Dashboard
-                        </a>
-                        <a href="/missions" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">🔍</span> Discover & Earn
-                        </a>
-                        <a href="/missions/create" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">💼</span> Create Mission
-                        </a>
-                        <a href="/missions/my" className="flex items-center text-green-500 bg-green-900/20 p-2 rounded">
-                            <span className="mr-3">📊</span> My Missions
-                        </a>
-                        <a href="/review" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">📄</span> Review
-                        </a>
-                        <a href="/claim" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">💰</span> Claim
-                        </a>
-                        <a href="/wallet" className="flex items-center text-gray-400 hover:text-white p-2 rounded">
-                            <span className="mr-3">👛</span> Wallet
-                        </a>
-                    </nav>
+    return (
+        <ModernLayout currentPage="/missions/my">
+            <div className="max-w-7xl mx-auto">
+                {/* Hero Header */}
+                <div className="text-center mb-12">
+                    <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-indigo-500 bg-clip-text text-transparent mb-4">
+                        My Missions
+                    </h1>
+                    <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                        Track and manage all the missions you've created. Monitor performance, review submissions, and optimize your campaigns.
+                    </p>
                 </div>
 
-                {/* Main Content */}
-                <div className="flex-1 p-6">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="flex items-center justify-between mb-8">
-                            <h1 className="text-3xl font-bold">My Missions</h1>
-                            <a href="/missions/create" className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
-                                Create New Mission
-                            </a>
-                        </div>
-
-                        {/* Stats */}
+                {/* Quick Stats */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-gray-400 text-sm">Total Missions</p>
-                                        <p className="text-2xl font-bold">{myMissions.length}</p>
-                                    </div>
-                                    <div className="text-3xl">📊</div>
-                                </div>
+                    <ModernCard className="p-6">
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-blue-400 mb-2">
+                                {missions.length}
                             </div>
-
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-gray-400 text-sm">Active Missions</p>
-                                        <p className="text-2xl font-bold">{myMissions.filter(m => m.status === 'active').length}</p>
+                            <div className="text-sm text-gray-400">Total Missions</div>
                                     </div>
-                                    <div className="text-3xl">🚀</div>
-                                </div>
+                    </ModernCard>
+                    <ModernCard className="p-6">
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-green-400 mb-2">
+                                {missions.filter(m => m.status === 'active').length}
                             </div>
-
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-gray-400 text-sm">Total Spent</p>
-                                        <p className="text-2xl font-bold">${(myMissions.reduce((sum, m) => sum + m.totalCost, 0) / 450).toFixed(2)}</p>
+                            <div className="text-sm text-gray-400">Active</div>
                                     </div>
-                                    <div className="text-3xl">💸</div>
-                                </div>
+                    </ModernCard>
+                    <ModernCard className="p-6">
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-purple-400 mb-2">
+                                {missions.reduce((sum, m) => sum + (m.participants || 0), 0)}
                             </div>
-
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-gray-400 text-sm">Total Submissions</p>
-                                        <p className="text-2xl font-bold">{myMissions.reduce((sum, m) => sum + m.submissions, 0)}</p>
+                            <div className="text-sm text-gray-400">Total Participants</div>
                                     </div>
-                                    <div className="text-3xl">📝</div>
-                                </div>
+                    </ModernCard>
+                    <ModernCard className="p-6">
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-emerald-400 mb-2">
+                                {missions.reduce((sum, m) => sum + (m.total_cost_honors || 0), 0).toLocaleString()}
                             </div>
+                            <div className="text-sm text-gray-400">Total Spent (Honors)</div>
+                        </div>
+                    </ModernCard>
                         </div>
 
-                        {/* Status Filter */}
-                        <div className="bg-gray-800 rounded-lg p-6 mb-8">
-                            <h2 className="text-lg font-semibold mb-4">Filter by Status</h2>
-                            <div className="flex space-x-4">
-                                <button
-                                    onClick={() => setSelectedStatus('all')}
-                                    className={`px-4 py-2 rounded-lg text-sm ${selectedStatus === 'all'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        }`}
-                                >
-                                    All ({myMissions.length})
-                                </button>
-                                <button
-                                    onClick={() => setSelectedStatus('active')}
-                                    className={`px-4 py-2 rounded-lg text-sm ${selectedStatus === 'active'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        }`}
-                                >
-                                    Active ({myMissions.filter(m => m.status === 'active').length})
-                                </button>
-                                <button
-                                    onClick={() => setSelectedStatus('completed')}
-                                    className={`px-4 py-2 rounded-lg text-sm ${selectedStatus === 'completed'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        }`}
-                                >
-                                    Completed ({myMissions.filter(m => m.status === 'completed').length})
-                                </button>
-                            </div>
+                {/* Filters and Actions */}
+                <div className="flex flex-col lg:flex-row gap-6 mb-8">
+                    <div className="flex-1">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <select
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                                className="p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                                <option value="draft">Draft</option>
+                                <option value="paused">Paused</option>
+                            </select>
+                            <select
+                                value={selectedPlatform}
+                                onChange={(e) => setSelectedPlatform(e.target.value)}
+                                className="p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            >
+                                <option value="all">All Platforms</option>
+                                <option value="twitter">Twitter</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="tiktok">TikTok</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="snapchat">Snapchat</option>
+                                <option value="telegram">Telegram</option>
+                            </select>
+                            <select
+                                value={selectedType}
+                                onChange={(e) => setSelectedType(e.target.value)}
+                                className="p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            >
+                                <option value="all">All Types</option>
+                                <option value="engage">Engage</option>
+                                <option value="content">Content</option>
+                                <option value="ambassador">Ambassador</option>
+                            </select>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            >
+                                <option value="created">Recently Created</option>
+                                <option value="reward">Highest Reward</option>
+                                <option value="participants">Most Participants</option>
+                                <option value="completion">Best Completion Rate</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <ModernButton
+                            onClick={() => window.location.href = '/missions/create'}
+                            variant="success"
+                        >
+                            🚀 Create New Mission
+                        </ModernButton>
+                    </div>
                         </div>
 
                         {/* Missions List */}
+                {filteredMissions.length === 0 ? (
+                    <ModernCard className="text-center py-16">
+                        <div className="text-6xl mb-4">📋</div>
+                        <h3 className="text-xl font-semibold mb-2">No missions found</h3>
+                        <p className="text-gray-400 mb-6">
+                            {missions.length === 0
+                                ? "You haven't created any missions yet."
+                                : "No missions match your current filters."
+                            }
+                        </p>
+                        <ModernButton
+                            onClick={() => window.location.href = '/missions/create'}
+                            variant="primary"
+                        >
+                            Create Your First Mission
+                        </ModernButton>
+                    </ModernCard>
+                ) : (
                         <div className="space-y-6">
                             {filteredMissions.map((mission) => (
-                                <div key={mission.id} className="bg-gray-800 rounded-lg p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center space-x-4">
-                                            <div className="flex items-center space-x-2">
-                                                <span className="text-2xl">
-                                                    {mission.platform === 'twitter' && '𝕏'}
-                                                    {mission.platform === 'instagram' && '📸'}
-                                                    {mission.platform === 'tiktok' && '🎵'}
-                                                    {mission.platform === 'facebook' && '📘'}
-                                                    {mission.platform === 'whatsapp' && '💬'}
-                                                    {mission.platform === 'snapchat' && '👻'}
-                                                    {mission.platform === 'telegram' && '📱'}
-                                                </span>
-                                                <span className={`px-2 py-1 rounded text-xs ${mission.type === 'engage' ? 'bg-blue-600 text-white' :
-                                                        mission.type === 'content' ? 'bg-purple-600 text-white' :
-                                                            'bg-yellow-600 text-white'
-                                                    }`}>
-                                                    {mission.type.charAt(0).toUpperCase() + mission.type.slice(1)}
-                                                </span>
-                                                <span className={`px-2 py-1 rounded text-xs ${mission.status === 'active' ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'
-                                                    }`}>
-                                                    {mission.status.charAt(0).toUpperCase() + mission.status.slice(1)}
-                                                </span>
+                            <ModernCard key={mission.id} className="p-6">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                                    <div className="flex-1">
+                                        <div className="flex items-start gap-4 mb-4">
+                                            <div className="text-3xl">
+                                                {getPlatformIcon(mission.platform)}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h3 className="text-xl font-bold text-white">{mission.title}</h3>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(mission.status)}`}>
+                                                        {mission.status}
+                                                    </span>
+                                        </div>
+                                                <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
+                                                    <span className="capitalize">{mission.platform}</span>
+                                                    <span>•</span>
+                                                    <span className="capitalize">{mission.type}</span>
+                                                    <span>•</span>
+                                                    <span className="capitalize">{mission.model}</span>
+                                        </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div>
+                                                        <span className="text-gray-400">Participants:</span>
+                                                        <span className="text-white ml-2">{mission.participants || 0}/{mission.cap || 0}</span>
+                                        </div>
+                                        <div>
+                                                        <span className="text-gray-400">Submissions:</span>
+                                                        <span className="text-white ml-2">{mission.submissions || 0}</span>
+                                        </div>
+                                        <div>
+                                                        <span className="text-gray-400">Approved:</span>
+                                                        <span className="text-green-400 ml-2">{mission.approved_submissions || 0}</span>
+                                        </div>
+                                        <div>
+                                                        <span className="text-gray-400">Completion:</span>
+                                                        <span className="text-blue-400 ml-2">{mission.completion_rate || 0}%</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-4">
                                         <div className="text-right">
-                                            <p className="text-sm text-gray-400">Total Cost</p>
-                                            <p className="text-lg font-semibold">${(mission.totalCost / 450).toFixed(2)}</p>
+                                            <div className="text-2xl font-bold text-green-400 mb-1">
+                                                {mission.total_cost_honors?.toLocaleString()} Honors
+                                            </div>
+                                            <div className="text-gray-400 text-sm">
+                                                ${mission.total_cost_usd?.toFixed(2)} USD
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    <h3 className="text-xl font-semibold mb-2">{mission.title}</h3>
-                                    <p className="text-gray-400 mb-4">{mission.description}</p>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                        <div>
-                                            <p className="text-sm text-gray-400">Reward per User</p>
-                                            <p className="font-semibold">{mission.reward} honors</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-400">Participants</p>
-                                            <p className="font-semibold">{mission.participants}/{mission.maxParticipants}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-400">Submissions</p>
-                                            <p className="font-semibold">{mission.submissions}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-400">Ends</p>
-                                            <p className="font-semibold">{new Date(mission.endsAt).toLocaleDateString()}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-4">
-                                        <p className="text-sm text-gray-400 mb-2">Tasks:</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {mission.tasks.map((task) => (
-                                                <span key={task} className="px-3 py-1 bg-gray-700 rounded text-sm">
-                                                    {task.replace(/_/g, ' ').toUpperCase()}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex space-x-4">
-                                        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                            View Submissions
-                                        </button>
-                                        <button className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                                            Edit Mission
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <ModernButton
+                                                onClick={() => window.location.href = `/missions/${mission.id}`}
+                                                variant="primary"
+                                                size="sm"
+                                            >
+                                                View Details
+                                            </ModernButton>
                                         {mission.status === 'active' && (
-                                            <button className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
-                                                End Mission
-                                            </button>
-                                        )}
+                                                <ModernButton
+                                                    onClick={() => window.location.href = `/missions/${mission.id}?tab=submissions`}
+                                                    variant="secondary"
+                                                    size="sm"
+                                                >
+                                                    Review
+                                                </ModernButton>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-
-                        {filteredMissions.length === 0 && (
-                            <div className="text-center py-12">
-                                <div className="text-6xl mb-4">📊</div>
-                                <h3 className="text-xl font-semibold mb-2">No missions found</h3>
-                                <p className="text-gray-400">Create your first mission to get started</p>
-                                <a href="/missions/create" className="inline-block mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
-                                    Create Mission
-                                </a>
-                            </div>
-                        )}
+                            </ModernCard>
+                        ))}
                     </div>
-                </div>
+                )}
             </div>
-        </div>
+        </ModernLayout>
     );
 }

@@ -51,6 +51,12 @@ const TelegramTasks = {
     ambassador: ['channel_join', 'group_join'] as const
 };
 
+const CustomTasks = {
+    engage: ['custom_task'] as const,
+    content: ['custom_task'] as const,
+    ambassador: ['custom_task'] as const
+};
+
 // Platform task mapping
 const PlatformTaskMap: Record<Platform, Record<MissionType, readonly string[]>> = {
     twitter: TwitterTasks,
@@ -59,7 +65,8 @@ const PlatformTaskMap: Record<Platform, Record<MissionType, readonly string[]>> 
     facebook: FacebookTasks,
     whatsapp: WhatsAppTasks,
     snapchat: SnapchatTasks,
-    telegram: TelegramTasks
+    telegram: TelegramTasks,
+    custom: CustomTasks
 };
 
 // Dynamic task schema based on platform and type

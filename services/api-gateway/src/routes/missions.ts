@@ -681,79 +681,51 @@ export async function missionRoutes(fastify: FastifyInstance) {
         }
     });
 
-    // GET /v1/wallet/balance - Get wallet balance
-    fastify.get('/v1/wallet/balance', async (request: FastifyRequest, reply: FastifyReply) => {
+    // GET /v1/presets - Get degen duration presets
+    fastify.get('/v1/presets', async (request: FastifyRequest, reply: FastifyReply) => {
         try {
-            // Stub: return wallet balance
-            const balance = {
-                honors: 1250,
-                usd: 2.78,
-                pendingHonors: 450,
-                pendingUsd: 1.00
-            };
-            return balance;
-        } catch (error) {
-            return reply.status(500).send({ error: 'Internal server error' });
-        }
-    });
-
-    // GET /v1/wallet/transactions - Get transactions
-    fastify.get('/v1/wallet/transactions', async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            // Stub: return transactions
-            const transactions = [
-                {
-                    id: 'tx_1',
-                    type: 'earned',
-                    amount: 150,
-                    description: 'Twitter engagement mission reward',
-                    date: '2024-01-15T12:00:00Z',
-                    status: 'completed'
-                },
-                {
-                    id: 'tx_2',
-                    type: 'earned',
-                    amount: 300,
-                    description: 'Instagram content creation reward',
-                    date: '2024-01-14T15:30:00Z',
-                    status: 'completed'
-                },
-                {
-                    id: 'tx_3',
-                    type: 'withdrawn',
-                    amount: 500,
-                    description: 'Withdrawal to TON wallet',
-                    date: '2024-01-13T10:00:00Z',
-                    status: 'completed'
-                }
+            const presets = [
+                { hours: 1, costUSD: 15, maxWinners: 1, label: "1 hr" },
+                { hours: 3, costUSD: 30, maxWinners: 2, label: "3 hrs" },
+                { hours: 6, costUSD: 80, maxWinners: 3, label: "6 hrs" },
+                { hours: 8, costUSD: 150, maxWinners: 3, label: "8 hrs" },
+                { hours: 12, costUSD: 180, maxWinners: 5, label: "12 hrs" },
+                { hours: 18, costUSD: 300, maxWinners: 5, label: "18 hrs" },
+                { hours: 24, costUSD: 400, maxWinners: 5, label: "24 hrs" },
+                { hours: 36, costUSD: 500, maxWinners: 10, label: "36 hrs" },
+                { hours: 48, costUSD: 600, maxWinners: 10, label: "48 hrs" },
+                { hours: 72, costUSD: 800, maxWinners: 10, label: "3 days" },
+                { hours: 96, costUSD: 1000, maxWinners: 10, label: "4 days" },
+                { hours: 168, costUSD: 1500, maxWinners: 10, label: "7 days" },
+                { hours: 240, costUSD: 2000, maxWinners: 10, label: "10 days" }
             ];
-            return transactions; // Return array directly, not wrapped in object
+
+            return presets;
         } catch (error) {
             return reply.status(500).send({ error: 'Internal server error' });
         }
     });
 
-    // POST /v1/wallet/withdraw - Withdraw funds
-    fastify.post('/v1/wallet/withdraw', {
-        schema: {
-            body: {
-                type: 'object',
-                required: ['amount'],
-                properties: {
-                    amount: { type: 'number' }
-                }
-            }
-        }
-    }, async (request: FastifyRequest, reply: FastifyReply) => {
+    // GET /v1/tasks - Get platform tasks catalog
+    fastify.get('/v1/tasks', async (request: FastifyRequest, reply: FastifyReply) => {
         try {
-            const body = request.body as { amount: number };
-            // Stub: withdrawal logic
-            return {
-                id: 'withdrawal_1',
-                amount: body.amount,
-                status: 'pending',
-                createdAt: new Date().toISOString()
+            // Add custom platform to the platform tasks
+            const platformTasksWithCustom = {
+                ...PLATFORM_TASKS,
+                custom: {
+                    engage: [
+                        { key: 'social_engagement', name: 'Social Engagement', description: 'Engage with social content' }
+                    ],
+                    content: [
+                        { key: 'content_creation', name: 'Content Creation', description: 'Create custom content' }
+                    ],
+                    ambassador: [
+                        { key: 'brand_promotion', name: 'Brand Promotion', description: 'Promote brand/product' }
+                    ]
+                }
             };
+
+            return platformTasksWithCustom;
         } catch (error) {
             return reply.status(500).send({ error: 'Internal server error' });
         }
