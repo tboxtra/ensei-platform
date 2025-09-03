@@ -57,3 +57,4 @@ export function getCustomFixedPricing(avgTimeMinutes: number) {
     };
 }
 
+
