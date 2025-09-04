@@ -212,7 +212,7 @@ const PLATFORM_CONTENT_PLACEHOLDERS = {
 };
 
 export default function CreateMissionPage() {
-  const { createMission, loading, error, apiAvailable } = useApi();
+  const { createMission, loading, error } = useApi();
 
   const [selectedPlatform, setSelectedPlatform] = useState('twitter');
   const [selectedType, setSelectedType] = useState('engage');
@@ -345,22 +345,7 @@ export default function CreateMissionPage() {
           <p className="text-sm sm:text-base text-gray-400">Design and launch your social media mission</p>
         </div>
 
-        {/* API Status Indicator */}
-        {!apiAvailable && (
-          <div className="mb-6">
-            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-2xl p-4">
-              <div className="flex items-center space-x-3">
-                <span className="text-xl">⚠️</span>
-                <div>
-                  <h3 className="text-base font-semibold text-yellow-400 mb-1">Demo Mode</h3>
-                  <p className="text-yellow-200 text-sm">
-                    Backend service is not available. Using fallback data for demonstration.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Platform Selection */}
         <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
