@@ -16,8 +16,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ensei/mission-engine": "workspace:*",
-    "@ensei/shared-types": "workspace:*",
+    "@ensei/mission-engine": "1.0.0",
+    "@ensei/shared-types": "1.0.0",
     "@fastify/cors": "^8.4.0",
     "@fastify/helmet": "^11.1.0",
     "@fastify/rate-limit": "^8.0.0",

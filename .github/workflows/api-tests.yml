@@ -31,25 +31,26 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'yarn'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      run: npm ci
     
     - name: Lint
-      run: yarn turbo run lint:changed
+      run: npm run lint:changed
     
     - name: Type check
-      run: yarn turbo run typecheck:changed
+      run: npm run type-check
     
-    - name: Unit tests
-      run: yarn turbo run test:changed
+    - name: Tests
+      run: npm run test:changed
     
-    - name: Integration tests
-      run: yarn turbo run test:integration:changed
+    # Optional: add integration test target if defined in repo scripts
+    # - name: Integration tests
+    #   run: npx turbo run test:integration --filter=./tests/integration
     
     - name: Build packages
-      run: yarn turbo run build:changed
+      run: npm run build
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3

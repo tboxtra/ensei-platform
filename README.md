@@ -30,7 +30,7 @@ A mission-based social media engagement platform that enables creators to launch
 - **Backend**: Fastify API Gateway with microservices architecture
 - **Mission Engine**: Core business logic for mission pricing and task management
 - **Shared Types**: Centralized TypeScript definitions and validation schemas
-- **Monorepo**: Turborepo with Yarn workspaces for efficient development
+- **Monorepo**: Turborepo with npm workspaces for efficient development
 
 ## 🎯 Supported Platforms
 
@@ -46,32 +46,32 @@ A mission-based social media engagement platform that enables creators to launch
 
 ### Prerequisites
 - Node.js 18+
-- Yarn 1.22+ (required for Vercel deployment)
+- npm 10+
 
 ### Installation
 ```bash
-yarn install
+npm install
 ```
 
 ### Development
 ```bash
-# Start all services
-yarn dev
+# Start all services (via Turborepo)
+npm run dev
 
 # Start specific service
-yarn dev:web      # Frontend (Next.js)
-yarn dev:api      # API Gateway
-yarn dev:mission  # Mission Engine
+npm run dev --workspace=apps/web      # Frontend (Next.js)
+npm run dev --workspace=services/api-gateway      # API Gateway
+npm run dev --workspace=services/mission-engine   # Mission Engine
 ```
 
 ### Building
 ```bash
 # Build all packages
-yarn build
+npm run build
 
 # Build specific package
-yarn build:web
-yarn build:api
+npm run build --workspace=apps/web
+npm run build --workspace=services/api-gateway
 ```
 
 ## 📋 Mission Types
@@ -100,14 +100,14 @@ yarn build:api
 
 ## 🔧 Development Status
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Frontend | ✅ Live | Deployed on Vercel, all pages functional |
-| Mission Creation | ✅ Complete | Platform-specific placeholders, flexible participant caps |
-| API Gateway | 🔄 In Progress | Basic routes implemented |
-| Mission Engine | 🔄 In Progress | Core pricing logic implemented |
-| Telegram Bot | 🔄 In Progress | Basic structure created |
-| Admin Dashboard | 🔄 In Progress | UI components implemented |
+| Component        | Status         | Notes                                                     |
+| ---------------- | -------------- | --------------------------------------------------------- |
+| Frontend         | ✅ Live         | Deployed on Vercel, all pages functional                  |
+| Mission Creation | ✅ Complete     | Platform-specific placeholders, flexible participant caps |
+| API Gateway      | 🔄 In Progress | Basic routes implemented                                  |
+| Mission Engine   | 🔄 In Progress | Core pricing logic implemented                            |
+| Telegram Bot     | 🔄 In Progress | Basic structure created                                   |
+| Admin Dashboard  | 🔄 In Progress | UI components implemented                                 |
 
 ## 📚 Documentation
 
@@ -121,7 +121,7 @@ yarn build:api
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests: `yarn test`
+4. Run tests: `npm test`
 5. Submit a pull request
 
 ## 📄 License

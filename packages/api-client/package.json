@@ -10,7 +10,7 @@
         "test": "jest"
     },
     "dependencies": {
-        "@ensei/shared-types": "workspace:*"
+        "@ensei/shared-types": "1.0.0"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",

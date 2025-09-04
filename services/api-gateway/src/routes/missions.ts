@@ -609,77 +609,7 @@ export async function missionRoutes(fastify: FastifyInstance) {
         }
     });
 
-    // GET /v1/rewards/claimable - Get claimable rewards
-    fastify.get('/v1/rewards/claimable', async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            // Stub: return claimable rewards
-            const claimableRewards = [
-                {
-                    id: 'reward_1',
-                    missionId: 'mission_1',
-                    missionTitle: 'Twitter Engagement Campaign',
-                    platform: 'twitter',
-                    type: 'engage',
-                    reward: 150,
-                    submittedAt: '2024-01-15T10:00:00Z',
-                    approvedAt: '2024-01-15T12:00:00Z',
-                    status: 'claimable'
-                },
-                {
-                    id: 'reward_2',
-                    missionId: 'mission_2',
-                    missionTitle: 'Instagram Content Creation',
-                    platform: 'instagram',
-                    type: 'content',
-                    reward: 300,
-                    submittedAt: '2024-01-14T15:30:00Z',
-                    approvedAt: '2024-01-15T09:00:00Z',
-                    status: 'claimable'
-                }
-            ];
-            return claimableRewards; // Return array directly, not wrapped in object
-        } catch (error) {
-            return reply.status(500).send({ error: 'Internal server error' });
-        }
-    });
-
-    // POST /v1/rewards/:id/claim - Claim a reward
-    fastify.post('/v1/rewards/:id/claim', {
-        schema: {
-            params: {
-                type: 'object',
-                properties: {
-                    id: { type: 'string' }
-                }
-            }
-        }
-    }, async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            const { id } = request.params as { id: string };
-            // Stub: claim reward logic
-            return {
-                id,
-                status: 'claimed',
-                claimedAt: new Date().toISOString()
-            };
-        } catch (error) {
-            return reply.status(500).send({ error: 'Internal server error' });
-        }
-    });
-
-    // POST /v1/rewards/claim-all - Claim all rewards
-    fastify.post('/v1/rewards/claim-all', async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            // Stub: claim all rewards logic
-            return {
-                claimedCount: 2,
-                totalAmount: 450,
-                claimedAt: new Date().toISOString()
-            };
-        } catch (error) {
-            return reply.status(500).send({ error: 'Internal server error' });
-        }
-    });
+    // Rewards endpoints are handled in rewardsRoutes; duplicates removed here
 
     // GET /v1/presets - Get degen duration presets
     fastify.get('/v1/presets', async (request: FastifyRequest, reply: FastifyReply) => {

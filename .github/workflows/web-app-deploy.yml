@@ -30,27 +30,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run type checks
-        run: yarn turbo run type-check --filter=./apps/web --filter=./packages/*
+        run: npm run type-check
 
       - name: Run linting
-        run: yarn turbo run lint --filter=./apps/web --filter=./packages/*
+        run: npm run lint
 
       - name: Run unit tests
-        run: yarn turbo run test:unit --filter=./apps/web --filter=./packages/*
+        run: npm run test
 
       - name: Run E2E tests
-        run: yarn turbo run test:e2e --filter=./apps/web
+        run: npx turbo run test:e2e --filter=./apps/web
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
       - name: Build web app
-        run: yarn turbo run build --filter=./apps/web
+        run: npx turbo run build --filter=./apps/web
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
@@ -73,13 +73,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18.x'
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Build web app
-        run: yarn turbo run build --filter=./apps/web
+        run: npx turbo run build --filter=./apps/web
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL }}
 
@@ -103,13 +103,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18.x'
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Build web app
-        run: yarn turbo run build --filter=./apps/web
+        run: npx turbo run build --filter=./apps/web
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.PRODUCTION_API_URL }}
 

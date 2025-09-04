@@ -54,8 +54,10 @@ const start = async () => {
             return { message: 'Routes are working' };
         });
 
-        await fastify.listen({ port: 3002, host: '0.0.0.0' });
-        console.log('API Gateway running on port 3002');
+        const port = process.env.PORT ? Number(process.env.PORT) : 3002;
+        const host = process.env.HOST || '0.0.0.0';
+        await fastify.listen({ port, host });
+        console.log(`API Gateway running on port ${port}`);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);

@@ -11,8 +11,8 @@
         "test": "jest"
     },
     "dependencies": {
-        "@ensei/mission-engine": "workspace:*",
-        "@ensei/shared-types": "workspace:*",
+        "@ensei/mission-engine": "1.0.0",
+        "@ensei/shared-types": "1.0.0",
         "dotenv": "^16.3.0",
         "telegraf": "^4.15.0"
     },

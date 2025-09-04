@@ -94,7 +94,15 @@ export async function reviewRoutes(fastify: FastifyInstance) {
     // POST /v1/review/vote - Submit a review vote
     fastify.post('/v1/review/vote', {
         schema: {
-            body: createReviewVoteSchema
+            body: {
+                type: 'object',
+                required: ['assignmentId', 'rating', 'commentLink'],
+                properties: {
+                    assignmentId: { type: 'string', format: 'uuid' },
+                    rating: { type: 'number', enum: [1, 2, 3, 4, 5] },
+                    commentLink: { type: 'string' }
+                }
+            }
         }
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         try {

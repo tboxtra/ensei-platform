@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
+    "dev:api": "npm run build -w @ensei/shared-types && npm run dev -w @ensei/api-gateway",
     "build": "turbo run build",
     "test": "turbo run test",
     "test:changed": "turbo run test --filter=...[origin/main]",
@@ -35,14 +36,15 @@
     "husky": "^8.0.3",
     "lint-staged": "^15.0.0",
     "prettier": "^3.0.0",
+    "tsx": "^4.20.5",
     "turbo": "^1.10.0",
     "typescript": "^5.2.0"
   },
   "engines": {
     "node": ">=18.0.0",
-    "yarn": ">=1.22.0"
+    "npm": ">=9.0.0"
   },
-  "packageManager": "yarn@1.22.0",
+  "packageManager": "npm@10.9.0",
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "eslint --fix",
