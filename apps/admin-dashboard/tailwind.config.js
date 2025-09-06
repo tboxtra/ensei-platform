@@ -13,7 +13,11 @@ module.exports = {
           secondary: '#BCA2FF',
           dark: '#1a1a1a',
           light: '#f8f9fa',
-        }
+        },
+        gold: {
+          100: '#FEF3C7',
+          800: '#92400E',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
