@@ -26,6 +26,9 @@ interface SystemSettings {
     pushEnabled: boolean;
     smsEnabled: boolean;
   };
+  featureFlags?: {
+    [key: string]: boolean;
+  };
 }
 
 interface FeatureFlagsProps {

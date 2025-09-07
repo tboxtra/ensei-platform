@@ -1,5 +1,4 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "target": "es5",
     "lib": [
@@ -27,12 +26,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@ensei/shared-types": [
-        "../../packages/shared-types/src"
-      ],
-      "@ensei/api-client": [
-        "../../packages/api-client/src"
       ]
     }
   },

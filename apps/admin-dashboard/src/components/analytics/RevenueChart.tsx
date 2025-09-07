@@ -27,10 +27,15 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return chartType === 'daily' 
-      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      : dateString;
+    if (chartType === 'daily') {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    return dateString;
+  };
+
+  const getItemDate = (item: { date?: string; month?: string }) => {
+    return chartType === 'daily' ? item.date! : item.month!;
   };
 
   return (
@@ -70,11 +75,11 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
                 <div
                   className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t transition-all duration-300 hover:from-indigo-600 hover:to-indigo-500"
                   style={{ height: `${height}%` }}
-                  title={`${formatDate(item.date)}: ${formatCurrency(item.revenue)}`}
+                  title={`${formatDate(getItemDate(item))}: ${formatCurrency(item.revenue)}`}
                 ></div>
               </div>
               <div className="mt-2 text-xs text-gray-500 text-center">
-                {formatDate(item.date)}
+                {formatDate(getItemDate(item))}
               </div>
             </div>
           );

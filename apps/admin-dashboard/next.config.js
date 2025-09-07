@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
-  transpilePackages: ['@ensei/shared-types', '@ensei/api-client'],
+  // App directory is now stable in Next.js 14, no need for experimental flag
 }
 
 module.exports = nextConfig

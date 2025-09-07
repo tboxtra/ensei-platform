@@ -9,8 +9,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@ensei/api-client": "1.0.0",
-    "@ensei/shared-types": "1.0.0",
     "autoprefixer": "^10.0.0",
     "next": "^14.0.0",
     "postcss": "^8.0.0",
