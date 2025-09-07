@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
+import admin from 'firebase-admin';
 
 // Validation schemas
 const loginSchema = z.object({
@@ -42,6 +43,60 @@ function generateToken(): string {
 }
 
 export async function authRoutes(fastify: FastifyInstance) {
+    // Initialize Firebase Admin if credentials present
+    if (!admin.apps.length) {
+        const creds = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+        if (creds) {
+            try {
+                admin.initializeApp({
+                    credential: admin.credential.cert(JSON.parse(creds))
+                });
+            } catch (e) {
+                fastify.log.warn('Failed to init Firebase Admin. Check FIREBASE_SERVICE_ACCOUNT_JSON');
+            }
+        }
+    }
+
+    // Google sign-in with ID token
+    fastify.post('/v1/auth/google', async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+            const body = (request.body as any) || {};
+            const idToken = body.idToken;
+            if (!idToken) return reply.status(400).send({ error: 'Missing idToken' });
+
+            if (!admin.apps.length) return reply.status(500).send({ error: 'Auth not configured' });
+
+            const decoded = await admin.auth().verifyIdToken(idToken);
+            const { uid, email, name, picture } = decoded as any;
+
+            const userRecord = {
+                id: uid,
+                email: email,
+                firstName: name?.split(' ')?.[0] || 'User',
+                lastName: name?.split(' ')?.slice(1).join(' ') || '',
+                avatar: picture || generateAvatar(email || uid),
+                joinedAt: new Date().toISOString(),
+                preferences: { marketing: false }
+            };
+            users.set(email || uid, userRecord);
+
+            const token = generateToken();
+            return {
+                user: {
+                    id: userRecord.id,
+                    email: userRecord.email,
+                    name: `${userRecord.firstName} ${userRecord.lastName}`.trim(),
+                    firstName: userRecord.firstName,
+                    lastName: userRecord.lastName,
+                    avatar: userRecord.avatar,
+                    joinedAt: userRecord.joinedAt
+                },
+                token
+            };
+        } catch (e) {
+            return reply.status(401).send({ error: 'Invalid Google token' });
+        }
+    });
     // Login endpoint
     fastify.post('/v1/auth/login', async (request: FastifyRequest, reply: FastifyReply) => {
         try {

@@ -7,6 +7,8 @@ import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
 import { useApi } from '../../../hooks/useApi';
+import { getFirebaseAuth, googleProvider } from '../../../lib/firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -59,8 +61,26 @@ export default function LoginPage() {
         }
     };
 
-    const handleSocialLogin = (provider: string) => {
-        // For now, social login uses demo mode
+    const handleSocialLogin = async (provider: string) => {
+        try {
+            if (provider === 'google') {
+                const auth = getFirebaseAuth();
+                const result = await signInWithPopup(auth, googleProvider);
+                const user = result.user;
+                localStorage.setItem('user', JSON.stringify({
+                    id: user.uid,
+                    email: user.email,
+                    name: user.displayName,
+                    avatar: user.photoURL,
+                    joinedAt: new Date().toISOString()
+                }));
+                router.push('/dashboard');
+                return;
+            }
+        } catch (e) {
+            console.error('Firebase social login failed, falling back to demo:', e);
+        }
+        // Fallback demo
         localStorage.setItem('user', JSON.stringify({
             id: '1',
             email: `user@${provider}.com`,
