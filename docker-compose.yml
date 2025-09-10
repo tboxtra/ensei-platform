@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ensei-postgres
+    environment:
+      POSTGRES_DB: ensei_platform
+      POSTGRES_USER: ensei_user
+      POSTGRES_PASSWORD: ensei_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - ensei-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ensei_user -d ensei_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: ensei-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ensei-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: ensei-api-gateway
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql://ensei_user:ensei_password@postgres:5432/ensei_platform
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
+      - ADMIN_EMAIL=admin@ensei.com
+      - ADMIN_PASSWORD=admin123
+      - RATE_LIMIT_MAX=1000
+      - RATE_LIMIT_WINDOW_MS=60000
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ensei-network
+    volumes:
+      - ./services/api-gateway:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # Mission Engine Service
+  mission-engine:
+    build:
+      context: ./services/mission-engine
+      dockerfile: Dockerfile
+    container_name: ensei-mission-engine
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+    ports:
+      - "3003:3003"
+    networks:
+      - ensei-network
+    volumes:
+      - ./services/mission-engine:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    container_name: ensei-payment-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - DATABASE_URL=postgresql://ensei_user:ensei_password@postgres:5432/ensei_platform
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ensei-network
+    volumes:
+      - ./services/payment-service:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # Verification Service
+  verification-service:
+    build:
+      context: ./services/verification-service
+      dockerfile: Dockerfile
+    container_name: ensei-verification-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - DATABASE_URL=postgresql://ensei_user:ensei_password@postgres:5432/ensei_platform
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "3005:3005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ensei-network
+    volumes:
+      - ./services/verification-service:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ensei-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - api-gateway
+      - mission-engine
+      - payment-service
+      - verification-service
+    networks:
+      - ensei-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ensei-network:
+    driver: bridge

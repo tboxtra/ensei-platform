@@ -27,32 +27,41 @@ export interface AuthContextType extends AuthState {
   hasRole: (role: string) => boolean;
 }
 
-// Mock authentication for development
+// Real authentication using API Gateway
 export const mockAuth = {
   login: async (credentials: LoginCredentials): Promise<AdminUser> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (credentials.email === 'admin@ensei.com' && credentials.password === 'admin123') {
-      return {
-        id: 'admin_1',
-        email: 'admin@ensei.com',
-        role: 'admin',
-        name: 'Admin User',
-        permissions: ['*'], // All permissions
+    try {
+      const response = await fetch('http://localhost:3002/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      
+      // Map API response to AdminUser format
+      const adminUser: AdminUser = {
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.role as 'admin' | 'moderator' | 'viewer',
+        name: data.user.username || data.user.email,
+        permissions: data.user.role === 'admin' ? ['*'] : ['review:read', 'review:write', 'missions:read', 'users:read'],
         lastLogin: new Date().toISOString()
       };
-    } else if (credentials.email === 'moderator@ensei.com' && credentials.password === 'mod123') {
-      return {
-        id: 'mod_1',
-        email: 'moderator@ensei.com',
-        role: 'moderator',
-        name: 'Moderator User',
-        permissions: ['review:read', 'review:write', 'missions:read', 'users:read'],
-        lastLogin: new Date().toISOString()
-      };
-    } else {
-      throw new Error('Invalid credentials');
+
+      // Store token and user data
+      localStorage.setItem('admin_token', data.accessToken);
+      localStorage.setItem('admin_user', JSON.stringify(adminUser));
+      
+      return adminUser;
+    } catch (error) {
+      throw new Error('Login failed: ' + (error as Error).message);
     }
   },
   

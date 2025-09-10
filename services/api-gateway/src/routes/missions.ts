@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { PLATFORM_TASKS } from '@ensei/shared-types';
+import { missionEngineClient } from '../lib/serviceClients';
 // Temporary types until validation schemas are properly built
 interface CreateFixedMissionRequest {
     model: 'fixed';
@@ -30,74 +31,28 @@ interface ReviewDecision {
     reviewerId: string;
     reason?: string;
 }
-// Simplified pricing calculation (temporary until mission-engine is fixed)
-function calculateMissionPricing(request: any): any {
-    const { model, platform, type, target, tasks, cap, durationHours, winnersCap } = request;
-
-    // Validate tasks against platform tasks
-    const platformTasks = PLATFORM_TASKS[platform as keyof typeof PLATFORM_TASKS];
-    if (!platformTasks) {
-        throw new Error(`Invalid platform: ${platform}`);
-    }
-
-    const missionTypeTasks = platformTasks[type as keyof typeof platformTasks];
-    if (!missionTypeTasks) {
-        throw new Error(`Invalid mission type: ${type} for platform: ${platform}`);
-    }
-
-    const validTaskKeys = missionTypeTasks.map(task => task.key);
-    const invalidTasks = tasks.filter((task: string) => !validTaskKeys.includes(task));
-    if (invalidTasks.length > 0) {
-        throw new Error(`Invalid tasks for ${platform} ${type}: ${invalidTasks.join(', ')}`);
-    }
-
-    if (model === 'fixed') {
-        const baseCost = cap * 2; // $2 per user
-        const totalCost = target === 'premium' ? baseCost * 5 : baseCost;
-        return {
-            model: 'fixed',
-            totalCostUsd: totalCost,
-            totalCostHonors: totalCost * 450,
-            perUserHonors: 100,
-            breakdown: {
-                tasksHonors: tasks.length * 50,
-                platformFee: cap * 1,
-                premiumMultiplier: target === 'premium' ? 5 : undefined
-            }
-        };
-    } else {
-        const baseCost = durationHours * 10; // $10 per hour
-        const totalCost = target === 'premium' ? baseCost * 5 : baseCost;
-        const userPoolHonors = Math.floor(totalCost * 450 * 0.5);
-        const perWinnerHonors = Math.floor(userPoolHonors / winnersCap);
-
-        return {
-            model: 'degen',
-            totalCostUsd: totalCost,
-            totalCostHonors: totalCost * 450,
-            userPoolHonors,
-            perWinnerHonors,
-            breakdown: {
-                tasksHonors: tasks.length * 50,
-                platformFee: durationHours * 5,
-                premiumMultiplier: target === 'premium' ? 5 : undefined
-            }
-        };
+// Use Mission Engine service for pricing calculation
+async function calculateMissionPricing(request: any): Promise<any> {
+    try {
+        return await missionEngineClient.calculatePricing(request);
+    } catch (error) {
+        throw new Error(`Mission pricing calculation failed: ${(error as Error).message}`);
     }
 }
 
-function validateDegenMission(durationHours: number, winnersCap: number): { isValid: boolean; error?: string } {
-    const validDurations = [1, 2, 4, 8, 12, 24, 36, 48, 72, 96, 120, 168, 240];
-    if (!validDurations.includes(durationHours)) {
-        return { isValid: false, error: 'Invalid duration' };
+async function validateDegenMission(durationHours: number, winnersCap: number): Promise<{ isValid: boolean; error?: string }> {
+    try {
+        const result = await missionEngineClient.validateDegenMission(durationHours, winnersCap);
+        return {
+            isValid: result.isValid,
+            error: result.error
+        };
+    } catch (error) {
+        return {
+            isValid: false,
+            error: `Degen mission validation failed: ${(error as Error).message}`
+        };
     }
-
-    const maxWinners = Math.min(10, Math.floor(durationHours / 8));
-    if (winnersCap < 1 || winnersCap > maxWinners) {
-        return { isValid: false, error: `Winners cap must be between 1 and ${maxWinners}` };
-    }
-
-    return { isValid: true };
 }
 
 // Stub DAL (Data Access Layer) for missions
@@ -210,7 +165,7 @@ export async function missionRoutes(fastify: FastifyInstance) {
                 const validatedData = body as CreateFixedMissionRequest;
 
                 // Calculate pricing using mission engine
-                const pricing = calculateMissionPricing({
+                const pricing = await calculateMissionPricing({
                     platform: validatedData.platform,
                     type: validatedData.type,
                     model: 'fixed',
@@ -237,13 +192,13 @@ export async function missionRoutes(fastify: FastifyInstance) {
                 const validatedData = body as CreateDegenMissionRequest;
 
                 // Validate degen mission constraints
-                const validation = validateDegenMission(validatedData.durationHours, validatedData.winnersCap);
+                const validation = await validateDegenMission(validatedData.durationHours, validatedData.winnersCap);
                 if (!validation.isValid) {
                     throw new Error(validation.error);
                 }
 
                 // Calculate pricing using mission engine
-                const pricing = calculateMissionPricing({
+                const pricing = await calculateMissionPricing({
                     platform: validatedData.platform,
                     type: validatedData.type,
                     model: 'degen',
@@ -451,136 +406,11 @@ export async function missionRoutes(fastify: FastifyInstance) {
         }
     });
 
-    // GET /v1/meta/task-catalog - Get task catalog
+    // GET /v1/meta/task-catalog - Get task catalog from Mission Engine
     fastify.get('/v1/meta/task-catalog', async (request: FastifyRequest, reply: FastifyReply) => {
         try {
-            const TASK_CATALOG = {
-                twitter: {
-                    engage: [
-                        { key: 'like', name: 'Like Post', honors: 50 },
-                        { key: 'retweet', name: 'Retweet', honors: 100 },
-                        { key: 'comment', name: 'Comment', honors: 150 },
-                        { key: 'quote', name: 'Quote Tweet', honors: 200 }
-                    ],
-                    content: [
-                        { key: 'meme', name: 'Create Meme', honors: 300 },
-                        { key: 'thread', name: 'Create Thread', honors: 500 },
-                        { key: 'article', name: 'Write Article', honors: 400 },
-                        { key: 'videoreview', name: 'Video Review', honors: 600 }
-                    ],
-                    ambassador: [
-                        { key: 'pfp', name: 'Change PFP', honors: 250 },
-                        { key: 'name_bio_keywords', name: 'Add Keywords to Bio', honors: 200 },
-                        { key: 'pinned_tweet', name: 'Pin Tweet', honors: 300 },
-                        { key: 'poll', name: 'Create Poll', honors: 150 },
-                        { key: 'spaces', name: 'Host Spaces', honors: 800 },
-                        { key: 'community_raid', name: 'Community Raid', honors: 400 }
-                    ]
-                },
-                instagram: {
-                    engage: [
-                        { key: 'like', name: 'Like Post', honors: 50 },
-                        { key: 'comment', name: 'Comment', honors: 150 },
-                        { key: 'follow', name: 'Follow Account', honors: 250 },
-                        { key: 'story_repost', name: 'Repost Story', honors: 200 }
-                    ],
-                    content: [
-                        { key: 'feed_post', name: 'Feed Post', honors: 300 },
-                        { key: 'reel', name: 'Create Reel', honors: 500 },
-                        { key: 'carousel', name: 'Carousel Post', honors: 400 },
-                        { key: 'meme', name: 'Create Meme', honors: 250 }
-                    ],
-                    ambassador: [
-                        { key: 'pfp', name: 'Change PFP', honors: 250 },
-                        { key: 'hashtag_in_bio', name: 'Add Hashtag to Bio', honors: 200 },
-                        { key: 'story_highlight', name: 'Story Highlight', honors: 300 }
-                    ]
-                },
-                tiktok: {
-                    engage: [
-                        { key: 'like', name: 'Like Video', honors: 50 },
-                        { key: 'comment', name: 'Comment', honors: 150 },
-                        { key: 'repost_duet', name: 'Repost/Duet', honors: 300 },
-                        { key: 'follow', name: 'Follow Account', honors: 250 }
-                    ],
-                    content: [
-                        { key: 'skit', name: 'Create Skit', honors: 400 },
-                        { key: 'challenge', name: 'Challenge Video', honors: 500 },
-                        { key: 'product_review', name: 'Product Review', honors: 600 },
-                        { key: 'status_style', name: 'Status Style Video', honors: 350 }
-                    ],
-                    ambassador: [
-                        { key: 'pfp', name: 'Change PFP', honors: 250 },
-                        { key: 'hashtag_in_bio', name: 'Add Hashtag to Bio', honors: 200 },
-                        { key: 'pinned_branded_video', name: 'Pin Branded Video', honors: 400 }
-                    ]
-                },
-                facebook: {
-                    engage: [
-                        { key: 'like', name: 'Like Post', honors: 50 },
-                        { key: 'comment', name: 'Comment', honors: 150 },
-                        { key: 'follow', name: 'Follow Page', honors: 250 },
-                        { key: 'share_post', name: 'Share Post', honors: 200 }
-                    ],
-                    content: [
-                        { key: 'group_post', name: 'Group Post', honors: 300 },
-                        { key: 'video', name: 'Create Video', honors: 400 },
-                        { key: 'meme_flyer', name: 'Meme/Flyer', honors: 250 }
-                    ],
-                    ambassador: [
-                        { key: 'pfp', name: 'Change PFP', honors: 250 },
-                        { key: 'bio_keyword', name: 'Add Keyword to Bio', honors: 200 },
-                        { key: 'pinned_post', name: 'Pin Post', honors: 300 }
-                    ]
-                },
-                whatsapp: {
-                    engage: [
-                        { key: 'status_50_views', name: 'Status ≥50 Views', honors: 300 }
-                    ],
-                    content: [
-                        { key: 'flyer_clip_status', name: 'Flyer/Clip Status', honors: 400 },
-                        { key: 'broadcast_message', name: 'Broadcast Message', honors: 500 }
-                    ],
-                    ambassador: [
-                        { key: 'pfp', name: 'Change PFP', honors: 250 },
-                        { key: 'keyword_in_about', name: 'Add Keyword to About', honors: 200 }
-                    ]
-                },
-                snapchat: {
-                    engage: [
-                        { key: 'story_100_views', name: 'Story ≥100 Views', honors: 400 },
-                        { key: 'snap_repost', name: 'Repost Snap', honors: 300 }
-                    ],
-                    content: [
-                        { key: 'meme_flyer_snap', name: 'Meme/Flyer Snap', honors: 350 },
-                        { key: 'branded_snap_video', name: 'Branded Snap Video', honors: 500 }
-                    ],
-                    ambassador: [
-                        { key: 'pfp_avatar', name: 'Change PFP/Avatar', honors: 250 },
-                        { key: 'hashtag_in_profile', name: 'Add Hashtag to Profile', honors: 200 },
-                        { key: 'branded_lens', name: 'Use Branded Lens', honors: 400 }
-                    ]
-                },
-                telegram: {
-                    engage: [
-                        { key: 'join_channel', name: 'Join Channel', honors: 100 },
-                        { key: 'react_to_post', name: 'React to Post', honors: 50 },
-                        { key: 'reply_in_group', name: 'Reply in Group', honors: 150 },
-                        { key: 'share_invite', name: 'Share Invite', honors: 200 }
-                    ],
-                    content: [
-                        { key: 'channel_post', name: 'Channel Post', honors: 300 },
-                        { key: 'short_video_in_channel', name: 'Short Video in Channel', honors: 400 },
-                        { key: 'guide_thread', name: 'Guide Thread', honors: 500 }
-                    ],
-                    ambassador: [
-                        { key: 'pfp', name: 'Change PFP', honors: 250 },
-                        { key: 'mention_in_bio', name: 'Add Mention to Bio', honors: 200 },
-                        { key: 'pin_invite_link', name: 'Pin Invite Link', honors: 300 }
-                    ]
-                }
-            };
-            return TASK_CATALOG;
+            const taskCatalog = await missionEngineClient.getTaskCatalog();
+            return taskCatalog;
         } catch (error) {
             return reply.status(500).send({ error: 'Internal server error' });
         }
@@ -611,25 +441,10 @@ export async function missionRoutes(fastify: FastifyInstance) {
 
     // Rewards endpoints are handled in rewardsRoutes; duplicates removed here
 
-    // GET /v1/presets - Get degen duration presets
+    // GET /v1/presets - Get degen duration presets from Mission Engine
     fastify.get('/v1/presets', async (request: FastifyRequest, reply: FastifyReply) => {
         try {
-            const presets = [
-                { hours: 1, costUSD: 15, maxWinners: 1, label: "1 hr" },
-                { hours: 3, costUSD: 30, maxWinners: 2, label: "3 hrs" },
-                { hours: 6, costUSD: 80, maxWinners: 3, label: "6 hrs" },
-                { hours: 8, costUSD: 150, maxWinners: 3, label: "8 hrs" },
-                { hours: 12, costUSD: 180, maxWinners: 5, label: "12 hrs" },
-                { hours: 18, costUSD: 300, maxWinners: 5, label: "18 hrs" },
-                { hours: 24, costUSD: 400, maxWinners: 5, label: "24 hrs" },
-                { hours: 36, costUSD: 500, maxWinners: 10, label: "36 hrs" },
-                { hours: 48, costUSD: 600, maxWinners: 10, label: "48 hrs" },
-                { hours: 72, costUSD: 800, maxWinners: 10, label: "3 days" },
-                { hours: 96, costUSD: 1000, maxWinners: 10, label: "4 days" },
-                { hours: 168, costUSD: 1500, maxWinners: 10, label: "7 days" },
-                { hours: 240, costUSD: 2000, maxWinners: 10, label: "10 days" }
-            ];
-
+            const presets = await missionEngineClient.getDegenPresets();
             return presets;
         } catch (error) {
             return reply.status(500).send({ error: 'Internal server error' });

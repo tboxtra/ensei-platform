@@ -1,6 +1,13 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import admin from 'firebase-admin';
+import { prisma } from '../lib/database';
+import { 
+  hashPassword, 
+  verifyPassword, 
+  generateAccessToken, 
+  generateRefreshToken,
+  generateAvatar 
+} from '../lib/auth';
 
 // Validation schemas
 const loginSchema = z.object({
@@ -9,8 +16,7 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-    firstName: z.string().min(1),
-    lastName: z.string().min(1),
+    username: z.string().min(3).max(50),
     email: z.string().email(),
     password: z.string().min(8),
     agreeToTerms: z.boolean().refine(val => val === true, {
@@ -19,112 +25,91 @@ const registerSchema = z.object({
     agreeToMarketing: z.boolean().optional()
 });
 
-// In-memory user storage (replace with database in production)
-const users = new Map<string, any>();
-
-// Helper function to hash password (in production, use bcrypt)
-function hashPassword(password: string): string {
-    return Buffer.from(password).toString('base64'); // Simple hash for demo
+// User roles
+enum UserRole {
+  ADMIN = 'admin',
+  MODERATOR = 'moderator', 
+  USER = 'user',
+  REVIEWER = 'reviewer'
 }
 
-// Helper function to verify password
-function verifyPassword(password: string, hashedPassword: string): boolean {
-    return hashPassword(password) === hashedPassword;
-}
+// Mock user storage (will be replaced with database)
+const mockUsers = new Map<string, any>();
 
-// Helper function to generate user avatar
-function generateAvatar(email: string): string {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
-}
-
-// Simple token generation (replace with JWT in production)
-function generateToken(): string {
-    return `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+// Initialize admin user if it doesn't exist
+async function initializeAdminUser() {
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@ensei.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    
+    if (!mockUsers.has(adminEmail)) {
+        const hashedPassword = await hashPassword(adminPassword);
+        
+        mockUsers.set(adminEmail, {
+            id: 'admin_1',
+            username: 'admin',
+            email: adminEmail,
+            password: hashedPassword,
+            walletAddress: null,
+            honorsBalance: 0,
+            role: UserRole.ADMIN,
+            createdAt: new Date()
+        });
+        
+        console.log('Admin user created:', adminEmail);
+    }
 }
 
 export async function authRoutes(fastify: FastifyInstance) {
-    // Initialize Firebase Admin if credentials present
-    if (!admin.apps.length) {
-        const creds = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-        if (creds) {
-            try {
-                admin.initializeApp({
-                    credential: admin.credential.cert(JSON.parse(creds))
-                });
-            } catch (e) {
-                fastify.log.warn('Failed to init Firebase Admin. Check FIREBASE_SERVICE_ACCOUNT_JSON');
-            }
-        }
-    }
+    // Initialize admin user if it doesn't exist
+    await initializeAdminUser();
 
-    // Google sign-in with ID token
-    fastify.post('/v1/auth/google', async (request: FastifyRequest, reply: FastifyReply) => {
-        try {
-            const body = (request.body as any) || {};
-            const idToken = body.idToken;
-            if (!idToken) return reply.status(400).send({ error: 'Missing idToken' });
-
-            if (!admin.apps.length) return reply.status(500).send({ error: 'Auth not configured' });
-
-            const decoded = await admin.auth().verifyIdToken(idToken);
-            const { uid, email, name, picture } = decoded as any;
-
-            const userRecord = {
-                id: uid,
-                email: email,
-                firstName: name?.split(' ')?.[0] || 'User',
-                lastName: name?.split(' ')?.slice(1).join(' ') || '',
-                avatar: picture || generateAvatar(email || uid),
-                joinedAt: new Date().toISOString(),
-                preferences: { marketing: false }
-            };
-            users.set(email || uid, userRecord);
-
-            const token = generateToken();
-            return {
-                user: {
-                    id: userRecord.id,
-                    email: userRecord.email,
-                    name: `${userRecord.firstName} ${userRecord.lastName}`.trim(),
-                    firstName: userRecord.firstName,
-                    lastName: userRecord.lastName,
-                    avatar: userRecord.avatar,
-                    joinedAt: userRecord.joinedAt
-                },
-                token
-            };
-        } catch (e) {
-            return reply.status(401).send({ error: 'Invalid Google token' });
-        }
-    });
     // Login endpoint
     fastify.post('/v1/auth/login', async (request: FastifyRequest, reply: FastifyReply) => {
         try {
             const { email, password } = loginSchema.parse(request.body);
 
-            // Check if user exists
-            const user = users.get(email);
-            if (!user || !verifyPassword(password, user.password)) {
+            // Find user in mock storage
+            const user = mockUsers.get(email);
+
+            if (!user) {
                 return reply.status(401).send({
                     error: 'Invalid email or password'
                 });
             }
 
-            // Generate simple token
-            const token = generateToken();
+            // Verify password
+            const isValidPassword = await verifyPassword(password, user.password);
+            
+            if (!isValidPassword) {
+                return reply.status(401).send({
+                    error: 'Invalid email or password'
+                });
+            }
 
-            // Return user data and token
+            // Generate tokens
+            const accessToken = generateAccessToken({
+                userId: user.id,
+                email: user.email,
+                role: user.role
+            });
+
+            const refreshToken = generateRefreshToken({
+                userId: user.id,
+                tokenVersion: 1
+            });
+
+            // Return user data and tokens
             return {
                 user: {
                     id: user.id,
                     email: user.email,
-                    name: `${user.firstName} ${user.lastName}`,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    avatar: user.avatar,
-                    joinedAt: user.joinedAt
+                    username: user.username,
+                    role: user.role,
+                    avatar: generateAvatar(user.email),
+                    joinedAt: user.createdAt
                 },
-                token
+                accessToken,
+                refreshToken
             };
         } catch (error) {
             if (error instanceof z.ZodError) {
@@ -145,45 +130,57 @@ export async function authRoutes(fastify: FastifyInstance) {
             const userData = registerSchema.parse(request.body);
 
             // Check if user already exists
-            if (users.has(userData.email)) {
+            const existingUser = Array.from(mockUsers.values()).find(u => 
+                u.email === userData.email || u.username === userData.username
+            );
+
+            if (existingUser) {
                 return reply.status(409).send({
-                    error: 'User with this email already exists'
+                    error: 'User with this email or username already exists'
                 });
             }
 
+            // Hash password
+            const hashedPassword = await hashPassword(userData.password);
+
             // Create new user
-            const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const newUser = {
-                id: userId,
+                id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                username: userData.username,
                 email: userData.email,
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                password: hashPassword(userData.password),
-                avatar: generateAvatar(userData.email),
-                joinedAt: new Date().toISOString(),
-                preferences: {
-                    marketing: userData.agreeToMarketing || false
-                }
+                password: hashedPassword,
+                walletAddress: null,
+                honorsBalance: 0,
+                role: UserRole.USER,
+                createdAt: new Date()
             };
 
-            // Store user
-            users.set(userData.email, newUser);
+            mockUsers.set(userData.email, newUser);
 
-            // Generate simple token
-            const token = generateToken();
+            // Generate tokens
+            const accessToken = generateAccessToken({
+                userId: newUser.id,
+                email: newUser.email,
+                role: newUser.role
+            });
 
-            // Return user data and token
+            const refreshToken = generateRefreshToken({
+                userId: newUser.id,
+                tokenVersion: 1
+            });
+
+            // Return user data and tokens
             return {
                 user: {
                     id: newUser.id,
                     email: newUser.email,
-                    name: `${newUser.firstName} ${newUser.lastName}`,
-                    firstName: newUser.firstName,
-                    lastName: newUser.lastName,
-                    avatar: newUser.avatar,
-                    joinedAt: newUser.joinedAt
+                    username: newUser.username,
+                    role: UserRole.USER,
+                    avatar: generateAvatar(newUser.email),
+                    joinedAt: newUser.createdAt
                 },
-                token
+                accessToken,
+                refreshToken
             };
         } catch (error) {
             if (error instanceof z.ZodError) {
@@ -195,6 +192,47 @@ export async function authRoutes(fastify: FastifyInstance) {
             return reply.status(500).send({
                 error: 'Internal server error'
             });
+        }
+    });
+
+    // Refresh token endpoint
+    fastify.post('/v1/auth/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+            const { refreshToken } = request.body as { refreshToken: string };
+
+            if (!refreshToken) {
+                return reply.status(400).send({ error: 'Refresh token required' });
+            }
+
+            // Verify refresh token
+            const { verifyRefreshToken } = await import('../lib/auth');
+            const payload = verifyRefreshToken(refreshToken);
+
+            // Get user from mock storage
+            const user = Array.from(mockUsers.values()).find(u => u.id === payload.userId);
+
+            if (!user) {
+                return reply.status(401).send({ error: 'User not found' });
+            }
+
+            // Generate new tokens
+            const newAccessToken = generateAccessToken({
+                userId: user.id,
+                email: user.email,
+                role: user.role
+            });
+
+            const newRefreshToken = generateRefreshToken({
+                userId: user.id,
+                tokenVersion: payload.tokenVersion + 1
+            });
+
+            return {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken
+            };
+        } catch (error) {
+            return reply.status(401).send({ error: 'Invalid refresh token' });
         }
     });
 
@@ -213,14 +251,11 @@ export async function authRoutes(fastify: FastifyInstance) {
             const demoUser = {
                 id: 'user_1',
                 email: 'demo@ensei.com',
+                username: 'demo_user',
                 name: 'Demo User',
-                firstName: 'Demo',
-                lastName: 'User',
-                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',
-                joinedAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-                preferences: {
-                    marketing: false
-                }
+                role: UserRole.USER,
+                avatar: generateAvatar('demo@ensei.com'),
+                joinedAt: new Date(Date.now() - 86400000 * 30).toISOString()
             };
 
             return {
@@ -229,41 +264,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         } catch (error) {
             return reply.status(401).send({
                 error: 'Invalid token'
-            });
-        }
-    });
-
-    // Add some demo users for testing
-    const demoUsers = [
-        {
-            email: 'demo@ensei.com',
-            firstName: 'Demo',
-            lastName: 'User',
-            password: 'demo123'
-        },
-        {
-            email: 'test@ensei.com',
-            firstName: 'Test',
-            lastName: 'User',
-            password: 'test123'
-        }
-    ];
-
-    // Initialize demo users
-    demoUsers.forEach(demoUser => {
-        if (!users.has(demoUser.email)) {
-            const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            users.set(demoUser.email, {
-                id: userId,
-                email: demoUser.email,
-                firstName: demoUser.firstName,
-                lastName: demoUser.lastName,
-                password: hashPassword(demoUser.password),
-                avatar: generateAvatar(demoUser.email),
-                joinedAt: new Date().toISOString(),
-                preferences: {
-                    marketing: false
-                }
             });
         }
     });

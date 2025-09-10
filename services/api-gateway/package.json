@@ -18,12 +18,20 @@
   "dependencies": {
     "@ensei/mission-engine": "1.0.0",
     "@ensei/shared-types": "1.0.0",
-    "firebase-admin": "^12.4.0",
     "@fastify/cors": "^8.4.0",
     "@fastify/helmet": "^11.1.0",
     "@fastify/rate-limit": "^8.0.0",
+    "@fastify/websocket": "^8.3.1",
+    "@prisma/client": "^6.15.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.2",
     "fastify": "^4.24.0",
     "fastify-plugin": "^4.5.0",
+    "firebase-admin": "^12.4.0",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^6.15.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
