@@ -3,6 +3,13 @@ export { computeFixed } from './pricing/fixed';
 export { computeDegen, getPresetByHours } from './pricing/degen';
 export * from './pricing/constants';
 
+// Export degen presets function
+import { DEGEN_PRESETS } from './pricing/constants';
+
+export function getDegenPresets() {
+    return DEGEN_PRESETS;
+}
+
 // Export task catalog functions
 export {
     TASK_CATALOG,
