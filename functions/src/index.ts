@@ -1,12 +1,12 @@
 import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import * as firebaseAdmin from 'firebase-admin';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 // Initialize Firebase Admin
-admin.initializeApp();
+firebaseAdmin.initializeApp();
 
 // Import route handlers
 import { authRoutes } from './routes/auth';
@@ -77,17 +77,17 @@ export const api = functions.https.onRequest(app);
 export const websocket = functions.https.onRequest(websocketHandler);
 
 // Export individual functions for better performance
-export const auth = functions.https.onCall(async (data, context) => {
+export const auth = functions.https.onCall(async (data: any, context: any) => {
   // Handle authentication logic
   return { success: true };
 });
 
-export const missions = functions.https.onCall(async (data, context) => {
+export const missions = functions.https.onCall(async (data: any, context: any) => {
   // Handle mission logic
   return { success: true };
 });
 
-export const admin = functions.https.onCall(async (data, context) => {
+export const adminApi = functions.https.onCall(async (data: any, context: any) => {
   // Handle admin logic
   return { success: true };
 });
