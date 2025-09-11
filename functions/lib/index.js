@@ -26,82 +26,35 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminApi = exports.missions = exports.auth = exports.websocket = exports.api = void 0;
+exports.adminApi = exports.missions = exports.auth = exports.api = void 0;
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
-const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
-const helmet_1 = __importDefault(require("helmet"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 // Initialize Firebase Admin
 firebaseAdmin.initializeApp();
-// Import route handlers
-const auth_1 = require("./routes/auth");
-const missions_1 = require("./routes/missions");
-const admin_1 = require("./routes/admin");
-const websocket_1 = require("./routes/websocket");
-// Create Express app
+// Create a simple Express app for the API
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
-// Security middleware
-app.use((0, helmet_1.default)());
-app.use((0, cors_1.default)({
-    origin: true,
-    credentials: true
-}));
-// Rate limiting
-const limiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
-// Body parsing
-app.use(express_1.default.json({ limit: '10mb' }));
-app.use(express_1.default.urlencoded({ extended: true }));
-// Routes
-app.use('/api/v1/auth', auth_1.authRoutes);
-app.use('/api/v1/missions', missions_1.missionRoutes);
-app.use('/api/v1/admin', admin_1.adminRoutes);
-// Health check
+app.use((0, cors_1.default)());
+app.use(express_1.default.json());
+// Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        service: 'ensei-platform-firebase'
-    });
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-// WebSocket handler
-app.get('/ws', websocket_1.websocketHandler);
-// 404 handler
-app.use('*', (req, res) => {
-    res.status(404).json({
-        error: 'Not Found',
-        message: `Route ${req.originalUrl} not found`
-    });
-});
-// Error handler
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({
-        error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message
-    });
+// API routes
+app.get('/api/test', (req, res) => {
+    res.json({ message: 'Ensei Platform API is working!' });
 });
 // Export the Express app as a Firebase Function
 exports.api = functions.https.onRequest(app);
-// Export WebSocket as a separate function
-exports.websocket = functions.https.onRequest(websocket_1.websocketHandler);
 // Export individual functions for better performance
 exports.auth = functions.https.onCall(async (data, context) => {
-    // Handle authentication logic
-    return { success: true };
+    return { success: true, message: 'Auth function working' };
 });
 exports.missions = functions.https.onCall(async (data, context) => {
-    // Handle mission logic
-    return { success: true };
+    return { success: true, message: 'Missions function working' };
 });
 exports.adminApi = functions.https.onCall(async (data, context) => {
-    // Handle admin logic
-    return { success: true };
+    return { success: true, message: 'Admin API function working' };
 });
 //# sourceMappingURL=index.js.map
