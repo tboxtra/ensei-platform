@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ensei Platform - API Status</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        .status {
+            font-size: 1.2rem;
+            color: #4CAF50;
+            margin: 20px 0;
+        }
+        .endpoints {
+            text-align: left;
+            margin: 30px 0;
+        }
+        .endpoint {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .endpoint-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .endpoint-url {
+            color: #666;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Ensei Platform</div>
+        <div class="status">✅ API is running on Firebase Functions</div>
+        
+        <div class="endpoints">
+            <div class="endpoint">
+                <div class="endpoint-title">Health Check</div>
+                <div class="endpoint-url">GET /health</div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-title">Authentication</div>
+                <div class="endpoint-url">POST /api/v1/auth/login</div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-title">Missions</div>
+                <div class="endpoint-url">GET /api/v1/missions</div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-title">Admin API</div>
+                <div class="endpoint-url">GET /api/v1/admin/submissions</div>
+            </div>
+        </div>
+
+        <button class="test-button" onclick="testHealth()">Test Health Check</button>
+        <button class="test-button" onclick="testAuth()">Test Authentication</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api';
+        
+        function showResult(message, isSuccess) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = `result ${isSuccess ? 'success' : 'error'}`;
+            result.style.display = 'block';
+        }
+        
+        async function testHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                showResult(`Health Check: ${JSON.stringify(data)}`, response.ok);
+            } catch (error) {
+                showResult(`Health Check Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testAuth() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@ensei.com',
+                        password: 'admin123'
+                    })
+                });
+                const data = await response.json();
+                showResult(`Auth Test: ${response.ok ? 'Success' : 'Failed'} - ${JSON.stringify(data)}`, response.ok);
+            } catch (error) {
+                showResult(`Auth Test Error: ${error.message}`, false);
+            }
+        }
+    </script>
+</body>
+</html>

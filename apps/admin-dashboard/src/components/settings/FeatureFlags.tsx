@@ -43,25 +43,25 @@ export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) 
     decentralizedReviews: true,
     premiumTargeting: true,
     degenMissions: true,
-    
+
     // Social Features
     socialProofRequired: true,
     apiVerification: false,
     telegramBot: true,
     mobileApp: false,
-    
+
     // Advanced Features
     aiContentModeration: false,
     fraudDetection: true,
     analyticsDashboard: true,
     webhookSupport: false,
-    
+
     // Experimental Features
     nftRewards: false,
     stakingRewards: false,
     governanceVoting: false,
     crossChainSupport: false,
-    
+
     // UI Features
     darkMode: true,
     realTimeUpdates: false,
@@ -123,7 +123,7 @@ export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) 
 
   const categories = [
     'Core Features',
-    'Social Features', 
+    'Social Features',
     'Advanced Features',
     'Experimental Features',
     'UI Features'
@@ -154,10 +154,10 @@ export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) 
   return (
     <div className="space-y-6">
       {categories.map((category) => {
-        const categoryFlags = Object.entries(featureFlags).filter(([flag]) => 
+        const categoryFlags = Object.entries(featureFlags).filter(([flag]) =>
           getFlagCategory(flag) === category
         );
-        
+
         if (categoryFlags.length === 0) return null;
 
         return (
@@ -166,7 +166,7 @@ export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) 
               <span className="mr-2">{getCategoryIcon(category)}</span>
               {category}
             </h3>
-            
+
             <div className="space-y-4">
               {categoryFlags.map(([flag, enabled]) => (
                 <div key={flag} className="flex items-center justify-between p-4 bg-white rounded-lg border">
@@ -175,11 +175,10 @@ export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) 
                       <h4 className="text-sm font-medium text-gray-900 capitalize">
                         {flag.replace(/([A-Z])/g, ' $1').trim()}
                       </h4>
-                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                        enabled 
-                          ? 'bg-green-100 text-green-800' 
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${enabled
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-gray-100 text-gray-800'
-                      }`}>
+                        }`}>
                         {enabled ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
@@ -187,7 +186,7 @@ export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) 
                       {getFlagDescription(flag)}
                     </p>
                   </div>
-                  
+
                   <div className="ml-4">
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input

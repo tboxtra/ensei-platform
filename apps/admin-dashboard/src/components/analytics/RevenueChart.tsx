@@ -13,10 +13,10 @@ interface RevenueChartProps {
 
 export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   const [chartType, setChartType] = React.useState<'daily' | 'monthly'>('daily');
-  
+
   const chartData = chartType === 'daily' ? data.daily : data.monthly;
   const maxValue = Math.max(...chartData.map(d => d.revenue));
-  
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -45,21 +45,19 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
         <div className="flex space-x-2">
           <button
             onClick={() => setChartType('daily')}
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              chartType === 'daily'
+            className={`px-3 py-1 text-sm rounded-md transition-colors ${chartType === 'daily'
                 ? 'bg-indigo-100 text-indigo-800'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+              }`}
           >
             Daily
           </button>
           <button
             onClick={() => setChartType('monthly')}
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              chartType === 'monthly'
+            className={`px-3 py-1 text-sm rounded-md transition-colors ${chartType === 'monthly'
                 ? 'bg-indigo-100 text-indigo-800'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+              }`}
           >
             Monthly
           </button>

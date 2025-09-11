@@ -1,0 +1,247 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  username      String   @unique @db.VarChar(50)
+  email         String   @unique @db.VarChar(255)
+  walletAddress String?  @unique @map("wallet_address") @db.VarChar(255)
+  honorsBalance Int      @default(0) @map("honors_balance")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  createdMissions Mission[] @relation("MissionCreator")
+  submissions     Submission[]
+  reviewedSubmissions Submission[] @relation("SubmissionReviewer")
+  reviews         Review[]
+  honorsLedger    HonorsLedger[]
+  withdrawals     Withdrawal[]
+
+  @@map("users")
+}
+
+model Mission {
+  id            String      @id @default(uuid()) @db.Uuid
+  creatorId     String      @map("creator_id") @db.Uuid
+  title         String      @db.VarChar(255)
+  description   String?
+  platform      Platform
+  missionType   MissionType @map("mission_type")
+  missionModel  MissionModel @map("mission_model")
+  targetProfile TargetProfile @map("target_profile")
+  status        MissionStatus @default(ACTIVE)
+  
+  // Fixed mission fields
+  participantCap Int? @map("participant_cap")
+  perUserHonors  Int? @map("per_user_honors")
+  
+  // Degen mission fields
+  durationHours Int? @map("duration_hours")
+  winnersCap    Int? @map("winners_cap")
+  
+  // Pricing fields
+  totalCostUsd    Decimal @map("total_cost_usd") @db.Decimal(10, 2)
+  totalCostHonors Int     @map("total_cost_honors")
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  startsAt  DateTime? @map("starts_at") @db.Timestamptz(6)
+  endsAt    DateTime? @map("ends_at") @db.Timestamptz(6)
+
+  // Relations
+  creator     User         @relation("MissionCreator", fields: [creatorId], references: [id])
+  tasks       MissionTask[]
+  submissions Submission[]
+  honorsLedger HonorsLedger[]
+
+  @@map("missions")
+}
+
+model MissionTask {
+  id         String @id @default(uuid()) @db.Uuid
+  missionId  String @map("mission_id") @db.Uuid
+  taskType   String @map("task_type") @db.VarChar(100)
+  honorsReward Int @map("honors_reward")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@map("mission_tasks")
+}
+
+model Submission {
+  id          String         @id @default(uuid()) @db.Uuid
+  missionId   String         @map("mission_id") @db.Uuid
+  userId      String         @map("user_id") @db.Uuid
+  status      SubmissionStatus @default(PENDING)
+  submittedAt DateTime       @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  reviewedAt  DateTime?      @map("reviewed_at") @db.Timestamptz(6)
+  reviewerId  String?        @map("reviewer_id") @db.Uuid
+  rejectionReason String?    @map("rejection_reason")
+  honorsAwarded Int?        @map("honors_awarded")
+  
+  // Decentralized review fields
+  ratingAvg   Float?         @map("rating_avg")
+  ratingCount Int?           @default(0) @map("rating_count")
+
+  // Relations
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  reviewer User?  @relation("SubmissionReviewer", fields: [reviewerId], references: [id])
+  proofs  SubmissionProof[]
+  reviews Review[]
+
+  @@unique([missionId, userId])
+  @@map("submissions")
+}
+
+model SubmissionProof {
+  id           String @id @default(uuid()) @db.Uuid
+  submissionId String @map("submission_id") @db.Uuid
+  proofType    String @map("proof_type") @db.VarChar(50)
+  proofContent String @map("proof_content")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("submission_proofs")
+}
+
+model Review {
+  id           String @id @default(uuid()) @db.Uuid
+  submissionId String @map("submission_id") @db.Uuid
+  reviewerId   String @map("reviewer_id") @db.Uuid
+  rating       Int    @db.SmallInt // 1-5 star rating
+  commentLink  String? @map("comment_link") @db.VarChar(500)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  submission Submission @relation(fields: [submissionId], references: [id])
+  reviewer   User      @relation(fields: [reviewerId], references: [id])
+
+  @@unique([submissionId, reviewerId])
+  @@map("reviews")
+}
+
+model HonorsLedger {
+  id              String          @id @default(uuid()) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  missionId       String?         @map("mission_id") @db.Uuid
+  submissionId    String?         @map("submission_id") @db.Uuid
+  transactionType TransactionType @map("transaction_type")
+  amount          Int
+  balanceBefore   Int             @map("balance_before")
+  balanceAfter    Int             @map("balance_after")
+  description     String?
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id])
+  mission Mission? @relation(fields: [missionId], references: [id])
+
+  @@map("honors_ledger")
+}
+
+model Withdrawal {
+  id              String         @id @default(uuid()) @db.Uuid
+  userId          String         @map("user_id") @db.Uuid
+  honorsAmount    Int            @map("honors_amount")
+  usdAmount       Decimal        @map("usd_amount") @db.Decimal(10, 2)
+  status          WithdrawalStatus @default(PENDING)
+  walletAddress   String?        @map("wallet_address") @db.VarChar(255)
+  transactionHash String?         @map("transaction_hash") @db.VarChar(255)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt     DateTime?      @map("completed_at") @db.Timestamptz(6)
+  failureReason   String?        @map("failure_reason")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("withdrawals")
+}
+
+// Enums
+enum Platform {
+  TWITTER
+  INSTAGRAM
+  TIKTOK
+  FACEBOOK
+  WHATSAPP
+  SNAPCHAT
+  TELEGRAM
+  CUSTOM
+
+  @@map("platform")
+}
+
+enum MissionType {
+  ENGAGE
+  CONTENT
+  AMBASSADOR
+
+  @@map("mission_type")
+}
+
+enum MissionModel {
+  FIXED
+  DEGEN
+
+  @@map("mission_model")
+}
+
+enum TargetProfile {
+  ALL
+  PREMIUM
+
+  @@map("target_profile")
+}
+
+enum MissionStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+
+  @@map("mission_status")
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("submission_status")
+}
+
+enum TransactionType {
+  MISSION_CREATION
+  MISSION_REWARD
+  WITHDRAWAL
+  REFUND
+  ADJUSTMENT
+
+  @@map("transaction_type")
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@map("withdrawal_status")
+}

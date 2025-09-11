@@ -53,5 +53,8 @@
     "*.{json,md}": [
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
   }
 }

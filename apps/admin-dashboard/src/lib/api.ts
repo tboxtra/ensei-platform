@@ -1,7 +1,7 @@
 import { mockAuth } from './auth';
 
 // Base API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 export interface ApiResponse<T> {
   data: T;
@@ -66,16 +66,10 @@ class ApiClient {
 
   // Submissions API
   async getSubmissions(params?: {
-    page?: number;
-    limit?: number;
     status?: string;
-    missionId?: string;
-  }): Promise<ApiResponse<PaginatedResponse<any>>> {
+  }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.status) queryParams.append('status', params.status);
-    if (params?.missionId) queryParams.append('missionId', params.missionId);
 
     return this.request(`/v1/admin/submissions?${queryParams}`);
   }
@@ -93,18 +87,14 @@ class ApiClient {
 
   // Missions API
   async getMissions(params?: {
-    page?: number;
-    limit?: number;
     status?: string;
     platform?: string;
-    type?: string;
-  }): Promise<ApiResponse<PaginatedResponse<any>>> {
+    model?: string;
+  }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.status) queryParams.append('status', params.status);
     if (params?.platform) queryParams.append('platform', params.platform);
-    if (params?.type) queryParams.append('type', params.type);
+    if (params?.model) queryParams.append('model', params.model);
 
     return this.request(`/v1/admin/missions?${queryParams}`);
   }
@@ -122,16 +112,12 @@ class ApiClient {
 
   // Users API
   async getUsers(params?: {
-    page?: number;
-    limit?: number;
-    search?: string;
     role?: string;
-  }): Promise<ApiResponse<PaginatedResponse<any>>> {
+    status?: string;
+  }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.search) queryParams.append('search', params.search);
     if (params?.role) queryParams.append('role', params.role);
+    if (params?.status) queryParams.append('status', params.status);
 
     return this.request(`/v1/admin/users?${queryParams}`);
   }
@@ -148,21 +134,27 @@ class ApiClient {
   }
 
   // Analytics API
-  async getAnalytics(params?: {
-    period?: string;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<ApiResponse<any>> {
-    const queryParams = new URLSearchParams();
-    if (params?.period) queryParams.append('period', params.period);
-    if (params?.startDate) queryParams.append('startDate', params.startDate);
-    if (params?.endDate) queryParams.append('endDate', params.endDate);
-
-    return this.request(`/v1/admin/analytics?${queryParams}`);
+  async getAnalyticsOverview(): Promise<ApiResponse<any>> {
+    return this.request('/v1/admin/analytics/overview');
   }
 
-  async getDashboardStats(): Promise<ApiResponse<any>> {
-    return this.request('/v1/admin/dashboard/stats');
+  async getRevenueData(period?: string): Promise<ApiResponse<any>> {
+    const queryParams = period ? `?period=${period}` : '';
+    return this.request(`/v1/admin/analytics/revenue${queryParams}`);
+  }
+
+  async getUserGrowthData(period?: string): Promise<ApiResponse<any>> {
+    const queryParams = period ? `?period=${period}` : '';
+    return this.request(`/v1/admin/analytics/user-growth${queryParams}`);
+  }
+
+  async getPlatformPerformance(): Promise<ApiResponse<any>> {
+    return this.request('/v1/admin/analytics/platform-performance');
+  }
+
+  async getMissionPerformance(period?: string): Promise<ApiResponse<any>> {
+    const queryParams = period ? `?period=${period}` : '';
+    return this.request(`/v1/admin/analytics/mission-performance${queryParams}`);
   }
 
   // Review System API
