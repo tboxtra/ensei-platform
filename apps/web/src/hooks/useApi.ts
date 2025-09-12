@@ -269,6 +269,57 @@ export function useApi() {
         });
     }, [makeRequest]);
 
+    const uploadFile = useCallback(async (file: File): Promise<any> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    const base64Data = (reader.result as string).split(',')[1];
+                    const result = await makeRequest('/v1/upload', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            fileName: file.name,
+                            fileType: file.type,
+                            base64Data
+                        }),
+                    });
+                    resolve(result);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }, [makeRequest]);
+
+    const submitMissionWithFiles = useCallback(async (missionId: string, submissionData: any, files?: File[]): Promise<any> => {
+        let uploadedFiles = [];
+        
+        if (files && files.length > 0) {
+            for (const file of files) {
+                const uploadResult = await uploadFile(file);
+                uploadedFiles.push({
+                    fileName: file.name,
+                    fileType: file.type,
+                    base64Data: uploadResult.fileUrl // We'll use the URL instead of base64 for submission
+                });
+            }
+        }
+
+        return makeRequest(`/v1/missions/${missionId}/submit`, {
+            method: 'POST',
+            body: JSON.stringify({
+                submissionData,
+                files: uploadedFiles
+            }),
+        });
+    }, [makeRequest, uploadFile]);
+
+    const getMissionSubmissions = useCallback(async (missionId: string): Promise<any[]> => {
+        return makeRequest(`/v1/missions/${missionId}/submissions`);
+    }, [makeRequest]);
+
     const getSubmissions = useCallback(async (): Promise<Submission[]> => {
         return makeRequest<Submission[]>('/v1/submissions');
     }, [makeRequest]);
@@ -337,9 +388,13 @@ export function useApi() {
         getMyMissions,
         // Submission methods
         submitMission,
+        submitMissionWithFiles,
         participateInMission,
         getSubmissions,
+        getMissionSubmissions,
         reviewSubmission,
+        // File upload methods
+        uploadFile,
         // Claim methods
         getClaimableRewards,
         claimReward,

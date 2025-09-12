@@ -33,6 +33,8 @@ const firebaseAdmin = __importStar(require("firebase-admin"));
 firebaseAdmin.initializeApp();
 // Get Firestore instance
 const db = firebaseAdmin.firestore();
+// Get Storage instance
+const bucket = firebaseAdmin.storage().bucket();
 // Create a simple Express app for the API
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
@@ -504,6 +506,330 @@ app.post('/admin/seed-data', async (req, res) => {
     catch (error) {
         console.error('Error seeding data:', error);
         res.status(500).json({ error: 'Failed to seed data' });
+    }
+});
+// Seed data endpoint (for development)
+app.post('/v1/seed/missions', async (req, res) => {
+    try {
+        const sampleMissions = [
+            {
+                title: "AI Model Training Dataset Collection",
+                description: "Help us collect and annotate training data for our new AI model. This mission involves gathering images, text, and other data types to improve machine learning accuracy.",
+                category: "AI/ML",
+                difficulty: "intermediate",
+                total_cost_honors: 500,
+                model: "GPT-4",
+                duration_hours: 24,
+                participants: 0,
+                cap: 50,
+                status: "active",
+                requirements: [
+                    "Basic understanding of data annotation",
+                    "Access to computer with internet",
+                    "Attention to detail"
+                ],
+                deliverables: [
+                    "Annotated dataset of 1000+ items",
+                    "Quality report",
+                    "Documentation of annotation process"
+                ],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                created_by: "system",
+                participants_count: 0,
+                submissions_count: 0
+            },
+            {
+                title: "Blockchain Smart Contract Audit",
+                description: "Conduct a comprehensive security audit of our DeFi smart contract. Identify vulnerabilities and provide recommendations for improvements.",
+                category: "Blockchain",
+                difficulty: "expert",
+                total_cost_honors: 2000,
+                model: "Claude-3",
+                duration_hours: 72,
+                participants: 0,
+                cap: 5,
+                status: "active",
+                requirements: [
+                    "Expert knowledge of Solidity",
+                    "Experience with smart contract security",
+                    "Certified auditor preferred"
+                ],
+                deliverables: [
+                    "Detailed security audit report",
+                    "Vulnerability assessment",
+                    "Recommendations for fixes"
+                ],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                created_by: "system",
+                participants_count: 0,
+                submissions_count: 0
+            },
+            {
+                title: "Mobile App UI/UX Design",
+                description: "Design a modern, user-friendly interface for our new mobile application. Focus on accessibility and user experience.",
+                category: "Design",
+                difficulty: "intermediate",
+                total_cost_honors: 800,
+                model: "DALL-E-3",
+                duration_hours: 48,
+                participants: 0,
+                cap: 10,
+                status: "active",
+                requirements: [
+                    "Proficiency in Figma or similar tools",
+                    "Portfolio of mobile app designs",
+                    "Understanding of iOS/Android guidelines"
+                ],
+                deliverables: [
+                    "Complete UI/UX design system",
+                    "Interactive prototypes",
+                    "Design documentation"
+                ],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                created_by: "system",
+                participants_count: 0,
+                submissions_count: 0
+            },
+            {
+                title: "Content Writing for Tech Blog",
+                description: "Write engaging, informative articles about AI, blockchain, and emerging technologies for our company blog.",
+                category: "Writing",
+                difficulty: "beginner",
+                total_cost_honors: 300,
+                model: "GPT-4",
+                duration_hours: 16,
+                participants: 0,
+                cap: 20,
+                status: "active",
+                requirements: [
+                    "Strong writing skills",
+                    "Knowledge of tech topics",
+                    "SEO writing experience preferred"
+                ],
+                deliverables: [
+                    "5 high-quality blog posts (1000+ words each)",
+                    "SEO-optimized content",
+                    "Engaging social media snippets"
+                ],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                created_by: "system",
+                participants_count: 0,
+                submissions_count: 0
+            },
+            {
+                title: "Data Analysis and Visualization",
+                description: "Analyze our user engagement data and create compelling visualizations to help us understand user behavior patterns.",
+                category: "Analytics",
+                difficulty: "intermediate",
+                total_cost_honors: 600,
+                model: "GPT-4",
+                duration_hours: 32,
+                participants: 0,
+                cap: 8,
+                status: "active",
+                requirements: [
+                    "Proficiency in Python/R",
+                    "Experience with data visualization tools",
+                    "Statistical analysis skills"
+                ],
+                deliverables: [
+                    "Comprehensive data analysis report",
+                    "Interactive dashboards",
+                    "Actionable insights and recommendations"
+                ],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                created_by: "system",
+                participants_count: 0,
+                submissions_count: 0
+            }
+        ];
+        const batch = db.batch();
+        const missionRefs = [];
+        for (const mission of sampleMissions) {
+            const missionRef = db.collection('missions').doc();
+            batch.set(missionRef, mission);
+            missionRefs.push(Object.assign({ id: missionRef.id }, mission));
+        }
+        await batch.commit();
+        res.json({
+            message: 'Successfully seeded missions',
+            count: sampleMissions.length,
+            missions: missionRefs
+        });
+    }
+    catch (error) {
+        console.error('Error seeding missions:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// File upload endpoints
+app.post('/v1/upload', verifyFirebaseToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        const { fileName, fileType, base64Data } = req.body;
+        if (!fileName || !fileType || !base64Data) {
+            res.status(400).json({ error: 'Missing required fields: fileName, fileType, base64Data' });
+            return;
+        }
+        // Generate unique filename
+        const timestamp = Date.now();
+        const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filePath = `uploads/${userId}/${timestamp}_${sanitizedFileName}`;
+        // Convert base64 to buffer
+        const fileBuffer = Buffer.from(base64Data, 'base64');
+        // Upload to Firebase Storage
+        const file = bucket.file(filePath);
+        await file.save(fileBuffer, {
+            metadata: {
+                contentType: fileType,
+                metadata: {
+                    uploadedBy: userId,
+                    originalName: fileName,
+                    uploadedAt: new Date().toISOString()
+                }
+            }
+        });
+        // Make file publicly accessible
+        await file.makePublic();
+        // Get public URL
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        res.json({
+            success: true,
+            fileUrl: publicUrl,
+            fileName: sanitizedFileName,
+            filePath,
+            uploadedAt: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('Error uploading file:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Mission submission with file upload
+app.post('/v1/missions/:id/submit', verifyFirebaseToken, async (req, res) => {
+    try {
+        const missionId = req.params.id;
+        const userId = req.user.uid;
+        const { submissionData, files } = req.body;
+        // Check if mission exists
+        const missionDoc = await db.collection('missions').doc(missionId).get();
+        if (!missionDoc.exists) {
+            res.status(404).json({ error: 'Mission not found' });
+            return;
+        }
+        // Check if user is participating in this mission
+        const participationQuery = await db.collection('mission_participations')
+            .where('mission_id', '==', missionId)
+            .where('user_id', '==', userId)
+            .get();
+        if (participationQuery.empty) {
+            res.status(400).json({ error: 'User is not participating in this mission' });
+            return;
+        }
+        const participation = participationQuery.docs[0];
+        const participationData = participation.data();
+        if (participationData.status === 'submitted') {
+            res.status(400).json({ error: 'Submission already exists for this mission' });
+            return;
+        }
+        // Handle file uploads if any
+        let uploadedFiles = [];
+        if (files && files.length > 0) {
+            for (const file of files) {
+                const { fileName, fileType, base64Data } = file;
+                const timestamp = Date.now();
+                const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const filePath = `submissions/${missionId}/${userId}/${timestamp}_${sanitizedFileName}`;
+                const fileBuffer = Buffer.from(base64Data, 'base64');
+                const storageFile = bucket.file(filePath);
+                await storageFile.save(fileBuffer, {
+                    metadata: {
+                        contentType: fileType,
+                        metadata: {
+                            missionId,
+                            submittedBy: userId,
+                            originalName: fileName,
+                            submittedAt: new Date().toISOString()
+                        }
+                    }
+                });
+                await storageFile.makePublic();
+                const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+                uploadedFiles.push({
+                    fileName: sanitizedFileName,
+                    originalName: fileName,
+                    fileUrl: publicUrl,
+                    filePath,
+                    fileType
+                });
+            }
+        }
+        // Create submission record
+        const submission = {
+            mission_id: missionId,
+            user_id: userId,
+            submission_data: submissionData,
+            files: uploadedFiles,
+            status: 'submitted',
+            submitted_at: new Date().toISOString(),
+            reviewed_at: null,
+            feedback: null
+        };
+        const submissionRef = await db.collection('mission_submissions').add(submission);
+        // Update participation status
+        await participation.ref.update({
+            status: 'submitted',
+            submitted_at: new Date().toISOString(),
+            submission_id: submissionRef.id
+        });
+        // Update mission submissions count
+        await db.collection('missions').doc(missionId).update({
+            submissions_count: firebaseAdmin.firestore.FieldValue.increment(1),
+            updated_at: new Date().toISOString()
+        });
+        res.status(201).json({
+            success: true,
+            submission: Object.assign({ id: submissionRef.id }, submission)
+        });
+    }
+    catch (error) {
+        console.error('Error submitting mission:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Get mission submissions (for mission creators)
+app.get('/v1/missions/:id/submissions', verifyFirebaseToken, async (req, res) => {
+    try {
+        const missionId = req.params.id;
+        const userId = req.user.uid;
+        // Check if user is the mission creator
+        const missionDoc = await db.collection('missions').doc(missionId).get();
+        if (!missionDoc.exists) {
+            res.status(404).json({ error: 'Mission not found' });
+            return;
+        }
+        const mission = missionDoc.data();
+        if (!mission || mission.created_by !== userId) {
+            res.status(403).json({ error: 'Access denied. Only mission creator can view submissions.' });
+            return;
+        }
+        // Get submissions
+        const submissionsSnapshot = await db.collection('mission_submissions')
+            .where('mission_id', '==', missionId)
+            .orderBy('submitted_at', 'desc')
+            .get();
+        const submissions = submissionsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        res.json(submissions);
+    }
+    catch (error) {
+        console.error('Error fetching mission submissions:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 // Export the Express app as a Firebase Function
