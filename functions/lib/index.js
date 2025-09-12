@@ -48,26 +48,46 @@ app.get('/health', (req, res) => {
 app.get('/api/test', (req, res) => {
     res.json({ message: 'Ensei Platform API is working!' });
 });
-// Authentication endpoints
-app.post('/v1/auth/login', async (req, res) => {
+// Middleware to verify Firebase Auth token
+const verifyFirebaseToken = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            res.status(400).json({ error: 'Email and password are required' });
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ error: 'No token provided' });
             return;
         }
-        // For now, use simple authentication until Firebase Auth is properly configured
-        // This will be replaced with Firebase Auth once it's set up
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+        req.user = decodedToken;
+        next();
+    }
+    catch (error) {
+        console.error('Token verification error:', error);
+        res.status(401).json({ error: 'Invalid token' });
+    }
+};
+// Authentication endpoints
+app.post('/v1/auth/login', async (req, res) => {
+    var _a, _b, _c, _d;
+    try {
+        // This endpoint is now handled by Firebase Auth on the frontend
+        // We just need to verify the token and return user info
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ error: 'No token provided' });
+            return;
+        }
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
         const user = {
-            id: '1',
-            email: email,
-            name: email.split('@')[0],
-            firstName: email.split('@')[0],
-            lastName: 'User',
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-            joinedAt: new Date().toISOString()
+            id: decodedToken.uid,
+            email: decodedToken.email,
+            name: decodedToken.name || ((_a = decodedToken.email) === null || _a === void 0 ? void 0 : _a.split('@')[0]) || 'User',
+            firstName: ((_b = decodedToken.name) === null || _b === void 0 ? void 0 : _b.split(' ')[0]) || ((_c = decodedToken.email) === null || _c === void 0 ? void 0 : _c.split('@')[0]) || 'User',
+            lastName: ((_d = decodedToken.name) === null || _d === void 0 ? void 0 : _d.split(' ').slice(1).join(' ')) || 'User',
+            avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
+            joinedAt: new Date(decodedToken.iat * 1000).toISOString()
         };
-        const token = 'demo-token-' + Date.now();
         res.json({
             user,
             token
@@ -75,27 +95,30 @@ app.post('/v1/auth/login', async (req, res) => {
     }
     catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(401).json({ error: 'Invalid token' });
     }
 });
 app.post('/v1/auth/register', async (req, res) => {
+    var _a, _b, _c, _d;
     try {
-        const { firstName, lastName, email, password } = req.body;
-        if (!firstName || !lastName || !email || !password) {
-            res.status(400).json({ error: 'All fields are required' });
+        // Registration is handled by Firebase Auth on the frontend
+        // This endpoint just verifies the token for new users
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ error: 'No token provided' });
             return;
         }
-        // For now, use simple authentication until Firebase Auth is properly configured
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
         const user = {
-            id: '1',
-            email: email,
-            name: `${firstName} ${lastName}`,
-            firstName,
-            lastName,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-            joinedAt: new Date().toISOString()
+            id: decodedToken.uid,
+            email: decodedToken.email,
+            name: decodedToken.name || ((_a = decodedToken.email) === null || _a === void 0 ? void 0 : _a.split('@')[0]) || 'User',
+            firstName: ((_b = decodedToken.name) === null || _b === void 0 ? void 0 : _b.split(' ')[0]) || ((_c = decodedToken.email) === null || _c === void 0 ? void 0 : _c.split('@')[0]) || 'User',
+            lastName: ((_d = decodedToken.name) === null || _d === void 0 ? void 0 : _d.split(' ').slice(1).join(' ')) || 'User',
+            avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
+            joinedAt: new Date(decodedToken.iat * 1000).toISOString()
         };
-        const token = 'demo-token-' + Date.now();
         res.json({
             user,
             token
@@ -103,21 +126,21 @@ app.post('/v1/auth/register', async (req, res) => {
     }
     catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(401).json({ error: 'Invalid token' });
     }
 });
-app.get('/v1/auth/me', async (req, res) => {
+app.get('/v1/auth/me', verifyFirebaseToken, async (req, res) => {
+    var _a, _b, _c, _d;
     try {
-        // For demo purposes, return a default user
-        // This will be replaced with Firebase Auth token verification
+        const decodedToken = req.user;
         const user = {
-            id: '1',
-            email: 'demo@ensei.com',
-            name: 'Demo User',
-            firstName: 'Demo',
-            lastName: 'User',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',
-            joinedAt: new Date().toISOString()
+            id: decodedToken.uid,
+            email: decodedToken.email,
+            name: decodedToken.name || ((_a = decodedToken.email) === null || _a === void 0 ? void 0 : _a.split('@')[0]) || 'User',
+            firstName: ((_b = decodedToken.name) === null || _b === void 0 ? void 0 : _b.split(' ')[0]) || ((_c = decodedToken.email) === null || _c === void 0 ? void 0 : _c.split('@')[0]) || 'User',
+            lastName: ((_d = decodedToken.name) === null || _d === void 0 ? void 0 : _d.split(' ').slice(1).join(' ')) || 'User',
+            avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
+            joinedAt: new Date(decodedToken.iat * 1000).toISOString()
         };
         res.json(user);
     }
@@ -128,6 +151,7 @@ app.get('/v1/auth/me', async (req, res) => {
 });
 app.post('/v1/auth/logout', async (req, res) => {
     try {
+        // Firebase Auth handles logout on the frontend
         res.json({ message: 'Logged out successfully' });
     }
     catch (error) {

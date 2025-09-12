@@ -125,8 +125,8 @@ export function useApi() {
         setError(null);
 
         try {
-            // Get token from localStorage for authenticated requests
-            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            // Get Firebase token from localStorage for authenticated requests
+            const token = typeof window !== 'undefined' ? localStorage.getItem('firebaseToken') : null;
 
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 headers: {
@@ -144,7 +144,7 @@ export function useApi() {
                 if (response.status === 401) {
                     // Clear invalid token
                     if (typeof window !== 'undefined') {
-                        localStorage.removeItem('token');
+                        localStorage.removeItem('firebaseToken');
                         localStorage.removeItem('user');
                     }
                     throw new Error('Authentication failed. Please log in again.');
@@ -172,9 +172,9 @@ export function useApi() {
                 body: JSON.stringify(credentials),
             });
 
-            // Store token and user data
+            // Store Firebase token and user data
             if (typeof window !== 'undefined') {
-                localStorage.setItem('token', response.token);
+                localStorage.setItem('firebaseToken', response.token);
                 localStorage.setItem('user', JSON.stringify(response.user));
             }
 
@@ -191,9 +191,9 @@ export function useApi() {
                 body: JSON.stringify(userData),
             });
 
-            // Store token and user data
+            // Store Firebase token and user data
             if (typeof window !== 'undefined') {
-                localStorage.setItem('token', response.token);
+                localStorage.setItem('firebaseToken', response.token);
                 localStorage.setItem('user', JSON.stringify(response.user));
             }
 
@@ -215,7 +215,7 @@ export function useApi() {
         } finally {
             // Always clear local storage
             if (typeof window !== 'undefined') {
-                localStorage.removeItem('token');
+                localStorage.removeItem('firebaseToken');
                 localStorage.removeItem('user');
             }
         }
@@ -227,7 +227,7 @@ export function useApi() {
         } catch (err) {
             // If getting current user fails, clear invalid session
             if (typeof window !== 'undefined') {
-                localStorage.removeItem('token');
+                localStorage.removeItem('firebaseToken');
                 localStorage.removeItem('user');
             }
             throw err;

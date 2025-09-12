@@ -6,19 +6,18 @@ import Link from 'next/link';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
-import { useApi } from '../../../hooks/useApi';
 import { getFirebaseAuth, googleProvider } from '../../../lib/firebase';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { login, loading, error } = useApi();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         rememberMe: false
     });
     const [apiError, setApiError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleInputChange = (field: string, value: string | boolean) => {
         setFormData(prev => ({
@@ -31,65 +30,94 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setApiError('');
+        setLoading(true);
 
         try {
-            // Try real API first
-            await login({
-                email: formData.email,
-                password: formData.password
-            });
-
+            const auth = getFirebaseAuth();
+            const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+            const user = userCredential.user;
+            
+            // Get the ID token
+            const token = await user.getIdToken();
+            
+            // Store user data in localStorage
+            localStorage.setItem('user', JSON.stringify({
+                id: user.uid,
+                email: user.email,
+                name: user.displayName || user.email?.split('@')[0] || 'User',
+                avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
+                joinedAt: new Date().toISOString()
+            }));
+            
+            // Store the Firebase token
+            localStorage.setItem('firebaseToken', token);
+            
             router.push('/dashboard');
-        } catch (err) {
-            console.error('API login failed:', err);
-            setApiError(`Login failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-
-            // Don't fall back to demo mode automatically - let user see the error
-            // Only fall back if it's a network error or API unavailable
-            if (err instanceof Error && (err.message.includes('fetch') || err.message.includes('network'))) {
-                console.log('Network error detected, falling back to demo mode');
-                if (formData.email && formData.password) {
-                    localStorage.setItem('user', JSON.stringify({
-                        id: '1',
-                        email: formData.email,
-                        name: formData.email.split('@')[0],
-                        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
-                        joinedAt: new Date().toISOString()
-                    }));
-                    router.push('/dashboard');
-                }
+        } catch (err: any) {
+            console.error('Firebase login failed:', err);
+            let errorMessage = 'Login failed';
+            
+            if (err.code === 'auth/user-not-found') {
+                errorMessage = 'No account found with this email address';
+            } else if (err.code === 'auth/wrong-password') {
+                errorMessage = 'Incorrect password';
+            } else if (err.code === 'auth/invalid-email') {
+                errorMessage = 'Invalid email address';
+            } else if (err.code === 'auth/too-many-requests') {
+                errorMessage = 'Too many failed attempts. Please try again later';
+            } else if (err.message) {
+                errorMessage = err.message;
             }
+            
+            setApiError(errorMessage);
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleSocialLogin = async (provider: string) => {
+        setLoading(true);
+        setApiError('');
+        
         try {
             if (provider === 'google') {
                 const auth = getFirebaseAuth();
                 const result = await signInWithPopup(auth, googleProvider);
                 const user = result.user;
+                
+                // Get the ID token
+                const token = await user.getIdToken();
+                
                 localStorage.setItem('user', JSON.stringify({
                     id: user.uid,
                     email: user.email,
-                    name: user.displayName,
-                    avatar: user.photoURL,
+                    name: user.displayName || user.email?.split('@')[0] || 'User',
+                    avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
                     joinedAt: new Date().toISOString()
                 }));
+                
+                // Store the Firebase token
+                localStorage.setItem('firebaseToken', token);
+                
                 router.push('/dashboard');
                 return;
             }
-        } catch (e) {
-            console.error('Firebase social login failed, falling back to demo:', e);
+        } catch (err: any) {
+            console.error('Firebase social login failed:', err);
+            let errorMessage = 'Social login failed';
+            
+            if (err.code === 'auth/popup-closed-by-user') {
+                errorMessage = 'Login popup was closed';
+            } else if (err.code === 'auth/popup-blocked') {
+                errorMessage = 'Login popup was blocked by browser';
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+            
+            setApiError(errorMessage);
+        } finally {
+            setLoading(false);
         }
-        // Fallback demo
-        localStorage.setItem('user', JSON.stringify({
-            id: '1',
-            email: `user@${provider}.com`,
-            name: `${provider} User`,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider}`,
-            joinedAt: new Date().toISOString()
-        }));
-        router.push('/dashboard');
     };
 
     return (
@@ -148,9 +176,9 @@ export default function LoginPage() {
 
                         {/* Login Form */}
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {(apiError || error) && (
+                            {apiError && (
                                 <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                                    <p className="text-red-400 text-sm">{apiError || error}</p>
+                                    <p className="text-red-400 text-sm">{apiError}</p>
                                 </div>
                             )}
 
@@ -231,10 +259,10 @@ export default function LoginPage() {
                         </div>
                     </ModernCard>
 
-                    {/* Demo Notice */}
+                    {/* Firebase Auth Notice */}
                     <div className="text-center">
                         <p className="text-xs text-gray-500">
-                            💡 Demo Mode: Will fallback to demo if API is unavailable
+                            🔐 Powered by Firebase Authentication
                         </p>
                     </div>
                 </div>
