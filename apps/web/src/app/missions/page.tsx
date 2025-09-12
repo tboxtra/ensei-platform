@@ -103,7 +103,7 @@ export default function MissionsPage() {
               Try Again
             </ModernButton>
           </div>
-            </div>
+        </div>
       </ModernLayout>
     );
   }
@@ -212,8 +212,8 @@ export default function MissionsPage() {
         <div className="mb-8 px-4">
           <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Platform Filter */}
-            <div>
+              {/* Platform Filter */}
+              <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
                 <select
                   value={selectedCategory}
@@ -226,10 +226,10 @@ export default function MissionsPage() {
                     </option>
                   ))}
                 </select>
-            </div>
+              </div>
 
               {/* Difficulty Filter */}
-            <div>
+              <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
                 <select
                   value={selectedDifficulty}
@@ -242,10 +242,10 @@ export default function MissionsPage() {
                     </option>
                   ))}
                 </select>
-            </div>
+              </div>
 
               {/* Sort Filter */}
-            <div>
+              <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Sort By</label>
                 <select
                   value={sortBy}
@@ -285,12 +285,11 @@ export default function MissionsPage() {
                         <p className="text-gray-400 text-sm capitalize">{mission.category} • {mission.difficulty}</p>
                       </div>
                     </div>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        mission.difficulty === 'beginner' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                        mission.difficulty === 'intermediate' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${mission.difficulty === 'beginner' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                      mission.difficulty === 'intermediate' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
                         mission.difficulty === 'advanced' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                        'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                        }`}>
+                          'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      }`}>
                       {mission.difficulty}
                     </div>
                   </div>
@@ -329,13 +328,13 @@ export default function MissionsPage() {
                     )}
                   </div>
 
-                    <ModernButton
+                  <ModernButton
                     variant="primary"
                     className="w-full"
-                      onClick={() => window.location.href = `/missions/${mission.id}`}
-                    >
+                    onClick={() => window.location.href = `/missions/${mission.id}`}
+                  >
                     View Mission
-                    </ModernButton>
+                  </ModernButton>
                 </ModernCard>
               ))}
             </div>

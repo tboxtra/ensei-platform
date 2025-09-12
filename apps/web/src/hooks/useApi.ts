@@ -146,12 +146,19 @@ export function useApi() {
             // Get Firebase token from localStorage for authenticated requests
             const token = typeof window !== 'undefined' ? localStorage.getItem('firebaseToken') : null;
 
+            // Don't set Content-Type for FormData (let browser set it with boundary)
+            const isFormData = options.body instanceof FormData;
+            const headers: Record<string, string> = {
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+                ...(options.headers as Record<string, string>),
+            };
+
+            if (!isFormData) {
+                headers['Content-Type'] = 'application/json';
+            }
+
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                    ...options.headers,
-                },
+                headers,
                 ...options,
             });
 
@@ -394,6 +401,7 @@ export function useApi() {
     return {
         loading,
         error,
+        makeRequest,
         // Auth methods
         login,
         register,

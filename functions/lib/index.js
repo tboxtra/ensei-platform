@@ -38,6 +38,7 @@ const bucket = firebaseAdmin.storage().bucket();
 // Create a simple Express app for the API
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
+const multer_1 = __importDefault(require("multer"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
     origin: [
@@ -49,6 +50,25 @@ app.use((0, cors_1.default)({
     credentials: true
 }));
 app.use(express_1.default.json());
+// Configure multer for file uploads
+const upload = (0, multer_1.default)({
+    storage: multer_1.default.memoryStorage(),
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        // Allow common file types
+        const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
+        const extname = allowedTypes.test(file.originalname.toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        if (mimetype && extname) {
+            return cb(null, true);
+        }
+        else {
+            cb(new Error('Invalid file type. Only images, documents, and videos are allowed.'));
+        }
+    }
+});
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -441,17 +461,50 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req, res) => {
     }
 });
 // File upload endpoint (for mission proofs)
-app.post('/v1/upload', verifyFirebaseToken, async (req, res) => {
+app.post('/v1/upload', verifyFirebaseToken, upload.single('file'), async (req, res) => {
     try {
         const userId = req.user.uid;
-        // For now, return a mock file URL
-        // In production, this would handle actual file upload to Firebase Storage
-        const mockFileUrl = `https://storage.googleapis.com/ensei-6c8e0.appspot.com/uploads/${userId}/${Date.now()}.jpg`;
-        res.json({
-            success: true,
-            file_url: mockFileUrl,
-            message: 'File upload endpoint ready (mock response)'
+        if (!req.file) {
+            res.status(400).json({ error: 'No file provided' });
+            return;
+        }
+        const file = req.file;
+        const fileName = `${userId}/${Date.now()}-${file.originalname}`;
+        const fileUpload = bucket.file(fileName);
+        // Upload file to Firebase Storage
+        const stream = fileUpload.createWriteStream({
+            metadata: {
+                contentType: file.mimetype,
+                metadata: {
+                    originalName: file.originalname,
+                    uploadedBy: userId,
+                    uploadedAt: new Date().toISOString()
+                }
+            }
         });
+        stream.on('error', (error) => {
+            console.error('Upload error:', error);
+            res.status(500).json({ error: 'Upload failed' });
+        });
+        stream.on('finish', async () => {
+            try {
+                // Make file publicly accessible
+                await fileUpload.makePublic();
+                const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+                res.json({
+                    success: true,
+                    file_url: publicUrl,
+                    file_name: file.originalname,
+                    file_size: file.size,
+                    content_type: file.mimetype
+                });
+            }
+            catch (error) {
+                console.error('Error making file public:', error);
+                res.status(500).json({ error: 'Failed to make file public' });
+            }
+        });
+        stream.end(file.buffer);
     }
     catch (error) {
         console.error('Error handling file upload:', error);
