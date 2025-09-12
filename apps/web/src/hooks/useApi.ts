@@ -111,7 +111,7 @@ interface AuthResponse {
     token: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
 
 export function useApi() {
     const [loading, setLoading] = useState(false);
