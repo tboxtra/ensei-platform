@@ -30,8 +30,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
         { href: '/missions/my', icon: '📊', label: 'My Missions' },
         { href: '/review', icon: '📄', label: 'Review & Earn' },
         { href: '/claim', icon: '💰', label: 'Claim' },
-        { href: '/wallet', icon: '👛', label: 'Wallet' },
-        { href: '/demo', icon: '🎯', label: 'Demo' }
+        { href: '/wallet', icon: '👛', label: 'Wallet' }
     ];
 
     const handleLogout = async () => {
