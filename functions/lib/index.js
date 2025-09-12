@@ -38,7 +38,12 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
-    origin: ['https://ensei-platform-onh1g1z1d-izecubes-projects-b81ca540.vercel.app', 'https://admin-dashboard-d83i9lh7f-izecubes-projects-b81ca540.vercel.app', 'http://localhost:3000'],
+    origin: [
+        'https://ensei-platform-onh1g1z1d-izecubes-projects-b81ca540.vercel.app',
+        'https://ensei-platform-8mimjbhxx-izecubes-projects-b81ca540.vercel.app',
+        'https://admin-dashboard-d83i9lh7f-izecubes-projects-b81ca540.vercel.app',
+        'http://localhost:3000'
+    ],
     credentials: true
 }));
 app.use(express_1.default.json());
