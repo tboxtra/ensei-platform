@@ -41,22 +41,23 @@ export default function LoginPage() {
 
             router.push('/dashboard');
         } catch (err) {
-            console.log('API login failed, falling back to demo mode:', err);
-
-            // Fallback to demo mode if API is not available
-            if (formData.email && formData.password) {
-                // Store user data in localStorage for demo
-                localStorage.setItem('user', JSON.stringify({
-                    id: '1',
-                    email: formData.email,
-                    name: formData.email.split('@')[0],
-                    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
-                    joinedAt: new Date().toISOString()
-                }));
-
-                router.push('/dashboard');
-            } else {
-                setApiError('Please enter both email and password');
+            console.error('API login failed:', err);
+            setApiError(`Login failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            
+            // Don't fall back to demo mode automatically - let user see the error
+            // Only fall back if it's a network error or API unavailable
+            if (err instanceof Error && (err.message.includes('fetch') || err.message.includes('network'))) {
+                console.log('Network error detected, falling back to demo mode');
+                if (formData.email && formData.password) {
+                    localStorage.setItem('user', JSON.stringify({
+                        id: '1',
+                        email: formData.email,
+                        name: formData.email.split('@')[0],
+                        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
+                        joinedAt: new Date().toISOString()
+                    }));
+                    router.push('/dashboard');
+                }
             }
         }
     };

@@ -9,7 +9,10 @@ import express from 'express';
 import cors from 'cors';
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['https://ensei-platform-onh1g1z1d-izecubes-projects-b81ca540.vercel.app', 'https://admin-dashboard-d83i9lh7f-izecubes-projects-b81ca540.vercel.app', 'http://localhost:3000'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Health check endpoint
@@ -25,7 +28,7 @@ app.get('/api/test', (req, res) => {
 // Authentication endpoints
 app.post('/v1/auth/login', (req, res) => {
   const { email, password } = req.body;
-  
+
   // Simple demo authentication for now
   if (email && password) {
     const user = {
@@ -37,9 +40,9 @@ app.post('/v1/auth/login', (req, res) => {
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
       joinedAt: new Date().toISOString()
     };
-    
+
     const token = 'demo-token-' + Date.now();
-    
+
     res.json({
       user,
       token
@@ -51,7 +54,7 @@ app.post('/v1/auth/login', (req, res) => {
 
 app.post('/v1/auth/register', (req, res) => {
   const { firstName, lastName, email, password } = req.body;
-  
+
   if (firstName && lastName && email && password) {
     const user = {
       id: '1',
@@ -62,9 +65,9 @@ app.post('/v1/auth/register', (req, res) => {
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
       joinedAt: new Date().toISOString()
     };
-    
+
     const token = 'demo-token-' + Date.now();
-    
+
     res.json({
       user,
       token
@@ -85,7 +88,7 @@ app.get('/v1/auth/me', (req, res) => {
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',
     joinedAt: new Date().toISOString()
   };
-  
+
   res.json(user);
 });
 
