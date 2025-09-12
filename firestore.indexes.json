@@ -9,35 +9,49 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
+          "fieldPath": "created_at",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "submissions",
+      "collectionGroup": "mission_participations",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "status",
+          "fieldPath": "mission_id",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "submittedAt",
+          "fieldPath": "user_id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "user_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "users",
+      "collectionGroup": "rewards",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "role",
+          "fieldPath": "user_id",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "joinedAt",
+          "fieldPath": "created_at",
           "order": "DESCENDING"
         }
       ]

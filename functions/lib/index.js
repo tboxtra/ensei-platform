@@ -31,6 +31,8 @@ const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
 // Initialize Firebase Admin
 firebaseAdmin.initializeApp();
+// Get Firestore instance
+const db = firebaseAdmin.firestore();
 // Create a simple Express app for the API
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
@@ -162,9 +164,13 @@ app.post('/v1/auth/logout', async (req, res) => {
 // Missions endpoints
 app.get('/v1/missions', async (req, res) => {
     try {
-        // For now, return empty array since we don't have a database yet
-        // In production, this would query a database
-        res.json([]);
+        const missionsSnapshot = await db.collection('missions')
+            .where('status', '==', 'active')
+            .orderBy('created_at', 'desc')
+            .limit(50)
+            .get();
+        const missions = missionsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        res.json(missions);
     }
     catch (error) {
         console.error('Error fetching missions:', error);
@@ -175,8 +181,13 @@ app.get('/v1/missions/:id', async (req, res) => {
     try {
         const missionId = req.params.id;
         console.log('Fetching mission:', missionId);
-        // For now, return 404 since we don't have a database yet
-        res.status(404).json({ error: 'Mission not found', missionId });
+        const missionDoc = await db.collection('missions').doc(missionId).get();
+        if (!missionDoc.exists) {
+            res.status(404).json({ error: 'Mission not found', missionId });
+            return;
+        }
+        const mission = Object.assign({ id: missionDoc.id }, missionDoc.data());
+        res.json(mission);
     }
     catch (error) {
         console.error('Error fetching mission:', error);
@@ -187,8 +198,26 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req, res) => {
     try {
         const userId = req.user.uid;
         console.log('Fetching missions for user:', userId);
-        // For now, return empty array since we don't have a database yet
-        res.json([]);
+        // Get missions created by user
+        const createdMissionsSnapshot = await db.collection('missions')
+            .where('created_by', '==', userId)
+            .orderBy('created_at', 'desc')
+            .get();
+        // Get missions user is participating in
+        const participationsSnapshot = await db.collection('mission_participations')
+            .where('user_id', '==', userId)
+            .get();
+        const createdMissions = createdMissionsSnapshot.docs.map(doc => (Object.assign(Object.assign({ id: doc.id }, doc.data()), { type: 'created' })));
+        const participationMissions = await Promise.all(participationsSnapshot.docs.map(async (participationDoc) => {
+            const participation = participationDoc.data();
+            const missionDoc = await db.collection('missions').doc(participation.mission_id).get();
+            if (missionDoc.exists) {
+                return Object.assign(Object.assign({ id: missionDoc.id }, missionDoc.data()), { type: 'participating', participation_id: participationDoc.id, participation_status: participation.status });
+            }
+            return null;
+        }));
+        const allMissions = [...createdMissions, ...participationMissions.filter(Boolean)];
+        res.json(allMissions);
     }
     catch (error) {
         console.error('Error fetching user missions:', error);
@@ -199,9 +228,10 @@ app.post('/v1/missions', verifyFirebaseToken, async (req, res) => {
     try {
         const userId = req.user.uid;
         const missionData = req.body;
-        // For now, return a mock response since we don't have a database yet
-        const newMission = Object.assign(Object.assign({ id: Date.now().toString() }, missionData), { created_by: userId, created_at: new Date().toISOString(), status: 'draft' });
-        res.status(201).json(newMission);
+        const newMission = Object.assign(Object.assign({}, missionData), { created_by: userId, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'active', participants_count: 0, submissions_count: 0 });
+        const missionRef = await db.collection('missions').add(newMission);
+        const createdMission = Object.assign({ id: missionRef.id }, newMission);
+        res.status(201).json(createdMission);
     }
     catch (error) {
         console.error('Error creating mission:', error);
@@ -213,9 +243,30 @@ app.post('/v1/missions/:id/participate', verifyFirebaseToken, async (req, res) =
         const missionId = req.params.id;
         const userId = req.user.uid;
         const participationData = req.body;
-        // For now, return a mock response since we don't have a database yet
-        const participation = Object.assign(Object.assign({ id: Date.now().toString(), mission_id: missionId, user_id: userId }, participationData), { status: 'pending', submitted_at: new Date().toISOString() });
-        res.status(201).json(participation);
+        // Check if mission exists
+        const missionDoc = await db.collection('missions').doc(missionId).get();
+        if (!missionDoc.exists) {
+            res.status(404).json({ error: 'Mission not found' });
+            return;
+        }
+        // Check if user already participated
+        const existingParticipation = await db.collection('mission_participations')
+            .where('mission_id', '==', missionId)
+            .where('user_id', '==', userId)
+            .get();
+        if (!existingParticipation.empty) {
+            res.status(400).json({ error: 'User already participating in this mission' });
+            return;
+        }
+        const participation = Object.assign(Object.assign({ mission_id: missionId, user_id: userId }, participationData), { status: 'active', joined_at: new Date().toISOString(), submitted_at: null });
+        const participationRef = await db.collection('mission_participations').add(participation);
+        // Update mission participants count
+        await db.collection('missions').doc(missionId).update({
+            participants_count: firebaseAdmin.firestore.FieldValue.increment(1),
+            updated_at: new Date().toISOString()
+        });
+        const createdParticipation = Object.assign({ id: participationRef.id }, participation);
+        res.status(201).json(createdParticipation);
     }
     catch (error) {
         console.error('Error participating in mission:', error);
@@ -227,12 +278,29 @@ app.get('/v1/wallet/balance', verifyFirebaseToken, async (req, res) => {
     try {
         const userId = req.user.uid;
         console.log('Fetching wallet balance for user:', userId);
-        // For now, return mock wallet data
-        res.json({
-            honors: 0,
-            usd: 0,
-            transactions: []
-        });
+        // Get or create user wallet
+        const walletDoc = await db.collection('wallets').doc(userId).get();
+        if (!walletDoc.exists) {
+            // Create new wallet for user
+            const newWallet = {
+                honors: 0,
+                usd: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            await db.collection('wallets').doc(userId).set(newWallet);
+            res.json(Object.assign(Object.assign({}, newWallet), { transactions: [] }));
+            return;
+        }
+        const wallet = walletDoc.data();
+        // Get recent transactions
+        const transactionsSnapshot = await db.collection('transactions')
+            .where('user_id', '==', userId)
+            .orderBy('created_at', 'desc')
+            .limit(20)
+            .get();
+        const transactions = transactionsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        res.json(Object.assign(Object.assign({}, wallet), { transactions }));
     }
     catch (error) {
         console.error('Error fetching wallet balance:', error);
@@ -243,8 +311,13 @@ app.get('/v1/wallet/rewards', verifyFirebaseToken, async (req, res) => {
     try {
         const userId = req.user.uid;
         console.log('Fetching rewards for user:', userId);
-        // For now, return empty rewards array
-        res.json([]);
+        // Get user's rewards
+        const rewardsSnapshot = await db.collection('rewards')
+            .where('user_id', '==', userId)
+            .orderBy('created_at', 'desc')
+            .get();
+        const rewards = rewardsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        res.json(rewards);
     }
     catch (error) {
         console.error('Error fetching rewards:', error);
@@ -256,16 +329,176 @@ app.post('/v1/wallet/claim/:rewardId', verifyFirebaseToken, async (req, res) => 
         const rewardId = req.params.rewardId;
         const userId = req.user.uid;
         console.log('Claiming reward:', rewardId, 'for user:', userId);
-        // For now, return a mock response
+        // Get the reward
+        const rewardDoc = await db.collection('rewards').doc(rewardId).get();
+        if (!rewardDoc.exists) {
+            res.status(404).json({ error: 'Reward not found' });
+            return;
+        }
+        const reward = rewardDoc.data();
+        if (!reward) {
+            res.status(404).json({ error: 'Reward data not found' });
+            return;
+        }
+        // Check if reward belongs to user
+        if (reward.user_id !== userId) {
+            res.status(403).json({ error: 'Unauthorized to claim this reward' });
+            return;
+        }
+        // Check if already claimed
+        if (reward.status === 'claimed') {
+            res.status(400).json({ error: 'Reward already claimed' });
+            return;
+        }
+        // Update reward status
+        await db.collection('rewards').doc(rewardId).update({
+            status: 'claimed',
+            claimed_at: new Date().toISOString()
+        });
+        // Update user wallet
+        await db.collection('wallets').doc(userId).update({
+            honors: firebaseAdmin.firestore.FieldValue.increment(reward.honors || 0),
+            usd: firebaseAdmin.firestore.FieldValue.increment(reward.usd || 0),
+            updated_at: new Date().toISOString()
+        });
+        // Create transaction record
+        await db.collection('transactions').add({
+            user_id: userId,
+            type: 'reward_claim',
+            amount: reward.honors || 0,
+            currency: 'honors',
+            description: `Claimed reward: ${reward.title || 'Mission reward'}`,
+            reward_id: rewardId,
+            created_at: new Date().toISOString()
+        });
         res.json({
             success: true,
             message: 'Reward claimed successfully',
-            reward_id: rewardId
+            reward_id: rewardId,
+            honors_added: reward.honors || 0,
+            usd_added: reward.usd || 0
         });
     }
     catch (error) {
         console.error('Error claiming reward:', error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// User profile endpoints
+app.get('/v1/user/profile', verifyFirebaseToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        // Get user profile from Firestore
+        const userDoc = await db.collection('users').doc(userId).get();
+        if (!userDoc.exists) {
+            // Create new user profile
+            const newUser = {
+                uid: userId,
+                email: req.user.email,
+                name: req.user.name || '',
+                avatar: req.user.picture || '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                stats: {
+                    missions_created: 0,
+                    missions_completed: 0,
+                    total_honors_earned: 0,
+                    total_usd_earned: 0
+                }
+            };
+            await db.collection('users').doc(userId).set(newUser);
+            res.json(newUser);
+            return;
+        }
+        const user = userDoc.data();
+        res.json(user);
+    }
+    catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.put('/v1/user/profile', verifyFirebaseToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        const updateData = req.body;
+        const updatedUser = Object.assign(Object.assign({}, updateData), { updated_at: new Date().toISOString() });
+        await db.collection('users').doc(userId).update(updatedUser);
+        const userDoc = await db.collection('users').doc(userId).get();
+        const user = userDoc.data();
+        res.json(user);
+    }
+    catch (error) {
+        console.error('Error updating user profile:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// File upload endpoint (for mission proofs)
+app.post('/v1/upload', verifyFirebaseToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        // For now, return a mock file URL
+        // In production, this would handle actual file upload to Firebase Storage
+        const mockFileUrl = `https://storage.googleapis.com/ensei-6c8e0.appspot.com/uploads/${userId}/${Date.now()}.jpg`;
+        res.json({
+            success: true,
+            file_url: mockFileUrl,
+            message: 'File upload endpoint ready (mock response)'
+        });
+    }
+    catch (error) {
+        console.error('Error handling file upload:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Mission submission endpoint
+app.post('/v1/missions/:id/submit', verifyFirebaseToken, async (req, res) => {
+    try {
+        const missionId = req.params.id;
+        const userId = req.user.uid;
+        const submissionData = req.body;
+        // Check if user is participating in this mission
+        const participationSnapshot = await db.collection('mission_participations')
+            .where('mission_id', '==', missionId)
+            .where('user_id', '==', userId)
+            .get();
+        if (participationSnapshot.empty) {
+            res.status(400).json({ error: 'User not participating in this mission' });
+            return;
+        }
+        const participation = participationSnapshot.docs[0];
+        // Update participation with submission
+        await db.collection('mission_participations').doc(participation.id).update(Object.assign(Object.assign({}, submissionData), { status: 'submitted', submitted_at: new Date().toISOString() }));
+        // Update mission submissions count
+        await db.collection('missions').doc(missionId).update({
+            submissions_count: firebaseAdmin.firestore.FieldValue.increment(1),
+            updated_at: new Date().toISOString()
+        });
+        res.json({
+            success: true,
+            message: 'Mission submission successful',
+            participation_id: participation.id
+        });
+    }
+    catch (error) {
+        console.error('Error submitting mission:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Admin endpoint to seed sample data
+app.post('/admin/seed-data', async (req, res) => {
+    try {
+        // Import and run seed function
+        const { seedSampleData } = await Promise.resolve().then(() => __importStar(require('./seed-data')));
+        await seedSampleData();
+        res.json({
+            success: true,
+            message: 'Sample data seeded successfully'
+        });
+    }
+    catch (error) {
+        console.error('Error seeding data:', error);
+        res.status(500).json({ error: 'Failed to seed data' });
     }
 });
 // Export the Express app as a Firebase Function
