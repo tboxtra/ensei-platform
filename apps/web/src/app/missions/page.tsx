@@ -13,18 +13,16 @@ export default function MissionsPage() {
     fetchMissions();
   }, [fetchMissions]);
 
-  const [selectedPlatform, setSelectedPlatform] = useState('all');
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedModel, setSelectedModel] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [sortBy, setSortBy] = useState('reward'); // reward, duration, participants
 
   // Fix the filter error by ensuring missions is an array
   const missionsArray = Array.isArray(missions) ? missions : [];
 
   const filteredMissions = missionsArray.filter(mission => {
-    if (selectedPlatform !== 'all' && mission.platform !== selectedPlatform) return false;
-    if (selectedType !== 'all' && mission.type !== selectedType) return false;
-    if (selectedModel !== 'all' && mission.model !== selectedModel) return false;
+    if (selectedCategory !== 'all' && mission.category !== selectedCategory) return false;
+    if (selectedDifficulty !== 'all' && mission.difficulty !== selectedDifficulty) return false;
     return true;
   });
 
@@ -32,39 +30,35 @@ export default function MissionsPage() {
   const sortedMissions = [...filteredMissions].sort((a, b) => {
     switch (sortBy) {
       case 'reward':
-        return ((b as any).total_cost_honors || 0) - ((a as any).total_cost_honors || 0);
+        return ((b as any).total_cost_honors || (b as any).rewards?.honors || 0) - ((a as any).total_cost_honors || (a as any).rewards?.honors || 0);
       case 'duration':
         return ((a as any).duration_hours || 0) - ((b as any).duration_hours || 0);
       case 'participants':
-        return ((b as any).cap || 0) - ((a as any).cap || 0);
+        return ((b as any).cap || (b as any).max_participants || 0) - ((a as any).cap || (a as any).max_participants || 0);
       default:
         return 0;
     }
   });
 
-  const platforms = [
-    { id: 'all', name: 'All Platforms', icon: '🌐', color: 'from-gray-500 to-gray-600' },
-    { id: 'twitter', name: 'Twitter/X', icon: '𝕏', color: 'from-blue-500 to-blue-600' },
-    { id: 'instagram', name: 'Instagram', icon: '📸', color: 'from-pink-500 to-purple-600' },
-    { id: 'tiktok', name: 'TikTok', icon: '🎵', color: 'from-black to-gray-800' },
-    { id: 'facebook', name: 'Facebook', icon: '📘', color: 'from-blue-600 to-blue-700' },
-    { id: 'whatsapp', name: 'WhatsApp', icon: '💬', color: 'from-green-500 to-green-600' },
-    { id: 'snapchat', name: 'Snapchat', icon: '👻', color: 'from-yellow-400 to-orange-500' },
-    { id: 'telegram', name: 'Telegram', icon: '📱', color: 'from-blue-400 to-blue-500' },
-    { id: 'custom', name: 'Custom', icon: '⚡', color: 'from-purple-500 to-indigo-600' }
+  const categories = [
+    { id: 'all', name: 'All Categories', icon: '🌐', color: 'from-gray-500 to-gray-600' },
+    { id: 'AI/ML', name: 'AI/ML', icon: '🤖', color: 'from-blue-500 to-blue-600' },
+    { id: 'Blockchain', name: 'Blockchain', icon: '⛓️', color: 'from-purple-500 to-purple-600' },
+    { id: 'Design', name: 'Design', icon: '🎨', color: 'from-pink-500 to-pink-600' },
+    { id: 'Writing', name: 'Writing', icon: '✍️', color: 'from-green-500 to-green-600' },
+    { id: 'Analytics', name: 'Analytics', icon: '📊', color: 'from-orange-500 to-orange-600' },
+    { id: 'marketing', name: 'Marketing', icon: '📈', color: 'from-red-500 to-red-600' },
+    { id: 'content', name: 'Content', icon: '📝', color: 'from-indigo-500 to-indigo-600' },
+    { id: 'testing', name: 'Testing', icon: '🧪', color: 'from-yellow-500 to-yellow-600' },
+    { id: 'analytics', name: 'Analytics', icon: '📈', color: 'from-teal-500 to-teal-600' }
   ];
 
-  const missionTypes = [
-    { id: 'all', name: 'All Types', icon: '🎯', color: 'from-gray-500 to-gray-600' },
-    { id: 'engage', name: 'Engage', icon: '🎯', color: 'from-blue-500 to-purple-600' },
-    { id: 'content', name: 'Content', icon: '✍️', color: 'from-green-500 to-emerald-600' },
-    { id: 'ambassador', name: 'Ambassador', icon: '👑', color: 'from-yellow-500 to-orange-600' }
-  ];
-
-  const missionModels = [
-    { id: 'all', name: 'All Models', icon: '📊', color: 'from-gray-500 to-gray-600' },
-    { id: 'fixed', name: 'Fixed', icon: '📊', color: 'from-purple-500 to-indigo-600' },
-    { id: 'degen', name: 'Degen', icon: '⚡', color: 'from-orange-500 to-red-600' }
+  const difficulties = [
+    { id: 'all', name: 'All Levels', icon: '🎯', color: 'from-gray-500 to-gray-600' },
+    { id: 'beginner', name: 'Beginner', icon: '🌱', color: 'from-green-500 to-green-600' },
+    { id: 'intermediate', name: 'Intermediate', icon: '⚡', color: 'from-yellow-500 to-yellow-600' },
+    { id: 'advanced', name: 'Advanced', icon: '🔥', color: 'from-orange-500 to-orange-600' },
+    { id: 'expert', name: 'Expert', icon: '💎', color: 'from-purple-500 to-purple-600' }
   ];
 
   if (loading) {
@@ -109,7 +103,7 @@ export default function MissionsPage() {
               Try Again
             </ModernButton>
           </div>
-        </div>
+            </div>
       </ModernLayout>
     );
   }
@@ -218,56 +212,40 @@ export default function MissionsPage() {
         <div className="mb-8 px-4">
           <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Platform Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Platform</label>
+            {/* Platform Filter */}
+            <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
                 <select
-                  value={selectedPlatform}
-                  onChange={(e) => setSelectedPlatform(e.target.value)}
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
                   className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  {platforms.map(platform => (
-                    <option key={platform.id} value={platform.id}>
-                      {platform.icon} {platform.name}
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.icon} {category.name}
                     </option>
                   ))}
                 </select>
-              </div>
+            </div>
 
-              {/* Type Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Type</label>
+              {/* Difficulty Filter */}
+            <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
                 <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
+                  value={selectedDifficulty}
+                  onChange={(e) => setSelectedDifficulty(e.target.value)}
                   className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  {missionTypes.map(type => (
-                    <option key={type.id} value={type.id}>
-                      {type.icon} {type.name}
+                  {difficulties.map(difficulty => (
+                    <option key={difficulty.id} value={difficulty.id}>
+                      {difficulty.icon} {difficulty.name}
                     </option>
                   ))}
                 </select>
-              </div>
-
-              {/* Model Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Model</label>
-                <select
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  {missionModels.map(model => (
-                    <option key={model.id} value={model.id}>
-                      {model.icon} {model.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            </div>
 
               {/* Sort Filter */}
-              <div>
+            <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Sort By</label>
                 <select
                   value={sortBy}
@@ -300,18 +278,20 @@ export default function MissionsPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="text-2xl">
-                        {platforms.find(p => p.id === mission.platform)?.icon || '🌐'}
+                        {categories.find(c => c.id === mission.category)?.icon || '🌐'}
                       </div>
                       <div>
                         <h3 className="font-semibold text-white text-lg">{mission.title}</h3>
-                        <p className="text-gray-400 text-sm capitalize">{mission.platform} • {mission.type}</p>
+                        <p className="text-gray-400 text-sm capitalize">{mission.category} • {mission.difficulty}</p>
                       </div>
                     </div>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${(mission as any).model === 'fixed'
-                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                      : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                      }`}>
-                      {(mission as any).model}
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        mission.difficulty === 'beginner' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                        mission.difficulty === 'intermediate' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                        mission.difficulty === 'advanced' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                        'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                        }`}>
+                      {mission.difficulty}
                     </div>
                   </div>
 
@@ -323,30 +303,39 @@ export default function MissionsPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Reward</span>
                       <span className="text-green-400 font-semibold">
-                        {(mission as any).total_cost_honors?.toLocaleString() || 0} Honors
+                        {(mission as any).total_cost_honors?.toLocaleString() || (mission as any).rewards?.honors?.toLocaleString() || 0} Honors
+                        {(mission as any).rewards?.usd && ` ($${(mission as any).rewards.usd})`}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Duration</span>
-                      <span className="text-white">
+                      <span className="text-blue-400 font-semibold">
                         {(mission as any).duration_hours || 0}h
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Participants</span>
-                      <span className="text-white">
-                        {(mission as any).participants || 0}/{(mission as any).cap || 0}
+                      <span className="text-purple-400 font-semibold">
+                        {mission.participants_count || 0}/{mission.max_participants || mission.cap || 0}
                       </span>
                     </div>
+                    {mission.deadline && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Deadline</span>
+                        <span className="text-orange-400 font-semibold text-xs">
+                          {new Date(mission.deadline).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <ModernButton
+                    <ModernButton
                     variant="primary"
                     className="w-full"
-                    onClick={() => window.location.href = `/missions/${mission.id}`}
-                  >
+                      onClick={() => window.location.href = `/missions/${mission.id}`}
+                    >
                     View Mission
-                  </ModernButton>
+                    </ModernButton>
                 </ModernCard>
               ))}
             </div>

@@ -763,7 +763,7 @@ app.post('/v1/seed/missions', async (req, res) => {
 
     await batch.commit();
 
-    res.json({
+  res.json({ 
       message: 'Successfully seeded missions',
       count: sampleMissions.length,
       missions: missionRefs
@@ -863,14 +863,14 @@ app.post('/v1/missions/:id/submit', verifyFirebaseToken, async (req: any, res) =
     if (files && files.length > 0) {
       for (const file of files) {
         const { fileName, fileType, base64Data } = file;
-        
+
         const timestamp = Date.now();
         const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
         const filePath = `submissions/${missionId}/${userId}/${timestamp}_${sanitizedFileName}`;
 
         const fileBuffer = Buffer.from(base64Data, 'base64');
         const storageFile = bucket.file(filePath);
-        
+
         await storageFile.save(fileBuffer, {
           metadata: {
             contentType: fileType,

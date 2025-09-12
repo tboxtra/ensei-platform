@@ -21,20 +21,38 @@ interface CreateMissionRequest {
 
 interface Mission {
     id: string;
-    platform: string;
-    type: string;
-    model: 'fixed' | 'degen';
     title: string;
     description: string;
-    status: 'active' | 'completed' | 'cancelled';
-    participants: number;
-    maxParticipants: number;
-    reward: number;
-    totalCost: number;
-    endsAt: string;
-    tasks: string[];
-    submissions: number;
-    createdAt: string;
+    category: string;
+    difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    status: 'active' | 'completed' | 'cancelled' | 'draft';
+    participants_count: number;
+    submissions_count: number;
+    max_participants?: number;
+    cap?: number;
+    total_cost_honors?: number;
+    rewards?: {
+        honors: number;
+        usd: number;
+    };
+    requirements: string[];
+    deliverables?: string[];
+    deadline?: string;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+    // Legacy fields for backward compatibility
+    platform?: string;
+    type?: string;
+    model?: string;
+    participants?: number;
+    maxParticipants?: number;
+    reward?: number;
+    totalCost?: number;
+    endsAt?: string;
+    tasks?: string[];
+    submissions?: number;
+    duration_hours?: number;
 }
 
 interface Submission {
@@ -295,7 +313,7 @@ export function useApi() {
 
     const submitMissionWithFiles = useCallback(async (missionId: string, submissionData: any, files?: File[]): Promise<any> => {
         let uploadedFiles = [];
-        
+
         if (files && files.length > 0) {
             for (const file of files) {
                 const uploadResult = await uploadFile(file);
