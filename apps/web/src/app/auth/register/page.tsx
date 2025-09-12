@@ -6,11 +6,11 @@ import Link from 'next/link';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
-import { useApi } from '../../../hooks/useApi';
+import { getFirebaseAuth, googleProvider } from '../../../lib/firebase';
+import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 
 export default function RegisterPage() {
     const router = useRouter();
-    const { register, loading, error } = useApi();
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -22,6 +22,7 @@ export default function RegisterPage() {
     });
     const [step, setStep] = useState(1);
     const [apiError, setApiError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleInputChange = (field: string, value: string | boolean) => {
         setFormData(prev => ({
@@ -94,52 +95,101 @@ export default function RegisterPage() {
         if (!validateStep2()) return;
 
         setApiError('');
+        setLoading(true);
 
         try {
-            // Try real API first
-            await register({
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                password: formData.password,
-                agreeToTerms: formData.agreeToTerms,
-                agreeToMarketing: formData.agreeToMarketing
-            });
+            const auth = getFirebaseAuth();
+            const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+            const user = userCredential.user;
 
-            router.push('/dashboard');
-        } catch (err) {
-            console.log('API registration failed, falling back to demo mode:', err);
+            // Get the ID token
+            const token = await user.getIdToken();
 
-            // Fallback to demo mode if API is not available
+            // Store user data in localStorage
             localStorage.setItem('user', JSON.stringify({
-                id: '1',
-                email: formData.email,
+                id: user.uid,
+                email: user.email,
                 name: `${formData.firstName} ${formData.lastName}`,
                 firstName: formData.firstName,
                 lastName: formData.lastName,
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`,
+                avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
                 joinedAt: new Date().toISOString(),
                 preferences: {
                     marketing: formData.agreeToMarketing
                 }
             }));
 
+            // Store the Firebase token
+            localStorage.setItem('firebaseToken', token);
+
             router.push('/dashboard');
+        } catch (err: any) {
+            console.error('Firebase registration failed:', err);
+            let errorMessage = 'Registration failed';
+
+            if (err.code === 'auth/email-already-in-use') {
+                errorMessage = 'An account with this email already exists';
+            } else if (err.code === 'auth/invalid-email') {
+                errorMessage = 'Invalid email address';
+            } else if (err.code === 'auth/weak-password') {
+                errorMessage = 'Password is too weak';
+            } else if (err.code === 'auth/operation-not-allowed') {
+                errorMessage = 'Email/password accounts are not enabled';
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            setApiError(errorMessage);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleSocialRegister = (provider: string) => {
-        // For now, social registration uses demo mode
-        localStorage.setItem('user', JSON.stringify({
-            id: '1',
-            email: `user@${provider}.com`,
-            name: `${provider} User`,
-            firstName: provider,
-            lastName: 'User',
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider}`,
-            joinedAt: new Date().toISOString()
-        }));
-        router.push('/dashboard');
+    const handleSocialRegister = async (provider: string) => {
+        setLoading(true);
+        setApiError('');
+
+        try {
+            if (provider === 'google') {
+                const auth = getFirebaseAuth();
+                const result = await signInWithPopup(auth, googleProvider);
+                const user = result.user;
+
+                // Get the ID token
+                const token = await user.getIdToken();
+
+                localStorage.setItem('user', JSON.stringify({
+                    id: user.uid,
+                    email: user.email,
+                    name: user.displayName || user.email?.split('@')[0] || 'User',
+                    firstName: user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'User',
+                    lastName: user.displayName?.split(' ').slice(1).join(' ') || 'User',
+                    avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
+                    joinedAt: new Date().toISOString()
+                }));
+
+                // Store the Firebase token
+                localStorage.setItem('firebaseToken', token);
+
+                router.push('/dashboard');
+                return;
+            }
+        } catch (err: any) {
+            console.error('Firebase social registration failed:', err);
+            let errorMessage = 'Social registration failed';
+
+            if (err.code === 'auth/popup-closed-by-user') {
+                errorMessage = 'Registration popup was closed';
+            } else if (err.code === 'auth/popup-blocked') {
+                errorMessage = 'Registration popup was blocked by browser';
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            setApiError(errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -212,9 +262,9 @@ export default function RegisterPage() {
 
                         {/* Registration Form */}
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {(apiError || error) && (
+                            {apiError && (
                                 <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                                    <p className="text-red-400 text-sm">{apiError || error}</p>
+                                    <p className="text-red-400 text-sm">{apiError}</p>
                                 </div>
                             )}
 
@@ -386,10 +436,10 @@ export default function RegisterPage() {
                         </div>
                     </ModernCard>
 
-                    {/* Demo Notice */}
+                    {/* Firebase Auth Notice */}
                     <div className="text-center">
                         <p className="text-xs text-gray-500">
-                            💡 Demo Mode: Will fallback to demo if API is unavailable
+                            🔐 Powered by Firebase Authentication
                         </p>
                     </div>
                 </div>

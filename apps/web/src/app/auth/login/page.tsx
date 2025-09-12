@@ -36,10 +36,10 @@ export default function LoginPage() {
             const auth = getFirebaseAuth();
             const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
             const user = userCredential.user;
-            
+
             // Get the ID token
             const token = await user.getIdToken();
-            
+
             // Store user data in localStorage
             localStorage.setItem('user', JSON.stringify({
                 id: user.uid,
@@ -48,15 +48,15 @@ export default function LoginPage() {
                 avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
                 joinedAt: new Date().toISOString()
             }));
-            
+
             // Store the Firebase token
             localStorage.setItem('firebaseToken', token);
-            
+
             router.push('/dashboard');
         } catch (err: any) {
             console.error('Firebase login failed:', err);
             let errorMessage = 'Login failed';
-            
+
             if (err.code === 'auth/user-not-found') {
                 errorMessage = 'No account found with this email address';
             } else if (err.code === 'auth/wrong-password') {
@@ -68,7 +68,7 @@ export default function LoginPage() {
             } else if (err.message) {
                 errorMessage = err.message;
             }
-            
+
             setApiError(errorMessage);
         } finally {
             setLoading(false);
@@ -78,16 +78,16 @@ export default function LoginPage() {
     const handleSocialLogin = async (provider: string) => {
         setLoading(true);
         setApiError('');
-        
+
         try {
             if (provider === 'google') {
                 const auth = getFirebaseAuth();
                 const result = await signInWithPopup(auth, googleProvider);
                 const user = result.user;
-                
+
                 // Get the ID token
                 const token = await user.getIdToken();
-                
+
                 localStorage.setItem('user', JSON.stringify({
                     id: user.uid,
                     email: user.email,
@@ -95,17 +95,17 @@ export default function LoginPage() {
                     avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
                     joinedAt: new Date().toISOString()
                 }));
-                
+
                 // Store the Firebase token
                 localStorage.setItem('firebaseToken', token);
-                
+
                 router.push('/dashboard');
                 return;
             }
         } catch (err: any) {
             console.error('Firebase social login failed:', err);
             let errorMessage = 'Social login failed';
-            
+
             if (err.code === 'auth/popup-closed-by-user') {
                 errorMessage = 'Login popup was closed';
             } else if (err.code === 'auth/popup-blocked') {
@@ -113,7 +113,7 @@ export default function LoginPage() {
             } else if (err.message) {
                 errorMessage = err.message;
             }
-            
+
             setApiError(errorMessage);
         } finally {
             setLoading(false);

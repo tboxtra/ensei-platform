@@ -57,7 +57,7 @@ app.post('/v1/auth/login', async (req, res): Promise<void> => {
 
     const token = authHeader.split('Bearer ')[1];
     const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-    
+
     const user = {
       id: decodedToken.uid,
       email: decodedToken.email,
@@ -67,7 +67,7 @@ app.post('/v1/auth/login', async (req, res): Promise<void> => {
       avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
       joinedAt: new Date(decodedToken.iat * 1000).toISOString()
     };
-    
+
     res.json({
       user,
       token
@@ -90,7 +90,7 @@ app.post('/v1/auth/register', async (req, res): Promise<void> => {
 
     const token = authHeader.split('Bearer ')[1];
     const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-    
+
     const user = {
       id: decodedToken.uid,
       email: decodedToken.email,
@@ -100,7 +100,7 @@ app.post('/v1/auth/register', async (req, res): Promise<void> => {
       avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
       joinedAt: new Date(decodedToken.iat * 1000).toISOString()
     };
-    
+
     res.json({
       user,
       token
@@ -114,7 +114,7 @@ app.post('/v1/auth/register', async (req, res): Promise<void> => {
 app.get('/v1/auth/me', verifyFirebaseToken, async (req: any, res) => {
   try {
     const decodedToken = req.user;
-    
+
     const user = {
       id: decodedToken.uid,
       email: decodedToken.email,
@@ -124,7 +124,7 @@ app.get('/v1/auth/me', verifyFirebaseToken, async (req: any, res) => {
       avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
       joinedAt: new Date(decodedToken.iat * 1000).toISOString()
     };
-    
+
     res.json(user);
   } catch (error) {
     console.error('Get user error:', error);
@@ -138,6 +138,133 @@ app.post('/v1/auth/logout', async (req, res) => {
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Missions endpoints
+app.get('/v1/missions', async (req, res) => {
+  try {
+    // For now, return empty array since we don't have a database yet
+    // In production, this would query a database
+    res.json([]);
+  } catch (error) {
+    console.error('Error fetching missions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/v1/missions/:id', async (req, res) => {
+  try {
+    const missionId = req.params.id;
+    console.log('Fetching mission:', missionId);
+    // For now, return 404 since we don't have a database yet
+    res.status(404).json({ error: 'Mission not found', missionId });
+  } catch (error) {
+    console.error('Error fetching mission:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    console.log('Fetching missions for user:', userId);
+    // For now, return empty array since we don't have a database yet
+    res.json([]);
+  } catch (error) {
+    console.error('Error fetching user missions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/v1/missions', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    const missionData = req.body;
+    
+    // For now, return a mock response since we don't have a database yet
+    const newMission = {
+      id: Date.now().toString(),
+      ...missionData,
+      created_by: userId,
+      created_at: new Date().toISOString(),
+      status: 'draft'
+    };
+    
+    res.status(201).json(newMission);
+  } catch (error) {
+    console.error('Error creating mission:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/v1/missions/:id/participate', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const missionId = req.params.id;
+    const userId = req.user.uid;
+    const participationData = req.body;
+    
+    // For now, return a mock response since we don't have a database yet
+    const participation = {
+      id: Date.now().toString(),
+      mission_id: missionId,
+      user_id: userId,
+      ...participationData,
+      status: 'pending',
+      submitted_at: new Date().toISOString()
+    };
+    
+    res.status(201).json(participation);
+  } catch (error) {
+    console.error('Error participating in mission:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Wallet endpoints
+app.get('/v1/wallet/balance', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    console.log('Fetching wallet balance for user:', userId);
+    // For now, return mock wallet data
+    res.json({
+      honors: 0,
+      usd: 0,
+      transactions: []
+    });
+  } catch (error) {
+    console.error('Error fetching wallet balance:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/v1/wallet/rewards', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    console.log('Fetching rewards for user:', userId);
+    // For now, return empty rewards array
+    res.json([]);
+  } catch (error) {
+    console.error('Error fetching rewards:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/v1/wallet/claim/:rewardId', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const rewardId = req.params.rewardId;
+    const userId = req.user.uid;
+    
+    console.log('Claiming reward:', rewardId, 'for user:', userId);
+    // For now, return a mock response
+    res.json({
+      success: true,
+      message: 'Reward claimed successfully',
+      reward_id: rewardId
+    });
+  } catch (error) {
+    console.error('Error claiming reward:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

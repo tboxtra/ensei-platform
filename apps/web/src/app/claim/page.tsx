@@ -7,32 +7,27 @@ import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 
 export default function ClaimPage() {
-    const { getWalletBalance, getClaimableRewards, claimReward, loading, error } = useApi();
+    const { getWalletBalance, getClaimableRewards, claimReward, loading, error: apiError } = useApi();
     const [walletBalance, setWalletBalance] = useState<any>(null);
     const [claimableRewards, setClaimableRewards] = useState<any[]>([]);
     const [claimingReward, setClaimingReward] = useState<string | null>(null);
     const [selectedFilter, setSelectedFilter] = useState('all');
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         loadWalletData();
     }, []);
 
     const loadWalletData = async () => {
+        setError(null);
         try {
             // Load wallet balance
             const balance = await getWalletBalance();
             setWalletBalance(balance);
         } catch (err) {
             console.error('Error loading wallet balance:', err);
-            // Demo data for when API is not available
-            setWalletBalance({
-                available_honors: 2500,
-                available_usd: 5.56,
-                pending_honors: 1300,
-                pending_usd: 2.89,
-                total_earned_honors: 4500,
-                total_earned_usd: 10.00
-            });
+            setError('Failed to load wallet balance. Please try again.');
+            return;
         }
 
         try {
@@ -41,45 +36,7 @@ export default function ClaimPage() {
             setClaimableRewards(Array.isArray(rewards) ? rewards : []);
         } catch (err) {
             console.error('Error loading claimable rewards:', err);
-            // Demo data for when API is not available
-            setClaimableRewards([
-        {
-            id: '1',
-                    mission_id: 'mission-1',
-                    mission_title: 'Twitter Engagement Campaign',
-            platform: 'twitter',
-            type: 'engage',
-                    status: 'approved',
-                    reward_honors: 500,
-                    reward_usd: 1.11,
-                    submitted_at: '2024-01-16T14:30:00Z',
-                    approved_at: '2024-01-17T10:15:00Z'
-        },
-        {
-            id: '2',
-                    mission_id: 'mission-2',
-                    mission_title: 'Instagram Content Creation',
-            platform: 'instagram',
-            type: 'content',
-                    status: 'approved',
-                    reward_honors: 800,
-                    reward_usd: 1.78,
-                    submitted_at: '2024-01-15T16:45:00Z',
-                    approved_at: '2024-01-16T09:30:00Z'
-        },
-        {
-            id: '3',
-                    mission_id: 'mission-3',
-                    mission_title: 'TikTok Ambassador Program',
-            platform: 'tiktok',
-            type: 'ambassador',
-                    status: 'pending',
-                    reward_honors: 1200,
-                    reward_usd: 2.67,
-                    submitted_at: '2024-01-18T11:20:00Z',
-                    approved_at: null
-                }
-            ]);
+            setError('Failed to load claimable rewards. Please try again.');
         }
     };
 
@@ -125,7 +82,7 @@ export default function ClaimPage() {
     });
 
     if (loading) {
-    return (
+        return (
             <ModernLayout currentPage="/claim">
                 <div className="flex items-center justify-center min-h-[400px]">
                     <div className="text-center">
@@ -150,6 +107,19 @@ export default function ClaimPage() {
                     </p>
                 </div>
 
+                {/* Error Display */}
+                {error && (
+                    <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                        <p className="text-red-400 text-sm">{error}</p>
+                        <button
+                            onClick={loadWalletData}
+                            className="mt-2 text-red-400 hover:text-red-300 text-sm underline"
+                        >
+                            Try again
+                        </button>
+                    </div>
+                )}
+
                 {/* Wallet Balance */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl p-6 border border-green-500/30">
@@ -173,10 +143,10 @@ export default function ClaimPage() {
                     <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-6 border border-purple-500/30">
                         <div className="text-3xl font-bold text-purple-400 mb-2">
                             ${walletBalance?.pending_usd?.toFixed(2) || '2.89'}
-                                    </div>
+                        </div>
                         <div className="text-sm text-gray-400">Pending USD</div>
-                                </div>
-                            </div>
+                    </div>
+                </div>
 
                 {/* Total Earnings Summary */}
                 <ModernCard title="Earnings Summary" icon="💰" className="mb-8">
@@ -186,7 +156,7 @@ export default function ClaimPage() {
                                 {walletBalance?.total_earned_honors?.toLocaleString() || '4,500'}
                             </div>
                             <div className="text-sm text-gray-400">Total Honors Earned</div>
-                                    </div>
+                        </div>
                         <div className="text-center p-6 bg-gray-800/30 rounded-xl">
                             <div className="text-3xl font-bold text-blue-400 mb-2">
                                 ${walletBalance?.total_earned_usd?.toFixed(2) || '10.00'}
@@ -199,12 +169,12 @@ export default function ClaimPage() {
                 {/* Claimable Rewards */}
                 <div className="mb-8">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-                                    <div>
+                        <div>
                             <h2 className="text-2xl font-bold text-white mb-2">Claimable Rewards</h2>
                             <p className="text-gray-400">
                                 {filteredRewards.length} reward{filteredRewards.length !== 1 ? 's' : ''} available to claim
                             </p>
-                                    </div>
+                        </div>
                         <div className="flex gap-4">
                             <select
                                 value={selectedFilter}
@@ -224,7 +194,7 @@ export default function ClaimPage() {
                                 🔄 Refresh
                             </ModernButton>
                         </div>
-                        </div>
+                    </div>
 
                     {filteredRewards.length === 0 ? (
                         <ModernCard className="text-center py-16">
@@ -257,7 +227,7 @@ export default function ClaimPage() {
                                                     <h3 className="text-xl font-bold text-white">{reward.mission_title}</h3>
                                                     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(reward.status)}`}>
                                                         {reward.status}
-                                                </span>
+                                                    </span>
                                                 </div>
                                                 <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
                                                     <span className="capitalize">{reward.platform}</span>
@@ -275,14 +245,14 @@ export default function ClaimPage() {
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-4">
-                                        <div className="text-right">
+                                            <div className="text-right">
                                                 <div className="text-2xl font-bold text-green-400 mb-1">
                                                     {reward.reward_honors?.toLocaleString()} Honors
                                                 </div>
                                                 <div className="text-gray-400 text-sm">
                                                     ${reward.reward_usd?.toFixed(2)} USD
-                                        </div>
-                                    </div>
+                                                </div>
+                                            </div>
                                             <div className="flex gap-2">
                                                 {reward.status === 'approved' ? (
                                                     <ModernButton
@@ -309,14 +279,14 @@ export default function ClaimPage() {
                                                 >
                                                     View Mission
                                                 </ModernButton>
-                                        </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </ModernCard>
                             ))}
-                                        </div>
-                                    )}
-                                </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* How Claiming Works */}
                 <ModernCard title="How Claiming Works" icon="ℹ️">
@@ -335,7 +305,7 @@ export default function ClaimPage() {
                             <div className="text-3xl mb-3">💰</div>
                             <h4 className="font-semibold text-white mb-2">3. Claim Reward</h4>
                             <p className="text-gray-400 text-sm">Claim your rewards instantly to your wallet</p>
-                            </div>
+                        </div>
                     </div>
                 </ModernCard>
 
@@ -361,8 +331,8 @@ export default function ClaimPage() {
                                 <li>• Minimum withdrawal amount applies</li>
                                 <li>• Processing time: 1-3 business days</li>
                             </ul>
+                        </div>
                     </div>
-                </div>
                 </ModernCard>
             </div>
         </ModernLayout>

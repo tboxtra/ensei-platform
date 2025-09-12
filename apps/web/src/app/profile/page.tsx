@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
+import { useApi } from '../../hooks/useApi';
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { getCurrentUser, logout, loading: apiLoading, error: apiError } = useApi();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('profile');
+    const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -27,24 +30,44 @@ export default function ProfilePage() {
         loadUserData();
     }, []);
 
-    const loadUserData = () => {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            const userObj = JSON.parse(userData);
-            setUser(userObj);
+    const loadUserData = async () => {
+        setError(null);
+        try {
+            const userData = await getCurrentUser();
+            setUser(userData);
             setFormData({
-                firstName: userObj.firstName || userObj.name?.split(' ')[0] || '',
-                lastName: userObj.lastName || userObj.name?.split(' ')[1] || '',
-                email: userObj.email || '',
-                bio: userObj.bio || '',
-                location: userObj.location || '',
-                website: userObj.website || '',
-                twitter: userObj.twitter || '',
-                instagram: userObj.instagram || '',
-                linkedin: userObj.linkedin || ''
+                firstName: userData.firstName || userData.name?.split(' ')[0] || '',
+                lastName: userData.lastName || userData.name?.split(' ')[1] || '',
+                email: userData.email || '',
+                bio: userData.bio || '',
+                location: userData.location || '',
+                website: userData.website || '',
+                twitter: userData.twitter || '',
+                instagram: userData.instagram || '',
+                linkedin: userData.linkedin || ''
             });
-        } else {
-            router.push('/auth/login');
+        } catch (err) {
+            console.error('Failed to load user data:', err);
+            setError('Failed to load profile data. Please try again.');
+            // Fallback to localStorage for basic functionality
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const userObj = JSON.parse(userData);
+                setUser(userObj);
+                setFormData({
+                    firstName: userObj.firstName || userObj.name?.split(' ')[0] || '',
+                    lastName: userObj.lastName || userObj.name?.split(' ')[1] || '',
+                    email: userObj.email || '',
+                    bio: userObj.bio || '',
+                    location: userObj.location || '',
+                    website: userObj.website || '',
+                    twitter: userObj.twitter || '',
+                    instagram: userObj.instagram || '',
+                    linkedin: userObj.linkedin || ''
+                });
+            } else {
+                router.push('/auth/login');
+            }
         }
     };
 
@@ -79,9 +102,16 @@ export default function ProfilePage() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('user');
-        router.push('/auth/login');
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } catch (err) {
+            console.error('Logout error:', err);
+        } finally {
+            localStorage.removeItem('user');
+            localStorage.removeItem('firebaseToken');
+            router.push('/auth/login');
+        }
     };
 
     if (!user) {
@@ -109,6 +139,19 @@ export default function ProfilePage() {
                         Manage your account settings and preferences
                     </p>
                 </div>
+
+                {/* Error Display */}
+                {error && (
+                    <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                        <p className="text-red-400 text-sm">{error}</p>
+                        <button
+                            onClick={loadUserData}
+                            className="mt-2 text-red-400 hover:text-red-300 text-sm underline"
+                        >
+                            Try again
+                        </button>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
                     {/* Sidebar */}

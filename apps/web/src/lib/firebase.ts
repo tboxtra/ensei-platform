@@ -6,12 +6,13 @@ let app: FirebaseApp;
 export function getFirebaseApp(): FirebaseApp {
     if (!getApps().length) {
         app = initializeApp({
-            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+            apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
+            authDomain: "ensei-6c8e0.firebaseapp.com",
+            projectId: "ensei-6c8e0",
+            storageBucket: "ensei-6c8e0.firebasestorage.app",
+            messagingSenderId: "542777590186",
+            appId: "1:542777590186:web:59a664f5053a6057d5abd3",
+            measurementId: "G-XHHBG5RLVQ"
         });
     }
     return app;
