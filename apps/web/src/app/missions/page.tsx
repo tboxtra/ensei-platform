@@ -114,6 +114,49 @@ export default function MissionsPage() {
     );
   }
 
+  // Show empty state when no missions are available (but no error)
+  if (!loading && !error && missionsArray.length === 0) {
+    return (
+      <ModernLayout currentPage="/missions">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 via-emerald-500 to-blue-500 bg-clip-text text-transparent mb-4">
+              Available Missions
+            </h1>
+            <p className="text-gray-400 text-lg">
+              Complete missions to earn rewards and grow your influence
+            </p>
+          </div>
+
+          {/* Empty State */}
+          <div className="bg-gray-800/50 backdrop-blur-lg border border-gray-700/50 rounded-2xl p-12 text-center">
+            <div className="text-gray-400 text-8xl mb-6">🎯</div>
+            <h2 className="text-3xl font-bold text-gray-300 mb-4">No Missions Available</h2>
+            <p className="text-gray-400 text-lg mb-8 max-w-md mx-auto">
+              There are currently no missions available. Check back later for new opportunities to earn rewards!
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+              <ModernButton
+                onClick={() => fetchMissions()}
+                variant="primary"
+                loading={loading}
+              >
+                🔄 Refresh
+              </ModernButton>
+              <ModernButton
+                onClick={() => window.location.href = '/dashboard'}
+                variant="secondary"
+              >
+                📊 Go to Dashboard
+              </ModernButton>
+            </div>
+          </div>
+        </div>
+      </ModernLayout>
+    );
+  }
+
   return (
     <ModernLayout currentPage="/missions">
       <div className="max-w-7xl mx-auto">
