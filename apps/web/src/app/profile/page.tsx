@@ -394,25 +394,11 @@ export default function ProfilePage() {
                                     <div>
                                         <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Recent Mission Ratings</h3>
                                         <div className="space-y-3">
-                                            {[
-                                                { mission: 'Twitter Engagement Campaign', rating: 5, date: '2024-01-15' },
-                                                { mission: 'Instagram Content Creation', rating: 4, date: '2024-01-12' },
-                                                { mission: 'TikTok Ambassador Program', rating: 5, date: '2024-01-10' },
-                                                { mission: 'Facebook Group Promotion', rating: 4, date: '2024-01-08' },
-                                                { mission: 'WhatsApp Status Campaign', rating: 5, date: '2024-01-05' }
-                                            ].map((item, index) => (
-                                                <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-800/30 rounded-lg space-y-2 sm:space-y-0">
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className="text-yellow-400 text-sm">
-                                                            {'⭐'.repeat(item.rating)}
-                                                        </div>
-                                                        <span className="text-white text-sm">{item.mission}</span>
-                                                    </div>
-                                                    <div className="text-xs sm:text-sm text-gray-400">
-                                                        {new Date(item.date).toLocaleDateString()}
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            <div className="text-center py-8">
+                                                <div className="text-4xl mb-3">⭐</div>
+                                                <p className="text-gray-400 text-sm">No mission ratings yet</p>
+                                                <p className="text-gray-500 text-xs mt-1">Complete missions to see your ratings here</p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -545,19 +531,19 @@ export default function ProfilePage() {
                                     {/* Stats Grid */}
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                                         <div className="text-center p-3 sm:p-4 bg-gray-800/30 rounded-lg">
-                                            <div className="text-xl sm:text-2xl font-bold text-green-400 mb-1">15</div>
+                                            <div className="text-xl sm:text-2xl font-bold text-green-400 mb-1">0</div>
                                             <div className="text-xs sm:text-sm text-gray-400">Missions Created</div>
                                         </div>
                                         <div className="text-center p-3 sm:p-4 bg-gray-800/30 rounded-lg">
-                                            <div className="text-xl sm:text-2xl font-bold text-blue-400 mb-1">47</div>
+                                            <div className="text-xl sm:text-2xl font-bold text-blue-400 mb-1">0</div>
                                             <div className="text-xs sm:text-sm text-gray-400">Missions Completed</div>
                                         </div>
                                         <div className="text-center p-3 sm:p-4 bg-gray-800/30 rounded-lg">
-                                            <div className="text-xl sm:text-2xl font-bold text-purple-400 mb-1">2,450</div>
+                                            <div className="text-xl sm:text-2xl font-bold text-purple-400 mb-1">0</div>
                                             <div className="text-xs sm:text-sm text-gray-400">Honors Earned</div>
                                         </div>
                                         <div className="text-center p-3 sm:p-4 bg-gray-800/30 rounded-lg">
-                                            <div className="text-xl sm:text-2xl font-bold text-yellow-400 mb-1">98%</div>
+                                            <div className="text-xl sm:text-2xl font-bold text-yellow-400 mb-1">-</div>
                                             <div className="text-xs sm:text-sm text-gray-400">Success Rate</div>
                                         </div>
                                     </div>
@@ -566,26 +552,10 @@ export default function ProfilePage() {
                                     <div>
                                         <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Recent Activity</h3>
                                         <div className="space-y-3">
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-800/30 rounded-lg space-y-2 sm:space-y-0">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                                    <span className="text-white text-sm">Mission "Twitter Campaign" completed</span>
-                                                </div>
-                                                <span className="text-gray-400 text-xs sm:text-sm">2 hours ago</span>
-                                            </div>
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-800/30 rounded-lg space-y-2 sm:space-y-0">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                                                    <span className="text-white text-sm">Earned 500 Honors</span>
-                                                </div>
-                                                <span className="text-gray-400 text-xs sm:text-sm">1 day ago</span>
-                                            </div>
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-800/30 rounded-lg space-y-2 sm:space-y-0">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                                                    <span className="text-white text-sm">Created new mission</span>
-                                                </div>
-                                                <span className="text-gray-400 text-xs sm:text-sm">3 days ago</span>
+                                            <div className="text-center py-8">
+                                                <div className="text-4xl mb-3">📊</div>
+                                                <p className="text-gray-400 text-sm">No recent activity</p>
+                                                <p className="text-gray-500 text-xs mt-1">Start participating in missions to see your activity here</p>
                                             </div>
                                         </div>
                                     </div>

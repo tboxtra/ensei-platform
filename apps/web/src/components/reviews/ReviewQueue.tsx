@@ -50,7 +50,7 @@ export default function ReviewQueue() {
                 // const response = await fetch('/api/v1/reviews/assignments');
                 // const data = await response.json();
                 // setAssignments(data);
-                
+
                 // For now, show empty state since review system is not yet implemented
                 setAssignments([]);
             } catch (error) {
