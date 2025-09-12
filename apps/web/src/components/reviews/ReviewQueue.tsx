@@ -41,78 +41,32 @@ export default function ReviewQueue() {
         commentLink: '',
     });
 
-    // Mock data for demo
+    // Fetch review assignments from API
     useEffect(() => {
-        const mockAssignments: ReviewAssignment[] = [
-            {
-                id: 'assignment_1',
-                missionId: 'mission_1',
-                submissionId: 'submission_1',
-                reviewerUserId: 'reviewer_1',
-                status: 'pending',
-                createdAt: new Date(Date.now() - 3600000).toISOString(),
-                mission: {
-                    id: 'mission_1',
-                    title: 'Twitter Engagement Campaign',
-                    platform: 'twitter',
-                    type: 'engage',
-                },
-                submission: {
-                    id: 'submission_1',
-                    userId: 'user_123',
-                    proofs: ['https://twitter.com/user/status/123456789'],
-                    submittedAt: new Date(Date.now() - 7200000).toISOString(),
-                }
-            },
-            {
-                id: 'assignment_2',
-                missionId: 'mission_2',
-                submissionId: 'submission_2',
-                reviewerUserId: 'reviewer_1',
-                status: 'pending',
-                createdAt: new Date(Date.now() - 7200000).toISOString(),
-                mission: {
-                    id: 'mission_2',
-                    title: 'Instagram Content Creation',
-                    platform: 'instagram',
-                    type: 'content',
-                },
-                submission: {
-                    id: 'submission_2',
-                    userId: 'user_456',
-                    proofs: ['https://instagram.com/p/ABC123/'],
-                    submittedAt: new Date(Date.now() - 10800000).toISOString(),
-                }
-            },
-            {
-                id: 'assignment_3',
-                missionId: 'mission_3',
-                submissionId: 'submission_3',
-                reviewerUserId: 'reviewer_1',
-                status: 'pending',
-                createdAt: new Date(Date.now() - 10800000).toISOString(),
-                mission: {
-                    id: 'mission_3',
-                    title: 'TikTok Ambassador Program',
-                    platform: 'tiktok',
-                    type: 'ambassador',
-                },
-                submission: {
-                    id: 'submission_3',
-                    userId: 'user_789',
-                    proofs: ['https://tiktok.com/@user/video/123456'],
-                    submittedAt: new Date(Date.now() - 14400000).toISOString(),
-                }
+        const fetchAssignments = async () => {
+            try {
+                setLoading(true);
+                // TODO: Replace with actual API call when review system is implemented
+                // const response = await fetch('/api/v1/reviews/assignments');
+                // const data = await response.json();
+                // setAssignments(data);
+                
+                // For now, show empty state since review system is not yet implemented
+                setAssignments([]);
+            } catch (error) {
+                console.error('Failed to fetch review assignments:', error);
+                setAssignments([]);
+            } finally {
+                setLoading(false);
             }
-        ];
+        };
 
-        setAssignments(mockAssignments);
-        setLoading(false);
+        fetchAssignments();
     }, []);
 
     const handleVote = async () => {
         try {
-            // In production, this would call the API
+            // TODO: Implement API call when review system is ready
             console.log('Submitting vote:', voteData);
 
             // Update local state
