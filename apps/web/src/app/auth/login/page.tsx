@@ -43,7 +43,7 @@ export default function LoginPage() {
         } catch (err) {
             console.error('API login failed:', err);
             setApiError(`Login failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-            
+
             // Don't fall back to demo mode automatically - let user see the error
             // Only fall back if it's a network error or API unavailable
             if (err instanceof Error && (err.message.includes('fetch') || err.message.includes('network'))) {

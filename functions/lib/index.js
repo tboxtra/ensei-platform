@@ -49,10 +49,15 @@ app.get('/api/test', (req, res) => {
     res.json({ message: 'Ensei Platform API is working!' });
 });
 // Authentication endpoints
-app.post('/v1/auth/login', (req, res) => {
-    const { email, password } = req.body;
-    // Simple demo authentication for now
-    if (email && password) {
+app.post('/v1/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            res.status(400).json({ error: 'Email and password are required' });
+            return;
+        }
+        // For now, use simple authentication until Firebase Auth is properly configured
+        // This will be replaced with Firebase Auth once it's set up
         const user = {
             id: '1',
             email: email,
@@ -68,13 +73,19 @@ app.post('/v1/auth/login', (req, res) => {
             token
         });
     }
-    else {
-        res.status(400).json({ error: 'Email and password are required' });
+    catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
-app.post('/v1/auth/register', (req, res) => {
-    const { firstName, lastName, email, password } = req.body;
-    if (firstName && lastName && email && password) {
+app.post('/v1/auth/register', async (req, res) => {
+    try {
+        const { firstName, lastName, email, password } = req.body;
+        if (!firstName || !lastName || !email || !password) {
+            res.status(400).json({ error: 'All fields are required' });
+            return;
+        }
+        // For now, use simple authentication until Firebase Auth is properly configured
         const user = {
             id: '1',
             email: email,
@@ -90,25 +101,39 @@ app.post('/v1/auth/register', (req, res) => {
             token
         });
     }
-    else {
-        res.status(400).json({ error: 'All fields are required' });
+    catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
-app.get('/v1/auth/me', (req, res) => {
-    // For demo purposes, return a default user
-    const user = {
-        id: '1',
-        email: 'demo@ensei.com',
-        name: 'Demo User',
-        firstName: 'Demo',
-        lastName: 'User',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',
-        joinedAt: new Date().toISOString()
-    };
-    res.json(user);
+app.get('/v1/auth/me', async (req, res) => {
+    try {
+        // For demo purposes, return a default user
+        // This will be replaced with Firebase Auth token verification
+        const user = {
+            id: '1',
+            email: 'demo@ensei.com',
+            name: 'Demo User',
+            firstName: 'Demo',
+            lastName: 'User',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',
+            joinedAt: new Date().toISOString()
+        };
+        res.json(user);
+    }
+    catch (error) {
+        console.error('Get user error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
-app.post('/v1/auth/logout', (req, res) => {
-    res.json({ message: 'Logged out successfully' });
+app.post('/v1/auth/logout', async (req, res) => {
+    try {
+        res.json({ message: 'Logged out successfully' });
+    }
+    catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 // Export the Express app as a Firebase Function
 exports.api = functions.https.onRequest(app);
