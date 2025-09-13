@@ -63,28 +63,28 @@ class ApiClient {
     }
   }
 
-  // Submissions API
+  // Submissions API - Use same endpoints as user dashboard
   async getSubmissions(params?: {
     status?: string;
   }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
     if (params?.status) queryParams.append('status', params.status);
 
-    return this.request(`/v1/admin/submissions?${queryParams}`);
+    return this.request(`/v1/submissions?${queryParams}`);
   }
 
   async getSubmission(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/v1/admin/submissions/${id}`);
+    return this.request(`/v1/submissions/${id}`);
   }
 
   async reviewSubmission(id: string, action: 'approve' | 'reject', reason?: string): Promise<ApiResponse<any>> {
-    return this.request(`/v1/admin/submissions/${id}/review`, {
+    return this.request(`/v1/submissions/${id}/review`, {
       method: 'POST',
       body: JSON.stringify({ action, reason })
     });
   }
 
-  // Missions API
+  // Missions API - Use same endpoints as user dashboard
   async getMissions(params?: {
     status?: string;
     platform?: string;
@@ -99,11 +99,11 @@ class ApiClient {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
-    return this.request(`/v1/admin/missions?${queryParams}`);
+    return this.request(`/v1/missions?${queryParams}`);
   }
 
   async getMission(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/v1/admin/missions/${id}`);
+    return this.request(`/v1/missions/${id}`);
   }
 
   async updateMissionStatus(id: string, status: string): Promise<ApiResponse<any>> {
@@ -164,7 +164,7 @@ class ApiClient {
     return this.request(`/v1/admin/analytics/mission-performance${queryParams}`);
   }
 
-  // Review System API
+  // Review System API - Use same submissions endpoint
   async getReviewQueue(params?: {
     page?: number;
     limit?: number;
@@ -175,7 +175,8 @@ class ApiClient {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.type) queryParams.append('type', params.type);
 
-    return this.request(`/v1/admin/review/queue?${queryParams}`);
+    // Use submissions endpoint and filter for pending reviews
+    return this.request(`/v1/submissions?${queryParams}&status=pending`);
   }
 
   async submitReviewVote(assignmentId: string, rating: number, commentLink?: string): Promise<ApiResponse<any>> {
