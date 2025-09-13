@@ -181,14 +181,15 @@ export function useApi() {
                 if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please wait a moment and try again.');
                 }
-                if (response.status === 401) {
-                    // Clear invalid token
-                    if (typeof window !== 'undefined') {
-                        localStorage.removeItem('firebaseToken');
-                        localStorage.removeItem('user');
-                    }
-                    throw new Error('Authentication failed. Please log in again.');
+            if (response.status === 401) {
+                console.log('API: Received 401 Unauthorized, clearing tokens');
+                // Clear invalid token
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('firebaseToken');
+                    localStorage.removeItem('user');
                 }
+                throw new Error('Authentication failed. Please log in again.');
+            }
                 if (response.status === 0 || !response.status) {
                     throw new Error('Network error: Unable to connect to server. Please check your internet connection.');
                 }
@@ -457,10 +458,19 @@ export function useMissions() {
 
     const fetchMissions = useCallback(async () => {
         try {
+            console.log('useMissions: Starting to fetch missions...');
             const data = await api.getMissions();
-            setMissions(data);
+            console.log('useMissions: Received missions data:', data);
+            
+            // Ensure data is an array
+            const missionsArray = Array.isArray(data) ? data : [];
+            console.log('useMissions: Processed missions array:', missionsArray);
+            
+            setMissions(missionsArray);
         } catch (err) {
-            console.error('Failed to fetch missions:', err);
+            console.error('useMissions: Failed to fetch missions:', err);
+            // Set empty array on error to prevent undefined issues
+            setMissions([]);
         }
     }, [api]);
 

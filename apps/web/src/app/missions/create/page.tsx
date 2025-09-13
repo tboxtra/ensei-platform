@@ -857,10 +857,10 @@ export default function CreateMissionPage() {
 
               const createdMission = await createMission(missionData);
               console.log('Mission created successfully:', createdMission);
-              
+
               // Show success message
               alert('Mission created successfully!');
-              
+
               // Redirect to missions page
               window.location.href = '/missions';
             } catch (err) {

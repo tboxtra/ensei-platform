@@ -18,20 +18,24 @@ export default function MissionsPage() {
       const authenticated = !!(token && user);
       setIsAuthenticated(authenticated);
       setAuthLoading(false);
-      
+
       console.log('MissionsPage: Auth check:', {
         hasToken: !!token,
         hasUser: !!user,
         authenticated
       });
     };
-    
+
     checkAuth();
   }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
       console.log('MissionsPage: Starting to fetch missions...');
+      fetchMissions();
+    } else {
+      console.log('MissionsPage: Not authenticated, but trying to fetch missions anyway...');
+      // Try to fetch missions even if not authenticated to test API
       fetchMissions();
     }
   }, [fetchMissions, isAuthenticated]);
@@ -117,8 +121,8 @@ export default function MissionsPage() {
             <p className="text-gray-400 text-lg mb-6">
               You need to be logged in to view missions
             </p>
-            <a 
-              href="/auth/login" 
+            <a
+              href="/auth/login"
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
             >
               Login to Continue

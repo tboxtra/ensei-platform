@@ -1,10 +1,59 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
+import { useApi } from '../../hooks/useApi';
 
 export default function DashboardPage() {
+  const { getMyMissions, getWalletBalance, loading } = useApi();
+  const [stats, setStats] = useState({
+    missionsCreated: 0,
+    totalHonors: 0,
+    pendingReviews: 0,
+    usdValue: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    const loadDashboardStats = async () => {
+      try {
+        setLoadingStats(true);
+        
+        // Load user's missions
+        const myMissions = await getMyMissions();
+        const missionsCreated = Array.isArray(myMissions) ? myMissions.length : 0;
+        
+        // Load wallet balance
+        let walletBalance = { honors: 0, usd: 0 };
+        try {
+          walletBalance = await getWalletBalance();
+        } catch (err) {
+          console.log('Could not load wallet balance:', err);
+        }
+        
+        setStats({
+          missionsCreated,
+          totalHonors: walletBalance.honors || 0,
+          pendingReviews: 0, // TODO: Implement pending reviews count
+          usdValue: walletBalance.usd || 0
+        });
+        
+        console.log('Dashboard stats loaded:', {
+          missionsCreated,
+          totalHonors: walletBalance.honors,
+          usdValue: walletBalance.usd
+        });
+      } catch (err) {
+        console.error('Error loading dashboard stats:', err);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    
+    loadDashboardStats();
+  }, [getMyMissions, getWalletBalance]);
   return (
     <ModernLayout currentPage="/dashboard">
       <div className="max-w-7xl mx-auto">
@@ -22,7 +71,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs md:text-sm">Missions Created</p>
-                <p className="text-xl md:text-2xl font-bold text-purple-400">0</p>
+                <p className="text-xl md:text-2xl font-bold text-purple-400">
+                  {loadingStats ? '...' : stats.missionsCreated}
+                </p>
               </div>
               <div className="text-2xl md:text-3xl">📊</div>
             </div>
@@ -32,7 +83,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs md:text-sm">Total Honors</p>
-                <p className="text-xl md:text-2xl font-bold text-green-400">0</p>
+                <p className="text-xl md:text-2xl font-bold text-green-400">
+                  {loadingStats ? '...' : stats.totalHonors.toLocaleString()}
+                </p>
               </div>
               <div className="text-2xl md:text-3xl">🏆</div>
             </div>
@@ -42,7 +95,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs md:text-sm">Pending Reviews</p>
-                <p className="text-xl md:text-2xl font-bold text-orange-400">0</p>
+                <p className="text-xl md:text-2xl font-bold text-orange-400">
+                  {loadingStats ? '...' : stats.pendingReviews}
+                </p>
               </div>
               <div className="text-2xl md:text-3xl">⏳</div>
             </div>
@@ -52,7 +107,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs md:text-sm">USD Value</p>
-                <p className="text-xl md:text-2xl font-bold text-blue-400">$0.00</p>
+                <p className="text-xl md:text-2xl font-bold text-blue-400">
+                  {loadingStats ? '...' : `$${stats.usdValue.toFixed(2)}`}
+                </p>
               </div>
               <div className="text-2xl md:text-3xl">💵</div>
             </div>
