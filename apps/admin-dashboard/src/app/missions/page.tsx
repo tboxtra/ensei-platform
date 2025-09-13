@@ -62,7 +62,7 @@ export default function MissionsPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await apiClient.getMissions({
         page: pagination.page,
         limit: pagination.limit,
@@ -105,7 +105,7 @@ export default function MissionsPage() {
   const handleMissionStatusChange = async (missionId: string, status: string) => {
     try {
       const response = await apiClient.updateMissionStatus(missionId, status);
-      
+
       if (response.success) {
         // Update local state
         setMissions(prev =>

@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const user = await firebaseAuth.login(credentials);
       setUser(user);
     } catch (err) {

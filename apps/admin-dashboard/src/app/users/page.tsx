@@ -59,7 +59,7 @@ export default function UsersPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await apiClient.getUsers({
         page: pagination.page,
         limit: pagination.limit,
@@ -101,7 +101,7 @@ export default function UsersPage() {
   const handleUserStatusChange = async (userId: string, status: 'active' | 'suspended' | 'banned') => {
     try {
       const response = await apiClient.updateUserStatus(userId, status);
-      
+
       if (response.success) {
         // Update local state
         setUsers(prev =>

@@ -31,7 +31,7 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     // Get Firebase token from localStorage (same as user dashboard)
     const token = typeof window !== 'undefined' ? localStorage.getItem('firebaseToken') : null;
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ class ApiClient {
 
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, config);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

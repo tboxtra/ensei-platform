@@ -21,26 +21,6 @@ export default function DashboardPage() {
           <ModernCard className="bg-gradient-to-br from-gray-800/50 to-gray-900/50">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-xs md:text-sm">Total Honors</p>
-                <p className="text-xl md:text-2xl font-bold text-green-400">0</p>
-              </div>
-              <div className="text-2xl md:text-3xl">🏆</div>
-            </div>
-          </ModernCard>
-
-          <ModernCard className="bg-gradient-to-br from-gray-800/50 to-gray-900/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-xs md:text-sm">USD Value</p>
-                <p className="text-xl md:text-2xl font-bold text-blue-400">$0.00</p>
-              </div>
-              <div className="text-2xl md:text-3xl">💵</div>
-            </div>
-          </ModernCard>
-
-          <ModernCard className="bg-gradient-to-br from-gray-800/50 to-gray-900/50">
-            <div className="flex items-center justify-between">
-              <div>
                 <p className="text-gray-400 text-xs md:text-sm">Missions Created</p>
                 <p className="text-xl md:text-2xl font-bold text-purple-400">0</p>
               </div>
@@ -51,10 +31,30 @@ export default function DashboardPage() {
           <ModernCard className="bg-gradient-to-br from-gray-800/50 to-gray-900/50">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-gray-400 text-xs md:text-sm">Total Honors</p>
+                <p className="text-xl md:text-2xl font-bold text-green-400">0</p>
+              </div>
+              <div className="text-2xl md:text-3xl">🏆</div>
+            </div>
+          </ModernCard>
+
+          <ModernCard className="bg-gradient-to-br from-gray-800/50 to-gray-900/50">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-gray-400 text-xs md:text-sm">Pending Reviews</p>
                 <p className="text-xl md:text-2xl font-bold text-orange-400">0</p>
               </div>
               <div className="text-2xl md:text-3xl">⏳</div>
+            </div>
+          </ModernCard>
+
+          <ModernCard className="bg-gradient-to-br from-gray-800/50 to-gray-900/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-xs md:text-sm">USD Value</p>
+                <p className="text-xl md:text-2xl font-bold text-blue-400">$0.00</p>
+              </div>
+              <div className="text-2xl md:text-3xl">💵</div>
             </div>
           </ModernCard>
         </div>

@@ -35,7 +35,7 @@ export const firebaseAuth = {
       const { signInWithEmailAndPassword } = await import('firebase/auth');
       const { auth } = await import('firebase/auth');
       const { initializeApp } = await import('firebase/app');
-      
+
       // Initialize Firebase if not already done
       const firebaseConfig = {
         apiKey: "AIzaSyBqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJq",
@@ -45,16 +45,16 @@ export const firebaseAuth = {
         messagingSenderId: "123456789",
         appId: "1:123456789:web:abcdef123456"
       };
-      
+
       const app = initializeApp(firebaseConfig);
       const authInstance = auth(app);
-      
+
       const userCredential = await signInWithEmailAndPassword(authInstance, credentials.email, credentials.password);
       const user = userCredential.user;
-      
+
       // Get ID token
       const token = await user.getIdToken();
-      
+
       // Map Firebase user to AdminUser format
       const adminUser: AdminUser = {
         id: user.uid,
@@ -68,27 +68,27 @@ export const firebaseAuth = {
       // Store token and user data
       localStorage.setItem('firebaseToken', token);
       localStorage.setItem('admin_user', JSON.stringify(adminUser));
-      
+
       return adminUser;
     } catch (error) {
       throw new Error('Login failed: ' + (error as Error).message);
     }
   },
-  
+
   logout: () => {
     localStorage.removeItem('firebaseToken');
     localStorage.removeItem('admin_user');
   },
-  
+
   getCurrentUser: (): AdminUser | null => {
     const userStr = localStorage.getItem('admin_user');
     return userStr ? JSON.parse(userStr) : null;
   },
-  
+
   getToken: (): string | null => {
     return localStorage.getItem('firebaseToken');
   },
-  
+
   setAuth: (user: AdminUser, token: string) => {
     localStorage.setItem('admin_user', JSON.stringify(user));
     localStorage.setItem('firebaseToken', token);

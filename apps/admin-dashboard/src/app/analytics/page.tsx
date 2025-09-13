@@ -57,7 +57,7 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Load all analytics data in parallel
       const [overviewRes, revenueRes, userGrowthRes, platformRes, missionRes] = await Promise.all([
         apiClient.getAnalyticsOverview(),
