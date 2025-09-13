@@ -174,7 +174,7 @@ export function useApi() {
             const separator = endpoint.includes('?') ? '&' : '?';
             const cacheBustParam = `${separator}_cb=${CACHE_BUST}&_v=${API_VERSION}`;
             const fullUrl = `${API_BASE_URL}${endpoint}${cacheBustParam}`;
-            
+
             const response = await fetch(fullUrl, {
                 headers,
                 ...options,
@@ -294,7 +294,18 @@ export function useApi() {
     }, [makeRequest]);
 
     const getMissions = useCallback(async (): Promise<Mission[]> => {
-        return makeRequest<Mission[]>('/v1/missions');
+        console.log('getMissions: Starting to fetch all missions...');
+        try {
+            const missions = await makeRequest<Mission[]>('/v1/missions');
+            console.log('getMissions: Successfully fetched missions:', {
+                count: missions?.length || 0,
+                missions: missions
+            });
+            return missions || [];
+        } catch (error) {
+            console.error('getMissions: Failed to fetch missions:', error);
+            throw error;
+        }
     }, [makeRequest]);
 
     const getMission = useCallback(async (id: string): Promise<Mission> => {
@@ -485,13 +496,23 @@ export function useMissions() {
         try {
             console.log('useMissions: Starting to fetch missions...');
             const data = await api.getMissions();
-            console.log('useMissions: Received missions data:', data);
+            console.log('useMissions: Received missions data:', {
+                data,
+                isArray: Array.isArray(data),
+                length: data?.length || 0,
+                type: typeof data
+            });
 
             // Ensure data is an array
             const missionsArray = Array.isArray(data) ? data : [];
-            console.log('useMissions: Processed missions array:', missionsArray);
+            console.log('useMissions: Processed missions array:', {
+                missionsArray,
+                length: missionsArray.length,
+                firstMission: missionsArray[0]
+            });
 
             setMissions(missionsArray);
+            console.log('useMissions: Successfully set missions state');
         } catch (err) {
             console.error('useMissions: Failed to fetch missions:', err);
             // Set empty array on error to prevent undefined issues

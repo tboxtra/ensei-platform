@@ -7,9 +7,11 @@ import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 
 export default function MissionsPage() {
-  const { missions, fetchMissions, loading, error } = useMissions();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
+    const { missions, fetchMissions, loading, error } = useMissions();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [authLoading, setAuthLoading] = useState(true);
+    const [directMissions, setDirectMissions] = useState<any[]>([]);
+    const [directLoading, setDirectLoading] = useState(false);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -29,25 +31,36 @@ export default function MissionsPage() {
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    // Always try to fetch missions regardless of authentication status
-    console.log('MissionsPage: Starting to fetch missions...');
-    fetchMissions();
+    useEffect(() => {
+        // Always try to fetch missions regardless of authentication status
+        console.log('MissionsPage: Starting to fetch missions...');
+        console.log('MissionsPage: useMissions hook state:', { missions, loading, error });
+        fetchMissions();
 
-    // Also try direct API call as a test
-    const testDirectAPI = async () => {
-      try {
-        console.log('MissionsPage: Testing direct API call...');
-        const response = await fetch('https://us-central1-ensei-6c8e0.cloudfunctions.net/api/v1/missions');
-        const data = await response.json();
-        console.log('MissionsPage: Direct API response:', data);
-      } catch (err) {
-        console.error('MissionsPage: Direct API test failed:', err);
-      }
-    };
+        // Also try direct API call as a test
+        const testDirectAPI = async () => {
+            try {
+                setDirectLoading(true);
+                console.log('MissionsPage: Testing direct API call...');
+                const response = await fetch('https://us-central1-ensei-6c8e0.cloudfunctions.net/api/v1/missions');
+                const data = await response.json();
+                console.log('MissionsPage: Direct API response:', {
+                    status: response.status,
+                    ok: response.ok,
+                    dataLength: data?.length || 0,
+                    data: data
+                });
+                setDirectMissions(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error('MissionsPage: Direct API test failed:', err);
+                setDirectMissions([]);
+            } finally {
+                setDirectLoading(false);
+            }
+        };
 
-    testDirectAPI();
-  }, [fetchMissions]);
+        testDirectAPI();
+    }, [fetchMissions, missions, loading, error]);
 
   useEffect(() => {
     console.log('MissionsPage: Missions data updated:', {
@@ -106,19 +119,39 @@ export default function MissionsPage() {
     { id: 'expert', name: 'Expert', icon: '💎', color: 'from-purple-500 to-purple-600' }
   ];
 
-  // Show loading state while checking authentication
-  if (authLoading) {
-    return (
-      <ModernLayout currentPage="/missions">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-400">Checking authentication...</p>
-          </div>
+    // Show loading state while checking authentication
+    if (authLoading) {
+        return (
+            <ModernLayout currentPage="/missions">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                        <p className="text-gray-400">Checking authentication...</p>
+                    </div>
+                </div>
+            </ModernLayout>
+        );
+    }
+
+    // Debug section - show both hook data and direct API data
+    const debugInfo = (
+        <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+            <h3 className="text-lg font-bold text-yellow-400 mb-2">🐛 Debug Info</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <h4 className="font-semibold text-blue-400">useMissions Hook:</h4>
+                    <p>Loading: {loading ? 'true' : 'false'}</p>
+                    <p>Error: {error || 'none'}</p>
+                    <p>Missions Count: {missions?.length || 0}</p>
+                </div>
+                <div>
+                    <h4 className="font-semibold text-green-400">Direct API Call:</h4>
+                    <p>Loading: {directLoading ? 'true' : 'false'}</p>
+                    <p>Missions Count: {directMissions?.length || 0}</p>
+                </div>
+            </div>
         </div>
-      </ModernLayout>
     );
-  }
 
   // Show authentication warning but don't block access
   if (!isAuthenticated) {
@@ -243,6 +276,9 @@ export default function MissionsPage() {
             </div>
           </div>
         </div>
+
+        {/* Debug Info */}
+        {debugInfo}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
