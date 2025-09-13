@@ -60,7 +60,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <ModernCard className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 transition-all duration-300 transform hover:scale-105 cursor-pointer">
             <a href="/missions/create" className="block text-center">
               <div className="text-3xl md:text-4xl mb-2 md:mb-3">🚀</div>
@@ -74,6 +74,14 @@ export default function DashboardPage() {
               <div className="text-3xl md:text-4xl mb-2 md:mb-3">🔍</div>
               <h3 className="text-base md:text-lg font-semibold mb-2 text-blue-400">Discover Missions</h3>
               <p className="text-xs md:text-sm text-gray-400">Find missions to participate in</p>
+            </a>
+          </ModernCard>
+
+          <ModernCard className="bg-gradient-to-br from-orange-600/20 to-red-600/20 hover:from-orange-600/30 hover:to-red-600/30 transition-all duration-300 transform hover:scale-105 cursor-pointer">
+            <a href="/review" className="block text-center">
+              <div className="text-3xl md:text-4xl mb-2 md:mb-3">⚖️</div>
+              <h3 className="text-base md:text-lg font-semibold mb-2 text-orange-400">Judge & Earn</h3>
+              <p className="text-xs md:text-sm text-gray-400">Review submissions and earn rewards</p>
             </a>
           </ModernCard>
 
