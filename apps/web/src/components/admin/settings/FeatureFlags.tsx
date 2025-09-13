@@ -37,7 +37,7 @@ interface FeatureFlagsProps {
 }
 
 export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) => {
-  const [featureFlags, setFeatureFlags] = React.useState({});
+  const [featureFlags, setFeatureFlags] = React.useState<Record<string, boolean>>({});
 
   // Load feature flags from API
   React.useEffect(() => {
