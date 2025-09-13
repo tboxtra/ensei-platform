@@ -29,8 +29,8 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    // Get Firebase token from localStorage (same as user dashboard)
-    const token = typeof window !== 'undefined' ? localStorage.getItem('firebaseToken') : null;
+    // Get admin Firebase token from localStorage (separate from user dashboard)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_firebaseToken') : null;
 
     const config: RequestInit = {
       headers: {

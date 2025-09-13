@@ -42,7 +42,7 @@ export const firebaseAuth = {
           lastLogin: new Date().toISOString()
         };
 
-        localStorage.setItem('firebaseToken', 'demo_admin_token');
+        localStorage.setItem('admin_firebaseToken', 'demo_admin_token');
         localStorage.setItem('admin_user', JSON.stringify(adminUser));
         return adminUser;
       }
@@ -57,16 +57,16 @@ export const firebaseAuth = {
           lastLogin: new Date().toISOString()
         };
 
-        localStorage.setItem('firebaseToken', 'demo_moderator_token');
+        localStorage.setItem('admin_firebaseToken', 'demo_moderator_token');
         localStorage.setItem('admin_user', JSON.stringify(adminUser));
         return adminUser;
       }
 
       // Try Firebase Auth for real accounts
       const { signInWithEmailAndPassword, getAuth } = await import('firebase/auth');
-      const { initializeApp } = await import('firebase/app');
+      const { initializeApp, getApps } = await import('firebase/app');
       
-      // Initialize Firebase if not already done
+      // Initialize Firebase with admin-specific app name to avoid conflicts
       const firebaseConfig = {
         apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
         authDomain: "ensei-6c8e0.firebaseapp.com",
@@ -77,15 +77,24 @@ export const firebaseAuth = {
         measurementId: "G-XHHBG5RLVQ"
       };
       
-      const app = initializeApp(firebaseConfig);
-      const authInstance = getAuth(app);
+      // Use admin-specific app name to avoid conflicts with user dashboard
+      const appName = 'ensei-admin-dashboard';
+      let app;
       
+      if (getApps().find(app => app.name === appName)) {
+        app = getApps().find(app => app.name === appName)!;
+      } else {
+        app = initializeApp(firebaseConfig, appName);
+      }
+      
+      const authInstance = getAuth(app);
+
       const userCredential = await signInWithEmailAndPassword(authInstance, credentials.email, credentials.password);
       const user = userCredential.user;
-      
+
       // Get ID token
       const token = await user.getIdToken();
-      
+
       // Map Firebase user to AdminUser format
       const adminUser: AdminUser = {
         id: user.uid,
@@ -97,9 +106,9 @@ export const firebaseAuth = {
       };
 
       // Store token and user data
-      localStorage.setItem('firebaseToken', token);
+      localStorage.setItem('admin_firebaseToken', token);
       localStorage.setItem('admin_user', JSON.stringify(adminUser));
-      
+
       return adminUser;
     } catch (error) {
       throw new Error('Login failed: ' + (error as Error).message);
@@ -107,7 +116,7 @@ export const firebaseAuth = {
   },
 
   logout: () => {
-    localStorage.removeItem('firebaseToken');
+    localStorage.removeItem('admin_firebaseToken');
     localStorage.removeItem('admin_user');
   },
 
@@ -117,12 +126,12 @@ export const firebaseAuth = {
   },
 
   getToken: (): string | null => {
-    return localStorage.getItem('firebaseToken');
+    return localStorage.getItem('admin_firebaseToken');
   },
 
   setAuth: (user: AdminUser, token: string) => {
     localStorage.setItem('admin_user', JSON.stringify(user));
-    localStorage.setItem('firebaseToken', token);
+    localStorage.setItem('admin_firebaseToken', token);
   }
 };
 
