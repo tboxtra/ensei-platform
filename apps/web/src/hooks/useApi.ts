@@ -130,7 +130,8 @@ interface AuthResponse {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
-const API_VERSION = 'v2.1'; // Force cache invalidation
+const API_VERSION = 'v2.2'; // Force cache invalidation
+const CACHE_BUST = Date.now(); // Aggressive cache busting
 
 export function useApi() {
     const [loading, setLoading] = useState(false);
@@ -153,7 +154,9 @@ export function useApi() {
                 hasToken: !!token,
                 tokenLength: token?.length || 0,
                 method: options.method || 'GET',
-                version: API_VERSION
+                version: API_VERSION,
+                cacheBust: CACHE_BUST,
+                timestamp: new Date().toISOString()
             });
 
             // Don't set Content-Type for FormData (let browser set it with boundary)
@@ -167,7 +170,12 @@ export function useApi() {
                 headers['Content-Type'] = 'application/json';
             }
 
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            // Add cache-busting query parameter
+            const separator = endpoint.includes('?') ? '&' : '?';
+            const cacheBustParam = `${separator}_cb=${CACHE_BUST}&_v=${API_VERSION}`;
+            const fullUrl = `${API_BASE_URL}${endpoint}${cacheBustParam}`;
+            
+            const response = await fetch(fullUrl, {
                 headers,
                 ...options,
             });
@@ -295,19 +303,19 @@ export function useApi() {
 
     const getMyMissions = useCallback(async (): Promise<Mission[]> => {
         console.log('getMyMissions: Starting to fetch user missions...');
-        
+
         // This endpoint doesn't exist, so we'll get all missions and filter on frontend
         const allMissions = await makeRequest<Mission[]>('/v1/missions');
         console.log('getMyMissions: Got all missions:', allMissions?.length || 0);
-        
+
         const userData = localStorage.getItem('user');
         const userId = userData ? JSON.parse(userData).id : null;
         console.log('getMyMissions: User ID:', userId);
-        
-        const userMissions = Array.isArray(allMissions) 
-          ? allMissions.filter(mission => mission.created_by === userId)
-          : [];
-        
+
+        const userMissions = Array.isArray(allMissions)
+            ? allMissions.filter(mission => mission.created_by === userId)
+            : [];
+
         console.log('getMyMissions: Filtered user missions:', userMissions.length);
         return userMissions;
     }, [makeRequest]);
