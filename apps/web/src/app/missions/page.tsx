@@ -33,7 +33,7 @@ export default function MissionsPage() {
     // Always try to fetch missions regardless of authentication status
     console.log('MissionsPage: Starting to fetch missions...');
     fetchMissions();
-    
+
     // Also try direct API call as a test
     const testDirectAPI = async () => {
       try {
@@ -45,7 +45,7 @@ export default function MissionsPage() {
         console.error('MissionsPage: Direct API test failed:', err);
       }
     };
-    
+
     testDirectAPI();
   }, [fetchMissions]);
 

@@ -7,7 +7,7 @@ import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
 
 export default function DashboardPage() {
-  const { getMyMissions, getWalletBalance, loading } = useApi();
+  const { getMissions, getWalletBalance, loading } = useApi();
   const [stats, setStats] = useState({
     missionsCreated: 0,
     totalHonors: 0,
@@ -21,9 +21,21 @@ export default function DashboardPage() {
       try {
         setLoadingStats(true);
 
-        // Load user's missions
-        const myMissions = await getMyMissions();
-        const missionsCreated = Array.isArray(myMissions) ? myMissions.length : 0;
+        // Load all missions and filter for user's missions
+        const allMissions = await getMissions();
+        const userData = localStorage.getItem('user');
+        const userId = userData ? JSON.parse(userData).id : null;
+        
+        const userMissions = Array.isArray(allMissions) 
+          ? allMissions.filter(mission => mission.created_by === userId)
+          : [];
+        const missionsCreated = userMissions.length;
+        
+        console.log('Dashboard: User missions found:', {
+          userId,
+          totalMissions: allMissions?.length || 0,
+          userMissions: missionsCreated
+        });
 
         // Load wallet balance
         let walletBalance = { honors: 0, usd: 0 };
@@ -53,7 +65,7 @@ export default function DashboardPage() {
     };
 
     loadDashboardStats();
-  }, [getMyMissions, getWalletBalance]);
+  }, [getMissions, getWalletBalance]);
   return (
     <ModernLayout currentPage="/dashboard">
       <div className="max-w-7xl mx-auto">
