@@ -89,11 +89,15 @@ class ApiClient {
     status?: string;
     platform?: string;
     model?: string;
+    page?: number;
+    limit?: number;
   }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
     if (params?.status) queryParams.append('status', params.status);
     if (params?.platform) queryParams.append('platform', params.platform);
     if (params?.model) queryParams.append('model', params.model);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
 
     return this.request(`/v1/admin/missions?${queryParams}`);
   }
@@ -113,10 +117,14 @@ class ApiClient {
   async getUsers(params?: {
     role?: string;
     status?: string;
+    page?: number;
+    limit?: number;
   }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
     if (params?.role) queryParams.append('role', params.role);
     if (params?.status) queryParams.append('status', params.status);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
 
     return this.request(`/v1/admin/users?${queryParams}`);
   }
