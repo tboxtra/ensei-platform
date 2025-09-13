@@ -4,15 +4,12 @@
   "description": "Ensei Platform Admin Dashboard",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
-    "build": "next build",
-    "start": "next start -p 3001",
+    "dev": "next dev",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "jest"
   },
   "dependencies": {
     "autoprefixer": "^10.0.0",
-    "firebase": "^10.7.1",
     "next": "^14.0.0",
     "postcss": "^8.0.0",
     "react": "^18.0.0",

@@ -8,10 +8,42 @@ import { ModernButton } from '../../components/ui/ModernButton';
 
 export default function MissionsPage() {
   const { missions, fetchMissions, loading, error } = useMissions();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    fetchMissions();
-  }, [fetchMissions]);
+    const checkAuth = () => {
+      const token = localStorage.getItem('firebaseToken');
+      const user = localStorage.getItem('user');
+      const authenticated = !!(token && user);
+      setIsAuthenticated(authenticated);
+      setAuthLoading(false);
+      
+      console.log('MissionsPage: Auth check:', {
+        hasToken: !!token,
+        hasUser: !!user,
+        authenticated
+      });
+    };
+    
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('MissionsPage: Starting to fetch missions...');
+      fetchMissions();
+    }
+  }, [fetchMissions, isAuthenticated]);
+
+  useEffect(() => {
+    console.log('MissionsPage: Missions data updated:', {
+      missionsCount: missions?.length || 0,
+      loading,
+      error,
+      missions: missions
+    });
+  }, [missions, loading, error]);
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
@@ -60,6 +92,42 @@ export default function MissionsPage() {
     { id: 'advanced', name: 'Advanced', icon: '🔥', color: 'from-orange-500 to-orange-600' },
     { id: 'expert', name: 'Expert', icon: '💎', color: 'from-purple-500 to-purple-600' }
   ];
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <ModernLayout currentPage="/missions">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-400">Checking authentication...</p>
+          </div>
+        </div>
+      </ModernLayout>
+    );
+  }
+
+  // Show authentication required message
+  if (!isAuthenticated) {
+    return (
+      <ModernLayout currentPage="/missions">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-white mb-4">Authentication Required</h1>
+            <p className="text-gray-400 text-lg mb-6">
+              You need to be logged in to view missions
+            </p>
+            <a 
+              href="/auth/login" 
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+            >
+              Login to Continue
+            </a>
+          </div>
+        </div>
+      </ModernLayout>
+    );
+  }
 
   if (loading) {
     return (

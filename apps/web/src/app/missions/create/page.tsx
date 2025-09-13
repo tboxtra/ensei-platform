@@ -213,7 +213,7 @@ const PLATFORM_CONTENT_PLACEHOLDERS = {
 
 export default function CreateMissionPage() {
   const { createMission, loading, error } = useApi();
-  
+
   // Check if user is authenticated
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
@@ -225,7 +225,7 @@ export default function CreateMissionPage() {
       setIsAuthenticated(!!(token && user));
       setAuthLoading(false);
     };
-    
+
     checkAuth();
   }, []);
 
@@ -375,8 +375,8 @@ export default function CreateMissionPage() {
             <p className="text-gray-400 text-lg mb-6">
               You need to be logged in to create missions
             </p>
-            <a 
-              href="/auth/login" 
+            <a
+              href="/auth/login"
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
             >
               Login to Continue
@@ -855,7 +855,13 @@ export default function CreateMissionPage() {
                 })
               };
 
-              await createMission(missionData);
+              const createdMission = await createMission(missionData);
+              console.log('Mission created successfully:', createdMission);
+              
+              // Show success message
+              alert('Mission created successfully!');
+              
+              // Redirect to missions page
               window.location.href = '/missions';
             } catch (err) {
               console.error('Failed to create mission:', err);

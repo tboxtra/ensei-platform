@@ -18,10 +18,12 @@ import multer from 'multer';
 const app = express();
 app.use(cors({
   origin: [
+    'https://ensei-platform.vercel.app',
     'https://ensei-platform-onh1g1z1d-izecubes-projects-b81ca540.vercel.app',
     'https://ensei-platform-8mimjbhxx-izecubes-projects-b81ca540.vercel.app',
     'https://admin-dashboard-d83i9lh7f-izecubes-projects-b81ca540.vercel.app',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://localhost:3001'
   ],
   credentials: true
 }));
