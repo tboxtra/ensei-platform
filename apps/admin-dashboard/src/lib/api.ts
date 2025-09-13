@@ -1,7 +1,5 @@
-import { mockAuth } from './auth';
-
-// Base API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+// Base API configuration - using Firebase Functions
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
 
 export interface ApiResponse<T> {
   data: T;
@@ -31,7 +29,8 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const token = mockAuth.getToken();
+    // Get Firebase token from localStorage (same as user dashboard)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('firebaseToken') : null;
     
     const config: RequestInit = {
       headers: {

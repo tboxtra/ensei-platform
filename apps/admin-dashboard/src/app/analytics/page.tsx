@@ -47,48 +47,7 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('30d');
 
-  // Mock data for development
-  const mockData: AnalyticsData = {
-    overview: {
-      totalRevenue: 125000,
-      totalMissions: 156,
-      totalUsers: 2340,
-      totalSubmissions: 8920,
-      averageCompletionRate: 78,
-      platformFee: 62500
-    },
-    revenue: {
-      daily: Array.from({ length: 30 }, (_, i) => ({
-        date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        revenue: Math.floor(Math.random() * 5000) + 1000
-      })),
-      monthly: [
-        { month: 'Oct 2023', revenue: 25000 },
-        { month: 'Nov 2023', revenue: 32000 },
-        { month: 'Dec 2023', revenue: 28000 },
-        { month: 'Jan 2024', revenue: 40000 }
-      ]
-    },
-    platforms: [
-      { platform: 'twitter', missions: 45, submissions: 2340, revenue: 35000, completionRate: 82 },
-      { platform: 'instagram', missions: 38, submissions: 1890, revenue: 28000, completionRate: 75 },
-      { platform: 'tiktok', missions: 32, submissions: 1650, revenue: 24000, completionRate: 78 },
-      { platform: 'telegram', missions: 25, submissions: 1200, revenue: 18000, completionRate: 85 },
-      { platform: 'facebook', missions: 16, submissions: 840, revenue: 12000, completionRate: 72 }
-    ],
-    userGrowth: Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      users: 2000 + Math.floor(Math.random() * 400),
-      newUsers: Math.floor(Math.random() * 50) + 10
-    })),
-    missionPerformance: [
-      { missionId: 'm1', title: 'Twitter Engagement', platform: 'twitter', submissions: 120, approved: 98, revenue: 5000, completionRate: 82 },
-      { missionId: 'm2', title: 'Instagram Content', platform: 'instagram', submissions: 85, approved: 68, revenue: 4200, completionRate: 80 },
-      { missionId: 'm3', title: 'TikTok Challenge', platform: 'tiktok', submissions: 95, approved: 72, revenue: 3800, completionRate: 76 },
-      { missionId: 'm4', title: 'Telegram Community', platform: 'telegram', submissions: 65, approved: 58, revenue: 3200, completionRate: 89 },
-      { missionId: 'm5', title: 'Facebook Group', platform: 'facebook', submissions: 45, approved: 32, revenue: 2100, completionRate: 71 }
-    ]
-  };
+  // No mock data - using real API
 
   useEffect(() => {
     loadAnalytics();
@@ -99,15 +58,30 @@ export default function AnalyticsPage() {
       setLoading(true);
       setError(null);
       
-      // For now, use mock data
-      // const response = await apiClient.getAnalytics({ period: timeRange });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setData(mockData);
+      // Load all analytics data in parallel
+      const [overviewRes, revenueRes, userGrowthRes, platformRes, missionRes] = await Promise.all([
+        apiClient.getAnalyticsOverview(),
+        apiClient.getRevenueData(timeRange),
+        apiClient.getUserGrowthData(timeRange),
+        apiClient.getPlatformPerformance(),
+        apiClient.getMissionPerformance(timeRange)
+      ]);
+
+      if (overviewRes.success && revenueRes.success && userGrowthRes.success && platformRes.success && missionRes.success) {
+        setData({
+          overview: overviewRes.data,
+          revenue: revenueRes.data,
+          platforms: platformRes.data,
+          userGrowth: userGrowthRes.data,
+          missionPerformance: missionRes.data
+        });
+      } else {
+        setData(null);
+        setError('Failed to load analytics data');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics');
+      setData(null);
     } finally {
       setLoading(false);
     }

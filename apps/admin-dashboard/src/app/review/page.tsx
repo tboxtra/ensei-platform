@@ -44,67 +44,7 @@ export default function ReviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'queue' | 'stats' | 'reviewers'>('queue');
 
-  // Mock data for development
-  const mockAssignments: ReviewAssignment[] = [
-    {
-      id: 'assignment_1',
-      missionId: 'mission_1',
-      submissionId: 'submission_1',
-      reviewerUserId: 'reviewer_1',
-      status: 'pending',
-      createdAt: '2024-01-15T10:30:00Z',
-      submission: {
-        id: 'submission_1',
-        missionId: 'mission_1',
-        userId: 'user_123',
-        proofs: [
-          {
-            type: 'screenshot',
-            content: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-          }
-        ],
-        status: 'pending',
-        submittedAt: '2024-01-15T09:15:00Z'
-      },
-      mission: {
-        id: 'mission_1',
-        title: 'Twitter Engagement Campaign',
-        platform: 'twitter',
-        type: 'engage',
-        model: 'fixed',
-        perUserHonors: 250
-      }
-    },
-    {
-      id: 'assignment_2',
-      missionId: 'mission_2',
-      submissionId: 'submission_2',
-      reviewerUserId: 'reviewer_2',
-      status: 'pending',
-      createdAt: '2024-01-15T11:20:00Z',
-      submission: {
-        id: 'submission_2',
-        missionId: 'mission_2',
-        userId: 'user_456',
-        proofs: [
-          {
-            type: 'url',
-            content: 'https://twitter.com/user/status/1234567890'
-          }
-        ],
-        status: 'pending',
-        submittedAt: '2024-01-15T10:45:00Z'
-      },
-      mission: {
-        id: 'mission_2',
-        title: 'Instagram Content Creation',
-        platform: 'instagram',
-        type: 'content',
-        model: 'degen',
-        perWinnerHonors: 11250
-      }
-    }
-  ];
+  // No mock data - using real API
 
   useEffect(() => {
     loadAssignments();
@@ -115,15 +55,16 @@ export default function ReviewPage() {
       setLoading(true);
       setError(null);
       
-      // For now, use mock data
-      // const response = await apiClient.getReviewQueue();
+      const response = await apiClient.getReviewQueue();
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setAssignments(mockAssignments);
+      if (response.success && response.data) {
+        setAssignments(response.data.data || []);
+      } else {
+        setAssignments([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load review assignments');
+      setAssignments([]);
     } finally {
       setLoading(false);
     }
@@ -131,16 +72,20 @@ export default function ReviewPage() {
 
   const handleReviewVote = async (assignmentId: string, rating: number, commentLink?: string) => {
     try {
-      // await apiClient.submitReviewVote(assignmentId, rating, commentLink);
+      const response = await apiClient.submitReviewVote(assignmentId, rating, commentLink);
       
-      // Update local state
-      setAssignments(prev =>
-        prev.map(assignment =>
-          assignment.id === assignmentId
-            ? { ...assignment, status: 'completed' }
-            : assignment
-        )
-      );
+      if (response.success) {
+        // Update local state
+        setAssignments(prev =>
+          prev.map(assignment =>
+            assignment.id === assignmentId
+              ? { ...assignment, status: 'completed' }
+              : assignment
+          )
+        );
+      } else {
+        setError(response.message || 'Failed to submit review vote');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit review vote');
     }

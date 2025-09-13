@@ -52,55 +52,7 @@ export default function MissionsPage() {
     totalPages: 0
   });
 
-  // Mock data for development
-  const mockMissions: Mission[] = [
-    {
-      id: 'mission_1',
-      title: 'Twitter Engagement Campaign',
-      platform: 'twitter',
-      type: 'engage',
-      model: 'fixed',
-      status: 'active',
-      creatorId: 'creator_1',
-      createdAt: '2024-01-15T10:30:00Z',
-      submissionsCount: 45,
-      approvedCount: 42,
-      totalCostUsd: 500,
-      perUserHonors: 250,
-      cap: 100
-    },
-    {
-      id: 'mission_2',
-      title: 'Instagram Content Creation',
-      platform: 'instagram',
-      type: 'content',
-      model: 'degen',
-      status: 'active',
-      creatorId: 'creator_2',
-      createdAt: '2024-01-14T15:20:00Z',
-      submissionsCount: 23,
-      approvedCount: 18,
-      totalCostUsd: 750,
-      perWinnerHonors: 11250,
-      winnersCap: 3,
-      durationHours: 8
-    },
-    {
-      id: 'mission_3',
-      title: 'TikTok Ambassador Program',
-      platform: 'tiktok',
-      type: 'ambassador',
-      model: 'fixed',
-      status: 'completed',
-      creatorId: 'creator_3',
-      createdAt: '2024-01-10T09:15:00Z',
-      submissionsCount: 80,
-      approvedCount: 75,
-      totalCostUsd: 1200,
-      perUserHonors: 400,
-      cap: 100
-    }
-  ];
+  // No mock data - using real API
 
   useEffect(() => {
     loadMissions();
@@ -111,24 +63,31 @@ export default function MissionsPage() {
       setLoading(true);
       setError(null);
       
-      // For now, use mock data
-      // const response = await apiClient.getMissions({
-      //   page: pagination.page,
-      //   limit: pagination.limit,
-      //   ...filters
-      // });
+      const response = await apiClient.getMissions({
+        page: pagination.page,
+        limit: pagination.limit,
+        ...filters
+      });
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setMissions(mockMissions);
-      setPagination(prev => ({
-        ...prev,
-        total: mockMissions.length,
-        totalPages: Math.ceil(mockMissions.length / pagination.limit)
-      }));
+      if (response.success && response.data) {
+        setMissions(response.data);
+        // Note: API should return pagination info in response
+        setPagination(prev => ({
+          ...prev,
+          total: response.data?.length || 0,
+          totalPages: Math.ceil((response.data?.length || 0) / pagination.limit)
+        }));
+      } else {
+        setMissions([]);
+        setPagination(prev => ({
+          ...prev,
+          total: 0,
+          totalPages: 0
+        }));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load missions');
+      setMissions([]);
     } finally {
       setLoading(false);
     }
@@ -145,16 +104,20 @@ export default function MissionsPage() {
 
   const handleMissionStatusChange = async (missionId: string, status: string) => {
     try {
-      // await apiClient.updateMissionStatus(missionId, status);
+      const response = await apiClient.updateMissionStatus(missionId, status);
       
-      // Update local state
-      setMissions(prev =>
-        prev.map(mission =>
-          mission.id === missionId
-            ? { ...mission, status: status as any }
-            : mission
-        )
-      );
+      if (response.success) {
+        // Update local state
+        setMissions(prev =>
+          prev.map(mission =>
+            mission.id === missionId
+              ? { ...mission, status: status as any }
+              : mission
+          )
+        );
+      } else {
+        setError(response.message || 'Failed to update mission status');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update mission status');
     }

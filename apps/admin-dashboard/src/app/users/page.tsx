@@ -49,69 +49,7 @@ export default function UsersPage() {
     totalPages: 0
   });
 
-  // Mock data for development
-  const mockUsers: User[] = [
-    {
-      id: 'user_1',
-      email: 'john.doe@example.com',
-      name: 'John Doe',
-      role: 'premium',
-      status: 'active',
-      createdAt: '2024-01-10T10:30:00Z',
-      lastLogin: '2024-01-15T14:20:00Z',
-      totalSubmissions: 25,
-      approvedSubmissions: 23,
-      totalEarned: 12500,
-      reputation: 4.2,
-      missionsCreated: 3,
-      missionsCompleted: 22
-    },
-    {
-      id: 'user_2',
-      email: 'jane.smith@example.com',
-      name: 'Jane Smith',
-      role: 'user',
-      status: 'active',
-      createdAt: '2024-01-12T15:45:00Z',
-      lastLogin: '2024-01-15T09:15:00Z',
-      totalSubmissions: 18,
-      approvedSubmissions: 16,
-      totalEarned: 8500,
-      reputation: 3.8,
-      missionsCreated: 1,
-      missionsCompleted: 15
-    },
-    {
-      id: 'user_3',
-      email: 'bob.wilson@example.com',
-      name: 'Bob Wilson',
-      role: 'user',
-      status: 'suspended',
-      createdAt: '2024-01-08T12:20:00Z',
-      lastLogin: '2024-01-14T16:30:00Z',
-      totalSubmissions: 8,
-      approvedSubmissions: 5,
-      totalEarned: 2500,
-      reputation: 2.1,
-      missionsCreated: 0,
-      missionsCompleted: 5
-    },
-    {
-      id: 'user_4',
-      email: 'alice.brown@example.com',
-      name: 'Alice Brown',
-      role: 'premium',
-      status: 'active',
-      createdAt: '2024-01-05T08:15:00Z',
-      lastLogin: '2024-01-15T11:45:00Z',
-      totalSubmissions: 42,
-      approvedSubmissions: 38,
-      totalEarned: 22500,
-      reputation: 4.7,
-      missionsCreated: 7,
-      missionsCompleted: 35
-    }
-  ];
+  // No mock data - using real API
 
   useEffect(() => {
     loadUsers();
@@ -122,24 +60,30 @@ export default function UsersPage() {
       setLoading(true);
       setError(null);
       
-      // For now, use mock data
-      // const response = await apiClient.getUsers({
-      //   page: pagination.page,
-      //   limit: pagination.limit,
-      //   ...filters
-      // });
+      const response = await apiClient.getUsers({
+        page: pagination.page,
+        limit: pagination.limit,
+        ...filters
+      });
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setUsers(mockUsers);
-      setPagination(prev => ({
-        ...prev,
-        total: mockUsers.length,
-        totalPages: Math.ceil(mockUsers.length / pagination.limit)
-      }));
+      if (response.success && response.data) {
+        setUsers(response.data);
+        setPagination(prev => ({
+          ...prev,
+          total: response.data?.length || 0,
+          totalPages: Math.ceil((response.data?.length || 0) / pagination.limit)
+        }));
+      } else {
+        setUsers([]);
+        setPagination(prev => ({
+          ...prev,
+          total: 0,
+          totalPages: 0
+        }));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -156,16 +100,20 @@ export default function UsersPage() {
 
   const handleUserStatusChange = async (userId: string, status: 'active' | 'suspended' | 'banned') => {
     try {
-      // await apiClient.updateUserStatus(userId, status);
+      const response = await apiClient.updateUserStatus(userId, status);
       
-      // Update local state
-      setUsers(prev =>
-        prev.map(user =>
-          user.id === userId
-            ? { ...user, status }
-            : user
-        )
-      );
+      if (response.success) {
+        // Update local state
+        setUsers(prev =>
+          prev.map(user =>
+            user.id === userId
+              ? { ...user, status }
+              : user
+          )
+        );
+      } else {
+        setError(response.message || 'Failed to update user status');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update user status');
     }

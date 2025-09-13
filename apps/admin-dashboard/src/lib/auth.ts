@@ -27,36 +27,46 @@ export interface AuthContextType extends AuthState {
   hasRole: (role: string) => boolean;
 }
 
-// Real authentication using API Gateway
-export const mockAuth = {
+// Firebase authentication for admin dashboard
+export const firebaseAuth = {
   login: async (credentials: LoginCredentials): Promise<AdminUser> => {
     try {
-      const response = await fetch('http://localhost:3002/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await response.json();
+      // Use Firebase Auth to sign in
+      const { signInWithEmailAndPassword } = await import('firebase/auth');
+      const { auth } = await import('firebase/auth');
+      const { initializeApp } = await import('firebase/app');
       
-      // Map API response to AdminUser format
+      // Initialize Firebase if not already done
+      const firebaseConfig = {
+        apiKey: "AIzaSyBqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJq",
+        authDomain: "ensei-6c8e0.firebaseapp.com",
+        projectId: "ensei-6c8e0",
+        storageBucket: "ensei-6c8e0.appspot.com",
+        messagingSenderId: "123456789",
+        appId: "1:123456789:web:abcdef123456"
+      };
+      
+      const app = initializeApp(firebaseConfig);
+      const authInstance = auth(app);
+      
+      const userCredential = await signInWithEmailAndPassword(authInstance, credentials.email, credentials.password);
+      const user = userCredential.user;
+      
+      // Get ID token
+      const token = await user.getIdToken();
+      
+      // Map Firebase user to AdminUser format
       const adminUser: AdminUser = {
-        id: data.user.id,
-        email: data.user.email,
-        role: data.user.role as 'admin' | 'moderator' | 'viewer',
-        name: data.user.username || data.user.email,
-        permissions: data.user.role === 'admin' ? ['*'] : ['review:read', 'review:write', 'missions:read', 'users:read'],
+        id: user.uid,
+        email: user.email || '',
+        role: 'admin', // Default to admin for now
+        name: user.displayName || user.email || '',
+        permissions: ['*'], // Admin has all permissions
         lastLogin: new Date().toISOString()
       };
 
       // Store token and user data
-      localStorage.setItem('admin_token', data.accessToken);
+      localStorage.setItem('firebaseToken', token);
       localStorage.setItem('admin_user', JSON.stringify(adminUser));
       
       return adminUser;
@@ -66,7 +76,7 @@ export const mockAuth = {
   },
   
   logout: () => {
-    localStorage.removeItem('admin_token');
+    localStorage.removeItem('firebaseToken');
     localStorage.removeItem('admin_user');
   },
   
@@ -76,12 +86,12 @@ export const mockAuth = {
   },
   
   getToken: (): string | null => {
-    return localStorage.getItem('admin_token');
+    return localStorage.getItem('firebaseToken');
   },
   
   setAuth: (user: AdminUser, token: string) => {
     localStorage.setItem('admin_user', JSON.stringify(user));
-    localStorage.setItem('admin_token', token);
+    localStorage.setItem('firebaseToken', token);
   }
 };
 

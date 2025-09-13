@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { AdminUser, AuthContextType, LoginCredentials, mockAuth } from '../lib/auth';
+import { AdminUser, AuthContextType, LoginCredentials, firebaseAuth } from '../lib/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -24,7 +24,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check for existing auth on mount
-    const existingUser = mockAuth.getCurrentUser();
+    const existingUser = firebaseAuth.getCurrentUser();
     if (existingUser) {
       setUser(existingUser);
     }
@@ -36,10 +36,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
       
-      const user = await mockAuth.login(credentials);
-      const token = `mock_token_${user.id}_${Date.now()}`;
-      
-      mockAuth.setAuth(user, token);
+      const user = await firebaseAuth.login(credentials);
       setUser(user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -50,14 +47,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    mockAuth.logout();
+    firebaseAuth.logout();
     setUser(null);
     setError(null);
   };
 
   const refreshToken = async () => {
-    // In a real app, this would refresh the JWT token
-    const existingUser = mockAuth.getCurrentUser();
+    // Refresh Firebase token
+    const existingUser = firebaseAuth.getCurrentUser();
     if (existingUser) {
       setUser(existingUser);
     }
