@@ -25,12 +25,12 @@ export default function DashboardPage() {
         const allMissions = await getMissions();
         const userData = localStorage.getItem('user');
         const userId = userData ? JSON.parse(userData).id : null;
-        
-        const userMissions = Array.isArray(allMissions) 
+
+        const userMissions = Array.isArray(allMissions)
           ? allMissions.filter(mission => mission.created_by === userId)
           : [];
         const missionsCreated = userMissions.length;
-        
+
         console.log('Dashboard: User missions found:', {
           userId,
           totalMissions: allMissions?.length || 0,

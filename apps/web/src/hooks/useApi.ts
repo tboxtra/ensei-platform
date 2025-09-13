@@ -292,14 +292,22 @@ export function useApi() {
     }, [makeRequest]);
 
     const getMyMissions = useCallback(async (): Promise<Mission[]> => {
+        console.log('getMyMissions: Starting to fetch user missions...');
+        
         // This endpoint doesn't exist, so we'll get all missions and filter on frontend
         const allMissions = await makeRequest<Mission[]>('/v1/missions');
+        console.log('getMyMissions: Got all missions:', allMissions?.length || 0);
+        
         const userData = localStorage.getItem('user');
         const userId = userData ? JSON.parse(userData).id : null;
+        console.log('getMyMissions: User ID:', userId);
         
-        return Array.isArray(allMissions) 
+        const userMissions = Array.isArray(allMissions) 
           ? allMissions.filter(mission => mission.created_by === userId)
           : [];
+        
+        console.log('getMyMissions: Filtered user missions:', userMissions.length);
+        return userMissions;
     }, [makeRequest]);
 
     // Submission APIs
