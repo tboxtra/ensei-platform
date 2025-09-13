@@ -100,6 +100,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             </button>
           </div>
 
+          <div className="mt-6 p-4 bg-gray-100 rounded-md">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Demo Accounts:</h3>
+            <div className="text-xs text-gray-600 space-y-1">
+              <div><strong>Admin:</strong> admin@ensei.com / admin123</div>
+              <div><strong>Moderator:</strong> moderator@ensei.com / mod123</div>
+            </div>
+          </div>
         </form>
       </div>
     </div>

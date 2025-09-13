@@ -27,15 +27,45 @@ export interface AuthContextType extends AuthState {
   hasRole: (role: string) => boolean;
 }
 
-// Firebase authentication for admin dashboard
+// Admin authentication with demo accounts support
 export const firebaseAuth = {
   login: async (credentials: LoginCredentials): Promise<AdminUser> => {
     try {
-      // Use Firebase Auth to sign in
-      const { signInWithEmailAndPassword } = await import('firebase/auth');
-      const { auth } = await import('firebase/auth');
-      const { initializeApp } = await import('firebase/app');
+      // Check for demo accounts first
+      if (credentials.email === 'admin@ensei.com' && credentials.password === 'admin123') {
+        const adminUser: AdminUser = {
+          id: 'demo_admin_1',
+          email: 'admin@ensei.com',
+          role: 'admin',
+          name: 'Admin User',
+          permissions: ['*'],
+          lastLogin: new Date().toISOString()
+        };
 
+        localStorage.setItem('firebaseToken', 'demo_admin_token');
+        localStorage.setItem('admin_user', JSON.stringify(adminUser));
+        return adminUser;
+      }
+
+      if (credentials.email === 'moderator@ensei.com' && credentials.password === 'mod123') {
+        const adminUser: AdminUser = {
+          id: 'demo_moderator_1',
+          email: 'moderator@ensei.com',
+          role: 'moderator',
+          name: 'Moderator User',
+          permissions: ['review:read', 'review:write', 'missions:read', 'users:read'],
+          lastLogin: new Date().toISOString()
+        };
+
+        localStorage.setItem('firebaseToken', 'demo_moderator_token');
+        localStorage.setItem('admin_user', JSON.stringify(adminUser));
+        return adminUser;
+      }
+
+      // Try Firebase Auth for real accounts
+      const { signInWithEmailAndPassword, getAuth } = await import('firebase/auth');
+      const { initializeApp } = await import('firebase/app');
+      
       // Initialize Firebase if not already done
       const firebaseConfig = {
         apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
@@ -46,16 +76,16 @@ export const firebaseAuth = {
         appId: "1:542777590186:web:59a664f5053a6057d5abd3",
         measurementId: "G-XHHBG5RLVQ"
       };
-
+      
       const app = initializeApp(firebaseConfig);
-      const authInstance = auth(app);
-
+      const authInstance = getAuth(app);
+      
       const userCredential = await signInWithEmailAndPassword(authInstance, credentials.email, credentials.password);
       const user = userCredential.user;
-
+      
       // Get ID token
       const token = await user.getIdToken();
-
+      
       // Map Firebase user to AdminUser format
       const adminUser: AdminUser = {
         id: user.uid,
@@ -69,7 +99,7 @@ export const firebaseAuth = {
       // Store token and user data
       localStorage.setItem('firebaseToken', token);
       localStorage.setItem('admin_user', JSON.stringify(adminUser));
-
+      
       return adminUser;
     } catch (error) {
       throw new Error('Login failed: ' + (error as Error).message);
