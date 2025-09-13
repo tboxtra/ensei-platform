@@ -65,7 +65,7 @@ export const firebaseAuth = {
       // Try Firebase Auth for real accounts
       const { signInWithEmailAndPassword, getAuth } = await import('firebase/auth');
       const { initializeApp, getApps } = await import('firebase/app');
-      
+
       // Initialize Firebase with admin-specific app name to avoid conflicts
       const firebaseConfig = {
         apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
@@ -76,17 +76,17 @@ export const firebaseAuth = {
         appId: "1:542777590186:web:59a664f5053a6057d5abd3",
         measurementId: "G-XHHBG5RLVQ"
       };
-      
+
       // Use admin-specific app name to avoid conflicts with user dashboard
       const appName = 'ensei-admin-dashboard';
       let app;
-      
+
       if (getApps().find(app => app.name === appName)) {
         app = getApps().find(app => app.name === appName)!;
       } else {
         app = initializeApp(firebaseConfig, appName);
       }
-      
+
       const authInstance = getAuth(app);
 
       const userCredential = await signInWithEmailAndPassword(authInstance, credentials.email, credentials.password);
