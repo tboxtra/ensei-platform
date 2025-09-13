@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "ensei-web",
+  "name": "ensei-admin-dashboard",
   "builds": [
     {
       "src": "package.json",

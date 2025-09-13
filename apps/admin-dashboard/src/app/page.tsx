@@ -10,7 +10,7 @@ export default function HomePage() {
 
   useEffect(() => {
     console.log('Admin Dashboard - Auth State:', { isAuthenticated, isLoading, user });
-    
+
     if (!isLoading) {
       if (isAuthenticated) {
         console.log('Admin Dashboard - Redirecting to /review');
