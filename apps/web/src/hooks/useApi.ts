@@ -130,6 +130,7 @@ interface AuthResponse {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
+const API_VERSION = 'v2.1'; // Force cache invalidation
 
 export function useApi() {
     const [loading, setLoading] = useState(false);
@@ -151,7 +152,8 @@ export function useApi() {
                 endpoint,
                 hasToken: !!token,
                 tokenLength: token?.length || 0,
-                method: options.method || 'GET'
+                method: options.method || 'GET',
+                version: API_VERSION
             });
 
             // Don't set Content-Type for FormData (let browser set it with boundary)
