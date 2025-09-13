@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "ensei-6c8e0"
-  }
+    "default": "ensei-6c8e0",
+    "Ensei": "ensei-6c8e0"
+  },
+  "targets": {},
+  "etags": {}
 }
