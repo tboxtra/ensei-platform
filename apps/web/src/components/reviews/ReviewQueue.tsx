@@ -204,7 +204,7 @@ export default function ReviewQueue() {
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Response Time</p>
-                            <p className="text-2xl font-bold text-gray-900">2.4h</p>
+                            <p className="text-2xl font-bold text-gray-900">-</p>
                         </div>
                     </div>
                 </div>
