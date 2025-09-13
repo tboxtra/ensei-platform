@@ -9,7 +9,28 @@ export const Navigation: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    return null;
+    return (
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <Link href="/login" className="text-xl font-bold text-indigo-600">
+                Ensei Admin
+              </Link>
+            </div>
+            
+            <div className="flex items-center">
+              <Link 
+                href="/login" 
+                className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
+              >
+                Sign In
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
   }
 
   return (

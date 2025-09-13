@@ -38,12 +38,13 @@ export const firebaseAuth = {
 
       // Initialize Firebase if not already done
       const firebaseConfig = {
-        apiKey: "AIzaSyBqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJq",
+        apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
         authDomain: "ensei-6c8e0.firebaseapp.com",
         projectId: "ensei-6c8e0",
-        storageBucket: "ensei-6c8e0.appspot.com",
-        messagingSenderId: "123456789",
-        appId: "1:123456789:web:abcdef123456"
+        storageBucket: "ensei-6c8e0.firebasestorage.app",
+        messagingSenderId: "542777590186",
+        appId: "1:542777590186:web:59a664f5053a6057d5abd3",
+        measurementId: "G-XHHBG5RLVQ"
       };
 
       const app = initializeApp(firebaseConfig);

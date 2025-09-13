@@ -48,7 +48,7 @@ export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) 
         // if (response.success) {
         //   setFeatureFlags(response.data);
         // }
-        
+
         // For now, start with empty state
         setFeatureFlags({});
       } catch (error) {
@@ -166,8 +166,8 @@ export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) 
                         {flag.replace(/([A-Z])/g, ' $1').trim()}
                       </h4>
                       <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${enabled
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
                         }`}>
                         {enabled ? 'Enabled' : 'Disabled'}
                       </span>

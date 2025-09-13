@@ -37,7 +37,7 @@ export const ReviewerManagement: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // TODO: Implement real API call when endpoint is available
       // const response = await apiClient.getReviewers();
       // if (response.success) {
@@ -45,7 +45,7 @@ export const ReviewerManagement: React.FC = () => {
       // } else {
       //   setError(response.message || 'Failed to load reviewers');
       // }
-      
+
       // For now, show empty state
       setReviewers([]);
     } catch (err) {
@@ -59,7 +59,7 @@ export const ReviewerManagement: React.FC = () => {
   const handleStatusChange = async (reviewerId: string, status: 'active' | 'inactive' | 'suspended') => {
     try {
       // await apiClient.updateReviewerStatus(reviewerId, status);
-      
+
       setReviewers(prev =>
         prev.map(reviewer =>
           reviewer.id === reviewerId
@@ -158,7 +158,7 @@ export const ReviewerManagement: React.FC = () => {
                   </span>
                 </div>
               </div>
-              
+
               <div className="flex space-x-1">
                 {reviewer.status === 'active' && (
                   <button
@@ -186,14 +186,14 @@ export const ReviewerManagement: React.FC = () => {
                   {reviewer.totalReviews.toLocaleString()}
                 </span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Average Rating</span>
                 <span className="text-sm font-medium text-gray-900">
                   {reviewer.averageRating.toFixed(1)}/5.0
                 </span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Last Review</span>
                 <span className="text-sm font-medium text-gray-900">

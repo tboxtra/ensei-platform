@@ -49,9 +49,9 @@ export default function SettingsPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await apiClient.getSystemConfig();
-      
+
       if (response.success && response.data) {
         setSettings(response.data);
       } else {
@@ -69,7 +69,7 @@ export default function SettingsPage() {
   const handleSaveSettings = async (updatedSettings: Partial<SystemSettings>) => {
     try {
       const response = await apiClient.updateSystemConfig(updatedSettings);
-      
+
       if (response.success) {
         setSettings(prev => prev ? { ...prev, ...updatedSettings } : null);
       } else {
@@ -135,11 +135,10 @@ export default function SettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                  activeTab === tab.id
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${activeTab === tab.id
                     ? 'border-indigo-500 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <span>{tab.icon}</span>
                 <span>{tab.label}</span>
@@ -155,7 +154,7 @@ export default function SettingsPage() {
             onSave={handleSaveSettings}
           />
         )}
-        
+
         {activeTab === 'pricing' && (
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Pricing Configuration</h3>
@@ -193,7 +192,7 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
-        
+
         {activeTab === 'limits' && (
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">System Limits</h3>
@@ -231,14 +230,14 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
-        
+
         {activeTab === 'security' && (
           <SecuritySettings
             settings={settings}
             onSave={handleSaveSettings}
           />
         )}
-        
+
         {activeTab === 'features' && (
           <FeatureFlags
             settings={settings}

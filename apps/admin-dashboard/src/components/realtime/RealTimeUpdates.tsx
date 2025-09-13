@@ -17,9 +17,9 @@ interface RealTimeUpdatesProps {
   autoConnect?: boolean;
 }
 
-export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({ 
-  onUpdate, 
-  autoConnect = true 
+export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
+  onUpdate,
+  autoConnect = true
 }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [updates, setUpdates] = useState<RealTimeUpdate[]>([]);
@@ -52,7 +52,7 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
       //   console.error('WebSocket error:', error);
       //   setIsConnected(false);
       // };
-      
+
       // For now, show disconnected state
       setIsConnected(false);
     } catch (error) {
@@ -65,7 +65,7 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
-    
+
     reconnectTimeoutRef.current = setTimeout(() => {
       connectWebSocket();
     }, 5000);
@@ -74,7 +74,7 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
   const handleUpdate = (update: RealTimeUpdate) => {
     setUpdates(prev => [update, ...prev].slice(0, 50)); // Keep last 50 updates
     setUnreadCount(prev => prev + 1);
-    
+
     if (onUpdate) {
       onUpdate(update);
     }
@@ -110,7 +110,7 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
+
     if (diff < 60000) { // Less than 1 minute
       return 'Just now';
     } else if (diff < 3600000) { // Less than 1 hour
@@ -147,17 +147,16 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 1 0-15 0v5h5l-5 5-5-5h5v-5a7.5 7.5 0 1 0 15 0v5z" />
         </svg>
-        
+
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
-        
+
         {/* Connection Status Indicator */}
-        <div className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full ${
-          isConnected ? 'bg-green-500' : 'bg-red-500'
-        }`} />
+        <div className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'
+          }`} />
       </button>
 
       {/* Notifications Dropdown */}
@@ -167,9 +166,8 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">Real-time Updates</h3>
               <div className="flex items-center space-x-2">
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
+                <span className={`text-xs px-2 py-1 rounded-full ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
                   {isConnected ? 'Connected' : 'Disconnected'}
                 </span>
                 {unreadCount > 0 && (
@@ -183,7 +181,7 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
               </div>
             </div>
           </div>
-          
+
           <div className="max-h-96 overflow-y-auto">
             {updates.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
@@ -220,7 +218,7 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
               </div>
             )}
           </div>
-          
+
           <div className="p-4 border-t border-gray-200">
             <button
               onClick={() => setShowNotifications(false)}
