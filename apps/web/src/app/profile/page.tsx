@@ -32,7 +32,7 @@ export default function ProfilePage() {
 
     const loadUserData = async () => {
         setError(null);
-        
+
         // First, try to load from localStorage (this should always work if user is logged in)
         const userData = localStorage.getItem('user');
         if (userData) {

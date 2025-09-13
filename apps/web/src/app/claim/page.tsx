@@ -153,13 +153,13 @@ export default function ClaimPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="text-center p-6 bg-gray-800/30 rounded-xl">
                             <div className="text-3xl font-bold text-emerald-400 mb-2">
-                                {walletBalance?.total_earned_honors?.toLocaleString() || '4,500'}
+                                {walletBalance?.total_earned_honors?.toLocaleString() || '0'}
                             </div>
                             <div className="text-sm text-gray-400">Total Honors Earned</div>
                         </div>
                         <div className="text-center p-6 bg-gray-800/30 rounded-xl">
                             <div className="text-3xl font-bold text-blue-400 mb-2">
-                                ${walletBalance?.total_earned_usd?.toFixed(2) || '10.00'}
+                                ${walletBalance?.total_earned_usd?.toFixed(2) || '0.00'}
                             </div>
                             <div className="text-sm text-gray-400">Total USD Earned</div>
                         </div>
