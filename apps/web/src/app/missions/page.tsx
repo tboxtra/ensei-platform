@@ -30,15 +30,24 @@ export default function MissionsPage() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      console.log('MissionsPage: Starting to fetch missions...');
-      fetchMissions();
-    } else {
-      console.log('MissionsPage: Not authenticated, but trying to fetch missions anyway...');
-      // Try to fetch missions even if not authenticated to test API
-      fetchMissions();
-    }
-  }, [fetchMissions, isAuthenticated]);
+    // Always try to fetch missions regardless of authentication status
+    console.log('MissionsPage: Starting to fetch missions...');
+    fetchMissions();
+    
+    // Also try direct API call as a test
+    const testDirectAPI = async () => {
+      try {
+        console.log('MissionsPage: Testing direct API call...');
+        const response = await fetch('https://us-central1-ensei-6c8e0.cloudfunctions.net/api/v1/missions');
+        const data = await response.json();
+        console.log('MissionsPage: Direct API response:', data);
+      } catch (err) {
+        console.error('MissionsPage: Direct API test failed:', err);
+      }
+    };
+    
+    testDirectAPI();
+  }, [fetchMissions]);
 
   useEffect(() => {
     console.log('MissionsPage: Missions data updated:', {
@@ -111,26 +120,9 @@ export default function MissionsPage() {
     );
   }
 
-  // Show authentication required message
+  // Show authentication warning but don't block access
   if (!isAuthenticated) {
-    return (
-      <ModernLayout currentPage="/missions">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-white mb-4">Authentication Required</h1>
-            <p className="text-gray-400 text-lg mb-6">
-              You need to be logged in to view missions
-            </p>
-            <a
-              href="/auth/login"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-            >
-              Login to Continue
-            </a>
-          </div>
-        </div>
-      </ModernLayout>
-    );
+    console.log('MissionsPage: User not authenticated, but allowing access anyway');
   }
 
   if (loading) {

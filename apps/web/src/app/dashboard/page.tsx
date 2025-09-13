@@ -20,11 +20,11 @@ export default function DashboardPage() {
     const loadDashboardStats = async () => {
       try {
         setLoadingStats(true);
-        
+
         // Load user's missions
         const myMissions = await getMyMissions();
         const missionsCreated = Array.isArray(myMissions) ? myMissions.length : 0;
-        
+
         // Load wallet balance
         let walletBalance = { honors: 0, usd: 0 };
         try {
@@ -32,14 +32,14 @@ export default function DashboardPage() {
         } catch (err) {
           console.log('Could not load wallet balance:', err);
         }
-        
+
         setStats({
           missionsCreated,
           totalHonors: walletBalance.honors || 0,
           pendingReviews: 0, // TODO: Implement pending reviews count
           usdValue: walletBalance.usd || 0
         });
-        
+
         console.log('Dashboard stats loaded:', {
           missionsCreated,
           totalHonors: walletBalance.honors,
@@ -51,7 +51,7 @@ export default function DashboardPage() {
         setLoadingStats(false);
       }
     };
-    
+
     loadDashboardStats();
   }, [getMyMissions, getWalletBalance]);
   return (

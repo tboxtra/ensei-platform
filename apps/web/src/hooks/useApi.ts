@@ -181,15 +181,15 @@ export function useApi() {
                 if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please wait a moment and try again.');
                 }
-            if (response.status === 401) {
-                console.log('API: Received 401 Unauthorized, clearing tokens');
-                // Clear invalid token
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('firebaseToken');
-                    localStorage.removeItem('user');
+                if (response.status === 401) {
+                    console.log('API: Received 401 Unauthorized, clearing tokens');
+                    // Clear invalid token
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('firebaseToken');
+                        localStorage.removeItem('user');
+                    }
+                    throw new Error('Authentication failed. Please log in again.');
                 }
-                throw new Error('Authentication failed. Please log in again.');
-            }
                 if (response.status === 0 || !response.status) {
                     throw new Error('Network error: Unable to connect to server. Please check your internet connection.');
                 }
@@ -461,11 +461,11 @@ export function useMissions() {
             console.log('useMissions: Starting to fetch missions...');
             const data = await api.getMissions();
             console.log('useMissions: Received missions data:', data);
-            
+
             // Ensure data is an array
             const missionsArray = Array.isArray(data) ? data : [];
             console.log('useMissions: Processed missions array:', missionsArray);
-            
+
             setMissions(missionsArray);
         } catch (err) {
             console.error('useMissions: Failed to fetch missions:', err);
