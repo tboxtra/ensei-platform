@@ -360,7 +360,7 @@ export default function ProfilePage() {
                                                     </span>
                                                 ))}
                                             </div>
-                                            <div className="text-xs sm:text-sm text-gray-400 mt-2">Based on 47 completed missions</div>
+                                            <div className="text-xs sm:text-sm text-gray-400 mt-2">Based on 0 completed missions</div>
                                         </div>
                                     </div>
 
@@ -398,7 +398,7 @@ export default function ProfilePage() {
                                                 <div className="text-4xl mb-3">⭐</div>
                                                 <p className="text-gray-400 text-sm">No mission ratings yet</p>
                                                 <p className="text-gray-500 text-xs mt-1">Complete missions to see your ratings here</p>
-                                            </div>
+                                                </div>
                                         </div>
                                     </div>
 
@@ -407,15 +407,15 @@ export default function ProfilePage() {
                                         <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Performance Statistics</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                             <div className="text-center p-4 bg-gray-800/30 rounded-lg">
-                                                <div className="text-xl sm:text-2xl font-bold text-green-400 mb-1">47</div>
+                                                <div className="text-xl sm:text-2xl font-bold text-green-400 mb-1">0</div>
                                                 <div className="text-xs sm:text-sm text-gray-400">Missions Completed</div>
                                             </div>
                                             <div className="text-center p-4 bg-gray-800/30 rounded-lg">
-                                                <div className="text-xl sm:text-2xl font-bold text-blue-400 mb-1">89%</div>
+                                                <div className="text-xl sm:text-2xl font-bold text-blue-400 mb-1">-</div>
                                                 <div className="text-xs sm:text-sm text-gray-400">Success Rate</div>
                                             </div>
                                             <div className="text-center p-4 bg-gray-800/30 rounded-lg">
-                                                <div className="text-xl sm:text-2xl font-bold text-purple-400 mb-1">2.4h</div>
+                                                <div className="text-xl sm:text-2xl font-bold text-purple-400 mb-1">-</div>
                                                 <div className="text-xs sm:text-sm text-gray-400">Avg. Completion Time</div>
                                             </div>
                                         </div>

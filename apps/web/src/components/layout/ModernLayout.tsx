@@ -112,8 +112,8 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                             <>
                                 {/* Hide honors on very small screens */}
                                 <div className="hidden sm:block text-center">
-                                    <div className="text-base sm:text-lg font-semibold text-green-400">2,500 Honors</div>
-                                    <div className="text-xs text-gray-400">≈ $5.56 USD</div>
+                                    <div className="text-base sm:text-lg font-semibold text-green-400">0 Honors</div>
+                                    <div className="text-xs text-gray-400">≈ $0.00 USD</div>
                                 </div>
                                 <div className="relative">
                                     <button
@@ -272,7 +272,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                     </div>
                                     <div>
                                         <div className="text-white font-medium text-sm">{user.name}</div>
-                                        <div className="text-green-400 text-xs">2,500 Honors</div>
+                                        <div className="text-green-400 text-xs">0 Honors</div>
                                     </div>
                                 </div>
                             </div>
