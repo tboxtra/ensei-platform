@@ -32,42 +32,47 @@ export default function ProfilePage() {
 
     const loadUserData = async () => {
         setError(null);
-        try {
-            const userData = await getCurrentUser();
-            setUser(userData);
+        
+        // First, try to load from localStorage (this should always work if user is logged in)
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            const userObj = JSON.parse(userData);
+            setUser(userObj);
             setFormData({
-                firstName: userData.firstName || userData.name?.split(' ')[0] || '',
-                lastName: userData.lastName || userData.name?.split(' ')[1] || '',
-                email: userData.email || '',
-                bio: userData.bio || '',
-                location: userData.location || '',
-                website: userData.website || '',
-                twitter: userData.twitter || '',
-                instagram: userData.instagram || '',
-                linkedin: userData.linkedin || ''
+                firstName: userObj.firstName || userObj.name?.split(' ')[0] || '',
+                lastName: userObj.lastName || userObj.name?.split(' ')[1] || '',
+                email: userObj.email || '',
+                bio: userObj.bio || '',
+                location: userObj.location || '',
+                website: userObj.website || '',
+                twitter: userObj.twitter || '',
+                instagram: userObj.instagram || '',
+                linkedin: userObj.linkedin || ''
+            });
+        } else {
+            // No user data in localStorage, redirect to login
+            router.push('/auth/login');
+            return;
+        }
+
+        // Then try to refresh from API (optional, don't fail if this doesn't work)
+        try {
+            const freshUserData = await getCurrentUser();
+            setUser(freshUserData);
+            setFormData({
+                firstName: freshUserData.firstName || freshUserData.name?.split(' ')[0] || '',
+                lastName: freshUserData.lastName || freshUserData.name?.split(' ')[1] || '',
+                email: freshUserData.email || '',
+                bio: freshUserData.bio || '',
+                location: freshUserData.location || '',
+                website: freshUserData.website || '',
+                twitter: freshUserData.twitter || '',
+                instagram: freshUserData.instagram || '',
+                linkedin: freshUserData.linkedin || ''
             });
         } catch (err) {
-            console.error('Failed to load user data:', err);
-            setError('Failed to load profile data. Please try again.');
-            // Fallback to localStorage for basic functionality
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                const userObj = JSON.parse(userData);
-                setUser(userObj);
-                setFormData({
-                    firstName: userObj.firstName || userObj.name?.split(' ')[0] || '',
-                    lastName: userObj.lastName || userObj.name?.split(' ')[1] || '',
-                    email: userObj.email || '',
-                    bio: userObj.bio || '',
-                    location: userObj.location || '',
-                    website: userObj.website || '',
-                    twitter: userObj.twitter || '',
-                    instagram: userObj.instagram || '',
-                    linkedin: userObj.linkedin || ''
-                });
-            } else {
-                router.push('/auth/login');
-            }
+            console.warn('Failed to refresh user data from API, using cached data:', err);
+            // Don't show error or redirect - just use the localStorage data we already loaded
         }
     };
 
@@ -398,7 +403,7 @@ export default function ProfilePage() {
                                                 <div className="text-4xl mb-3">⭐</div>
                                                 <p className="text-gray-400 text-sm">No mission ratings yet</p>
                                                 <p className="text-gray-500 text-xs mt-1">Complete missions to see your ratings here</p>
-                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 

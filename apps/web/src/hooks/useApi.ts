@@ -250,11 +250,8 @@ export function useApi() {
         try {
             return await makeRequest('/v1/auth/me');
         } catch (err) {
-            // If getting current user fails, clear invalid session
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem('firebaseToken');
-                localStorage.removeItem('user');
-            }
+            // Don't automatically clear localStorage - let the calling component decide
+            // This prevents accidental logouts when the API is temporarily unavailable
             throw err;
         }
     }, [makeRequest]);
