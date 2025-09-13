@@ -37,37 +37,27 @@ interface FeatureFlagsProps {
 }
 
 export const FeatureFlags: React.FC<FeatureFlagsProps> = ({ settings, onSave }) => {
-  const [featureFlags, setFeatureFlags] = React.useState({
-    // Core Features
-    customPlatform: true,
-    decentralizedReviews: true,
-    premiumTargeting: true,
-    degenMissions: true,
+  const [featureFlags, setFeatureFlags] = React.useState({});
 
-    // Social Features
-    socialProofRequired: true,
-    apiVerification: false,
-    telegramBot: true,
-    mobileApp: false,
+  // Load feature flags from API
+  React.useEffect(() => {
+    const loadFeatureFlags = async () => {
+      try {
+        // TODO: Load from real API when available
+        // const response = await apiClient.getFeatureFlags();
+        // if (response.success) {
+        //   setFeatureFlags(response.data);
+        // }
+        
+        // For now, start with empty state
+        setFeatureFlags({});
+      } catch (error) {
+        console.error('Failed to load feature flags:', error);
+      }
+    };
 
-    // Advanced Features
-    aiContentModeration: false,
-    fraudDetection: true,
-    analyticsDashboard: true,
-    webhookSupport: false,
-
-    // Experimental Features
-    nftRewards: false,
-    stakingRewards: false,
-    governanceVoting: false,
-    crossChainSupport: false,
-
-    // UI Features
-    darkMode: true,
-    realTimeUpdates: false,
-    advancedFilters: true,
-    bulkOperations: false
-  });
+    loadFeatureFlags();
+  }, []);
 
   const handleChange = (flag: string, value: boolean) => {
     setFeatureFlags(prev => ({

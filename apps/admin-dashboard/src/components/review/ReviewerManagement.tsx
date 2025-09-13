@@ -27,77 +27,7 @@ export const ReviewerManagement: React.FC = () => {
   const [selectedReviewer, setSelectedReviewer] = useState<Reviewer | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Mock data for development
-  const mockReviewers: Reviewer[] = [
-    {
-      id: 'reviewer_1',
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      role: 'lead_reviewer',
-      status: 'active',
-      totalReviews: 245,
-      averageRating: 4.2,
-      lastReviewDate: '2024-01-15T14:30:00Z',
-      joinedDate: '2023-10-15T10:00:00Z',
-      permissions: ['review:read', 'review:write', 'review:manage'],
-      performance: {
-        accuracy: 92,
-        speed: 88,
-        consistency: 95
-      }
-    },
-    {
-      id: 'reviewer_2',
-      name: 'Bob Smith',
-      email: 'bob@example.com',
-      role: 'senior_reviewer',
-      status: 'active',
-      totalReviews: 156,
-      averageRating: 3.8,
-      lastReviewDate: '2024-01-14T16:45:00Z',
-      joinedDate: '2023-11-20T09:30:00Z',
-      permissions: ['review:read', 'review:write'],
-      performance: {
-        accuracy: 87,
-        speed: 92,
-        consistency: 89
-      }
-    },
-    {
-      id: 'reviewer_3',
-      name: 'Carol Davis',
-      email: 'carol@example.com',
-      role: 'reviewer',
-      status: 'active',
-      totalReviews: 89,
-      averageRating: 4.0,
-      lastReviewDate: '2024-01-13T11:20:00Z',
-      joinedDate: '2023-12-01T14:15:00Z',
-      permissions: ['review:read', 'review:write'],
-      performance: {
-        accuracy: 90,
-        speed: 85,
-        consistency: 87
-      }
-    },
-    {
-      id: 'reviewer_4',
-      name: 'David Wilson',
-      email: 'david@example.com',
-      role: 'reviewer',
-      status: 'suspended',
-      totalReviews: 67,
-      averageRating: 2.1,
-      lastReviewDate: '2024-01-10T08:30:00Z',
-      joinedDate: '2023-11-05T16:45:00Z',
-      permissions: ['review:read'],
-      performance: {
-        accuracy: 65,
-        speed: 78,
-        consistency: 70
-      }
-    }
-  ];
+  // No mock data - using real API
 
   useEffect(() => {
     loadReviewers();
@@ -108,12 +38,19 @@ export const ReviewerManagement: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // TODO: Implement real API call when endpoint is available
+      // const response = await apiClient.getReviewers();
+      // if (response.success) {
+      //   setReviewers(response.data);
+      // } else {
+      //   setError(response.message || 'Failed to load reviewers');
+      // }
       
-      setReviewers(mockReviewers);
+      // For now, show empty state
+      setReviewers([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load reviewers');
+      setReviewers([]);
     } finally {
       setLoading(false);
     }

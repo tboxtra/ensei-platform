@@ -39,32 +39,7 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'pricing' | 'limits' | 'security' | 'features'>('general');
 
-  // Mock data for development
-  const mockSettings: SystemSettings = {
-    platform: {
-      name: 'Ensei Platform',
-      version: '1.0.0',
-      environment: 'production',
-      maintenanceMode: false
-    },
-    pricing: {
-      honorsPerUsd: 450,
-      premiumMultiplier: 5,
-      platformFeeRate: 1.0,
-      userPoolFactor: 0.5
-    },
-    limits: {
-      maxMissionsPerUser: 10,
-      maxSubmissionsPerMission: 1000,
-      maxReviewersPerSubmission: 5,
-      reviewTimeoutHours: 72
-    },
-    notifications: {
-      emailEnabled: true,
-      pushEnabled: true,
-      smsEnabled: false
-    }
-  };
+  // No mock data - using real API
 
   useEffect(() => {
     loadSettings();
@@ -75,15 +50,17 @@ export default function SettingsPage() {
       setLoading(true);
       setError(null);
       
-      // For now, use mock data
-      // const response = await apiClient.getSystemConfig();
+      const response = await apiClient.getSystemConfig();
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setSettings(mockSettings);
+      if (response.success && response.data) {
+        setSettings(response.data);
+      } else {
+        setSettings(null);
+        setError(response.message || 'Failed to load settings');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
+      setSettings(null);
     } finally {
       setLoading(false);
     }
@@ -91,9 +68,13 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async (updatedSettings: Partial<SystemSettings>) => {
     try {
-      // await apiClient.updateSystemConfig(updatedSettings);
+      const response = await apiClient.updateSystemConfig(updatedSettings);
       
-      setSettings(prev => prev ? { ...prev, ...updatedSettings } : null);
+      if (response.success) {
+        setSettings(prev => prev ? { ...prev, ...updatedSettings } : null);
+      } else {
+        setError(response.message || 'Failed to save settings');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings');
     }

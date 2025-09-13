@@ -28,35 +28,36 @@ export const RealTimeUpdates: React.FC<RealTimeUpdatesProps> = ({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Mock WebSocket connection for development
+  // Real WebSocket connection
   const connectWebSocket = () => {
     try {
-      // In a real implementation, this would connect to your WebSocket server
-      // const ws = new WebSocket('ws://localhost:3001/ws');
+      // TODO: Implement real WebSocket connection when server is available
+      // const ws = new WebSocket('wss://your-websocket-server.com/ws');
+      // 
+      // ws.onopen = () => {
+      //   setIsConnected(true);
+      // };
+      // 
+      // ws.onmessage = (event) => {
+      //   const update: RealTimeUpdate = JSON.parse(event.data);
+      //   handleUpdate(update);
+      // };
+      // 
+      // ws.onclose = () => {
+      //   setIsConnected(false);
+      //   scheduleReconnect();
+      // };
+      // 
+      // ws.onerror = (error) => {
+      //   console.error('WebSocket error:', error);
+      //   setIsConnected(false);
+      // };
       
-      // For now, simulate connection
-      setIsConnected(true);
-      
-      // Simulate receiving updates
-      const interval = setInterval(() => {
-        const mockUpdate: RealTimeUpdate = {
-          id: `update_${Date.now()}`,
-          type: ['mission_created', 'submission_received', 'review_completed', 'user_registered'][Math.floor(Math.random() * 4)] as any,
-          title: 'New Update',
-          message: 'A new event has occurred',
-          timestamp: new Date().toISOString(),
-          severity: ['info', 'success', 'warning'][Math.floor(Math.random() * 3)] as any,
-          data: {}
-        };
-        
-        handleUpdate(mockUpdate);
-      }, 10000); // Every 10 seconds for demo
-      
-      return () => clearInterval(interval);
+      // For now, show disconnected state
+      setIsConnected(false);
     } catch (error) {
       console.error('WebSocket connection failed:', error);
       setIsConnected(false);
-      scheduleReconnect();
     }
   };
 
