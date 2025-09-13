@@ -146,6 +146,14 @@ export function useApi() {
             // Get Firebase token from localStorage for authenticated requests
             const token = typeof window !== 'undefined' ? localStorage.getItem('firebaseToken') : null;
 
+            // Debug logging
+            console.log('API Request Debug:', {
+                endpoint,
+                hasToken: !!token,
+                tokenLength: token?.length || 0,
+                method: options.method || 'GET'
+            });
+
             // Don't set Content-Type for FormData (let browser set it with boundary)
             const isFormData = options.body instanceof FormData;
             const headers: Record<string, string> = {
@@ -163,6 +171,13 @@ export function useApi() {
             });
 
             if (!response.ok) {
+                console.error('API Error Response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    url: response.url,
+                    hasToken: !!token
+                });
+
                 if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please wait a moment and try again.');
                 }
@@ -173,6 +188,9 @@ export function useApi() {
                         localStorage.removeItem('user');
                     }
                     throw new Error('Authentication failed. Please log in again.');
+                }
+                if (response.status === 0 || !response.status) {
+                    throw new Error('Network error: Unable to connect to server. Please check your internet connection.');
                 }
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
@@ -213,6 +213,21 @@ const PLATFORM_CONTENT_PLACEHOLDERS = {
 
 export default function CreateMissionPage() {
   const { createMission, loading, error } = useApi();
+  
+  // Check if user is authenticated
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('firebaseToken');
+      const user = localStorage.getItem('user');
+      setIsAuthenticated(!!(token && user));
+      setAuthLoading(false);
+    };
+    
+    checkAuth();
+  }, []);
 
   const [selectedPlatform, setSelectedPlatform] = useState('twitter');
   const [selectedType, setSelectedType] = useState('engage');
@@ -335,6 +350,42 @@ export default function CreateMissionPage() {
   const availableTasks = selectedPlatform === 'custom'
     ? ['custom_task']
     : Object.keys(TASK_PRICES[selectedPlatform as keyof typeof TASK_PRICES]?.[selectedType as keyof typeof TASK_PRICES.twitter] || {});
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <ModernLayout currentPage="/missions/create">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-400">Checking authentication...</p>
+          </div>
+        </div>
+      </ModernLayout>
+    );
+  }
+
+  // Show authentication required message
+  if (!isAuthenticated) {
+    return (
+      <ModernLayout currentPage="/missions/create">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-white mb-4">Authentication Required</h1>
+            <p className="text-gray-400 text-lg mb-6">
+              You need to be logged in to create missions
+            </p>
+            <a 
+              href="/auth/login" 
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+            >
+              Login to Continue
+            </a>
+          </div>
+        </div>
+      </ModernLayout>
+    );
+  }
 
   return (
     <ModernLayout currentPage="/missions/create">
