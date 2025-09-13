@@ -124,25 +124,25 @@ export default function ClaimPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl p-6 border border-green-500/30">
                         <div className="text-3xl font-bold text-green-400 mb-2">
-                            {walletBalance?.available_honors?.toLocaleString() || '2,500'}
+                            {walletBalance?.available_honors?.toLocaleString() || '0'}
                         </div>
                         <div className="text-sm text-gray-400">Available Honors</div>
                     </div>
                     <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-lg rounded-2xl p-6 border border-blue-500/30">
                         <div className="text-3xl font-bold text-blue-400 mb-2">
-                            ${walletBalance?.available_usd?.toFixed(2) || '5.56'}
+                            ${walletBalance?.available_usd?.toFixed(2) || '0.00'}
                         </div>
                         <div className="text-sm text-gray-400">Available USD</div>
                     </div>
                     <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl p-6 border border-yellow-500/30">
                         <div className="text-3xl font-bold text-yellow-400 mb-2">
-                            {walletBalance?.pending_honors?.toLocaleString() || '1,300'}
+                            {walletBalance?.pending_honors?.toLocaleString() || '0'}
                         </div>
                         <div className="text-sm text-gray-400">Pending Honors</div>
                     </div>
                     <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-6 border border-purple-500/30">
                         <div className="text-3xl font-bold text-purple-400 mb-2">
-                            ${walletBalance?.pending_usd?.toFixed(2) || '2.89'}
+                            ${walletBalance?.pending_usd?.toFixed(2) || '0.00'}
                         </div>
                         <div className="text-sm text-gray-400">Pending USD</div>
                     </div>

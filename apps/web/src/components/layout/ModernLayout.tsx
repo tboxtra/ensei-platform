@@ -213,15 +213,15 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Missions Created:</span>
-                                    <span className="text-white">15</span>
+                                    <span className="text-white">0</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Missions Completed:</span>
-                                    <span className="text-white">47</span>
+                                    <span className="text-white">0</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Total Earned:</span>
-                                    <span className="text-green-400">2,450 Honors</span>
+                                    <span className="text-green-400">0 Honors</span>
                                 </div>
                             </div>
                         </div>
