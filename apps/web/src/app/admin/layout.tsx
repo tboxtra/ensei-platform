@@ -1,16 +1,46 @@
 'use client';
 
-import { useAuth } from '../../contexts/AdminAuthContext';
+import { useAuth } from '../../../contexts/AdminAuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Navigation } from '../../components/admin/layout/Navigation';
-import { ProtectedRoute } from '../../components/admin/auth/ProtectedRoute';
+import { Navigation } from '../../../components/admin/layout/Navigation';
+import { ProtectedRoute } from '../../../components/admin/auth/ProtectedRoute';
+import { AdminAuthProvider } from '../../../contexts/AdminAuthContext';
 
 export default function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    return (
+        <AdminAuthProvider>
+            <AdminLayoutContent>{children}</AdminLayoutContent>
+        </AdminAuthProvider>
+    );
+}
+
+function AdminLayoutContent({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    const { isAuthenticated, isLoading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            router.push('/admin');
+        }
+    }, [isAuthenticated, isLoading, router]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-100">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
+
     return (
         <ProtectedRoute>
             <div className="min-h-screen bg-gray-50">
