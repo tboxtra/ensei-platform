@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
-import { SystemConfig } from '../../components/settings/SystemConfig';
-import { FeatureFlags } from '../../components/settings/FeatureFlags';
-import { SecuritySettings } from '../../components/settings/SecuritySettings';
-import { apiClient } from '../../lib/api';
+import { ProtectedRoute } from '../../../components/admin/auth/ProtectedRoute';
+import { SystemConfig } from '../../../components/admin/settings/SystemConfig';
+import { FeatureFlags } from '../../../components/admin/settings/FeatureFlags';
+import { SecuritySettings } from '../../../components/admin/settings/SecuritySettings';
+import { apiClient } from '../../../lib/admin/api';
 
 interface SystemSettings {
   platform: {

@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
-import { MissionCard } from '../../components/missions/MissionCard';
-import { MissionFilters } from '../../components/missions/MissionFilters';
-import { MissionStats } from '../../components/missions/MissionStats';
-import { apiClient } from '../../lib/api';
+import { ProtectedRoute } from '../../../components/admin/auth/ProtectedRoute';
+import { MissionCard } from '../../../components/admin/missions/MissionCard';
+import { MissionFilters } from '../../../components/admin/missions/MissionFilters';
+import { MissionStats } from '../../../components/admin/missions/MissionStats';
+import { apiClient } from '../../../lib/admin/api';
 
 interface Mission {
   id: string;

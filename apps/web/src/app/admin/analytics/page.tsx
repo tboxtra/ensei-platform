@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
-import { AnalyticsOverview } from '../../components/analytics/AnalyticsOverview';
-import { RevenueChart } from '../../components/analytics/RevenueChart';
-import { PlatformAnalytics } from '../../components/analytics/PlatformAnalytics';
-import { UserGrowthChart } from '../../components/analytics/UserGrowthChart';
-import { MissionPerformanceChart } from '../../components/analytics/MissionPerformanceChart';
-import { apiClient } from '../../lib/api';
+import { ProtectedRoute } from '../../../components/admin/auth/ProtectedRoute';
+import { AnalyticsOverview } from '../../../components/admin/analytics/AnalyticsOverview';
+import { RevenueChart } from '../../../components/admin/analytics/RevenueChart';
+import { PlatformAnalytics } from '../../../components/admin/analytics/PlatformAnalytics';
+import { UserGrowthChart } from '../../../components/admin/analytics/UserGrowthChart';
+import { MissionPerformanceChart } from '../../../components/admin/analytics/MissionPerformanceChart';
+import { apiClient } from '../../../lib/admin/api';
 
 interface AnalyticsData {
   overview: {

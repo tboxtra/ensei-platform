@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
-import { UserCard } from '../../components/users/UserCard';
-import { UserFilters } from '../../components/users/UserFilters';
-import { UserStats } from '../../components/users/UserStats';
-import { apiClient } from '../../lib/api';
+import { ProtectedRoute } from '../../../components/admin/auth/ProtectedRoute';
+import { UserCard } from '../../../components/admin/users/UserCard';
+import { UserFilters } from '../../../components/admin/users/UserFilters';
+import { UserStats } from '../../../components/admin/users/UserStats';
+import { apiClient } from '../../../lib/admin/api';
 
 interface User {
   id: string;
