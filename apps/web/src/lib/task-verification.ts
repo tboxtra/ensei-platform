@@ -226,33 +226,4 @@ export function getFlaggingReasons() {
   return FLAGGING_REASONS;
 }
 
-/**
- * Get user's display name for task completions
- * Priority: social handle > first name > full name > email
- */
-export function getUserDisplayName(completion: TaskCompletion): string {
-  // Use social handle if available
-  if (completion.userSocialHandle) {
-    return completion.userSocialHandle;
-  }
-  
-  // Extract first name from full name
-  if (completion.userName && completion.userName !== 'User') {
-    const firstName = completion.userName.split(' ')[0];
-    if (firstName && firstName.length > 0) {
-      return firstName;
-    }
-  }
-  
-  // Fallback to full name
-  if (completion.userName) {
-    return completion.userName;
-  }
-  
-  // Last resort: use email
-  if (completion.userEmail) {
-    return completion.userEmail.split('@')[0];
-  }
-  
-  return 'Unknown User';
-}
+// getUserDisplayName is imported from firebase-task-completions
