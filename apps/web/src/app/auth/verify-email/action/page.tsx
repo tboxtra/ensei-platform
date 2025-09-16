@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ModernLayout } from '../../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../../components/ui/ModernCard';
 import { ModernButton } from '../../../../components/ui/ModernButton';
 import { verifyEmailWithCode, checkEmailVerificationCode } from '../../../../lib/firebase';
 
-export default function VerifyEmailActionPage() {
+function VerifyEmailContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'invalid'>('loading');
@@ -151,5 +151,22 @@ export default function VerifyEmailActionPage() {
                 </div>
             </div>
         </ModernLayout>
+    );
+}
+
+export default function VerifyEmailActionPage() {
+    return (
+        <Suspense fallback={
+            <ModernLayout currentPage="/auth/verify-email/action">
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <p className="text-gray-400">Loading...</p>
+                    </div>
+                </div>
+            </ModernLayout>
+        }>
+            <VerifyEmailContent />
+        </Suspense>
     );
 }

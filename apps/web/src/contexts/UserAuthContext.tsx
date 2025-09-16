@@ -48,24 +48,6 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // First, try to restore user from localStorage while Firebase initializes
-        const restoreUserFromStorage = () => {
-            try {
-                const authState = validateAuthState();
-
-                if (authState.isAuthenticated && authState.user) {
-                    setUser(authState.user);
-                    console.log('Restored user from localStorage:', authState.user.email);
-                }
-            } catch (err) {
-                console.error('Error restoring user from localStorage:', err);
-                clearAuthState();
-            }
-        };
-
-        // Restore user immediately
-        restoreUserFromStorage();
-
         const auth = getFirebaseAuth();
 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
@@ -77,17 +59,52 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                     // Store token in localStorage for API calls
                     localStorage.setItem('firebaseToken', token);
 
-                    // Create user object
-                    const userData: User = {
-                        id: firebaseUser.uid,
-                        email: firebaseUser.email || '',
-                        name: firebaseUser.displayName || firebaseUser.email || '',
-                        firstName: firebaseUser.displayName?.split(' ')[0] || '',
-                        lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-                        avatar: firebaseUser.photoURL || '',
-                        joinedAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
-                        emailVerified: firebaseUser.emailVerified,
-                    };
+                    // Try to restore existing user data from localStorage first
+                    let userData: User;
+                    try {
+                        const existingUser = localStorage.getItem('user');
+                        if (existingUser) {
+                            const parsedUser = JSON.parse(existingUser);
+                            // Update with current Firebase data but preserve existing data
+                            userData = {
+                                ...parsedUser,
+                                id: firebaseUser.uid,
+                                email: firebaseUser.email || parsedUser.email,
+                                emailVerified: firebaseUser.emailVerified,
+                                // Keep existing name/avatar if they exist, otherwise use Firebase data
+                                name: parsedUser.name || firebaseUser.displayName || firebaseUser.email || '',
+                                firstName: parsedUser.firstName || firebaseUser.displayName?.split(' ')[0] || '',
+                                lastName: parsedUser.lastName || firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+                                avatar: parsedUser.avatar || firebaseUser.photoURL || '',
+                                joinedAt: parsedUser.joinedAt || firebaseUser.metadata.creationTime || new Date().toISOString(),
+                            };
+                        } else {
+                            // Create new user object if no existing data
+                            userData = {
+                                id: firebaseUser.uid,
+                                email: firebaseUser.email || '',
+                                name: firebaseUser.displayName || firebaseUser.email || '',
+                                firstName: firebaseUser.displayName?.split(' ')[0] || '',
+                                lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+                                avatar: firebaseUser.photoURL || '',
+                                joinedAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+                                emailVerified: firebaseUser.emailVerified,
+                            };
+                        }
+                    } catch (err) {
+                        console.error('Error parsing existing user data:', err);
+                        // Fallback to creating new user object
+                        userData = {
+                            id: firebaseUser.uid,
+                            email: firebaseUser.email || '',
+                            name: firebaseUser.displayName || firebaseUser.email || '',
+                            firstName: firebaseUser.displayName?.split(' ')[0] || '',
+                            lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+                            avatar: firebaseUser.photoURL || '',
+                            joinedAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+                            emailVerified: firebaseUser.emailVerified,
+                        };
+                    }
 
                     // Store user data
                     localStorage.setItem('user', JSON.stringify(userData));
@@ -128,14 +145,20 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
 
     const logout = async () => {
         try {
-            const auth = getFirebaseAuth();
-            await signOut(auth);
-            // onAuthStateChanged will handle clearing the state
-        } catch (err) {
-            console.error('Logout error:', err);
-            // Clear local storage even if logout fails
+            // Clear state immediately to prevent restoration
             clearAuthState();
             setUser(null);
+            setError(null);
+            
+            const auth = getFirebaseAuth();
+            await signOut(auth);
+            console.log('User logged out successfully');
+        } catch (err) {
+            console.error('Logout error:', err);
+            // Ensure state is cleared even if logout fails
+            clearAuthState();
+            setUser(null);
+            setError(null);
         }
     };
 

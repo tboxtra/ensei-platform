@@ -161,8 +161,8 @@ export default function VerifyEmailPage() {
 
                     {/* Back to Login */}
                     <div className="text-center">
-                        <Link 
-                            href="/auth/login" 
+                        <Link
+                            href="/auth/login"
                             className="text-sm text-gray-400 hover:text-white transition-colors"
                         >
                             ← Back to Login

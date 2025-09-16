@@ -20,9 +20,9 @@ export function getAuthState(): AuthState {
     try {
         const user = localStorage.getItem('user');
         const token = localStorage.getItem('firebaseToken');
-        
+
         const userData = user ? JSON.parse(user) : null;
-        
+
         return {
             isAuthenticated: !!(user && token),
             user: userData,
