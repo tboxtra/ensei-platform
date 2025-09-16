@@ -140,10 +140,10 @@ export async function flagSubmission(
         timestamp: new Date(),
         status: 'flagged',
         flaggedReason: reason,
-    metadata: {
-      taskType: '',
-      platform: 'twitter'
-    },
+        metadata: {
+            taskType: '',
+            platform: 'twitter'
+        },
         reviewedBy: adminId,
         reviewedAt: new Date()
     };
@@ -173,10 +173,10 @@ export async function verifySubmission(
         action: 'task_verified',
         timestamp: new Date(),
         status: 'verified',
-    metadata: {
-      taskType: '',
-      platform: 'twitter'
-    },
+        metadata: {
+            taskType: '',
+            platform: 'twitter'
+        },
         reviewedBy: adminId,
         reviewedAt: new Date()
     };
