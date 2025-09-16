@@ -1,0 +1,130 @@
+# Ensei Platform Functions - Backend Rules
+
+## Backend-Specific Guidelines
+
+### 1. API Design Standards
+- Use **RESTful conventions** with proper HTTP methods
+- Implement **proper status codes** (200, 201, 400, 401, 403, 404, 500)
+- Use **consistent response format** for all endpoints
+- Implement **API versioning** (/v1/, /v2/, etc.)
+- Use **proper error messages** with meaningful descriptions
+
+### 2. Authentication & Authorization
+- **Validate Firebase tokens** on all protected endpoints
+- Implement **proper user authorization** checks
+- Use **middleware** for authentication
+- Implement **rate limiting** per user/IP
+- Log **authentication failures** for security monitoring
+
+### 3. Data Validation
+- **Validate all inputs** using proper schemas
+- Use **Zod** or similar for runtime validation
+- Implement **sanitization** for user inputs
+- Validate **URL formats** and platform-specific patterns
+- Check **required fields** before processing
+
+### 4. Database Operations
+- Use **Firebase Firestore** with proper indexing
+- Implement **transactional operations** for data consistency
+- Use **batch operations** for multiple writes
+- Implement **soft deletes** instead of hard deletes
+- Use **proper error handling** for database operations
+
+### 5. Error Handling
+- Use **try-catch blocks** for all async operations
+- Implement **proper error logging** with context
+- Return **user-friendly error messages**
+- Log **detailed errors** for debugging
+- Implement **graceful degradation** for failures
+
+### 6. Performance & Scalability
+- Use **connection pooling** for database connections
+- Implement **caching** for frequently accessed data
+- Use **async/await** for all I/O operations
+- Implement **pagination** for large data sets
+- Use **background processing** for heavy operations
+
+### 7. Security Requirements
+- **Sanitize all inputs** before processing
+- Implement **CORS** properly for cross-origin requests
+- Use **secure headers** in responses
+- Implement **input validation** on all endpoints
+- Log **security events** for monitoring
+
+### 8. Mission Management
+- Validate **mission creation** data thoroughly
+- Implement **proper URL validation** for content links
+- Use **platform-specific validation** rules
+- Implement **task ID mapping** validation
+- Store **validated data only** in database
+
+## Code Quality Standards
+
+### TypeScript:
+- Use **strict mode** enabled
+- Define **interfaces** for all request/response types
+- Use **proper error types**
+- Avoid **any** type usage
+- Use **generic types** where appropriate
+
+### Firebase Functions:
+- Use **proper function signatures**
+- Implement **timeout handling**
+- Use **proper logging** with context
+- Implement **graceful shutdown** handling
+- Use **environment variables** for configuration
+
+### API Endpoints:
+- Use **consistent naming** conventions
+- Implement **proper HTTP methods**
+- Use **middleware** for common functionality
+- Implement **request validation**
+- Use **proper response formatting**
+
+### Error Handling:
+- Use **custom error classes** for different error types
+- Implement **error middleware** for consistent handling
+- Log **errors with context** for debugging
+- Return **appropriate HTTP status codes**
+- Implement **error recovery** where possible
+
+## Security Checklist
+
+### Input Validation:
+- [ ] All inputs validated on server
+- [ ] URL validation implemented
+- [ ] Platform-specific validation rules
+- [ ] Input sanitization applied
+- [ ] Required field validation
+
+### Authentication:
+- [ ] Firebase token validation
+- [ ] User authorization checks
+- [ ] Rate limiting implemented
+- [ ] CORS configured properly
+- [ ] Secure headers applied
+
+### Data Protection:
+- [ ] Sensitive data encrypted
+- [ ] Database queries optimized
+- [ ] Transactional operations used
+- [ ] Soft deletes implemented
+- [ ] Audit trails maintained
+
+## Performance Checklist
+
+### Database:
+- [ ] Proper indexing implemented
+- [ ] Query optimization applied
+- [ ] Connection pooling used
+- [ ] Batch operations for multiple writes
+- [ ] Pagination for large datasets
+
+### API:
+- [ ] Response caching implemented
+- [ ] Async operations used
+- [ ] Timeout handling implemented
+- [ ] Error recovery mechanisms
+- [ ] Monitoring and logging
+
+Remember: **Backend security and performance are critical for scalability**.

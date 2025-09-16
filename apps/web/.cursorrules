@@ -1,0 +1,107 @@
+# Ensei Platform Web App - Specific Rules
+
+## Project-Specific Guidelines
+
+### 1. Authentication & State Management
+- **NEVER use localStorage** for authentication state
+- Use **Firebase Auth** with proper token refresh
+- Implement **server-side session validation**
+- Use **React Context** for global state management
+- Implement **proper error boundaries** for auth failures
+
+### 2. Mission & Task Management
+- All mission data must be **server-side validated**
+- Use **Firebase Firestore** for mission storage
+- Implement **real-time updates** for mission status
+- Use **optimistic updates** for better UX
+- Implement **proper caching** for mission lists
+
+### 3. URL Validation & Content
+- **Always validate URLs** on both client and server
+- Use **platform-specific URL patterns**
+- Implement **content accessibility checks**
+- Use **proper error messages** for validation failures
+- Store **validated URLs only** in database
+
+### 4. Task Submission System
+- Use **inline dropdowns** instead of modals
+- Implement **click-outside-to-close** functionality
+- Use **neumorphic design** for consistency
+- Show **mission instructions** in task dropdowns
+- Implement **proper task ID mapping**
+
+### 5. UI/UX Standards
+- Use **Tailwind CSS** for all styling
+- Implement **responsive design** (mobile-first)
+- Use **neumorphic shadows** for depth
+- Maintain **consistent spacing** and typography
+- Use **proper loading states** and error handling
+
+### 6. Performance Requirements
+- **Lazy load** mission cards and components
+- Use **React.memo** for expensive components
+- Implement **virtual scrolling** for large lists
+- Use **image optimization** for content previews
+- Implement **proper caching** strategies
+
+### 7. Security Requirements
+- **Validate all inputs** on client and server
+- Use **HTTPS everywhere**
+- Implement **CORS** properly
+- Use **secure headers**
+- **Sanitize user content** before display
+
+### 8. Testing Requirements
+- Write **unit tests** for all components
+- Test **API integration** thoroughly
+- Test **error scenarios** and edge cases
+- Test **responsive design** on multiple devices
+- Test **accessibility** features
+
+## File Structure Standards
+
+### Components:
+- Use **functional components** with hooks
+- Implement **proper TypeScript interfaces**
+- Use **consistent naming** conventions
+- Keep **components focused** on single responsibility
+- Use **proper prop validation**
+
+### API Integration:
+- Use **custom hooks** for API calls
+- Implement **proper error handling**
+- Use **loading states** consistently
+- Implement **retry logic** for failed requests
+- Use **proper TypeScript types** for responses
+
+### Styling:
+- Use **Tailwind utility classes**
+- Implement **consistent color scheme**
+- Use **proper spacing** (4px grid system)
+- Implement **dark mode** support
+- Use **consistent typography** scale
+
+## Code Quality Standards
+
+### TypeScript:
+- Use **strict mode** enabled
+- Define **proper interfaces** for all data
+- Use **generic types** where appropriate
+- Avoid **any** type usage
+- Use **proper type guards**
+
+### React:
+- Use **functional components** only
+- Implement **proper dependency arrays** in useEffect
+- Use **useCallback** and **useMemo** appropriately
+- Implement **proper cleanup** in useEffect
+- Use **React.memo** for performance optimization
+
+### Error Handling:
+- Implement **try-catch** blocks for async operations
+- Use **proper error messages** for users
+- Log **errors** for debugging
+- Implement **fallback UI** for errors
+- Use **error boundaries** for component errors
+
+Remember: **Every feature must be scalable, secure, and maintainable**.

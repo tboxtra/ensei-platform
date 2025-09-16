@@ -37,10 +37,10 @@ export function MissionListItem({
             await flagTaskCompletion(completion.id, reason, 'creator-1', 'Mission Creator');
             loadSubmissions();
             setShowFlagModal({ completion: null, show: false });
-            alert(`Submission flagged: ${reason}`);
+            // Silent success - user can see status change
         } catch (error) {
             console.error('Error flagging submission:', error);
-            alert('Error flagging submission');
+            // Silent error - React Query will handle retry
         }
     };
 
@@ -48,10 +48,10 @@ export function MissionListItem({
         try {
             await verifyTaskCompletion(completion.id, 'creator-1', 'Mission Creator');
             loadSubmissions();
-            alert('Submission verified successfully!');
+            // Silent success - user can see status change
         } catch (error) {
             console.error('Error verifying submission:', error);
-            alert('Error verifying submission');
+            // Silent error - React Query will handle retry
         }
     };
 

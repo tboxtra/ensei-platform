@@ -81,8 +81,7 @@ export default function TaskSubmissionModal({
                 const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
 
                 if (!intentUrl) {
-                    const errorMessage = MissionTwitterIntents.getErrorMessage(task.id, mission);
-                    alert(errorMessage || 'Unable to generate Twitter action. Please check mission data.');
+                    // Silent fail - user can see button state
                     return;
                 }
 

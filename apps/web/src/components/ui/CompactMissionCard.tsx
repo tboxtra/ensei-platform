@@ -427,11 +427,10 @@ export function CompactMissionCard({
                                                             // Handle Twitter intent actions
                                                             const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
 
-                                                            if (!intentUrl) {
-                                                                const errorMessage = MissionTwitterIntents.getErrorMessage(task.id, mission);
-                                                                alert(errorMessage || 'Unable to generate Twitter action. Please check mission data.');
-                                                                return;
-                                                            }
+                                                        if (!intentUrl) {
+                                                            // Silent fail - user can see button state
+                                                            return;
+                                                        }
 
                                                             // Open Twitter intent in a new window
                                                             TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);

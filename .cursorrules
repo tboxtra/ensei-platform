@@ -151,3 +151,47 @@
 - [ ] Memory leaks prevented
 - [ ] API response times acceptable
 - [ ] CDN configured for static assets
+
+## Prohibited Practices
+
+### NEVER do these:
+- Store critical application state in localStorage
+- Use synchronous operations for I/O
+- Hardcode sensitive information
+- Skip input validation
+- Ignore error handling
+- Use deprecated or insecure libraries
+- Implement features without proper testing
+- Skip performance considerations
+- Ignore accessibility requirements
+- Deploy without proper monitoring
+
+## Technology Stack Standards
+
+### Frontend:
+- **React 18+** with TypeScript
+- **Next.js 14+** for SSR/SSG
+- **Tailwind CSS** for styling
+- **React Query** for server state management
+- **React Hook Form** for form handling
+- **Zod** for validation
+- **Jest** and **React Testing Library** for testing
+
+### Backend:
+- **Node.js** with TypeScript
+- **Express.js** or **Fastify** for API
+- **Firebase** for authentication and database
+- **Redis** for caching
+- **JWT** for token management
+- **Bcrypt** for password hashing
+- **Jest** for testing
+
+### Infrastructure:
+- **Vercel** for frontend deployment
+- **Firebase Functions** for serverless backend
+- **Cloudflare** for CDN and security
+- **GitHub Actions** for CI/CD
+- **Sentry** for error monitoring
+- **Vercel Analytics** for performance monitoring
+
+Remember: **Quality over speed**. Always implement features with industry standards, proper testing, and scalability in mind.
