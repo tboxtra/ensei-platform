@@ -1,5 +1,5 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, connectAuthEmulator, sendEmailVerification, applyActionCode, checkActionCode } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, connectAuthEmulator, sendEmailVerification, applyActionCode, checkActionCode, setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
@@ -128,6 +128,29 @@ export const checkEmailVerificationCode = async (actionCode: string) => {
         return info;
     } catch (error) {
         console.error('Error checking verification code:', error);
+        throw error;
+    }
+};
+
+// Firebase Auth persistence control functions
+export const disableAuthPersistence = async () => {
+    try {
+        const auth = getFirebaseAuth();
+        await setPersistence(auth, inMemoryPersistence);
+        console.log('🔒 Firebase Auth persistence disabled (in-memory only)');
+    } catch (error) {
+        console.error('Error disabling auth persistence:', error);
+        throw error;
+    }
+};
+
+export const enableAuthPersistence = async () => {
+    try {
+        const auth = getFirebaseAuth();
+        await setPersistence(auth, browserLocalPersistence);
+        console.log('🔓 Firebase Auth persistence enabled (local storage)');
+    } catch (error) {
+        console.error('Error enabling auth persistence:', error);
         throw error;
     }
 };

@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { getFirebaseAuth, sendVerificationEmail } from '../lib/firebase';
+import { getFirebaseAuth, sendVerificationEmail, disableAuthPersistence, enableAuthPersistence } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { getAuthState, clearAuthState, validateAuthState } from '../lib/auth-utils';
+import { getAuthState, clearAuthState, validateAuthState, clearLogoutFlag, isUserLoggedOut } from '../lib/auth-utils';
 
 interface User {
     id: string;
@@ -54,10 +54,17 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
             console.log('🔥 Firebase onAuthStateChanged triggered:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
             console.log('🔄 isLoggingOut:', isLoggingOutRef.current);
-
+            console.log('🚫 isUserLoggedOut:', isUserLoggedOut());
+            
             // If we're in the process of logging out, ignore Firebase auth state changes
             if (isLoggingOutRef.current) {
                 console.log('🚫 Ignoring Firebase auth state change during logout');
+                return;
+            }
+            
+            // If user was manually logged out, ignore Firebase auth state changes
+            if (isUserLoggedOut()) {
+                console.log('🚫 Ignoring Firebase auth state change - user was manually logged out');
                 return;
             }
 
@@ -142,6 +149,9 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
             setIsLoading(true);
             setError(null);
 
+            // Clear logout flag when user logs in
+            clearLogoutFlag();
+
             const auth = getFirebaseAuth();
             await signInWithEmailAndPassword(auth, email, password);
             // onAuthStateChanged will handle the rest
@@ -156,34 +166,42 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
 
     const logout = async () => {
         try {
-            console.log('🔄 Starting logout process...');
-
+            console.log('🔄 Starting aggressive logout process...');
+            
             // Set logout flag to prevent Firebase auth state changes from restoring user
             isLoggingOutRef.current = true;
-
+            
+            // Temporarily disable Firebase Auth persistence to prevent automatic restoration
+            console.log('🔒 Disabling Firebase Auth persistence...');
+            await disableAuthPersistence();
+            
             // Clear state immediately to prevent restoration
             console.log('🧹 Clearing localStorage and React state...');
             clearAuthState();
             setUser(null);
             setError(null);
-
+            
             const auth = getFirebaseAuth();
             console.log('🔥 Calling Firebase signOut...');
             await signOut(auth);
             console.log('✅ Firebase signOut completed');
-
+            
             // Force clear state again after signOut
             console.log('🧹 Force clearing state after signOut...');
             clearAuthState();
             setUser(null);
             setError(null);
-
+            
+            // Re-enable Firebase Auth persistence after logout
+            console.log('🔓 Re-enabling Firebase Auth persistence...');
+            await enableAuthPersistence();
+            
             // Reset logout flag after a delay to allow normal auth flow to resume
             setTimeout(() => {
                 isLoggingOutRef.current = false;
                 console.log('🔄 Logout flag reset, normal auth flow resumed');
-            }, 2000);
-
+            }, 3000);
+            
             console.log('✅ User logged out successfully');
         } catch (err) {
             console.error('❌ Logout error:', err);
@@ -192,6 +210,13 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
             setUser(null);
             setError(null);
             isLoggingOutRef.current = false;
+            
+            // Try to re-enable persistence even if logout failed
+            try {
+                await enableAuthPersistence();
+            } catch (persistenceError) {
+                console.error('❌ Error re-enabling persistence:', persistenceError);
+            }
         }
     };
 

@@ -45,9 +45,31 @@ export function clearAuthState(): void {
         console.log('🧹 clearAuthState: Removing user and firebaseToken from localStorage');
         localStorage.removeItem('user');
         localStorage.removeItem('firebaseToken');
+        // Set logout flag to prevent automatic restoration
+        localStorage.setItem('user_logged_out', 'true');
         console.log('✅ clearAuthState: Authentication state cleared from localStorage');
     } catch (error) {
         console.error('❌ Error clearing auth state:', error);
+    }
+}
+
+export function clearLogoutFlag(): void {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.removeItem('user_logged_out');
+        console.log('✅ Logout flag cleared');
+    } catch (error) {
+        console.error('❌ Error clearing logout flag:', error);
+    }
+}
+
+export function isUserLoggedOut(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        return localStorage.getItem('user_logged_out') === 'true';
+    } catch (error) {
+        console.error('❌ Error checking logout flag:', error);
+        return false;
     }
 }
 

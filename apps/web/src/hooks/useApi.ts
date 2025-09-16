@@ -294,7 +294,7 @@ export function useApi() {
     const logout = useCallback(async (): Promise<void> => {
         try {
             console.log('🔄 useApi logout: Starting logout process...');
-            
+
             // Call logout endpoint if available
             try {
                 await makeRequest('/v1/auth/logout', {
@@ -304,12 +304,12 @@ export function useApi() {
             } catch (err) {
                 console.warn('⚠️ useApi logout: API logout failed, but continuing with Firebase logout:', err);
             }
-            
+
             // Use auth context logout to properly sign out from Firebase
             console.log('🔥 useApi logout: Calling Firebase signOut...');
             await authLogout();
             console.log('✅ useApi logout: Firebase signOut completed');
-            
+
         } catch (err) {
             console.error('❌ useApi logout: Error during logout:', err);
             // Even if logout fails, clear local storage as fallback
