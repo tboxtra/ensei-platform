@@ -468,11 +468,11 @@ export function CompactMissionCard({
                                                                     userId: user.id,
                                                                     userName: user.name,
                                                                     userEmail: user.email,
-                                                                    userSocialHandle: mission.username,
+                                                                    userSocialHandle: mission.username || null, // Firebase doesn't allow undefined
                                                                     metadata: {
                                                                         taskType: task.id,
                                                                         platform: 'twitter',
-                                                                        twitterHandle: mission.username,
+                                                                        twitterHandle: mission.username || null,
                                                                         tweetUrl: mission.tweetLink || mission.contentLink
                                                                     }
                                                                 });

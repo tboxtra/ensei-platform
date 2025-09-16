@@ -71,7 +71,7 @@ export async function completeTask(
         userId,
         userName,
         userEmail,
-        userSocialHandle,
+        userSocialHandle: userSocialHandle || null, // Convert undefined to null for Firebase
         status: 'verified' as const, // Tasks are verified by default
         completedAt: serverTimestamp(),
         verifiedAt: serverTimestamp(),
