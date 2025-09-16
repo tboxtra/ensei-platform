@@ -174,9 +174,8 @@ export const Icon: React.FC<IconProps> = ({
     const iconPath = iconMappings[name];
     const emojiFallback = fallback || emojiFallbacks[name];
 
-    // For now, we'll use the emoji fallback since we need to download the actual icons
-    // Once you replace the placeholder SVGs with the real ones, this will automatically use them
-    const useEmoji = true; // Set to false once real icons are in place
+  // Use real icons now that we have them
+  const useEmoji = false; // Now using real SVG icons
 
     if (useEmoji) {
         return (

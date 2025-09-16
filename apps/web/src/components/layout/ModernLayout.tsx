@@ -149,6 +149,11 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                 <div className="flex justify-between items-center max-w-7xl mx-auto">
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <Link href="/dashboard" className="flex items-center space-x-2 sm:space-x-4">
+                            <img 
+                                src="/icons/ensei-logo.svg" 
+                                alt="Ensei" 
+                                className="w-8 h-8 sm:w-10 sm:h-10"
+                            />
                             <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
                                 Ensei
                             </div>
