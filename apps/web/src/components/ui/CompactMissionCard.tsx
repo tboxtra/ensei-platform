@@ -24,7 +24,7 @@ export function CompactMissionCard({
 
     // Standard practice: Use React Query hooks for server state management
     const { data: taskCompletions = [], isLoading: isLoadingCompletions } = useUserMissionTaskCompletions(
-        mission.id, 
+        mission.id,
         user?.id || ''
     );
     const completeTaskMutation = useCompleteTask();
@@ -442,58 +442,55 @@ export function CompactMissionCard({
                                                                 [task.id]: true
                                                             }));
 
-                                                            // Show success message
-                                                            alert(`Opening Twitter to ${action.label.toLowerCase()}. Complete the action and return to verify.`);
+                                                            // No notification popup - user can see the button state change
 
                                                         } else if (action.type === 'verify') {
                                                             // Handle verification actions
                                                             // Check if intent was completed first
                                                             if (!intentCompleted[task.id]) {
-                                                                alert(`Please complete the Twitter action first by clicking "${task.actions.find(a => a.type === 'intent')?.label || 'the intent button'}"`);
-                                                                return;
+                                                                return; // Silent fail - user can see button state
                                                             }
 
                                                             // Check if user is authenticated
                                                             if (!isAuthenticated || !user) {
-                                                                alert('Please log in to complete tasks');
-                                                                return;
+                                                                return; // Silent fail - user should be logged in
                                                             }
 
-                                                        // Complete the task with verification using standard practice
-                                                        try {
-                                                            await completeTaskMutation.mutateAsync({
-                                                                missionId: mission.id,
-                                                                taskId: task.id,
-                                                                userId: user.id,
-                                                                userName: user.name,
-                                                                userEmail: user.email,
-                                                                userSocialHandle: mission.username,
-                                                                metadata: {
-                                                                    taskType: task.id,
-                                                                    platform: 'twitter',
-                                                                    twitterHandle: mission.username,
-                                                                    tweetUrl: mission.tweetLink || mission.contentLink
-                                                                }
-                                                            });
+                                                            // Complete the task with verification using standard practice
+                                                            try {
+                                                                await completeTaskMutation.mutateAsync({
+                                                                    missionId: mission.id,
+                                                                    taskId: task.id,
+                                                                    userId: user.id,
+                                                                    userName: user.name,
+                                                                    userEmail: user.email,
+                                                                    userSocialHandle: mission.username,
+                                                                    metadata: {
+                                                                        taskType: task.id,
+                                                                        platform: 'twitter',
+                                                                        twitterHandle: mission.username,
+                                                                        tweetUrl: mission.tweetLink || mission.contentLink
+                                                                    }
+                                                                });
 
-                                                            alert(`✅ ${task.name} completed and verified successfully!`);
-                                                        } catch (error) {
-                                                            console.error('Error completing task:', error);
-                                                            alert('Failed to complete task. Please try again.');
-                                                        }
+                                                                // No notification popup - user can see the button turn green
+                                                            } catch (error) {
+                                                                console.error('Error completing task:', error);
+                                                                // Silent error - React Query will handle retry
+                                                            }
 
                                                         } else if (action.type === 'manual' && action.id === 'view_tweet') {
-                                                            window.open(mission.tweetLink || mission.contentLink, '_blank');
-                                                        } else if (action.type === 'manual' && action.id === 'view_post') {
-                                                            window.open(mission.contentLink, '_blank');
-                                                        } else if (action.type === 'manual' && action.id === 'view_profile') {
-                                                            const username = extractUsernameFromLink(mission.tweetLink);
-                                                            if (username) {
-                                                                window.open(`https://twitter.com/${username}`, '_blank');
-                                                            }
-                                                        } else {
+                                                        window.open(mission.tweetLink || mission.contentLink, '_blank');
+                                                    } else if (action.type === 'manual' && action.id === 'view_post') {
+                                                        window.open(mission.contentLink, '_blank');
+                                                    } else if (action.type === 'manual' && action.id === 'view_profile') {
+                                                        const username = extractUsernameFromLink(mission.tweetLink);
+                                                        if (username) {
+                                                            window.open(`https://twitter.com/${username}`, '_blank');
+                                                        }
+                                                    } else {
                                                             // Handle auto actions
-                                                            console.log('Action clicked:', action);
+                                                        console.log('Action clicked:', action);
                                                         }
                                                     } catch (error) {
                                                         console.error('Error handling action:', error);
@@ -508,13 +505,13 @@ export function CompactMissionCard({
                                                             ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
                                                             : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
                                                         : action.type === 'auto'
-                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                            : action.type === 'verify'
+                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                    : action.type === 'verify'
                                                                 ? completeTaskMutation.isPending
                                                                     ? 'bg-gray-500/20 text-gray-400 cursor-wait'
                                                                     : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                }`}
+                                                        : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                    }`}
                                             >
                                                 {action.type === 'verify' && completeTaskMutation.isPending ? (
                                                     <span className="flex items-center gap-1">
