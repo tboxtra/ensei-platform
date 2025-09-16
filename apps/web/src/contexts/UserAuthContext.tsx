@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getFirebaseAuth } from '../lib/firebase';
+import { getFirebaseAuth, sendVerificationEmail } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { getAuthState, clearAuthState, validateAuthState } from '../lib/auth-utils';
 
@@ -13,6 +13,7 @@ interface User {
     lastName: string;
     avatar: string;
     joinedAt: string;
+    emailVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -23,6 +24,8 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     refreshToken: () => Promise<void>;
+    sendEmailVerification: () => Promise<void>;
+    isEmailVerified: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,6 +86,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                         lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
                         avatar: firebaseUser.photoURL || '',
                         joinedAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+                        emailVerified: firebaseUser.emailVerified,
                     };
 
                     // Store user data
@@ -157,6 +161,25 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
         }
     };
 
+    const sendEmailVerification = async (): Promise<void> => {
+        try {
+            const auth = getFirebaseAuth();
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+                await sendVerificationEmail(currentUser);
+                console.log('Verification email sent successfully');
+            } else {
+                throw new Error('No authenticated user found');
+            }
+        } catch (err) {
+            console.error('Error sending verification email:', err);
+            throw err;
+        }
+    };
+
+    // Computed property for email verification status
+    const isEmailVerified = user?.emailVerified || false;
+
     const value: AuthContextType = {
         user,
         isAuthenticated: !!user,
@@ -165,6 +188,8 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
         login,
         logout,
         refreshToken,
+        sendEmailVerification,
+        isEmailVerified,
     };
 
     return (

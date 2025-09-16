@@ -10,15 +10,18 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, redirectTo = '/auth/login' }: ProtectedRouteProps) {
-    const { user, isAuthenticated, isLoading } = useAuth();
+    const { user, isAuthenticated, isLoading, isEmailVerified } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
             console.log('ProtectedRoute: User not authenticated, redirecting to login');
             router.push(redirectTo);
+        } else if (!isLoading && isAuthenticated && user && !isEmailVerified) {
+            console.log('ProtectedRoute: User not verified, redirecting to email verification');
+            router.push('/auth/verify-email');
         }
-    }, [isAuthenticated, isLoading, router, redirectTo]);
+    }, [isAuthenticated, isLoading, isEmailVerified, user, router, redirectTo]);
 
     // Show loading while checking authentication
     if (isLoading) {
@@ -33,10 +36,10 @@ export function ProtectedRoute({ children, redirectTo = '/auth/login' }: Protect
     }
 
     // Show nothing while redirecting
-    if (!isAuthenticated) {
+    if (!isAuthenticated || (isAuthenticated && user && !isEmailVerified)) {
         return null;
     }
 
-    // Render children if authenticated
+    // Render children if authenticated and email verified
     return <>{children}</>;
 }

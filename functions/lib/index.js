@@ -277,6 +277,71 @@ app.post('/v1/missions', verifyFirebaseToken, async (req, res) => {
     try {
         const userId = req.user.uid;
         const missionData = req.body;
+        // Validate required fields
+        if (!missionData.platform) {
+            res.status(400).json({ error: 'Platform is required' });
+            return;
+        }
+        if (!missionData.type) {
+            res.status(400).json({ error: 'Mission type is required' });
+            return;
+        }
+        if (!missionData.tweetLink && !missionData.contentLink) {
+            res.status(400).json({ error: 'Content link is required' });
+            return;
+        }
+        // Validate URL format
+        const contentLink = missionData.tweetLink || missionData.contentLink;
+        try {
+            new URL(contentLink);
+        }
+        catch (urlError) {
+            res.status(400).json({ error: 'Invalid URL format for content link' });
+            return;
+        }
+        // Validate platform-specific URL patterns
+        const url = new URL(contentLink);
+        const hostname = url.hostname.toLowerCase();
+        let isValidUrl = false;
+        switch (missionData.platform) {
+            case 'twitter':
+                isValidUrl = hostname.includes('x.com') || hostname.includes('twitter.com');
+                break;
+            case 'instagram':
+                isValidUrl = hostname.includes('instagram.com');
+                break;
+            case 'tiktok':
+                isValidUrl = hostname.includes('tiktok.com');
+                break;
+            case 'facebook':
+                isValidUrl = hostname.includes('facebook.com');
+                break;
+            case 'whatsapp':
+                isValidUrl = hostname.includes('wa.me') || hostname.includes('whatsapp.com');
+                break;
+            case 'snapchat':
+                isValidUrl = hostname.includes('snapchat.com');
+                break;
+            case 'telegram':
+                isValidUrl = hostname.includes('t.me') || hostname.includes('telegram.org');
+                break;
+            case 'custom':
+                isValidUrl = true; // Accept any valid URL for custom platforms
+                break;
+            default:
+                isValidUrl = false;
+        }
+        if (!isValidUrl) {
+            res.status(400).json({
+                error: `Invalid ${missionData.platform} URL. Please provide a valid URL for the selected platform.`
+            });
+            return;
+        }
+        // Validate tasks for non-custom platforms
+        if (missionData.platform !== 'custom' && (!missionData.tasks || missionData.tasks.length === 0)) {
+            res.status(400).json({ error: 'At least one task must be selected' });
+            return;
+        }
         const newMission = Object.assign(Object.assign({}, missionData), { created_by: userId, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'active', participants_count: 0, submissions_count: 0 });
         const missionRef = await db.collection('missions').add(newMission);
         const createdMission = Object.assign({ id: missionRef.id }, newMission);
@@ -1303,6 +1368,9 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
             return res.status(404).json({ error: 'Mission not found' });
         }
         const mission = missionDoc.data();
+        if (!mission) {
+            return res.status(404).json({ error: 'Mission data not found' });
+        }
         // Check if user is already participating
         const participationQuery = await db.collection('mission_participations')
             .where('mission_id', '==', missionId)
@@ -1375,7 +1443,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
             total_honors_earned: totalHonors,
             updated_at: new Date().toISOString()
         });
-        res.json({
+        return res.json({
             success: true,
             task_completion: taskCompletion,
             honors_earned: taskHonors,
@@ -1384,7 +1452,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
     }
     catch (error) {
         console.error('Error completing task:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 // Helper functions

@@ -1,5 +1,5 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, connectAuthEmulator, sendEmailVerification, applyActionCode, checkActionCode } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
@@ -96,5 +96,40 @@ export const getFirebaseMessaging = async () => {
 };
 
 export const googleProvider = new GoogleAuthProvider();
+
+// Email verification utilities
+export const sendVerificationEmail = async (user: any) => {
+    try {
+        await sendEmailVerification(user);
+        console.log('Verification email sent successfully');
+        return true;
+    } catch (error) {
+        console.error('Error sending verification email:', error);
+        throw error;
+    }
+};
+
+export const verifyEmailWithCode = async (actionCode: string) => {
+    try {
+        const auth = getFirebaseAuth();
+        await applyActionCode(auth, actionCode);
+        console.log('Email verified successfully');
+        return true;
+    } catch (error) {
+        console.error('Error verifying email:', error);
+        throw error;
+    }
+};
+
+export const checkEmailVerificationCode = async (actionCode: string) => {
+    try {
+        const auth = getFirebaseAuth();
+        const info = await checkActionCode(auth, actionCode);
+        return info;
+    } catch (error) {
+        console.error('Error checking verification code:', error);
+        throw error;
+    }
+};
 
 

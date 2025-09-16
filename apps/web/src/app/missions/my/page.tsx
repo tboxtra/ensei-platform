@@ -151,153 +151,153 @@ export default function MyMissionsPage() {
         <ProtectedRoute>
             <ModernLayout currentPage="/missions/my">
                 <div className="container mx-auto px-2 py-2">
-                {/* Header */}
-                <div className="text-left mb-2">
-                    <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-1">
-                        My Missions
-                    </h1>
-                    <p className="text-gray-400 text-xs">Manage and track your created missions</p>
-                </div>
-
-                {/* Stats Cards */}
-                {totalMissions > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <StatsCard
-                            title="Total Missions"
-                            value={totalMissions}
-                            icon="📋"
-                            description="Created by you"
-                        />
-                        <StatsCard
-                            title="Active Missions"
-                            value={activeMissions}
-                            icon="⚡"
-                            description="Currently running"
-                        />
-                        <StatsCard
-                            title="Total Participants"
-                            value={totalParticipants}
-                            icon="👥"
-                            description="Across all missions"
-                        />
-                        <StatsCard
-                            title="Total Rewards"
-                            value={`${totalRewards.toLocaleString()} Honors`}
-                            icon="💰"
-                            description="Distributed"
-                        />
+                    {/* Header */}
+                    <div className="text-left mb-2">
+                        <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-1">
+                            My Missions
+                        </h1>
+                        <p className="text-gray-400 text-xs">Manage and track your created missions</p>
                     </div>
-                )}
 
-                {/* Filters */}
-                <div className="mb-8">
-                    <FilterBar
-                        filters={filters}
-                        onFilterChange={handleFilterChange}
-                        showPlatform={true}
-                        showStatus={true}
-                        showType={true}
-                        showModel={true}
-                        showSort={true}
-                    />
-                </div>
-
-                {/* Quick Actions */}
-                <div className="mb-8">
-                    <ModernCard>
-                        <div className="flex flex-wrap gap-4 items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold text-white mb-2">Quick Actions</h3>
-                                <p className="text-gray-400 text-sm">Manage your missions efficiently</p>
-                            </div>
-                            <div className="flex gap-3 items-center">
-                                <label className="flex items-center gap-2 text-sm text-gray-300">
-                                    <input
-                                        type="checkbox"
-                                        checked={filters.showEnded}
-                                        onChange={(e) => handleFilterChange('showEnded', e.target.checked.toString())}
-                                        className="rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500"
-                                    />
-                                    Show Ended Missions
-                                </label>
-                                <ModernButton
-                                    onClick={() => window.location.href = '/missions/create'}
-                                    variant="primary"
-                                >
-                                    Create New Mission
-                                </ModernButton>
-                                <ModernButton
-                                    onClick={() => loadMyMissions()}
-                                    variant="secondary"
-                                >
-                                    Refresh
-                                </ModernButton>
-                            </div>
-                        </div>
-                    </ModernCard>
-                </div>
-
-                {/* Missions List */}
-                {filteredMissions.length > 0 ? (
-                    <div className="space-y-3">
-                        {/* List Header */}
-                        <div className="bg-gray-800/50 rounded-lg p-3">
-                            <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-400">
-                                <div className="col-span-1">Mission</div>
-                                <div className="col-span-1">Date</div>
-                                <div className="col-span-1">Cost</div>
-                                <div className="col-span-1">Clicks</div>
-                                <div className="col-span-1">Status</div>
-                                <div className="col-span-1">Details</div>
-                            </div>
-                        </div>
-
-                        {/* Mission Items */}
-                        {filteredMissions.map((mission) => (
-                            <MissionListItem
-                                key={mission.id}
-                                mission={mission}
-                                onViewDetails={handleViewDetails}
+                    {/* Stats Cards */}
+                    {totalMissions > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <StatsCard
+                                title="Total Missions"
+                                value={totalMissions}
+                                icon="📋"
+                                description="Created by you"
                             />
-                        ))}
+                            <StatsCard
+                                title="Active Missions"
+                                value={activeMissions}
+                                icon="⚡"
+                                description="Currently running"
+                            />
+                            <StatsCard
+                                title="Total Participants"
+                                value={totalParticipants}
+                                icon="👥"
+                                description="Across all missions"
+                            />
+                            <StatsCard
+                                title="Total Rewards"
+                                value={`${totalRewards.toLocaleString()} Honors`}
+                                icon="💰"
+                                description="Distributed"
+                            />
+                        </div>
+                    )}
+
+                    {/* Filters */}
+                    <div className="mb-8">
+                        <FilterBar
+                            filters={filters}
+                            onFilterChange={handleFilterChange}
+                            showPlatform={true}
+                            showStatus={true}
+                            showType={true}
+                            showModel={true}
+                            showSort={true}
+                        />
                     </div>
-                ) : missions.length === 0 ? (
-                    /* Empty state when no missions exist */
-                    <div className="max-w-2xl mx-auto">
-                        <ModernCard className="text-center">
-                            <div className="text-gray-400 text-6xl mb-4">📋</div>
-                            <h2 className="text-2xl font-bold text-white mb-4">No Missions Created Yet</h2>
-                            <p className="text-gray-400 mb-6">You haven't created any missions yet. Start by creating your first mission to engage with the community!</p>
-                            <div className="flex gap-4 justify-center">
-                                <ModernButton onClick={() => loadMyMissions()} variant="secondary">Refresh</ModernButton>
-                                <ModernButton onClick={() => window.location.href = '/missions/create'} variant="primary">Create Your First Mission</ModernButton>
+
+                    {/* Quick Actions */}
+                    <div className="mb-8">
+                        <ModernCard>
+                            <div className="flex flex-wrap gap-4 items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white mb-2">Quick Actions</h3>
+                                    <p className="text-gray-400 text-sm">Manage your missions efficiently</p>
+                                </div>
+                                <div className="flex gap-3 items-center">
+                                    <label className="flex items-center gap-2 text-sm text-gray-300">
+                                        <input
+                                            type="checkbox"
+                                            checked={filters.showEnded}
+                                            onChange={(e) => handleFilterChange('showEnded', e.target.checked.toString())}
+                                            className="rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500"
+                                        />
+                                        Show Ended Missions
+                                    </label>
+                                    <ModernButton
+                                        onClick={() => window.location.href = '/missions/create'}
+                                        variant="primary"
+                                    >
+                                        Create New Mission
+                                    </ModernButton>
+                                    <ModernButton
+                                        onClick={() => loadMyMissions()}
+                                        variant="secondary"
+                                    >
+                                        Refresh
+                                    </ModernButton>
+                                </div>
                             </div>
                         </ModernCard>
                     </div>
-                ) : (
-                    /* No missions match filters */
-                    <div className="text-center py-12">
-                        <div className="text-gray-400 text-6xl mb-4">🔍</div>
-                        <h3 className="text-xl font-bold text-white mb-2">No missions match your filters</h3>
-                        <p className="text-gray-400 mb-4">Try adjusting your filter criteria</p>
-                        <ModernButton
-                            onClick={() => {
-                                setFilters({
-                                    type: 'all',
-                                    model: 'all',
-                                    platform: 'all',
-                                    status: 'all',
-                                    showEnded: false,
-                                    sortBy: 'created'
-                                });
-                            }}
-                            variant="secondary"
-                        >
-                            Clear Filters
-                        </ModernButton>
-                    </div>
-                )}
-            </div>
+
+                    {/* Missions List */}
+                    {filteredMissions.length > 0 ? (
+                        <div className="space-y-3">
+                            {/* List Header */}
+                            <div className="bg-gray-800/50 rounded-lg p-3">
+                                <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-400">
+                                    <div className="col-span-1">Mission</div>
+                                    <div className="col-span-1">Date</div>
+                                    <div className="col-span-1">Cost</div>
+                                    <div className="col-span-1">Clicks</div>
+                                    <div className="col-span-1">Status</div>
+                                    <div className="col-span-1">Details</div>
+                                </div>
+                            </div>
+
+                            {/* Mission Items */}
+                            {filteredMissions.map((mission) => (
+                                <MissionListItem
+                                    key={mission.id}
+                                    mission={mission}
+                                    onViewDetails={handleViewDetails}
+                                />
+                            ))}
+                        </div>
+                    ) : missions.length === 0 ? (
+                        /* Empty state when no missions exist */
+                        <div className="max-w-2xl mx-auto">
+                            <ModernCard className="text-center">
+                                <div className="text-gray-400 text-6xl mb-4">📋</div>
+                                <h2 className="text-2xl font-bold text-white mb-4">No Missions Created Yet</h2>
+                                <p className="text-gray-400 mb-6">You haven't created any missions yet. Start by creating your first mission to engage with the community!</p>
+                                <div className="flex gap-4 justify-center">
+                                    <ModernButton onClick={() => loadMyMissions()} variant="secondary">Refresh</ModernButton>
+                                    <ModernButton onClick={() => window.location.href = '/missions/create'} variant="primary">Create Your First Mission</ModernButton>
+                                </div>
+                            </ModernCard>
+                        </div>
+                    ) : (
+                        /* No missions match filters */
+                        <div className="text-center py-12">
+                            <div className="text-gray-400 text-6xl mb-4">🔍</div>
+                            <h3 className="text-xl font-bold text-white mb-2">No missions match your filters</h3>
+                            <p className="text-gray-400 mb-4">Try adjusting your filter criteria</p>
+                            <ModernButton
+                                onClick={() => {
+                                    setFilters({
+                                        type: 'all',
+                                        model: 'all',
+                                        platform: 'all',
+                                        status: 'all',
+                                        showEnded: false,
+                                        sortBy: 'created'
+                                    });
+                                }}
+                                variant="secondary"
+                            >
+                                Clear Filters
+                            </ModernButton>
+                        </div>
+                    )}
+                </div>
             </ModernLayout>
         </ProtectedRoute>
     );

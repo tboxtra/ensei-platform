@@ -356,8 +356,8 @@ app.post('/v1/missions', verifyFirebaseToken, async (req: any, res) => {
     }
 
     if (!isValidUrl) {
-      res.status(400).json({ 
-        error: `Invalid ${missionData.platform} URL. Please provide a valid URL for the selected platform.` 
+      res.status(400).json({
+        error: `Invalid ${missionData.platform} URL. Please provide a valid URL for the selected platform.`
       });
       return;
     }

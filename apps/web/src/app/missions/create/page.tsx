@@ -145,7 +145,7 @@ const PLATFORM_FEE_RATE = 1.0; // 100% platform fee
 // Helper function to validate platform-specific URLs
 const validatePlatformUrl = (platform: string, url: URL): boolean => {
   const hostname = url.hostname.toLowerCase();
-  
+
   switch (platform) {
     case 'twitter':
       return hostname.includes('x.com') || hostname.includes('twitter.com');
@@ -416,7 +416,7 @@ export default function CreateMissionPage() {
 
   return (
     <ModernLayout currentPage="/missions/create">
-        <div className="max-w-7xl mx-auto px-2 py-2">
+      <div className="max-w-7xl mx-auto px-2 py-2">
         {/* Header */}
         <div className="text-left mb-2">
           <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-1">Create New Mission</h1>
@@ -848,7 +848,7 @@ export default function CreateMissionPage() {
                 alert('Please enter a content link');
                 return;
               }
-              
+
               // Validate URL format
               try {
                 new URL(contentLink);
@@ -856,7 +856,7 @@ export default function CreateMissionPage() {
                 alert('Please enter a valid URL for the content link');
                 return;
               }
-              
+
               // Validate platform-specific URL patterns
               const url = new URL(contentLink);
               const isValidPlatformUrl = validatePlatformUrl(selectedPlatform, url);

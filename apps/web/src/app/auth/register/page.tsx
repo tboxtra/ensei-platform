@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
-import { getFirebaseAuth, googleProvider } from '../../../lib/firebase';
+import { getFirebaseAuth, googleProvider, sendVerificationEmail } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 
 export default function RegisterPage() {
@@ -102,10 +102,10 @@ export default function RegisterPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
             const user = userCredential.user;
 
-            // Get the ID token
-            const token = await user.getIdToken();
+            // Send email verification
+            await sendVerificationEmail(user);
 
-            // Store user data in localStorage
+            // Store user data in localStorage (but mark as unverified)
             localStorage.setItem('user', JSON.stringify({
                 id: user.uid,
                 email: user.email,
@@ -114,15 +114,18 @@ export default function RegisterPage() {
                 lastName: formData.lastName,
                 avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
                 joinedAt: new Date().toISOString(),
+                emailVerified: false,
                 preferences: {
                     marketing: formData.agreeToMarketing
                 }
             }));
 
-            // Store the Firebase token
+            // Get the ID token
+            const token = await user.getIdToken();
             localStorage.setItem('firebaseToken', token);
 
-            router.push('/dashboard');
+            // Redirect to email verification page
+            router.push('/auth/verify-email');
         } catch (err: any) {
             console.error('Firebase registration failed:', err);
             let errorMessage = 'Registration failed';

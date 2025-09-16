@@ -6,6 +6,7 @@ export interface AuthState {
     isAuthenticated: boolean;
     user: any | null;
     token: string | null;
+    emailVerified: boolean;
 }
 
 /**
@@ -13,21 +14,24 @@ export interface AuthState {
  */
 export function getAuthState(): AuthState {
     if (typeof window === 'undefined') {
-        return { isAuthenticated: false, user: null, token: null };
+        return { isAuthenticated: false, user: null, token: null, emailVerified: false };
     }
 
     try {
         const user = localStorage.getItem('user');
         const token = localStorage.getItem('firebaseToken');
-
+        
+        const userData = user ? JSON.parse(user) : null;
+        
         return {
             isAuthenticated: !!(user && token),
-            user: user ? JSON.parse(user) : null,
-            token
+            user: userData,
+            token,
+            emailVerified: userData?.emailVerified || false
         };
     } catch (error) {
         console.error('Error reading auth state from localStorage:', error);
-        return { isAuthenticated: false, user: null, token: null };
+        return { isAuthenticated: false, user: null, token: null, emailVerified: false };
     }
 }
 
@@ -71,7 +75,7 @@ export function validateAuthState(): AuthState {
         if (isTokenExpired(authState.token)) {
             console.log('Token is expired, clearing auth state');
             clearAuthState();
-            return { isAuthenticated: false, user: null, token: null };
+            return { isAuthenticated: false, user: null, token: null, emailVerified: false };
         }
     }
 
