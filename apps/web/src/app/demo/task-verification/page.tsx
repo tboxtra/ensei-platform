@@ -189,12 +189,14 @@ export default function TaskVerificationDemo() {
         alert(`Submission flagged: ${reason}`);
     };
 
-    const handleVerifySubmission = (completion: TaskCompletion) => {
-        const verifiedCompletion = {
-            ...completion,
-            status: 'verified' as const,
-            verifiedAt: new Date()
-        };
+  const handleVerifySubmission = (completion: TaskCompletion) => {
+    const verifiedCompletion = {
+      ...completion,
+      status: 'verified' as const,
+      verifiedAt: new Date(),
+      flaggedReason: undefined, // Clear the flagged reason when verifying
+      flaggedAt: undefined
+    };
 
         setMission(prev => ({
             ...prev,
@@ -445,32 +447,32 @@ export default function TaskVerificationDemo() {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             {getStatusBadge(completion.status)}
-                              {viewMode === 'creator' && completion.status === 'verified' && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-red-600 border-red-300 hover:bg-red-50"
-                                    onClick={() => setShowFlagModal({ completion, show: true })}
-                                  >
-                                    <Flag className="w-3 h-3 mr-1" />
-                                    Flag
-                                  </Button>
-                                </div>
-                              )}
-                              {viewMode === 'creator' && completion.status === 'flagged' && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-green-600 border-green-300 hover:bg-green-50"
-                                    onClick={() => handleVerifySubmission(completion)}
-                                  >
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    Verify
-                                  </Button>
-                                </div>
-                              )}
+                                                            {viewMode === 'creator' && completion.status === 'verified' && (
+                                                                <div className="flex gap-1">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="text-red-600 border-red-300 hover:bg-red-50"
+                                                                        onClick={() => setShowFlagModal({ completion, show: true })}
+                                                                    >
+                                                                        <Flag className="w-3 h-3 mr-1" />
+                                                                        Flag
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                            {viewMode === 'creator' && completion.status === 'flagged' && (
+                                                                <div className="flex gap-1">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="text-green-600 border-green-300 hover:bg-green-50"
+                                                                        onClick={() => handleVerifySubmission(completion)}
+                                                                    >
+                                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                                        Verify
+                                                                    </Button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
@@ -479,17 +481,17 @@ export default function TaskVerificationDemo() {
                                 )}
                             </div>
 
-              {/* Instructions */}
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold mb-2 text-gray-900">How It Works:</h4>
-                <ol className="text-sm space-y-1 text-gray-700">
-                  <li>1. Click "Like on Twitter" to open Twitter intent</li>
-                  <li>2. Complete the action on Twitter</li>
-                  <li>3. Return and click "Verify Like"</li>
-                  <li>4. Task is automatically verified and turns green</li>
-                  <li>5. Creator can flag to remove verification or verify to restore</li>
-                </ol>
-              </div>
+                            {/* Instructions */}
+                            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                                <h4 className="font-semibold mb-2 text-gray-900">How It Works:</h4>
+                                <ol className="text-sm space-y-1 text-gray-700">
+                                    <li>1. Click "Like on Twitter" to open Twitter intent</li>
+                                    <li>2. Complete the action on Twitter</li>
+                                    <li>3. Return and click "Verify Like"</li>
+                                    <li>4. Task is automatically verified and turns green</li>
+                                    <li>5. Creator can flag to remove verification or verify to restore</li>
+                                </ol>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

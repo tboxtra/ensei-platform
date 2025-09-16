@@ -67,17 +67,25 @@ export default function AdminSubmissionsPage() {
         }
     };
 
-    const handleVerifySubmission = async (submission: SubmissionLog) => {
-        try {
-            await verifySubmission(submission.id, 'admin-1', 'Verified by admin');
-            loadMissionLogs(selectedMission);
-            setShowReviewModal(false);
-            alert('Submission verified successfully!');
-        } catch (error) {
-            console.error('Error verifying submission:', error);
-            alert('Error verifying submission');
-        }
-    };
+  const handleVerifySubmission = async (submission: SubmissionLog) => {
+    try {
+      // Clear flagged reason when verifying
+      const verifiedSubmission = {
+        ...submission,
+        status: 'verified' as const,
+        flaggedReason: undefined,
+        verifiedAt: new Date()
+      };
+      
+      await verifySubmission(submission.id, 'admin-1', 'Verified by admin');
+      loadMissionLogs(selectedMission);
+      setShowReviewModal(false);
+      alert('Submission verified successfully!');
+    } catch (error) {
+      console.error('Error verifying submission:', error);
+      alert('Error verifying submission');
+    }
+  };
 
     const handleFlagSubmission = async (submission: SubmissionLog, reason: string) => {
         try {
@@ -327,35 +335,35 @@ export default function AdminSubmissionsPage() {
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 {getStatusBadge(log.status)}
-                        {log.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 border-green-300 hover:bg-green-50"
-                              onClick={() => {
-                                setSelectedSubmission(log);
-                                setShowReviewModal(true);
-                              }}
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Review
-                            </Button>
-                          </div>
-                        )}
-                        {log.status === 'flagged' && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 border-green-300 hover:bg-green-50"
-                              onClick={() => handleVerifySubmission(log)}
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Verify
-                            </Button>
-                          </div>
-                        )}
+                                                {log.status === 'pending' && (
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="text-green-600 border-green-300 hover:bg-green-50"
+                                                            onClick={() => {
+                                                                setSelectedSubmission(log);
+                                                                setShowReviewModal(true);
+                                                            }}
+                                                        >
+                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                            Review
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                                {log.status === 'flagged' && (
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="text-green-600 border-green-300 hover:bg-green-50"
+                                                            onClick={() => handleVerifySubmission(log)}
+                                                        >
+                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                            Verify
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
