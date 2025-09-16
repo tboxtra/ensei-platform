@@ -19,7 +19,6 @@ import {
     Timestamp
 } from 'firebase/firestore';
 import { getFirebaseFirestore } from './firebase';
-import { useAuth } from '../contexts/UserAuthContext';
 
 export interface TaskCompletion {
     id: string;

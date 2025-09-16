@@ -174,8 +174,8 @@ export const Icon: React.FC<IconProps> = ({
     const iconPath = iconMappings[name];
     const emojiFallback = fallback || emojiFallbacks[name];
 
-  // Use emoji fallbacks as requested
-  const useEmoji = true; // Reverted to emoji fallbacks
+    // Use emoji fallbacks as requested
+    const useEmoji = true; // Reverted to emoji fallbacks
 
     if (useEmoji) {
         return (

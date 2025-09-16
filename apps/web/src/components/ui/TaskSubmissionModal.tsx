@@ -5,6 +5,7 @@ import { X, ChevronDown, ChevronUp, ExternalLink, CheckCircle, AlertCircle } fro
 import { getTasksForMission, TaskType, TaskAction } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { completeTask, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
+import { useAuth } from '../../contexts/UserAuthContext';
 
 interface TaskSubmissionModalProps {
     isOpen: boolean;
@@ -29,33 +30,12 @@ export default function TaskSubmissionModal({
     selectedTaskType,
     onTaskComplete
 }: TaskSubmissionModalProps) {
+    const { user, isAuthenticated } = useAuth();
     const [taskStates, setTaskStates] = useState<TaskState>({});
     const [loading, setLoading] = useState<string | null>(null);
     const [verificationLinks, setVerificationLinks] = useState<{ [key: string]: string }>({});
     const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
-
-    // Helper functions to get current user data
-    const getCurrentUserId = () => {
-        // In a real app, this would come from auth context
-        // For now, we'll use a session-based approach
-        let userId = sessionStorage.getItem('current_user_id');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('current_user_id', userId);
-        }
-        return userId;
-    };
-
-    const getCurrentUserName = () => {
-        // In a real app, this would come from auth context
-        let userName = sessionStorage.getItem('current_user_name');
-        if (!userName) {
-            userName = 'User ' + Math.random().toString(36).substr(2, 4);
-            sessionStorage.setItem('current_user_name', userName);
-        }
-        return userName;
-    };
 
     console.log('TaskSubmissionModal render:', {
         isOpen,
@@ -135,13 +115,19 @@ export default function TaskSubmissionModal({
                     return;
                 }
 
+                // Check if user is authenticated
+                if (!isAuthenticated || !user) {
+                    alert('Please log in to complete tasks');
+                    return;
+                }
+
                 // Complete the task with verification
                 const completion = await completeTask(
                     mission.id,
                     task.id,
-                    getCurrentUserId(), // Get real user ID
-                    getCurrentUserName(), // Get real user name
-                    undefined, // userEmail
+                    user.id,
+                    user.name,
+                    user.email,
                     mission.username, // userSocialHandle
                     {
                         taskType: task.id,
