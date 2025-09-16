@@ -466,10 +466,10 @@ export function CompactMissionCard({
                                                             ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
                                                             : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
                                                         : action.type === 'auto'
-                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                    : action.type === 'verify'
+                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                            : action.type === 'verify'
                                                                 ? 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                        : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
                                                     }`}
                                             >
                                                 {action.label}

@@ -4,40 +4,40 @@
  * Now uses Firebase Firestore for proper server-side storage
  */
 
-import { 
-  completeTask as firebaseCompleteTask,
-  flagTaskCompletion as firebaseFlagTaskCompletion,
-  verifyTaskCompletion as firebaseVerifyTaskCompletion,
-  getMissionTaskCompletions as firebaseGetMissionTaskCompletions
+import {
+    completeTask as firebaseCompleteTask,
+    flagTaskCompletion as firebaseFlagTaskCompletion,
+    verifyTaskCompletion as firebaseVerifyTaskCompletion,
+    getMissionTaskCompletions as firebaseGetMissionTaskCompletions
 } from './firebase-task-completions';
 
 export interface TaskCompletion {
-  id: string;
-  missionId: string;
-  taskId: string;
-  userId: string;
-  userName: string;
-  userEmail?: string;
-  userSocialHandle?: string; // Twitter handle, Instagram username, etc.
-  status: 'pending' | 'verified' | 'flagged' | 'rejected';
-  completedAt: Date;
-  verifiedAt?: Date;
-  flaggedAt?: Date;
-  flaggedReason?: string;
-  proof?: string;
-  metadata: {
-    taskType: string;
-    platform: string;
-    twitterHandle?: string;
-    tweetUrl?: string;
-    userAgent?: string;
-    ipAddress?: string;
-    sessionId?: string;
-  };
-  reviewedBy?: string;
-  reviewedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+    id: string;
+    missionId: string;
+    taskId: string;
+    userId: string;
+    userName: string;
+    userEmail?: string;
+    userSocialHandle?: string; // Twitter handle, Instagram username, etc.
+    status: 'pending' | 'verified' | 'flagged' | 'rejected';
+    completedAt: Date;
+    verifiedAt?: Date;
+    flaggedAt?: Date;
+    flaggedReason?: string;
+    proof?: string;
+    metadata: {
+        taskType: string;
+        platform: string;
+        twitterHandle?: string;
+        tweetUrl?: string;
+        userAgent?: string;
+        ipAddress?: string;
+        sessionId?: string;
+    };
+    reviewedBy?: string;
+    reviewedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface MissionTaskState {
@@ -69,100 +69,100 @@ const FLAGGING_REASONS = [
  * Complete a task (mark as verified by default)
  */
 export async function completeTask(
-  missionId: string,
-  taskId: string,
-  userId: string,
-  userName: string,
-  userEmail?: string,
-  userSocialHandle?: string,
-  metadata: Partial<TaskCompletion['metadata']> = {}
+    missionId: string,
+    taskId: string,
+    userId: string,
+    userName: string,
+    userEmail?: string,
+    userSocialHandle?: string,
+    metadata: Partial<TaskCompletion['metadata']> = {}
 ): Promise<TaskCompletion> {
-  try {
-    const completion = await firebaseCompleteTask(
-      missionId,
-      taskId,
-      userId,
-      userName,
-      userEmail,
-      userSocialHandle,
-      metadata
-    );
-    
-    // Convert Firebase Timestamps to JavaScript Dates for compatibility
-    const convertedCompletion: TaskCompletion = {
-      ...completion,
-      completedAt: completion.completedAt.toDate(),
-      verifiedAt: completion.verifiedAt?.toDate(),
-      flaggedAt: completion.flaggedAt?.toDate(),
-      reviewedAt: completion.reviewedAt?.toDate(),
-      createdAt: completion.createdAt.toDate(),
-      updatedAt: completion.updatedAt.toDate()
-    };
-    
-    console.log('Task completed and saved to Firebase:', convertedCompletion);
-    return convertedCompletion;
-  } catch (error) {
-    console.error('Error completing task:', error);
-    throw error;
-  }
+    try {
+        const completion = await firebaseCompleteTask(
+            missionId,
+            taskId,
+            userId,
+            userName,
+            userEmail,
+            userSocialHandle,
+            metadata
+        );
+
+        // Convert Firebase Timestamps to JavaScript Dates for compatibility
+        const convertedCompletion: TaskCompletion = {
+            ...completion,
+            completedAt: completion.completedAt.toDate(),
+            verifiedAt: completion.verifiedAt?.toDate(),
+            flaggedAt: completion.flaggedAt?.toDate(),
+            reviewedAt: completion.reviewedAt?.toDate(),
+            createdAt: completion.createdAt.toDate(),
+            updatedAt: completion.updatedAt.toDate()
+        };
+
+        console.log('Task completed and saved to Firebase:', convertedCompletion);
+        return convertedCompletion;
+    } catch (error) {
+        console.error('Error completing task:', error);
+        throw error;
+    }
 }
 
 /**
  * Flag a task completion
  */
 export async function flagTaskCompletion(
-  completionId: string,
-  reason: string,
-  reviewerId: string,
-  reviewerName: string
+    completionId: string,
+    reason: string,
+    reviewerId: string,
+    reviewerName: string
 ): Promise<void> {
-  try {
-    await firebaseFlagTaskCompletion(completionId, reason, reviewerId, reviewerName);
-    console.log('Task flagged in Firebase:', completionId);
-  } catch (error) {
-    console.error('Error flagging task completion:', error);
-    throw error;
-  }
+    try {
+        await firebaseFlagTaskCompletion(completionId, reason, reviewerId, reviewerName);
+        console.log('Task flagged in Firebase:', completionId);
+    } catch (error) {
+        console.error('Error flagging task completion:', error);
+        throw error;
+    }
 }
 
 /**
  * Verify a flagged task completion (restore to verified)
  */
 export async function verifyTaskCompletion(
-  completionId: string,
-  reviewerId: string,
-  reviewerName: string
+    completionId: string,
+    reviewerId: string,
+    reviewerName: string
 ): Promise<void> {
-  try {
-    await firebaseVerifyTaskCompletion(completionId, reviewerId, reviewerName);
-    console.log('Task verified in Firebase:', completionId);
-  } catch (error) {
-    console.error('Error verifying task completion:', error);
-    throw error;
-  }
+    try {
+        await firebaseVerifyTaskCompletion(completionId, reviewerId, reviewerName);
+        console.log('Task verified in Firebase:', completionId);
+    } catch (error) {
+        console.error('Error verifying task completion:', error);
+        throw error;
+    }
 }
 
 /**
  * Get task completions for a mission
  */
 export async function getMissionTaskCompletions(missionId: string): Promise<TaskCompletion[]> {
-  try {
-    const completions = await firebaseGetMissionTaskCompletions(missionId);
-    
-    // Convert Firebase Timestamps to JavaScript Dates for compatibility
-    return completions.map(completion => ({
-      ...completion,
-      completedAt: completion.completedAt.toDate(),
-      verifiedAt: completion.verifiedAt?.toDate(),
-      flaggedAt: completion.flaggedAt?.toDate(),
-      reviewedAt: completion.reviewedAt?.toDate(),
-      createdAt: completion.createdAt.toDate(),
-      updatedAt: completion.updatedAt.toDate()
-    }));
-  } catch (error) {
-    console.error('Error getting mission task completions:', error);
-    throw error;
-  }
+    try {
+        const completions = await firebaseGetMissionTaskCompletions(missionId);
+
+        // Convert Firebase Timestamps to JavaScript Dates for compatibility
+        return completions.map(completion => ({
+            ...completion,
+            completedAt: completion.completedAt.toDate(),
+            verifiedAt: completion.verifiedAt?.toDate(),
+            flaggedAt: completion.flaggedAt?.toDate(),
+            reviewedAt: completion.reviewedAt?.toDate(),
+            createdAt: completion.createdAt.toDate(),
+            updatedAt: completion.updatedAt.toDate()
+        }));
+    } catch (error) {
+        console.error('Error getting mission task completions:', error);
+        throw error;
+    }
 }
 
 /**
@@ -223,7 +223,7 @@ export async function updateUserTaskState(
  * Get flagging reasons
  */
 export function getFlaggingReasons() {
-  return FLAGGING_REASONS;
+    return FLAGGING_REASONS;
 }
 
 /**
@@ -231,28 +231,28 @@ export function getFlaggingReasons() {
  * Priority: social handle > first name > full name > email
  */
 export function getUserDisplayName(completion: TaskCompletion): string {
-  // Use social handle if available
-  if (completion.userSocialHandle) {
-    return completion.userSocialHandle;
-  }
-  
-  // Extract first name from full name
-  if (completion.userName && completion.userName !== 'User') {
-    const firstName = completion.userName.split(' ')[0];
-    if (firstName && firstName.length > 0) {
-      return firstName;
+    // Use social handle if available
+    if (completion.userSocialHandle) {
+        return completion.userSocialHandle;
     }
-  }
-  
-  // Fallback to full name
-  if (completion.userName) {
-    return completion.userName;
-  }
-  
-  // Last resort: use email
-  if (completion.userEmail) {
-    return completion.userEmail.split('@')[0];
-  }
-  
-  return 'Unknown User';
+
+    // Extract first name from full name
+    if (completion.userName && completion.userName !== 'User') {
+        const firstName = completion.userName.split(' ')[0];
+        if (firstName && firstName.length > 0) {
+            return firstName;
+        }
+    }
+
+    // Fallback to full name
+    if (completion.userName) {
+        return completion.userName;
+    }
+
+    // Last resort: use email
+    if (completion.userEmail) {
+        return completion.userEmail.split('@')[0];
+    }
+
+    return 'Unknown User';
 }
