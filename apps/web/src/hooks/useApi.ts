@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useAuth } from '../contexts/UserAuthContext';
 
 interface ApiResponse<T> {
     data: T | null;
@@ -136,6 +137,7 @@ const CACHE_BUST = Date.now(); // Aggressive cache busting
 export function useApi() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { logout: authLogout } = useAuth();
 
     const makeRequest = useCallback(async <T>(
         endpoint: string,
@@ -291,21 +293,33 @@ export function useApi() {
 
     const logout = useCallback(async (): Promise<void> => {
         try {
+            console.log('🔄 useApi logout: Starting logout process...');
+            
             // Call logout endpoint if available
-            await makeRequest('/v1/auth/logout', {
-                method: 'POST',
-            });
+            try {
+                await makeRequest('/v1/auth/logout', {
+                    method: 'POST',
+                });
+                console.log('✅ useApi logout: API logout successful');
+            } catch (err) {
+                console.warn('⚠️ useApi logout: API logout failed, but continuing with Firebase logout:', err);
+            }
+            
+            // Use auth context logout to properly sign out from Firebase
+            console.log('🔥 useApi logout: Calling Firebase signOut...');
+            await authLogout();
+            console.log('✅ useApi logout: Firebase signOut completed');
+            
         } catch (err) {
-            // Even if logout fails, clear local storage
-            console.warn('Logout API call failed, but clearing local storage:', err);
-        } finally {
-            // Always clear local storage
+            console.error('❌ useApi logout: Error during logout:', err);
+            // Even if logout fails, clear local storage as fallback
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('firebaseToken');
                 localStorage.removeItem('user');
+                console.log('🧹 useApi logout: Fallback localStorage clearing completed');
             }
         }
-    }, [makeRequest]);
+    }, [makeRequest, authLogout]);
 
     const getCurrentUser = useCallback(async (): Promise<any> => {
         try {

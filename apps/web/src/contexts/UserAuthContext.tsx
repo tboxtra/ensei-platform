@@ -54,13 +54,13 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
             console.log('🔥 Firebase onAuthStateChanged triggered:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
             console.log('🔄 isLoggingOut:', isLoggingOutRef.current);
-            
+
             // If we're in the process of logging out, ignore Firebase auth state changes
             if (isLoggingOutRef.current) {
                 console.log('🚫 Ignoring Firebase auth state change during logout');
                 return;
             }
-            
+
             if (firebaseUser) {
                 try {
                     // Get Firebase ID token
@@ -157,33 +157,33 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const logout = async () => {
         try {
             console.log('🔄 Starting logout process...');
-            
+
             // Set logout flag to prevent Firebase auth state changes from restoring user
             isLoggingOutRef.current = true;
-            
+
             // Clear state immediately to prevent restoration
             console.log('🧹 Clearing localStorage and React state...');
             clearAuthState();
             setUser(null);
             setError(null);
-            
+
             const auth = getFirebaseAuth();
             console.log('🔥 Calling Firebase signOut...');
             await signOut(auth);
             console.log('✅ Firebase signOut completed');
-            
+
             // Force clear state again after signOut
             console.log('🧹 Force clearing state after signOut...');
             clearAuthState();
             setUser(null);
             setError(null);
-            
+
             // Reset logout flag after a delay to allow normal auth flow to resume
             setTimeout(() => {
                 isLoggingOutRef.current = false;
                 console.log('🔄 Logout flag reset, normal auth flow resumed');
             }, 2000);
-            
+
             console.log('✅ User logged out successfully');
         } catch (err) {
             console.error('❌ Logout error:', err);
