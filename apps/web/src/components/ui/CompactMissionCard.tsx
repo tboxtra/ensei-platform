@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { EmbeddedContent } from './EmbeddedContent';
 import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
-import { completeTask, type TaskCompletion } from '@/lib/task-verification';
+import { completeTask, type TaskCompletion, getUserDisplayName } from '@/lib/task-verification';
 import { TaskIcon, PlatformIcon } from './Icon';
+import { useAuth } from '../../contexts/UserAuthContext';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -16,32 +17,11 @@ export function CompactMissionCard({
     onParticipate,
     onViewDetails
 }: CompactMissionCardProps) {
+    const { user, isAuthenticated } = useAuth();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
     const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
     const cardRef = useRef<HTMLDivElement>(null);
-
-    // Helper functions to get current user data
-    const getCurrentUserId = () => {
-        // In a real app, this would come from auth context
-        // For now, we'll use a session-based approach
-        let userId = sessionStorage.getItem('current_user_id');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('current_user_id', userId);
-        }
-        return userId;
-    };
-
-    const getCurrentUserName = () => {
-        // In a real app, this would come from auth context
-        let userName = sessionStorage.getItem('current_user_name');
-        if (!userName) {
-            userName = 'User ' + Math.random().toString(36).substr(2, 4);
-            sessionStorage.setItem('current_user_name', userName);
-        }
-        return userName;
-    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -437,12 +417,20 @@ export function CompactMissionCard({
                                                             return;
                                                         }
 
+                                                        // Check if user is authenticated
+                                                        if (!isAuthenticated || !user) {
+                                                            alert('Please log in to complete tasks');
+                                                            return;
+                                                        }
+
                                                         // Complete the task with verification
                                                         const completion = await completeTask(
                                                             mission.id,
                                                             task.id,
-                                                            getCurrentUserId(), // Get real user ID
-                                                            getCurrentUserName(), // Get real user name
+                                                            user.id,
+                                                            user.name,
+                                                            user.email,
+                                                            mission.username, // Use mission username as social handle
                                                             {
                                                                 taskType: task.id,
                                                                 platform: 'twitter',
@@ -477,10 +465,10 @@ export function CompactMissionCard({
                                                             ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
                                                             : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
                                                         : action.type === 'auto'
-                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                            : action.type === 'verify'
+                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                    : action.type === 'verify'
                                                                 ? 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                        : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
                                                     }`}
                                             >
                                                 {action.label}

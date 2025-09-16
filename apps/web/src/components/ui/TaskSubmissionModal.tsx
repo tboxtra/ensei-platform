@@ -142,6 +142,8 @@ export default function TaskSubmissionModal({
                     task.id,
                     getCurrentUserId(), // Get real user ID
                     getCurrentUserName(), // Get real user name
+                    undefined, // userEmail
+                    mission.username, // userSocialHandle
                     {
                         taskType: task.id,
                         platform: 'twitter',

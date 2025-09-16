@@ -8,8 +8,7 @@ import {
   completeTask as firebaseCompleteTask,
   flagTaskCompletion as firebaseFlagTaskCompletion,
   verifyTaskCompletion as firebaseVerifyTaskCompletion,
-  getMissionTaskCompletions as firebaseGetMissionTaskCompletions,
-  getUserDisplayName
+  getMissionTaskCompletions as firebaseGetMissionTaskCompletions
 } from './firebase-task-completions';
 
 export interface TaskCompletion {
@@ -89,8 +88,19 @@ export async function completeTask(
       metadata
     );
     
-    console.log('Task completed and saved to Firebase:', completion);
-    return completion;
+    // Convert Firebase Timestamps to JavaScript Dates for compatibility
+    const convertedCompletion: TaskCompletion = {
+      ...completion,
+      completedAt: completion.completedAt.toDate(),
+      verifiedAt: completion.verifiedAt?.toDate(),
+      flaggedAt: completion.flaggedAt?.toDate(),
+      reviewedAt: completion.reviewedAt?.toDate(),
+      createdAt: completion.createdAt.toDate(),
+      updatedAt: completion.updatedAt.toDate()
+    };
+    
+    console.log('Task completed and saved to Firebase:', convertedCompletion);
+    return convertedCompletion;
   } catch (error) {
     console.error('Error completing task:', error);
     throw error;
@@ -136,11 +146,23 @@ export async function verifyTaskCompletion(
  * Get task completions for a mission
  */
 export async function getMissionTaskCompletions(missionId: string): Promise<TaskCompletion[]> {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    // Return real data from storage
-    return getStoredMissionCompletions(missionId);
+  try {
+    const completions = await firebaseGetMissionTaskCompletions(missionId);
+    
+    // Convert Firebase Timestamps to JavaScript Dates for compatibility
+    return completions.map(completion => ({
+      ...completion,
+      completedAt: completion.completedAt.toDate(),
+      verifiedAt: completion.verifiedAt?.toDate(),
+      flaggedAt: completion.flaggedAt?.toDate(),
+      reviewedAt: completion.reviewedAt?.toDate(),
+      createdAt: completion.createdAt.toDate(),
+      updatedAt: completion.updatedAt.toDate()
+    }));
+  } catch (error) {
+    console.error('Error getting mission task completions:', error);
+    throw error;
+  }
 }
 
 /**
@@ -201,9 +223,8 @@ export async function updateUserTaskState(
  * Get flagging reasons
  */
 export function getFlaggingReasons() {
-    return FLAGGING_REASONS;
+  return FLAGGING_REASONS;
 }
 
-function generateId(): string {
-    return Math.random().toString(36).substr(2, 9);
-}
+// Re-export getUserDisplayName from firebase-task-completions
+export { getUserDisplayName };

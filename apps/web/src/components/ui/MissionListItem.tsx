@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle, Flag, AlertCircle, Clock, User } from 'lucide-react';
-import { getMissionTaskCompletions, flagTaskCompletion, verifyTaskCompletion, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
+import { getMissionTaskCompletions, flagTaskCompletion, verifyTaskCompletion, getFlaggingReasons, getUserDisplayName, type TaskCompletion } from '@/lib/task-verification';
 
 interface MissionListItemProps {
     mission: any;
@@ -263,7 +263,7 @@ export function MissionListItem({
                                         <div className="flex items-center gap-2">
                                             {getStatusIcon(submission.status)}
                                             <div>
-                                                <div className="text-sm font-medium text-white">{submission.userName}</div>
+                                                <div className="text-sm font-medium text-white">{getUserDisplayName(submission)}</div>
                                                 <div className="text-xs text-gray-400">Task: {submission.taskId}</div>
                                             </div>
                                         </div>
