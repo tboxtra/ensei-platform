@@ -97,6 +97,18 @@ const verifyFirebaseToken = async (req, res, next) => {
         res.status(401).json({ error: 'Invalid token' });
     }
 };
+// Social Media API Integration Functions
+const handleTwitterAction = async (action, tweetId, userId) => {
+    // TODO: Implement Twitter API integration
+    // This would connect to Twitter API v2 to perform actions like like, retweet, follow
+    console.log(`Twitter action: ${action} on tweet ${tweetId} by user ${userId}`);
+    return { success: true, action, tweetId };
+};
+const handleInstagramAction = async (action, postId, userId) => {
+    // TODO: Implement Instagram API integration
+    console.log(`Instagram action: ${action} on post ${postId} by user ${userId}`);
+    return { success: true, action, postId };
+};
 // Authentication endpoints
 app.post('/v1/auth/login', async (req, res) => {
     var _a, _b, _c, _d;
@@ -198,7 +210,10 @@ app.get('/v1/missions', async (req, res) => {
             .orderBy('created_at', 'desc')
             .limit(50)
             .get();
-        const missions = missionsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        // Filter out paused missions
+        const missions = missionsSnapshot.docs
+            .map(doc => (Object.assign({ id: doc.id }, doc.data())))
+            .filter((mission) => !mission.isPaused); // Hide paused missions from users
         res.json(missions);
     }
     catch (error) {
@@ -216,6 +231,11 @@ app.get('/v1/missions/:id', async (req, res) => {
             return;
         }
         const mission = Object.assign({ id: missionDoc.id }, missionDoc.data());
+        // Check if mission is paused
+        if (mission.isPaused) {
+            res.status(404).json({ error: 'Mission not found', missionId });
+            return;
+        }
         res.json(mission);
     }
     catch (error) {
@@ -887,6 +907,548 @@ app.get('/v1/missions/:id/submissions', verifyFirebaseToken, async (req, res) =>
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+// Admin API endpoints
+app.get('/v1/admin/missions', async (req, res) => {
+    try {
+        // Get all missions for admin view
+        const missionsSnapshot = await db.collection('missions')
+            .orderBy('created_at', 'desc')
+            .get();
+        // Get all users to map creator IDs to names
+        const listUsersResult = await firebaseAdmin.auth().listUsers();
+        const usersMap = new Map();
+        listUsersResult.users.forEach(user => {
+            usersMap.set(user.uid, {
+                name: user.displayName || 'Unknown',
+                email: user.email
+            });
+        });
+        const missions = missionsSnapshot.docs.map(doc => {
+            var _a, _b, _c;
+            const data = doc.data();
+            const creator = usersMap.get(data.created_by);
+            return Object.assign({ id: doc.id, title: data.title, platform: data.platform, type: data.type, model: data.model, status: data.status, creatorId: data.created_by, creatorName: (creator === null || creator === void 0 ? void 0 : creator.name) || 'Unknown', creatorEmail: (creator === null || creator === void 0 ? void 0 : creator.email) || '', createdAt: data.created_at, submissionsCount: data.submissions_count || 0, approvedCount: data.approved_count || 0, totalCostUsd: ((_a = data.rewards) === null || _a === void 0 ? void 0 : _a.usd) || 0, perUserHonors: ((_b = data.rewards) === null || _b === void 0 ? void 0 : _b.honors) || 0, perWinnerHonors: ((_c = data.rewards) === null || _c === void 0 ? void 0 : _c.honors) || 0, winnersCap: data.winnersCap, cap: data.cap, durationHours: data.durationHours, maxParticipants: data.max_participants, participantsCount: data.participants_count || 0, isPremium: data.isPremium || false, category: data.category, difficulty: data.difficulty, instructions: data.instructions, requirements: data.requirements, deliverables: data.deliverables, tweetLink: data.tweetLink, deadline: data.deadline, tasks: data.tasks, totalCostHonors: data.total_cost_honors, isPaused: data.isPaused || false }, data // Include all other fields
+            );
+        });
+        res.json(missions);
+    }
+    catch (error) {
+        console.error('Error fetching admin missions:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Pause/Unpause mission
+app.patch('/v1/admin/missions/:missionId/pause', async (req, res) => {
+    try {
+        const { missionId } = req.params;
+        const { isPaused } = req.body;
+        await db.collection('missions').doc(missionId).update({
+            isPaused: isPaused,
+            updated_at: new Date().toISOString()
+        });
+        res.json({ success: true, message: `Mission ${isPaused ? 'paused' : 'unpaused'} successfully` });
+    }
+    catch (error) {
+        console.error('Error updating mission pause status:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Cancel/Delete mission permanently
+app.delete('/v1/admin/missions/:missionId', async (req, res) => {
+    try {
+        const { missionId } = req.params;
+        // Delete the mission
+        await db.collection('missions').doc(missionId).delete();
+        // Also delete any associated submissions
+        const submissionsSnapshot = await db.collection('mission_submissions')
+            .where('mission_id', '==', missionId)
+            .get();
+        const batch = db.batch();
+        submissionsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+        res.json({ success: true, message: 'Mission deleted permanently' });
+    }
+    catch (error) {
+        console.error('Error deleting mission:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Get mission submissions and reviews
+app.get('/v1/admin/missions/:missionId/submissions', async (req, res) => {
+    try {
+        const { missionId } = req.params;
+        // Get mission details
+        const missionDoc = await db.collection('missions').doc(missionId).get();
+        if (!missionDoc.exists) {
+            return res.status(404).json({ error: 'Mission not found' });
+        }
+        // Get submissions for this mission
+        const submissionsSnapshot = await db.collection('mission_submissions')
+            .where('mission_id', '==', missionId)
+            .orderBy('submitted_at', 'desc')
+            .get();
+        // Get all users to map user IDs to names
+        const listUsersResult = await firebaseAdmin.auth().listUsers();
+        const usersMap = new Map();
+        listUsersResult.users.forEach(user => {
+            usersMap.set(user.uid, {
+                name: user.displayName || 'Unknown',
+                email: user.email
+            });
+        });
+        const submissions = submissionsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            const user = usersMap.get(data.user_id);
+            return Object.assign({ id: doc.id, missionId: data.mission_id, userId: data.user_id, userName: (user === null || user === void 0 ? void 0 : user.name) || 'Unknown', userEmail: (user === null || user === void 0 ? void 0 : user.email) || '', status: data.status || 'pending', submittedAt: data.submitted_at, proofs: data.proofs || [], rating: data.rating || 0, ratingCount: data.rating_count || 0, reviews: data.reviews || [] }, data);
+        });
+        return res.json({
+            mission: Object.assign({ id: missionDoc.id }, missionDoc.data()),
+            submissions
+        });
+    }
+    catch (error) {
+        console.error('Error fetching mission submissions:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.get('/v1/admin/users', async (req, res) => {
+    try {
+        // Get all users from Firebase Auth
+        const listUsersResult = await firebaseAdmin.auth().listUsers();
+        // Also get users from Firestore collection if they exist
+        const usersSnapshot = await db.collection('users').get();
+        const firestoreUsers = usersSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        // Combine Firebase Auth users with Firestore user data
+        const users = listUsersResult.users.map((authUser) => {
+            const firestoreUser = firestoreUsers.find((u) => u.id === authUser.uid);
+            return Object.assign({ id: authUser.uid, email: authUser.email, name: authUser.displayName || 'Unknown', role: (firestoreUser === null || firestoreUser === void 0 ? void 0 : firestoreUser.role) || 'user', status: authUser.disabled ? 'suspended' : 'active', createdAt: new Date(authUser.metadata.creationTime).toISOString(), lastLogin: authUser.metadata.lastSignInTime ? new Date(authUser.metadata.lastSignInTime).toISOString() : null, totalSubmissions: (firestoreUser === null || firestoreUser === void 0 ? void 0 : firestoreUser.totalSubmissions) || 0, approvedSubmissions: (firestoreUser === null || firestoreUser === void 0 ? void 0 : firestoreUser.approvedSubmissions) || 0, totalEarned: (firestoreUser === null || firestoreUser === void 0 ? void 0 : firestoreUser.totalEarned) || 0, reputation: (firestoreUser === null || firestoreUser === void 0 ? void 0 : firestoreUser.reputation) || 0, missionsCreated: (firestoreUser === null || firestoreUser === void 0 ? void 0 : firestoreUser.missionsCreated) || 0, missionsCompleted: (firestoreUser === null || firestoreUser === void 0 ? void 0 : firestoreUser.missionsCompleted) || 0 }, firestoreUser // Include any additional Firestore data
+            );
+        });
+        res.json(users);
+    }
+    catch (error) {
+        console.error('Error fetching admin users:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.get('/v1/submissions', async (req, res) => {
+    try {
+        const { status, page = 1, limit = 20 } = req.query;
+        // Get submissions for review
+        let query = db.collection('mission_submissions')
+            .orderBy('submitted_at', 'desc');
+        if (status) {
+            query = query.where('status', '==', status);
+        }
+        const submissionsSnapshot = await query
+            .limit(parseInt(limit))
+            .get();
+        const submissions = submissionsSnapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        res.json({
+            data: submissions,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total: submissions.length,
+                totalPages: Math.ceil(submissions.length / parseInt(limit))
+            }
+        });
+    }
+    catch (error) {
+        console.error('Error fetching submissions:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.get('/v1/admin/analytics/overview', async (req, res) => {
+    try {
+        // Get analytics overview for admin
+        const missionsSnapshot = await db.collection('missions').get();
+        const submissionsSnapshot = await db.collection('mission_submissions').get();
+        // Get total users from Firebase Auth
+        const listUsersResult = await firebaseAdmin.auth().listUsers();
+        const totalUsers = listUsersResult.users.length;
+        const totalMissions = missionsSnapshot.size;
+        const totalSubmissions = submissionsSnapshot.size;
+        // Calculate active missions
+        const activeMissions = missionsSnapshot.docs.filter(doc => {
+            const data = doc.data();
+            return data.status === 'active';
+        }).length;
+        // Calculate total revenue from missions
+        let totalRevenue = 0;
+        missionsSnapshot.docs.forEach(doc => {
+            var _a;
+            const data = doc.data();
+            if ((_a = data.rewards) === null || _a === void 0 ? void 0 : _a.usd) {
+                totalRevenue += data.rewards.usd;
+            }
+        });
+        // Calculate platform fee (25% of total revenue)
+        const platformFee = totalRevenue * 0.25;
+        // Calculate average completion rate (mock for now)
+        const averageCompletionRate = totalSubmissions > 0 ? 75 : 0;
+        res.json({
+            totalRevenue,
+            totalMissions,
+            totalUsers,
+            totalSubmissions,
+            activeMissions,
+            averageCompletionRate,
+            platformFee,
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('Error fetching analytics overview:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.get('/v1/admin/analytics/revenue', async (req, res) => {
+    try {
+        const { period = '30d' } = req.query;
+        // Generate mock revenue data based on period
+        const revenueData = [];
+        const now = new Date();
+        if (period === '7d') {
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                revenueData.push({
+                    date: date.toISOString().split('T')[0],
+                    revenue: Math.random() * 1000 + 500
+                });
+            }
+        }
+        else if (period === '30d') {
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                revenueData.push({
+                    date: date.toISOString().split('T')[0],
+                    revenue: Math.random() * 2000 + 1000
+                });
+            }
+        }
+        else if (period === '90d') {
+            for (let i = 89; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                revenueData.push({
+                    date: date.toISOString().split('T')[0],
+                    revenue: Math.random() * 3000 + 1500
+                });
+            }
+        }
+        res.json({
+            daily: revenueData,
+            monthly: revenueData.filter((_, index) => index % 7 === 0) // Sample monthly data
+        });
+    }
+    catch (error) {
+        console.error('Error fetching revenue data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.get('/v1/admin/analytics/user-growth', async (req, res) => {
+    try {
+        // const { period = '30d' } = req.query;
+        // Generate mock user growth data
+        const growthData = [];
+        const now = new Date();
+        let totalUsers = 0;
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - i);
+            const newUsers = Math.floor(Math.random() * 10) + 1;
+            totalUsers += newUsers;
+            growthData.push({
+                date: date.toISOString().split('T')[0],
+                users: totalUsers,
+                newUsers
+            });
+        }
+        res.json(growthData);
+    }
+    catch (error) {
+        console.error('Error fetching user growth data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.get('/v1/admin/analytics/platform-performance', async (req, res) => {
+    try {
+        // Get platform performance data from missions
+        const missionsSnapshot = await db.collection('missions').get();
+        const platformStats = {};
+        missionsSnapshot.docs.forEach(doc => {
+            var _a;
+            const data = doc.data();
+            const platform = data.platform;
+            if (!platformStats[platform]) {
+                platformStats[platform] = {
+                    platform,
+                    missions: 0,
+                    submissions: 0,
+                    revenue: 0,
+                    completionRate: 0
+                };
+            }
+            platformStats[platform].missions += 1;
+            platformStats[platform].submissions += data.submissions_count || 0;
+            platformStats[platform].revenue += ((_a = data.rewards) === null || _a === void 0 ? void 0 : _a.usd) || 0;
+        });
+        // Calculate completion rates (mock for now)
+        Object.values(platformStats).forEach((stat) => {
+            stat.completionRate = Math.random() * 30 + 60; // 60-90% completion rate
+        });
+        res.json(Object.values(platformStats));
+    }
+    catch (error) {
+        console.error('Error fetching platform performance:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.get('/v1/admin/analytics/mission-performance', async (req, res) => {
+    try {
+        // const { period = '30d' } = req.query;
+        // Get mission performance data
+        const missionsSnapshot = await db.collection('missions')
+            .orderBy('created_at', 'desc')
+            .limit(20)
+            .get();
+        const missionPerformance = missionsSnapshot.docs.map(doc => {
+            var _a;
+            const data = doc.data();
+            return {
+                missionId: doc.id,
+                title: data.title,
+                platform: data.platform,
+                submissions: data.submissions_count || 0,
+                approved: Math.floor((data.submissions_count || 0) * 0.8),
+                revenue: ((_a = data.rewards) === null || _a === void 0 ? void 0 : _a.usd) || 0,
+                completionRate: Math.random() * 30 + 60 // 60-90% completion rate
+            };
+        });
+        res.json(missionPerformance);
+    }
+    catch (error) {
+        console.error('Error fetching mission performance:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.get('/v1/admin/system-config', async (req, res) => {
+    try {
+        // Get system configuration
+        const configDoc = await db.collection('system_config').doc('main').get();
+        if (!configDoc.exists) {
+            // Return default config if none exists
+            const defaultConfig = {
+                platform: {
+                    name: 'Ensei Platform',
+                    version: '1.0.0',
+                    environment: 'production',
+                    maintenanceMode: false
+                },
+                pricing: {
+                    honorsPerUsd: 450,
+                    premiumMultiplier: 5,
+                    platformFeeRate: 0.25,
+                    userPoolFactor: 1.2
+                },
+                limits: {
+                    maxMissionsPerUser: 20,
+                    maxSubmissionsPerMission: 500,
+                    maxReviewersPerSubmission: 3,
+                    reviewTimeoutHours: 48
+                },
+                notifications: {
+                    emailEnabled: true,
+                    pushEnabled: true,
+                    smsEnabled: false
+                }
+            };
+            res.json(defaultConfig);
+            return;
+        }
+        res.json(configDoc.data());
+    }
+    catch (error) {
+        console.error('Error fetching system config:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+app.post('/v1/admin/system-config', async (req, res) => {
+    try {
+        // Update system configuration
+        const configData = req.body;
+        await db.collection('system_config').doc('main').set(configData, { merge: true });
+        res.json({ success: true, message: 'System configuration updated' });
+    }
+    catch (error) {
+        console.error('Error updating system config:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Task submission endpoints
+app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (req, res) => {
+    try {
+        const missionId = req.params.id;
+        const taskId = req.params.taskId;
+        const userId = req.user.uid;
+        const { actionId, verificationData, platform, missionType } = req.body;
+        // Get mission details
+        const missionDoc = await db.collection('missions').doc(missionId).get();
+        if (!missionDoc.exists) {
+            return res.status(404).json({ error: 'Mission not found' });
+        }
+        const mission = missionDoc.data();
+        // Check if user is already participating
+        const participationQuery = await db.collection('mission_participations')
+            .where('mission_id', '==', missionId)
+            .where('user_id', '==', userId)
+            .get();
+        let participationId;
+        if (participationQuery.empty) {
+            // Create new participation
+            const participation = {
+                mission_id: missionId,
+                user_id: userId,
+                status: 'active',
+                joined_at: new Date().toISOString(),
+                tasks_completed: [],
+                total_honors_earned: 0
+            };
+            const participationRef = await db.collection('mission_participations').add(participation);
+            participationId = participationRef.id;
+            // Update mission participants count
+            await db.collection('missions').doc(missionId).update({
+                participants_count: firebaseAdmin.firestore.FieldValue.increment(1),
+                updated_at: new Date().toISOString()
+            });
+        }
+        else {
+            participationId = participationQuery.docs[0].id;
+        }
+        // Handle task completion based on action type
+        let taskResult = null;
+        if (actionId.includes('auto_')) {
+            // Handle automatic actions (like, retweet, follow)
+            const action = actionId.replace('auto_', '');
+            if (platform === 'twitter') {
+                const tweetId = extractTweetIdFromUrl(mission.tweetLink || mission.contentLink);
+                if (tweetId) {
+                    taskResult = await handleTwitterAction(action, tweetId, userId);
+                }
+            }
+            else if (platform === 'instagram') {
+                const postId = extractPostIdFromUrl(mission.contentLink);
+                if (postId) {
+                    taskResult = await handleInstagramAction(action, postId, userId);
+                }
+            }
+        }
+        // Create task completion record
+        const taskCompletion = {
+            task_id: taskId,
+            action_id: actionId,
+            completed_at: new Date().toISOString(),
+            verification_data: verificationData,
+            api_result: taskResult,
+            status: 'completed'
+        };
+        // Update participation with completed task
+        const participationDoc = await db.collection('mission_participations').doc(participationId).get();
+        const currentData = participationDoc.data();
+        const tasksCompleted = (currentData === null || currentData === void 0 ? void 0 : currentData.tasks_completed) || [];
+        // Check if task is already completed
+        const existingTask = tasksCompleted.find((t) => t.task_id === taskId);
+        if (existingTask) {
+            return res.status(400).json({ error: 'Task already completed' });
+        }
+        tasksCompleted.push(taskCompletion);
+        // Calculate honors earned for this task
+        const taskHonors = calculateTaskHonors(platform, missionType, taskId);
+        const totalHonors = ((currentData === null || currentData === void 0 ? void 0 : currentData.total_honors_earned) || 0) + taskHonors;
+        await db.collection('mission_participations').doc(participationId).update({
+            tasks_completed: tasksCompleted,
+            total_honors_earned: totalHonors,
+            updated_at: new Date().toISOString()
+        });
+        res.json({
+            success: true,
+            task_completion: taskCompletion,
+            honors_earned: taskHonors,
+            total_honors: totalHonors
+        });
+    }
+    catch (error) {
+        console.error('Error completing task:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Helper functions
+const extractTweetIdFromUrl = (url) => {
+    if (!url)
+        return null;
+    const match = url.match(/twitter\.com\/\w+\/status\/(\d+)/);
+    return match ? match[1] : null;
+};
+const extractPostIdFromUrl = (url) => {
+    if (!url)
+        return null;
+    const match = url.match(/instagram\.com\/p\/([^\/]+)/);
+    return match ? match[1] : null;
+};
+const calculateTaskHonors = (platform, missionType, taskId) => {
+    var _a, _b;
+    // This should match the TASK_PRICES from the frontend
+    const taskPrices = {
+        twitter: {
+            engage: {
+                like: 50,
+                retweet: 100,
+                comment: 150,
+                quote: 200,
+                follow: 250
+            },
+            content: {
+                meme: 300,
+                thread: 500,
+                article: 400,
+                videoreview: 600
+            },
+            ambassador: {
+                pfp: 250,
+                name_bio_keywords: 200,
+                pinned_tweet: 300,
+                poll: 150,
+                spaces: 800,
+                community_raid: 400
+            }
+        },
+        instagram: {
+            engage: {
+                like: 50,
+                comment: 150,
+                follow: 250,
+                story_repost: 200
+            },
+            content: {
+                feed_post: 300,
+                reel: 500,
+                carousel: 400,
+                meme: 250
+            },
+            ambassador: {
+                pfp: 250,
+                hashtag_in_bio: 200,
+                story_highlight: 300
+            }
+        }
+    };
+    return ((_b = (_a = taskPrices[platform]) === null || _a === void 0 ? void 0 : _a[missionType]) === null || _b === void 0 ? void 0 : _b[taskId]) || 0;
+};
 // Export the Express app as a Firebase Function
 exports.api = functions.https.onRequest(app);
 // Export individual functions for better performance

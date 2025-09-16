@@ -56,11 +56,11 @@ export default function WalletPage() {
 
   return (
     <ModernLayout currentPage="/wallet">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-2 py-2">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Wallet</h1>
-          <p className="text-sm sm:text-base text-gray-400">Manage your Honors balance and transaction history</p>
+        <div className="text-left mb-2">
+          <h1 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-1">Wallet</h1>
+          <p className="text-gray-400 text-xs">Manage your Honors balance and transaction history</p>
         </div>
 
         {/* Balance Cards */}

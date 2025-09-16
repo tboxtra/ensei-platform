@@ -192,13 +192,45 @@ export function useApi() {
                     throw new Error('Rate limit exceeded. Please wait a moment and try again.');
                 }
                 if (response.status === 401) {
-                    console.log('API: Received 401 Unauthorized, clearing tokens');
-                    // Clear invalid token
+                    console.log('API: Received 401 Unauthorized, attempting token refresh');
+
+                    try {
+                        // Try to refresh the token using Firebase Auth
+                        const { getFirebaseAuth } = await import('../lib/firebase');
+                        const auth = getFirebaseAuth();
+                        const currentUser = auth.currentUser;
+
+                        if (currentUser) {
+                            const newToken = await currentUser.getIdToken(true); // Force refresh
+                            localStorage.setItem('firebaseToken', newToken);
+                            console.log('Token refreshed successfully, retrying request');
+
+                            // Retry the request with the new token
+                            const retryHeaders = {
+                                ...headers,
+                                'Authorization': `Bearer ${newToken}`
+                            };
+
+                            const retryResponse = await fetch(fullUrl, {
+                                headers: retryHeaders,
+                                ...options,
+                            });
+
+                            if (retryResponse.ok) {
+                                return await retryResponse.json();
+                            }
+                        }
+                    } catch (refreshError) {
+                        console.error('Token refresh failed:', refreshError);
+                    }
+
+                    // If refresh failed or no current user, clear auth data
+                    console.log('API: Token refresh failed, clearing tokens');
                     if (typeof window !== 'undefined') {
                         localStorage.removeItem('firebaseToken');
                         localStorage.removeItem('user');
                     }
-                    throw new Error('Authentication failed. Please log in again.');
+                    throw new Error('Authentication expired. Please log in again.');
                 }
                 if (response.status === 0 || !response.status) {
                     throw new Error('Network error: Unable to connect to server. Please check your internet connection.');
@@ -346,6 +378,18 @@ export function useApi() {
         });
     }, [makeRequest]);
 
+    const completeTask = useCallback(async (missionId: string, taskId: string, actionId: string, verificationData?: any, platform?: string, missionType?: string): Promise<any> => {
+        return makeRequest(`/v1/missions/${missionId}/tasks/${taskId}/complete`, {
+            method: 'POST',
+            body: JSON.stringify({
+                actionId,
+                verificationData,
+                platform,
+                missionType
+            }),
+        });
+    }, [makeRequest]);
+
     const uploadFile = useCallback(async (file: File): Promise<any> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -468,6 +512,7 @@ export function useApi() {
         submitMission,
         submitMissionWithFiles,
         participateInMission,
+        completeTask,
         getSubmissions,
         getMissionSubmissions,
         reviewSubmission,

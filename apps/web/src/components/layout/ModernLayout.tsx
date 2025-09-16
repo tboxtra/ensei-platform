@@ -13,7 +13,13 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     const [user, setUser] = useState<any>(null);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const { logout } = useApi();
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [quickStats, setQuickStats] = useState({
+        missionsCreated: 0,
+        missionsCompleted: 0,
+        totalEarned: 0
+    });
+    const { logout, getMissions } = useApi();
 
     useEffect(() => {
         const userData = localStorage.getItem('user');
@@ -21,6 +27,56 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
             setUser(JSON.parse(userData));
         }
         setIsLoading(false);
+    }, []);
+
+    // Fetch quick stats data
+    useEffect(() => {
+        const fetchQuickStats = async () => {
+            if (!user) return;
+
+            try {
+                const allMissions = await getMissions();
+
+                const userMissions = allMissions?.filter((mission: any) =>
+                    mission.created_by === user.id
+                ) || [];
+
+                const participatedMissions = allMissions?.filter((mission: any) =>
+                    mission.participants?.some((participant: any) => participant.id === user.id)
+                ) || [];
+
+                const missionsCreated = userMissions.length;
+                const missionsCompleted = participatedMissions.filter((mission: any) =>
+                    mission.status === 'completed' || mission.status === 'ended'
+                ).length;
+
+                const totalEarned = participatedMissions.reduce((total: number, mission: any) => {
+                    const participant = mission.participants?.find((p: any) => p.id === user.id);
+                    return total + (participant?.honors_earned || 0);
+                }, 0);
+
+                setQuickStats({
+                    missionsCreated,
+                    missionsCompleted,
+                    totalEarned
+                });
+            } catch (error) {
+                console.error('Error fetching quick stats:', error);
+            }
+        };
+
+        fetchQuickStats();
+    }, [user, getMissions]);
+
+    // Scroll detection for mobile full-screen UI
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            setIsScrolled(scrollTop > 50);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     const navigation = [
@@ -88,7 +144,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
             {/* Modern Header */}
-            <div className="bg-black/50 backdrop-blur-lg border-b border-gray-800/50 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-50">
+            <div className="bg-gray-800/40 backdrop-blur-lg px-4 sm:px-6 py-2 sm:py-3 lg:sticky lg:top-0 z-50 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                 <div className="flex justify-between items-center max-w-7xl mx-auto">
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <Link href="/dashboard" className="flex items-center space-x-2 sm:space-x-4">
@@ -134,7 +190,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                     </button>
 
                                     {showUserMenu && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-gray-800/90 backdrop-blur-lg border border-gray-700/50 rounded-lg shadow-xl z-50">
+                                        <div className="absolute right-0 mt-2 w-48 bg-gray-800/90 backdrop-blur-lg rounded-lg z-50 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
                                             <div className="py-2">
                                                 <Link
                                                     href="/profile"
@@ -182,9 +238,9 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                 </div>
             </div>
 
-            <div className="flex max-w-7xl mx-auto">
+            <div className="flex">
                 {/* Modern Sidebar */}
-                <div className="w-80 bg-black/30 backdrop-blur-lg border-r border-gray-800/50 min-h-screen p-6 sticky top-20 hidden lg:block">
+                <div className="w-56 bg-gray-800/40 backdrop-blur-lg min-h-screen p-4 fixed top-16 left-0 hidden lg:block shadow-[inset_-2px_-2px_8px_rgba(0,0,0,0.4),inset_2px_2px_8px_rgba(255,255,255,0.05)]">
                     <nav className="space-y-3">
                         {navigation.map((item) => {
                             const isActive = currentPage === item.href;
@@ -192,15 +248,15 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${isActive
-                                        ? 'text-green-400 bg-green-500/10 border border-green-500/20'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    className={`flex items-center p-2 rounded-xl transition-all duration-200 group ${isActive
+                                        ? 'text-green-400 bg-green-500/10 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)]'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.05)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.1),inset_1px_1px_1px_rgba(255,255,255,0.08)]'
                                         }`}
                                 >
-                                    <span className={`mr-3 text-lg transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+                                    <span className={`mr-2 text-base transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
                                         {item.icon}
                                     </span>
-                                    <span className="font-medium">{item.label}</span>
+                                    <span className="font-medium text-sm">{item.label}</span>
                                 </Link>
                             );
                         })}
@@ -208,20 +264,20 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
 
                     {/* Quick Stats */}
                     {user && (
-                        <div className="mt-8 p-4 bg-gray-800/30 rounded-lg border border-gray-700/50">
-                            <h3 className="text-sm font-semibold text-white mb-3">Quick Stats</h3>
-                            <div className="space-y-2 text-sm">
+                        <div className="mt-6 p-3 bg-gray-800/30 rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                            <h3 className="text-xs font-semibold text-white mb-2">Quick Stats</h3>
+                            <div className="space-y-1 text-xs">
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Missions Created:</span>
-                                    <span className="text-white">0</span>
+                                    <span className="text-white">{quickStats.missionsCreated}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Missions Completed:</span>
-                                    <span className="text-white">0</span>
+                                    <span className="text-white">{quickStats.missionsCompleted}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Total Earned:</span>
-                                    <span className="text-green-400">0 Honors</span>
+                                    <span className="text-green-400">{quickStats.totalEarned.toLocaleString()} Honors</span>
                                 </div>
                             </div>
                         </div>
@@ -229,7 +285,8 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 p-3 sm:p-4 lg:p-8">
+                <div className={`flex-1 transition-all duration-300 lg:ml-56 ${isScrolled ? 'lg:p-4 lg:p-8 p-0' : 'p-3 sm:p-4 lg:p-8'
+                    }`}>
                     {children}
                 </div>
             </div>
@@ -246,7 +303,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
             {showUserMenu && (
                 <div className="fixed inset-0 z-50 lg:hidden">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-lg" onClick={() => setShowUserMenu(false)} />
-                    <div className="absolute right-0 top-0 h-full w-72 sm:w-80 bg-gray-900/95 backdrop-blur-lg border-l border-gray-800/50 p-4 sm:p-6">
+                    <div className="absolute right-0 top-0 h-full w-72 sm:w-80 bg-gray-900/95 backdrop-blur-lg p-4 sm:p-6 shadow-[inset_-2px_-2px_8px_rgba(0,0,0,0.4),inset_2px_2px_8px_rgba(255,255,255,0.05)]">
                         <div className="flex justify-between items-center mb-6 sm:mb-8">
                             <h2 className="text-lg sm:text-xl font-bold text-white">Menu</h2>
                             <button
@@ -261,7 +318,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
 
                         {/* User Info in Mobile Menu */}
                         {user && (
-                            <div className="mb-6 p-4 bg-gray-800/30 rounded-lg border border-gray-700/50">
+                            <div className="mb-6 p-4 bg-gray-800/30 rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                                 <div className="flex items-center space-x-3 mb-3">
                                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-blue-500">
                                         <img
@@ -272,7 +329,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                     </div>
                                     <div>
                                         <div className="text-white font-medium text-sm">{user.name}</div>
-                                        <div className="text-green-400 text-xs">0 Honors</div>
+                                        <div className="text-green-400 text-xs">{quickStats.totalEarned.toLocaleString()} Honors</div>
                                     </div>
                                 </div>
                             </div>
@@ -286,8 +343,8 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                         key={item.href}
                                         href={item.href}
                                         className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${isActive
-                                            ? 'text-green-400 bg-green-500/10 border border-green-500/20'
-                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                            ? 'text-green-400 bg-green-500/10 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)]'
+                                            : 'text-gray-400 hover:text-white hover:bg-white/5 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.05)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.1),inset_1px_1px_1px_rgba(255,255,255,0.08)]'
                                             }`}
                                         onClick={() => setShowUserMenu(false)}
                                     >

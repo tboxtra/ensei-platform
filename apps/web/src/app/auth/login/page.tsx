@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
@@ -8,9 +8,11 @@ import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
 import { getFirebaseAuth, googleProvider } from '../../../lib/firebase';
 import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '../../../contexts/UserAuthContext';
 
 export default function LoginPage() {
     const router = useRouter();
+    const { user, isAuthenticated, isLoading: authLoading, login, error: authError } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -18,6 +20,14 @@ export default function LoginPage() {
     });
     const [apiError, setApiError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (!authLoading && isAuthenticated && user) {
+            console.log('User already authenticated, redirecting to dashboard');
+            router.push('/dashboard');
+        }
+    }, [isAuthenticated, authLoading, user, router]);
 
     const handleInputChange = (field: string, value: string | boolean) => {
         setFormData(prev => ({
@@ -33,40 +43,28 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const auth = getFirebaseAuth();
-            const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-            const user = userCredential.user;
+            // Use the auth context login method
+            await login(formData.email, formData.password);
 
-            // Get the ID token
-            const token = await user.getIdToken();
-
-            // Store user data in localStorage
-            localStorage.setItem('user', JSON.stringify({
-                id: user.uid,
-                email: user.email,
-                name: user.displayName || user.email?.split('@')[0] || 'User',
-                avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
-                joinedAt: new Date().toISOString()
-            }));
-
-            // Store the Firebase token
-            localStorage.setItem('firebaseToken', token);
-
-            router.push('/dashboard');
+            // The auth context will handle storing user data and tokens
+            // The useEffect above will handle redirecting to dashboard
+            console.log('Login successful via auth context');
         } catch (err: any) {
-            console.error('Firebase login failed:', err);
+            console.error('Login failed:', err);
             let errorMessage = 'Login failed';
 
-            if (err.code === 'auth/user-not-found') {
-                errorMessage = 'No account found with this email address';
-            } else if (err.code === 'auth/wrong-password') {
-                errorMessage = 'Incorrect password';
-            } else if (err.code === 'auth/invalid-email') {
-                errorMessage = 'Invalid email address';
-            } else if (err.code === 'auth/too-many-requests') {
-                errorMessage = 'Too many failed attempts. Please try again later';
-            } else if (err.message) {
-                errorMessage = err.message;
+            if (err.message) {
+                if (err.message.includes('user-not-found')) {
+                    errorMessage = 'No account found with this email address';
+                } else if (err.message.includes('wrong-password')) {
+                    errorMessage = 'Incorrect password';
+                } else if (err.message.includes('invalid-email')) {
+                    errorMessage = 'Invalid email address';
+                } else if (err.message.includes('too-many-requests')) {
+                    errorMessage = 'Too many failed attempts. Please try again later';
+                } else {
+                    errorMessage = err.message;
+                }
             }
 
             setApiError(errorMessage);
@@ -119,6 +117,20 @@ export default function LoginPage() {
             setLoading(false);
         }
     };
+
+    // Show loading while auth context is initializing
+    if (authLoading) {
+        return (
+            <ModernLayout currentPage="/auth/login">
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <p className="text-gray-400">Loading...</p>
+                    </div>
+                </div>
+            </ModernLayout>
+        );
+    }
 
     return (
         <ModernLayout currentPage="/auth/login">

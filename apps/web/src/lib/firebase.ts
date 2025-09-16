@@ -25,7 +25,7 @@ export function getFirebaseApp(): FirebaseApp {
 // Initialize Firebase services
 export const getFirebaseAuth = () => {
     const auth = getAuth(getFirebaseApp());
-    
+
     // Connect to emulator in development
     if (process.env.NODE_ENV === 'development' && !auth.emulatorConfig) {
         try {
@@ -34,28 +34,35 @@ export const getFirebaseAuth = () => {
             // Emulator already connected or not available
         }
     }
-    
+
+    // Firebase Auth automatically persists authentication state by default
+    // This includes:
+    // - User session persistence across browser tabs/windows
+    // - Automatic token refresh
+    // - Restoration of authentication state on page reload
+    console.log('Firebase Auth initialized with persistence enabled');
+
     return auth;
 };
 
 export const getFirebaseFirestore = () => {
     const firestore = getFirestore(getFirebaseApp());
-    
+
     // Connect to emulator in development
-    if (process.env.NODE_ENV === 'development' && !firestore._delegate._databaseId.projectId.includes('demo-')) {
+    if (process.env.NODE_ENV === 'development') {
         try {
             connectFirestoreEmulator(firestore, 'localhost', 8080);
         } catch (error) {
             // Emulator already connected or not available
         }
     }
-    
+
     return firestore;
 };
 
 export const getFirebaseStorage = () => {
     const storage = getStorage(getFirebaseApp());
-    
+
     // Connect to emulator in development
     if (process.env.NODE_ENV === 'development') {
         try {
@@ -64,27 +71,27 @@ export const getFirebaseStorage = () => {
             // Emulator already connected or not available
         }
     }
-    
+
     return storage;
 };
 
 // Initialize Analytics
 export const getFirebaseAnalytics = async () => {
     if (typeof window === 'undefined') return null;
-    
+
     const supported = await isSupported();
     if (!supported) return null;
-    
+
     return getAnalytics(getFirebaseApp());
 };
 
 // Initialize Messaging
 export const getFirebaseMessaging = async () => {
     if (typeof window === 'undefined') return null;
-    
+
     const supported = await isMessagingSupported();
     if (!supported) return null;
-    
+
     return getMessaging(getFirebaseApp());
 };
 

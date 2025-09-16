@@ -389,17 +389,17 @@ export default function CreateMissionPage() {
 
   return (
     <ModernLayout currentPage="/missions/create">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-2 py-2">
         {/* Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Create New Mission</h1>
-          <p className="text-sm sm:text-base text-gray-400">Design and launch your social media mission</p>
+        <div className="text-left mb-2">
+          <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-1">Create New Mission</h1>
+          <p className="text-gray-400 text-xs">Design and launch your social media mission</p>
         </div>
 
 
 
         {/* Platform Selection */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+        <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
             <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">🌐</span>
             Choose Platform
@@ -431,7 +431,7 @@ export default function CreateMissionPage() {
         </div>
 
         {/* Mission Type */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+        <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
             <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">🎯</span>
             Mission Type
@@ -463,7 +463,7 @@ export default function CreateMissionPage() {
 
         {/* Mission Model */}
         {selectedPlatform !== 'custom' && (
-          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+          <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
               <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚙️</span>
               Mission Model
@@ -514,7 +514,7 @@ export default function CreateMissionPage() {
 
         {/* Degen-specific controls */}
         {selectedPlatform !== 'custom' && selectedModel === 'degen' && (
-          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+          <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
               <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚡</span>
               Degen Settings
@@ -560,7 +560,7 @@ export default function CreateMissionPage() {
 
         {/* Fixed-specific controls */}
         {selectedPlatform !== 'custom' && selectedModel === 'fixed' && (
-          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+          <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
               <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📊</span>
               Fixed Mission Settings
@@ -659,7 +659,7 @@ export default function CreateMissionPage() {
 
         {/* Task Selection */}
         {selectedPlatform !== 'custom' && (
-          <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+          <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
               <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📋</span>
               Select Tasks
@@ -702,7 +702,7 @@ export default function CreateMissionPage() {
         )}
 
         {/* Premium Toggle */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+        <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
             <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">👑</span>
             Target Audience
@@ -734,7 +734,7 @@ export default function CreateMissionPage() {
         </div>
 
         {/* Mission Details */}
-        <div className="bg-black/40 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800/50">
+        <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
             <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📝</span>
             Mission Details
@@ -832,17 +832,43 @@ export default function CreateMissionPage() {
                 }
               }
 
+              // Calculate deadline based on model
+              let deadline: string | undefined;
+              if (selectedModel === 'degen') {
+                // For degen missions, deadline is based on the selected preset
+                const deadlineHours = selectedDegenPreset.hours;
+                deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
+              } else if (selectedModel === 'fixed') {
+                // For fixed missions, deadline is based on duration
+                deadline = new Date(Date.now() + duration * 60 * 60 * 1000).toISOString();
+              }
+
               const missionData = {
                 platform: selectedPlatform,
                 type: selectedType,
                 model: selectedModel as 'fixed' | 'degen',
                 tasks: selectedTasks,
                 cap: selectedPlatform === 'custom' ? 100 : (selectedModel === 'fixed' ? cap : undefined),
+                max_participants: selectedPlatform === 'custom' ? 100 : (selectedModel === 'fixed' ? cap : winnersCap),
                 durationHours: selectedPlatform === 'custom' ? Math.ceil(customTimeMinutes / 60) : (selectedModel === 'fixed' ? duration : undefined),
                 winnersCap: selectedModel === 'degen' ? winnersCap : undefined,
                 isPremium,
                 tweetLink: contentLink,
                 instructions,
+                // Include calculated cost and deadline
+                rewards: {
+                  honors: totalPrice.honors,
+                  usd: totalPrice.usd
+                },
+                total_cost_honors: totalPrice.honors,
+                deadline: deadline,
+                // Add title and description
+                title: selectedPlatform === 'custom' ? customTitle : `${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} Mission`,
+                description: selectedPlatform === 'custom' ? customDescription : instructions,
+                category: selectedType,
+                difficulty: 'beginner' as const,
+                requirements: ['Complete all required tasks', 'Follow mission instructions'],
+                deliverables: ['Proof of completion', 'Screenshots if required'],
                 // Custom platform data
                 ...(selectedPlatform === 'custom' && {
                   customSpec: {

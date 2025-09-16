@@ -99,7 +99,7 @@ class ApiClient {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
-    return this.request(`/v1/missions?${queryParams}`);
+    return this.request(`/v1/admin/missions?${queryParams}`);
   }
 
   async getMission(id: string): Promise<ApiResponse<any>> {
@@ -111,6 +111,23 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ status })
     });
+  }
+
+  async pauseMission(missionId: string, isPaused: boolean): Promise<ApiResponse<any>> {
+    return this.request(`/v1/admin/missions/${missionId}/pause`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isPaused })
+    });
+  }
+
+  async deleteMission(missionId: string): Promise<ApiResponse<any>> {
+    return this.request(`/v1/admin/missions/${missionId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getMissionSubmissions(missionId: string): Promise<ApiResponse<any>> {
+    return this.request(`/v1/admin/missions/${missionId}/submissions`);
   }
 
   // Users API

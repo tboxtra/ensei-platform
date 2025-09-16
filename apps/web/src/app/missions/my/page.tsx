@@ -5,15 +5,27 @@ import { useApi } from '../../../hooks/useApi';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
+import { MissionListItem } from '../../../components/ui/MissionListItem';
+import { FilterBar } from '../../../components/ui/FilterBar';
+import { StatsCard } from '../../../components/ui/StatsCard';
 
 export default function MyMissionsPage() {
     const { getMyMissions, loading, error } = useApi();
     const [missions, setMissions] = useState<any[]>([]);
     const [filteredMissions, setFilteredMissions] = useState<any[]>([]);
-    const [selectedStatus, setSelectedStatus] = useState('all');
-    const [selectedPlatform, setSelectedPlatform] = useState('all');
-    const [selectedType, setSelectedType] = useState('all');
-    const [sortBy, setSortBy] = useState('created');
+    // Filter state
+    const [filters, setFilters] = useState({
+        type: 'all',
+        model: 'all',
+        platform: 'all',
+        status: 'all',
+        showEnded: false,
+        sortBy: 'created'
+    });
+
+    const handleFilterChange = (filter: string, value: string) => {
+        setFilters(prev => ({ ...prev, [filter]: value }));
+    };
 
     useEffect(() => {
         loadMyMissions();
@@ -21,7 +33,7 @@ export default function MyMissionsPage() {
 
     useEffect(() => {
         filterAndSortMissions();
-    }, [missions, selectedStatus, selectedPlatform, selectedType, sortBy]);
+    }, [missions, filters]);
 
     const loadMyMissions = async () => {
         try {
@@ -35,21 +47,47 @@ export default function MyMissionsPage() {
 
     const filterAndSortMissions = () => {
         let filtered = missions.filter(mission => {
-            if (selectedStatus !== 'all' && mission.status !== selectedStatus) return false;
-            if (selectedPlatform !== 'all' && mission.platform !== selectedPlatform) return false;
-            if (selectedType !== 'all' && mission.type !== selectedType) return false;
+            // Apply regular filters
+            if (filters.status !== 'all' && mission.status !== filters.status) return false;
+            if (filters.platform !== 'all' && mission.platform !== filters.platform) return false;
+            if (filters.type !== 'all' && mission.type !== filters.type) return false;
+            if (filters.model !== 'all' && mission.model !== filters.model) return false;
+
+            // Mission expiration logic - only hide if showEnded is false
+            if (!filters.showEnded) {
+                if (mission.model?.toLowerCase() === 'degen') {
+                    // For degen missions: hide if deadline has passed
+                    if (mission.deadline) {
+                        const deadline = new Date(mission.deadline);
+                        const now = new Date();
+                        if (deadline.getTime() <= now.getTime()) {
+                            return false; // Hide expired degen missions
+                        }
+                    }
+                } else if (mission.model?.toLowerCase() === 'fixed') {
+                    // For fixed missions: hide if participant cap is reached
+                    const currentParticipants = mission.participants_count || mission.participants || 0;
+                    const maxParticipants = mission.max_participants || mission.cap || 0;
+                    if (maxParticipants > 0 && currentParticipants >= maxParticipants) {
+                        return false; // Hide fixed missions that have reached their cap
+                    }
+                }
+            }
+
             return true;
         });
 
         // Sort missions
         filtered.sort((a, b) => {
-            switch (sortBy) {
+            switch (filters.sortBy) {
                 case 'created':
                     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                 case 'reward':
                     return (b.total_cost_honors || 0) - (a.total_cost_honors || 0);
                 case 'participants':
-                    return (b.participants || 0) - (a.participants || 0);
+                    return (b.participants_count || 0) - (a.participants_count || 0);
+                case 'deadline':
+                    return new Date(a.deadline || 0).getTime() - new Date(b.deadline || 0).getTime();
                 default:
                     return 0;
             }
@@ -73,19 +111,27 @@ export default function MyMissionsPage() {
         }
     };
 
-    const getPlatformIcon = (platform: string) => {
-        const icons: { [key: string]: string } = {
-            twitter: '𝕏',
-            instagram: '📸',
-            tiktok: '🎵',
-            facebook: '📘',
-            whatsapp: '💬',
-            snapchat: '👻',
-            telegram: '📱',
-            custom: '⚡'
-        };
-        return icons[platform] || '🌐';
+    const handleEditMission = (missionId: string) => {
+        console.log('Editing mission:', missionId);
+        // TODO: Navigate to edit mission page
     };
+
+    const handleViewDetails = (missionId: string) => {
+        console.log('Viewing details for mission:', missionId);
+        // TODO: Navigate to mission details page
+    };
+
+    const handleDeleteMission = (missionId: string) => {
+        console.log('Deleting mission:', missionId);
+        // TODO: Implement delete mission logic
+    };
+
+    // Calculate stats
+    const totalMissions = missions.length;
+    const activeMissions = missions.filter(m => m.status === 'active').length;
+    const completedMissions = missions.filter(m => m.status === 'completed').length;
+    const totalRewards = missions.reduce((sum, mission) => sum + (mission.total_cost_honors || 0), 0);
+    const totalParticipants = missions.reduce((sum, mission) => sum + (mission.participants_count || 0), 0);
 
     if (loading) {
         return (
@@ -102,217 +148,151 @@ export default function MyMissionsPage() {
 
     return (
         <ModernLayout currentPage="/missions/my">
-            <div className="max-w-7xl mx-auto">
+            <div className="container mx-auto px-2 py-2">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 via-emerald-500 to-blue-500 bg-clip-text text-transparent mb-4">
+                <div className="text-left mb-2">
+                    <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-1">
                         My Missions
                     </h1>
-                    <p className="text-gray-400 text-lg">
-                        Manage and track your mission campaigns
-                    </p>
+                    <p className="text-gray-400 text-xs">Manage and track your created missions</p>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl p-6 border border-green-500/30">
-                        <div className="text-3xl font-bold text-green-400 mb-2">
-                            {missions.length}
-                        </div>
-                        <div className="text-sm text-gray-400">Total Missions</div>
+                {/* Stats Cards */}
+                {totalMissions > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <StatsCard
+                            title="Total Missions"
+                            value={totalMissions}
+                            icon="📋"
+                            description="Created by you"
+                        />
+                        <StatsCard
+                            title="Active Missions"
+                            value={activeMissions}
+                            icon="⚡"
+                            description="Currently running"
+                        />
+                        <StatsCard
+                            title="Total Participants"
+                            value={totalParticipants}
+                            icon="👥"
+                            description="Across all missions"
+                        />
+                        <StatsCard
+                            title="Total Rewards"
+                            value={`${totalRewards.toLocaleString()} Honors`}
+                            icon="💰"
+                            description="Distributed"
+                        />
                     </div>
-                    <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-lg rounded-2xl p-6 border border-blue-500/30">
-                        <div className="text-3xl font-bold text-blue-400 mb-2">
-                            {missions.filter(m => m.status === 'active').length}
-                        </div>
-                        <div className="text-sm text-gray-400">Active</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-lg rounded-2xl p-6 border border-orange-500/30">
-                        <div className="text-3xl font-bold text-orange-400 mb-2">
-                            {missions.filter(m => m.status === 'completed').length}
-                        </div>
-                        <div className="text-sm text-gray-400">Completed</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-6 border border-purple-500/30">
-                        <div className="text-3xl font-bold text-purple-400 mb-2">
-                            {missions.reduce((total, m) => total + (m.total_cost_honors || 0), 0).toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-400">Total Rewards</div>
-                    </div>
-                </div>
+                )}
 
                 {/* Filters */}
                 <div className="mb-8">
-                    <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {/* Status Filter */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
-                                <select
-                                    value={selectedStatus}
-                                    onChange={(e) => setSelectedStatus(e.target.value)}
-                                    className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                >
-                                    <option value="all">All Status</option>
-                                    <option value="active">Active</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="draft">Draft</option>
-                                    <option value="paused">Paused</option>
-                                </select>
-                            </div>
+                    <FilterBar
+                        filters={filters}
+                        onFilterChange={handleFilterChange}
+                        showPlatform={true}
+                        showStatus={true}
+                        showType={true}
+                        showModel={true}
+                        showSort={true}
+                    />
+                </div>
 
-                            {/* Platform Filter */}
+                {/* Quick Actions */}
+                <div className="mb-8">
+                    <ModernCard>
+                        <div className="flex flex-wrap gap-4 items-center justify-between">
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Platform</label>
-                                <select
-                                    value={selectedPlatform}
-                                    onChange={(e) => setSelectedPlatform(e.target.value)}
-                                    className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                >
-                                    <option value="all">All Platforms</option>
-                                    <option value="twitter">Twitter/X</option>
-                                    <option value="instagram">Instagram</option>
-                                    <option value="tiktok">TikTok</option>
-                                    <option value="facebook">Facebook</option>
-                                    <option value="whatsapp">WhatsApp</option>
-                                    <option value="snapchat">Snapchat</option>
-                                    <option value="telegram">Telegram</option>
-                                    <option value="custom">Custom</option>
-                                </select>
+                                <h3 className="text-lg font-semibold text-white mb-2">Quick Actions</h3>
+                                <p className="text-gray-400 text-sm">Manage your missions efficiently</p>
                             </div>
-
-                            {/* Type Filter */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Type</label>
-                                <select
-                                    value={selectedType}
-                                    onChange={(e) => setSelectedType(e.target.value)}
-                                    className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            <div className="flex gap-3 items-center">
+                                <label className="flex items-center gap-2 text-sm text-gray-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.showEnded}
+                                        onChange={(e) => handleFilterChange('showEnded', e.target.checked.toString())}
+                                        className="rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500"
+                                    />
+                                    Show Ended Missions
+                                </label>
+                                <ModernButton
+                                    onClick={() => window.location.href = '/missions/create'}
+                                    variant="primary"
                                 >
-                                    <option value="all">All Types</option>
-                                    <option value="engage">Engage</option>
-                                    <option value="content">Content</option>
-                                    <option value="ambassador">Ambassador</option>
-                                </select>
-                            </div>
-
-                            {/* Sort Filter */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Sort By</label>
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    Create New Mission
+                                </ModernButton>
+                                <ModernButton
+                                    onClick={() => loadMyMissions()}
+                                    variant="secondary"
                                 >
-                                    <option value="created">Created Date</option>
-                                    <option value="reward">Reward</option>
-                                    <option value="participants">Participants</option>
-                                </select>
+                                    Refresh
+                                </ModernButton>
                             </div>
                         </div>
-                    </div>
+                    </ModernCard>
                 </div>
 
                 {/* Missions List */}
-                {error ? (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-8 text-center">
-                        <div className="text-red-400 text-6xl mb-4">⚠️</div>
-                        <h2 className="text-2xl font-bold text-red-400 mb-4">Unable to Load Missions</h2>
-                        <p className="text-gray-300 mb-6">
-                            There was an error loading your missions. Please try again later.
-                        </p>
-                        <ModernButton
-                            onClick={() => loadMyMissions()}
-                            variant="primary"
-                            loading={loading}
-                        >
-                            Try Again
-                        </ModernButton>
+                {filteredMissions.length > 0 ? (
+                    <div className="space-y-3">
+                        {/* List Header */}
+                        <div className="bg-gray-800/50 rounded-lg p-3">
+                            <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-400">
+                                <div className="col-span-1">Mission</div>
+                                <div className="col-span-1">Date</div>
+                                <div className="col-span-1">Cost</div>
+                                <div className="col-span-1">Clicks</div>
+                                <div className="col-span-1">Status</div>
+                                <div className="col-span-1">Details</div>
+                            </div>
+                        </div>
+
+                        {/* Mission Items */}
+                        {filteredMissions.map((mission) => (
+                            <MissionListItem
+                                key={mission.id}
+                                mission={mission}
+                                onViewDetails={handleViewDetails}
+                            />
+                        ))}
                     </div>
-                ) : filteredMissions.length === 0 ? (
-                    <div className="text-center py-12">
-                        <div className="text-gray-400 text-6xl mb-4">📋</div>
-                        <h3 className="text-xl font-semibold text-gray-300 mb-2">No Missions Found</h3>
-                        <p className="text-gray-400 mb-6">
-                            {missions.length === 0
-                                ? "You haven't created any missions yet."
-                                : "Try adjusting your filters to see more missions."
-                            }
-                        </p>
-                        {missions.length === 0 && (
-                            <ModernButton
-                                onClick={() => window.location.href = '/missions/create'}
-                                variant="primary"
-                            >
-                                Create Your First Mission
-                            </ModernButton>
-                        )}
+                ) : missions.length === 0 ? (
+                    /* Empty state when no missions exist */
+                    <div className="max-w-2xl mx-auto">
+                        <ModernCard className="text-center">
+                            <div className="text-gray-400 text-6xl mb-4">📋</div>
+                            <h2 className="text-2xl font-bold text-white mb-4">No Missions Created Yet</h2>
+                            <p className="text-gray-400 mb-6">You haven't created any missions yet. Start by creating your first mission to engage with the community!</p>
+                            <div className="flex gap-4 justify-center">
+                                <ModernButton onClick={() => loadMyMissions()} variant="secondary">Refresh</ModernButton>
+                                <ModernButton onClick={() => window.location.href = '/missions/create'} variant="primary">Create Your First Mission</ModernButton>
+                            </div>
+                        </ModernCard>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredMissions.map((mission) => (
-                            <ModernCard key={mission.id} className="p-6">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="text-2xl">
-                                            {getPlatformIcon(mission.platform)}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-semibold text-white text-lg">{mission.title}</h3>
-                                            <p className="text-gray-400 text-sm capitalize">{mission.platform} • {mission.type}</p>
-                                        </div>
-                                    </div>
-                                    <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(mission.status)}`}>
-                                        {mission.status}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 mb-6">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Reward</span>
-                                        <span className="text-green-400 font-semibold">
-                                            {mission.total_cost_honors?.toLocaleString() || 0} Honors
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Participants</span>
-                                        <span className="text-white">
-                                            {mission.participants || 0}/{mission.cap || 0}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Submissions</span>
-                                        <span className="text-white">
-                                            {mission.approved_submissions || 0}/{mission.submissions || 0}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Completion Rate</span>
-                                        <span className="text-white">
-                                            {mission.completion_rate || 0}%
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="flex space-x-2">
-                                    <ModernButton
-                                        variant="primary"
-                                        className="flex-1"
-                                        onClick={() => window.location.href = `/missions/${mission.id}`}
-                                    >
-                                        View Details
-                                    </ModernButton>
-                                    {mission.status === 'active' && (
-                                        <ModernButton
-                                            variant="secondary"
-                                            onClick={() => window.location.href = `/missions/${mission.id}/participate`}
-                                        >
-                                            Manage
-                                        </ModernButton>
-                                    )}
-                                </div>
-                            </ModernCard>
-                        ))}
+                    /* No missions match filters */
+                    <div className="text-center py-12">
+                        <div className="text-gray-400 text-6xl mb-4">🔍</div>
+                        <h3 className="text-xl font-bold text-white mb-2">No missions match your filters</h3>
+                        <p className="text-gray-400 mb-4">Try adjusting your filter criteria</p>
+                        <ModernButton
+                            onClick={() => {
+                                setFilters({
+                                    type: 'all',
+                                    model: 'all',
+                                    platform: 'all',
+                                    status: 'all',
+                                    showEnded: false,
+                                    sortBy: 'created'
+                                });
+                            }}
+                            variant="secondary"
+                        >
+                            Clear Filters
+                        </ModernButton>
                     </div>
                 )}
             </div>

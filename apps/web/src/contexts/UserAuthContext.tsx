@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getFirebaseAuth } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { getAuthState, clearAuthState, validateAuthState } from '../lib/auth-utils';
 
 interface User {
     id: string;
@@ -44,6 +45,24 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        // First, try to restore user from localStorage while Firebase initializes
+        const restoreUserFromStorage = () => {
+            try {
+                const authState = validateAuthState();
+
+                if (authState.isAuthenticated && authState.user) {
+                    setUser(authState.user);
+                    console.log('Restored user from localStorage:', authState.user.email);
+                }
+            } catch (err) {
+                console.error('Error restoring user from localStorage:', err);
+                clearAuthState();
+            }
+        };
+
+        // Restore user immediately
+        restoreUserFromStorage();
+
         const auth = getFirebaseAuth();
 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
@@ -69,15 +88,16 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                     // Store user data
                     localStorage.setItem('user', JSON.stringify(userData));
                     setUser(userData);
+                    console.log('User authenticated via Firebase:', userData.email);
                 } catch (err) {
                     console.error('Error getting Firebase token:', err);
                     setError('Failed to get authentication token');
                 }
             } else {
-                // User is signed out
-                localStorage.removeItem('firebaseToken');
-                localStorage.removeItem('user');
+                // User is signed out - clear everything
+                clearAuthState();
                 setUser(null);
+                console.log('User signed out');
             }
             setIsLoading(false);
         });
@@ -110,8 +130,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
         } catch (err) {
             console.error('Logout error:', err);
             // Clear local storage even if logout fails
-            localStorage.removeItem('firebaseToken');
-            localStorage.removeItem('user');
+            clearAuthState();
             setUser(null);
         }
     };
@@ -123,9 +142,19 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
             if (currentUser) {
                 const token = await currentUser.getIdToken(true); // Force refresh
                 localStorage.setItem('firebaseToken', token);
+                console.log('Token refreshed successfully');
+                return token;
+            } else {
+                // No current user, clear storage
+                clearAuthState();
+                setUser(null);
+                console.log('No current user found, cleared storage');
             }
         } catch (err) {
             console.error('Token refresh error:', err);
+            // If token refresh fails, user might need to re-authenticate
+            clearAuthState();
+            setUser(null);
         }
     };
 

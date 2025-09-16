@@ -6,11 +6,11 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 export default function ReviewPage() {
   return (
     <ModernLayout currentPage="/review">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-4">Review & Earn</h1>
-        <p className="text-gray-400 text-lg">
-          Review mission submissions and earn honors for your feedback
-        </p>
+      <div className="container mx-auto px-2 py-2">
+        <div className="text-left mb-2">
+          <h1 className="text-lg font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent mb-1">Review & Earn</h1>
+          <p className="text-gray-400 text-xs">Review mission submissions and earn honors for your feedback</p>
+        </div>
       </div>
       <ReviewQueue />
     </ModernLayout>

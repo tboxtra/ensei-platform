@@ -96,14 +96,14 @@ export default function ClaimPage() {
 
     return (
         <ModernLayout currentPage="/claim">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto px-2 py-2">
                 {/* Hero Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-green-400 via-emerald-500 to-blue-500 bg-clip-text text-transparent mb-4">
+                <div className="text-left mb-2">
+                    <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 via-emerald-500 to-blue-500 bg-clip-text text-transparent mb-1">
                         Claim Rewards
                     </h1>
-                    <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-                        Claim your earned rewards from completed missions and track your earnings. Your hard work pays off!
+                    <p className="text-gray-400 text-xs">
+                        Claim your earned rewards from completed missions and track your earnings
                     </p>
                 </div>
 

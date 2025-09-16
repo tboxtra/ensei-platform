@@ -15,6 +15,8 @@ interface Mission {
   model: 'fixed' | 'degen';
   status: 'active' | 'paused' | 'completed' | 'cancelled';
   creatorId: string;
+  creatorName: string;
+  creatorEmail: string;
   createdAt: string;
   submissionsCount: number;
   approvedCount: number;
@@ -24,6 +26,8 @@ interface Mission {
   winnersCap?: number;
   cap?: number;
   durationHours?: number;
+  isPaused?: boolean;
+  tasks?: string[];
 }
 
 interface MissionFilters {
@@ -123,6 +127,44 @@ export default function MissionsPage() {
     }
   };
 
+  const handlePauseMission = async (missionId: string, isPaused: boolean) => {
+    try {
+      const response = await apiClient.pauseMission(missionId, isPaused);
+      if (response.success) {
+        loadMissions();
+      } else {
+        setError('Failed to pause/unpause mission');
+      }
+    } catch (error) {
+      setError('Error pausing/unpausing mission');
+    }
+  };
+
+  const handleDeleteMission = async (missionId: string) => {
+    if (window.confirm('Are you sure you want to permanently delete this mission? This action cannot be undone.')) {
+      try {
+        const response = await apiClient.deleteMission(missionId);
+        if (response.success) {
+          loadMissions();
+        } else {
+          setError('Failed to delete mission');
+        }
+      } catch (error) {
+        setError('Error deleting mission');
+      }
+    }
+  };
+
+  const handleViewSubmissions = (missionId: string) => {
+    // Navigate to submissions view for this mission
+    window.location.href = `/admin/review?mission=${missionId}`;
+  };
+
+  const handleViewUser = (userId: string) => {
+    // Navigate to user details
+    window.location.href = `/admin/users?user=${userId}`;
+  };
+
   return (
     <ProtectedRoute requiredPermission="missions:read">
       <div className="space-y-6">
@@ -157,6 +199,10 @@ export default function MissionsPage() {
                 key={mission.id}
                 mission={mission}
                 onStatusChange={handleMissionStatusChange}
+                onPauseMission={handlePauseMission}
+                onDeleteMission={handleDeleteMission}
+                onViewSubmissions={handleViewSubmissions}
+                onViewUser={handleViewUser}
               />
             ))}
           </div>

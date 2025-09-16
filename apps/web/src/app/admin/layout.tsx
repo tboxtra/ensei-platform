@@ -1,11 +1,10 @@
 'use client';
 
-import { useAuth } from '../../../contexts/AdminAuthContext';
+import { useAuth, AdminAuthProvider } from '@/contexts/AdminAuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Navigation } from '../../../components/admin/layout/Navigation';
-import { ProtectedRoute } from '../../../components/admin/auth/ProtectedRoute';
-import { AdminAuthProvider } from '../../../contexts/AdminAuthContext';
+import { Navigation } from '@/components/admin/layout/Navigation';
+import { ProtectedRoute } from '@/components/admin/auth/ProtectedRoute';
 
 export default function AdminLayout({
     children,
