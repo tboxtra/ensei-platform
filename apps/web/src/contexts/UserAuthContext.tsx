@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { getFirebaseAuth, sendVerificationEmail } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { getAuthState, clearAuthState, validateAuthState } from '../lib/auth-utils';
@@ -46,11 +46,21 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const isLoggingOutRef = useRef(false);
 
     useEffect(() => {
         const auth = getFirebaseAuth();
 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+            console.log('🔥 Firebase onAuthStateChanged triggered:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
+            console.log('🔄 isLoggingOut:', isLoggingOutRef.current);
+            
+            // If we're in the process of logging out, ignore Firebase auth state changes
+            if (isLoggingOutRef.current) {
+                console.log('🚫 Ignoring Firebase auth state change during logout');
+                return;
+            }
+            
             if (firebaseUser) {
                 try {
                     // Get Firebase ID token
@@ -116,9 +126,10 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                 }
             } else {
                 // User is signed out - clear everything
+                console.log('🧹 Firebase confirmed user signed out, clearing state...');
                 clearAuthState();
                 setUser(null);
-                console.log('User signed out');
+                console.log('✅ User signed out and state cleared');
             }
             setIsLoading(false);
         });
@@ -145,20 +156,42 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
 
     const logout = async () => {
         try {
+            console.log('🔄 Starting logout process...');
+            
+            // Set logout flag to prevent Firebase auth state changes from restoring user
+            isLoggingOutRef.current = true;
+            
             // Clear state immediately to prevent restoration
+            console.log('🧹 Clearing localStorage and React state...');
             clearAuthState();
             setUser(null);
             setError(null);
             
             const auth = getFirebaseAuth();
+            console.log('🔥 Calling Firebase signOut...');
             await signOut(auth);
-            console.log('User logged out successfully');
+            console.log('✅ Firebase signOut completed');
+            
+            // Force clear state again after signOut
+            console.log('🧹 Force clearing state after signOut...');
+            clearAuthState();
+            setUser(null);
+            setError(null);
+            
+            // Reset logout flag after a delay to allow normal auth flow to resume
+            setTimeout(() => {
+                isLoggingOutRef.current = false;
+                console.log('🔄 Logout flag reset, normal auth flow resumed');
+            }, 2000);
+            
+            console.log('✅ User logged out successfully');
         } catch (err) {
-            console.error('Logout error:', err);
+            console.error('❌ Logout error:', err);
             // Ensure state is cleared even if logout fails
             clearAuthState();
             setUser(null);
             setError(null);
+            isLoggingOutRef.current = false;
         }
     };
 

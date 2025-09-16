@@ -42,11 +42,12 @@ export function clearAuthState(): void {
     if (typeof window === 'undefined') return;
 
     try {
+        console.log('🧹 clearAuthState: Removing user and firebaseToken from localStorage');
         localStorage.removeItem('user');
         localStorage.removeItem('firebaseToken');
-        console.log('Authentication state cleared');
+        console.log('✅ clearAuthState: Authentication state cleared from localStorage');
     } catch (error) {
-        console.error('Error clearing auth state:', error);
+        console.error('❌ Error clearing auth state:', error);
     }
 }
 
