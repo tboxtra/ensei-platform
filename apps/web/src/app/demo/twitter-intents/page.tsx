@@ -61,18 +61,18 @@ export default function TwitterIntentsDemo() {
                             />
                         </div>
 
-            {extractedUsername && (
-              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-green-400">✨</span>
-                  <div>
-                    <div className="text-green-400 font-medium">Auto-extracted username</div>
-                    <div className="text-white text-lg">@{extractedUsername}</div>
-                    <div className="text-green-300 text-sm">This username will be used for follow actions</div>
-                  </div>
-                </div>
-              </div>
-            )}
+                        {extractedUsername && (
+                            <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-green-400">✨</span>
+                                    <div>
+                                        <div className="text-green-400 font-medium">Auto-extracted username</div>
+                                        <div className="text-white text-lg">@{extractedUsername}</div>
+                                        <div className="text-green-300 text-sm">This username will be used for follow actions</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <button
                             onClick={generateUrls}

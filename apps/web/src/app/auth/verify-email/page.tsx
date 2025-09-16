@@ -7,6 +7,7 @@ import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
 import { useAuth } from '../../../contexts/UserAuthContext';
+import { getFirebaseAuth } from '../../../lib/firebase';
 
 export default function VerifyEmailPage() {
     const router = useRouter();
@@ -37,18 +38,82 @@ export default function VerifyEmailPage() {
         try {
             await sendEmailVerification();
             setResendSuccess(true);
+            // Clear success message after 5 seconds
+            setTimeout(() => setResendSuccess(false), 5000);
         } catch (error: any) {
             console.error('Error resending verification email:', error);
-            setResendError(error.message || 'Failed to resend verification email');
+            let errorMessage = 'Failed to resend verification email';
+            
+            // Provide more specific error messages
+            if (error.code === 'auth/too-many-requests') {
+                errorMessage = 'Too many requests. Please wait a few minutes before trying again.';
+            } else if (error.code === 'auth/user-not-found') {
+                errorMessage = 'User not found. Please try logging in again.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            setResendError(errorMessage);
         } finally {
             setResendLoading(false);
         }
     };
 
-    const handleCheckVerification = async () => {
-        // Reload the page to check if email is verified
-        window.location.reload();
-    };
+    // Auto-check verification status every 3 seconds
+    useEffect(() => {
+        if (!user || isEmailVerified) return;
+
+        let checkCount = 0;
+        const maxChecks = 60; // Stop checking after 3 minutes (60 * 3 seconds)
+
+        const checkVerification = async () => {
+            try {
+                checkCount++;
+                
+                // Force refresh the user's auth state from Firebase
+                const auth = getFirebaseAuth();
+                if (auth.currentUser) {
+                    await auth.currentUser.reload();
+                    const updatedUser = auth.currentUser;
+                    
+                    if (updatedUser.emailVerified) {
+                        // Update localStorage with verified status
+                        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                        userData.emailVerified = true;
+                        localStorage.setItem('user', JSON.stringify(userData));
+                        
+                        // Redirect to dashboard
+                        router.push('/dashboard');
+                        return true; // Stop checking
+                    }
+                }
+                
+                // Stop checking after max attempts
+                if (checkCount >= maxChecks) {
+                    console.log('Stopped checking verification status after maximum attempts');
+                    return true; // Stop checking
+                }
+                
+                return false; // Continue checking
+            } catch (error) {
+                console.error('Error checking verification status:', error);
+                return false; // Continue checking on error
+            }
+        };
+
+        // Check immediately
+        checkVerification();
+
+        // Set up interval to check every 3 seconds
+        const interval = setInterval(async () => {
+            const shouldStop = await checkVerification();
+            if (shouldStop) {
+                clearInterval(interval);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [user, isEmailVerified, router]);
 
     if (isLoading) {
         return (
@@ -94,51 +159,35 @@ export default function VerifyEmailPage() {
                                 <p className="text-lg font-semibold text-white">{user.email}</p>
                             </div>
 
-                            {/* Instructions */}
-                            <div className="text-left space-y-3">
-                                <h3 className="text-lg font-semibold text-white mb-3">Next Steps:</h3>
-                                <div className="space-y-2 text-sm text-gray-300">
-                                    <div className="flex items-start space-x-2">
-                                        <span className="text-green-400 mt-1">1.</span>
-                                        <span>Check your email inbox (and spam folder)</span>
-                                    </div>
-                                    <div className="flex items-start space-x-2">
-                                        <span className="text-green-400 mt-1">2.</span>
-                                        <span>Click the verification link in the email</span>
-                                    </div>
-                                    <div className="flex items-start space-x-2">
-                                        <span className="text-green-400 mt-1">3.</span>
-                                        <span>Return here and click "I've Verified My Email"</span>
-                                    </div>
+                            {/* Simple Instructions */}
+                            <div className="text-center space-y-3">
+                                <p className="text-gray-300">
+                                    Check your email and click the verification link. You'll be automatically redirected once verified.
+                                </p>
+                                
+                                {/* Auto-check indicator */}
+                                <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+                                    <span>Checking verification status...</span>
                                 </div>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="space-y-3">
-                                <ModernButton
-                                    onClick={handleCheckVerification}
-                                    className="w-full"
-                                    size="lg"
-                                >
-                                    ✅ I've Verified My Email
-                                </ModernButton>
-
-                                <ModernButton
-                                    onClick={handleResendVerification}
-                                    variant="secondary"
-                                    className="w-full"
-                                    loading={resendLoading}
-                                    disabled={resendLoading}
-                                >
-                                    {resendLoading ? 'Sending...' : '📤 Resend Verification Email'}
-                                </ModernButton>
-                            </div>
+                            {/* Resend Button */}
+                            <ModernButton
+                                onClick={handleResendVerification}
+                                variant="secondary"
+                                className="w-full"
+                                loading={resendLoading}
+                                disabled={resendLoading}
+                            >
+                                {resendLoading ? 'Sending...' : '📤 Resend Email'}
+                            </ModernButton>
 
                             {/* Status Messages */}
                             {resendSuccess && (
                                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
                                     <p className="text-green-400 text-sm">
-                                        ✅ Verification email sent successfully! Check your inbox.
+                                        ✅ Verification email sent! Check your inbox.
                                     </p>
                                 </div>
                             )}
@@ -150,12 +199,6 @@ export default function VerifyEmailPage() {
                                     </p>
                                 </div>
                             )}
-
-                            {/* Help Text */}
-                            <div className="text-xs text-gray-500 space-y-1">
-                                <p>Didn't receive the email? Check your spam folder.</p>
-                                <p>Still having trouble? Contact support.</p>
-                            </div>
                         </div>
                     </ModernCard>
 
