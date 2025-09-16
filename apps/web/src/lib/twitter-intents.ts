@@ -141,8 +141,32 @@ export class TwitterIntents {
      * Extract username from Twitter URL or handle
      */
     static extractUsername(handle: string): string {
-        // Remove @ symbol and any URL prefixes
-        return handle.replace(/^@/, '').replace(/^https?:\/\/(www\.)?(twitter\.com|x\.com)\//, '');
+        if (!handle) return '';
+        
+        // Remove @ symbol if present
+        let username = handle.replace(/^@/, '');
+        
+        // If it's a Twitter URL, extract the username from the path
+        if (TwitterIntents.isTwitterUrl(username)) {
+            // Extract username from various Twitter URL patterns
+            const patterns = [
+                /(?:twitter\.com|x\.com)\/([^\/\?]+)/,  // twitter.com/username or x.com/username
+                /(?:twitter\.com|x\.com)\/([^\/\?]+)\/status/,  // twitter.com/username/status/...
+                /(?:twitter\.com|x\.com)\/([^\/\?]+)\/with_replies/,  // twitter.com/username/with_replies
+                /(?:twitter\.com|x\.com)\/([^\/\?]+)\/media/,  // twitter.com/username/media
+                /(?:twitter\.com|x\.com)\/([^\/\?]+)\/likes/,  // twitter.com/username/likes
+            ];
+            
+            for (const pattern of patterns) {
+                const match = username.match(pattern);
+                if (match && match[1] && match[1] !== 'intent' && match[1] !== 'search' && match[1] !== 'home') {
+                    return match[1];
+                }
+            }
+        }
+        
+        // If it's just a handle without URL, return as is
+        return username;
     }
 
     /**
@@ -213,7 +237,12 @@ export class MissionTwitterIntents {
             mission.platform_data?.tweet_url;
 
         const tweetId = mission.tweet_id || TwitterIntents.extractTweetId(tweetUrl || '');
-        const username = mission.user_handle || mission.username || mission.platform_data?.username;
+        
+        // Extract username from tweet URL if not explicitly provided
+        let username = mission.user_handle || mission.username || mission.platform_data?.username;
+        if (!username && tweetUrl) {
+            username = TwitterIntents.extractUsername(tweetUrl);
+        }
 
         switch (taskId) {
             case 'like':
@@ -270,7 +299,12 @@ export class MissionTwitterIntents {
             mission.platform_data?.tweet_url;
 
         const tweetId = mission.tweet_id || TwitterIntents.extractTweetId(tweetUrl || '');
-        const username = mission.user_handle || mission.username || mission.platform_data?.username;
+        
+        // Extract username from tweet URL if not explicitly provided
+        let username = mission.user_handle || mission.username || mission.platform_data?.username;
+        if (!username && tweetUrl) {
+            username = TwitterIntents.extractUsername(tweetUrl);
+        }
 
         switch (taskId) {
             case 'like':
@@ -313,7 +347,12 @@ export class MissionTwitterIntents {
             mission.platform_data?.tweet_url;
 
         const tweetId = mission.tweet_id || TwitterIntents.extractTweetId(tweetUrl || '');
-        const username = mission.user_handle || mission.username || mission.platform_data?.username;
+        
+        // Extract username from tweet URL if not explicitly provided
+        let username = mission.user_handle || mission.username || mission.platform_data?.username;
+        if (!username && tweetUrl) {
+            username = TwitterIntents.extractUsername(tweetUrl);
+        }
 
         switch (taskId) {
             case 'like':
