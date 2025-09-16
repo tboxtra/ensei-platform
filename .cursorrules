@@ -19,16 +19,17 @@ workspace:
 conventions:
   language: "TypeScript"
   style: "ESLint + Prettier"
-  packageManager: "yarn"
+  packageManager: "npm"
   monorepoTool: "turbo"
 
 guardrails:
+  - "ALWAYS use npm instead of yarn for package management. Never use yarn commands."
   - "Do NOT create duplicate constants. Use the single source of truth in packages/shared-types and services/mission-engine."
   - "Every new request/response must have a Zod schema in packages/validation-schemas and types in packages/shared-types."
   - "API gateway is thin: import pricing and task logic from services/mission-engine; do not re-implement math in routes or clients."
   - "Update docs/api/openapi.yaml and regenerate packages/api-client when API contracts change."
   - "Implement ALL social media mission categories (Engage, Content, Ambassador) for Twitter, Instagram, TikTok, Facebook, WhatsApp, Snapchat, Telegram."
-  - "Keep Telegram platform fully supported (engage/content/ambassador) and include Twitter ‘Follow’ in Engage."
+  - "Keep Telegram platform fully supported (engage/content/ambassador) and include Twitter 'Follow' in Engage."
   - "Degen: unlimited applicants, time-boxed, winner-cap per preset, user pool = 50% of creator USD cost; Premium multiplies total cost ×5 (never ×4)."
   - "USD↔Honors rate is 1 USD = 450 Honors (exported from shared-types)."
   - "Prefer small, composable commits with clear scopes."
@@ -104,11 +105,11 @@ platformTasks:
     ambassador: [ "pfp", "mention_in_bio", "pin_invite_link" ]
 
 commands:
-  install: "yarn install"
-  buildAll: "yarn build"
-  devApi: "cd services/api-gateway && yarn dev"
-  devWeb: "cd apps/web && yarn dev"
-  testAll: "yarn test"
+  install: "npm install"
+  buildAll: "npm run build"
+  devApi: "cd services/api-gateway && npm run dev"
+  devWeb: "cd apps/web && npm run dev"
+  testAll: "npm run test"
   apiHealth: "curl -sf http://localhost:3001/health"
 
 reviewChecklist:

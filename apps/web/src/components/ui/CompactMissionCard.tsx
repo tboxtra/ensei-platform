@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { EmbeddedContent } from './EmbeddedContent';
 import { getTasksForMission } from '@/lib/taskTypes';
+import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -394,9 +395,14 @@ export function CompactMissionCard({
 
                             return (
                                 <div className="space-y-2">
-                                    <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-gray-800/20 rounded-lg border-b border-gray-700/30">
-                                        <span className="text-sm">{getTaskIcon(task.id)}</span>
-                                        <h4 className="text-sm font-medium text-gray-300">{task.name}</h4>
+                                    <div className="mb-3 px-3 py-2 bg-gray-800/20 rounded-lg border-b border-gray-700/30">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-xs">{getTaskIcon(task.id)}</span>
+                                            <h4 className="text-xs font-medium text-gray-400">{task.name}</h4>
+                                        </div>
+                                        <p className="text-xs text-gray-500 leading-relaxed">
+                                            {mission.instructions || 'No instructions provided for this task.'}
+                                        </p>
                                     </div>
 
 
@@ -405,7 +411,23 @@ export function CompactMissionCard({
                                             <button
                                                 key={action.id}
                                                 onClick={() => {
-                                                    if (action.type === 'manual' && action.id === 'view_tweet') {
+                                                    if (action.type === 'intent') {
+                                                        // Handle Twitter intent actions
+                                                        const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
+
+                                                        if (!intentUrl) {
+                                                            const errorMessage = MissionTwitterIntents.getErrorMessage(task.id, mission);
+                                                            alert(errorMessage || 'Unable to generate Twitter action. Please check mission data.');
+                                                            return;
+                                                        }
+
+                                                        // Open Twitter intent in a new window
+                                                        TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
+
+                                                        // Show success message
+                                                        alert(`Opening Twitter to ${action.label.toLowerCase()}. Complete the action and return to verify.`);
+
+                                                    } else if (action.type === 'manual' && action.id === 'view_tweet') {
                                                         window.open(mission.tweetLink || mission.contentLink, '_blank');
                                                     } else if (action.type === 'manual' && action.id === 'view_post') {
                                                         window.open(mission.contentLink, '_blank');
@@ -419,11 +441,13 @@ export function CompactMissionCard({
                                                         console.log('Action clicked:', action);
                                                     }
                                                 }}
-                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${action.type === 'auto'
-                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                    : action.type === 'verify'
-                                                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                                        : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${action.type === 'intent'
+                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
+                                                    : action.type === 'auto'
+                                                        ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                        : action.type === 'verify'
+                                                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                                            : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
                                                     }`}
                                             >
                                                 {action.label}

@@ -43,7 +43,7 @@ export class AuthErrorBoundary extends Component<Props, State> {
                                 Authentication Error
                             </h1>
                             <p className="text-gray-400 mb-6">
-                                Something went wrong with the authentication system. 
+                                Something went wrong with the authentication system.
                                 Please try refreshing the page or contact support if the problem persists.
                             </p>
                             <div className="space-y-3">

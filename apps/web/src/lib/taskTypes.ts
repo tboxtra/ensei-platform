@@ -2,10 +2,12 @@
 export interface TaskAction {
     id: string;
     label: string;
-    type: 'auto' | 'manual' | 'verify';
+    type: 'auto' | 'manual' | 'verify' | 'intent';
     requiresConnection?: boolean;
     apiEndpoint?: string;
     verificationRequired?: boolean;
+    intentUrl?: string;
+    intentAction?: string;
 }
 
 export interface TaskType {
@@ -25,22 +27,23 @@ export const TWITTER_ENGAGE_TASKS: TaskType[] = [
         id: 'like',
         name: 'Like Tweet',
         description: 'Like the posted tweet',
-        verificationType: 'api',
-        requiresSocialConnection: true,
+        verificationType: 'hybrid',
+        requiresSocialConnection: false,
         platform: 'twitter',
         missionType: 'engage',
         actions: [
             {
-                id: 'auto_like',
-                label: 'Like',
-                type: 'auto',
-                requiresConnection: true,
-                apiEndpoint: '/api/twitter/like'
+                id: 'like_intent',
+                label: 'Like on Twitter',
+                type: 'intent',
+                intentAction: 'like',
+                verificationRequired: true
             },
             {
-                id: 'view_tweet',
-                label: 'View Tweet',
-                type: 'manual'
+                id: 'verify_like',
+                label: 'Verify Like',
+                type: 'verify',
+                verificationRequired: true
             }
         ]
     },
@@ -48,22 +51,23 @@ export const TWITTER_ENGAGE_TASKS: TaskType[] = [
         id: 'retweet',
         name: 'Retweet',
         description: 'Retweet the posted tweet',
-        verificationType: 'api',
-        requiresSocialConnection: true,
+        verificationType: 'hybrid',
+        requiresSocialConnection: false,
         platform: 'twitter',
         missionType: 'engage',
         actions: [
             {
-                id: 'auto_retweet',
-                label: 'Retweet',
-                type: 'auto',
-                requiresConnection: true,
-                apiEndpoint: '/api/twitter/retweet'
+                id: 'retweet_intent',
+                label: 'Retweet on Twitter',
+                type: 'intent',
+                intentAction: 'retweet',
+                verificationRequired: true
             },
             {
-                id: 'view_tweet',
-                label: 'View Tweet',
-                type: 'manual'
+                id: 'verify_retweet',
+                label: 'Verify Retweet',
+                type: 'verify',
+                verificationRequired: true
             }
         ]
     },
@@ -77,20 +81,17 @@ export const TWITTER_ENGAGE_TASKS: TaskType[] = [
         missionType: 'engage',
         actions: [
             {
-                id: 'comment',
-                label: 'Comment',
-                type: 'manual'
+                id: 'comment_intent',
+                label: 'Comment on Twitter',
+                type: 'intent',
+                intentAction: 'comment',
+                verificationRequired: true
             },
             {
                 id: 'verify_comment',
                 label: 'Verify Comment',
                 type: 'verify',
                 verificationRequired: true
-            },
-            {
-                id: 'view_tweet',
-                label: 'View Tweet',
-                type: 'manual'
             }
         ]
     },
@@ -104,20 +105,17 @@ export const TWITTER_ENGAGE_TASKS: TaskType[] = [
         missionType: 'engage',
         actions: [
             {
-                id: 'quote',
-                label: 'Quote',
-                type: 'manual'
+                id: 'quote_intent',
+                label: 'Quote on Twitter',
+                type: 'intent',
+                intentAction: 'quote',
+                verificationRequired: true
             },
             {
                 id: 'verify_quote',
                 label: 'Verify Quote',
                 type: 'verify',
                 verificationRequired: true
-            },
-            {
-                id: 'view_tweet',
-                label: 'View Tweet',
-                type: 'manual'
             }
         ]
     },
@@ -125,22 +123,23 @@ export const TWITTER_ENGAGE_TASKS: TaskType[] = [
         id: 'follow',
         name: 'Follow User',
         description: 'Follow the user who posted the tweet',
-        verificationType: 'api',
-        requiresSocialConnection: true,
+        verificationType: 'hybrid',
+        requiresSocialConnection: false,
         platform: 'twitter',
         missionType: 'engage',
         actions: [
             {
-                id: 'auto_follow',
-                label: 'Follow',
-                type: 'auto',
-                requiresConnection: true,
-                apiEndpoint: '/api/twitter/follow'
+                id: 'follow_intent',
+                label: 'Follow on Twitter',
+                type: 'intent',
+                intentAction: 'follow',
+                verificationRequired: true
             },
             {
-                id: 'view_profile',
-                label: 'View on Twitter',
-                type: 'manual'
+                id: 'verify_follow',
+                label: 'Verify Follow',
+                type: 'verify',
+                verificationRequired: true
             }
         ]
     }

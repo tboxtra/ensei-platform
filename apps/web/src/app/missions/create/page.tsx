@@ -169,6 +169,100 @@ const validatePlatformUrl = (platform: string, url: URL): boolean => {
   }
 };
 
+// Helper function to validate URL accessibility and content
+const validateUrlAccessibility = async (url: string): Promise<{ isValid: boolean; error?: string }> => {
+  try {
+    // Check if URL is accessible
+    const response = await fetch(url, {
+      method: 'HEAD',
+      mode: 'no-cors', // Allow cross-origin requests
+      cache: 'no-cache'
+    });
+
+    // If we get here, the URL is accessible
+    return { isValid: true };
+  } catch (error) {
+    // If fetch fails, try a different approach
+    try {
+      // Try to create an image element to test if URL is accessible
+      return new Promise((resolve) => {
+        const img = new Image();
+        const timeout = setTimeout(() => {
+          resolve({ isValid: false, error: 'URL is not accessible or takes too long to load' });
+        }, 5000); // 5 second timeout
+
+        img.onload = () => {
+          clearTimeout(timeout);
+          resolve({ isValid: true });
+        };
+
+        img.onerror = () => {
+          clearTimeout(timeout);
+          resolve({ isValid: false, error: 'URL is not accessible or content not found' });
+        };
+
+        img.src = url;
+      });
+    } catch (imgError) {
+      return { isValid: false, error: 'URL validation failed' };
+    }
+  }
+};
+
+// Helper function to validate platform-specific URL patterns and content
+const validatePlatformUrlContent = async (platform: string, url: string): Promise<{ isValid: boolean; error?: string }> => {
+  const urlObj = new URL(url);
+  const hostname = urlObj.hostname.toLowerCase();
+
+  // First check basic platform format
+  if (!validatePlatformUrl(platform, urlObj)) {
+    return { isValid: false, error: `Invalid ${platform} URL format` };
+  }
+
+  // For social media platforms, check for specific patterns
+  switch (platform) {
+    case 'twitter':
+      // Twitter URLs should have specific patterns like /username/status/id
+      if (!urlObj.pathname.match(/\/\w+\/status\/\d+/) && !urlObj.pathname.match(/\/\w+\/statuses\/\d+/)) {
+        return { isValid: false, error: 'Twitter URL should be a specific tweet (e.g., /username/status/123)' };
+      }
+      break;
+    case 'instagram':
+      // Instagram URLs should have /p/ or /reel/ pattern
+      if (!urlObj.pathname.match(/\/p\/\w+/) && !urlObj.pathname.match(/\/reel\/\w+/)) {
+        return { isValid: false, error: 'Instagram URL should be a specific post or reel (e.g., /p/ABC123 or /reel/XYZ789)' };
+      }
+      break;
+    case 'tiktok':
+      // TikTok URLs should have /@username/video/ pattern
+      if (!urlObj.pathname.match(/\/@\w+\/video\/\d+/)) {
+        return { isValid: false, error: 'TikTok URL should be a specific video (e.g., /@username/video/123456789)' };
+      }
+      break;
+    case 'facebook':
+      // Facebook URLs should have specific patterns
+      if (!urlObj.pathname.match(/\/posts\/\d+/) && !urlObj.pathname.match(/\/groups\/\d+\/permalink\/\d+/)) {
+        return { isValid: false, error: 'Facebook URL should be a specific post or group post' };
+      }
+      break;
+    case 'telegram':
+      // Telegram URLs should have channel/group pattern
+      if (!urlObj.pathname.match(/\/\w+/) || urlObj.pathname === '/') {
+        return { isValid: false, error: 'Telegram URL should be a specific channel or group (e.g., /channel_name)' };
+      }
+      break;
+  }
+
+  // For custom platforms, just check accessibility
+  if (platform === 'custom') {
+    return await validateUrlAccessibility(url);
+  }
+
+  // For social media platforms, we'll assume the URL is valid if it passes format checks
+  // In a production environment, you might want to add actual API calls to verify content exists
+  return { isValid: true };
+};
+
 // Helper function to get task price safely
 const getTaskPrice = (platform: string, type: string, task: string): number => {
   const platformTasks = TASK_PRICES[platform as keyof typeof TASK_PRICES];
@@ -209,23 +303,23 @@ const AUDIENCE_PRESETS = [
 // Platform-specific content placeholders
 const PLATFORM_CONTENT_PLACEHOLDERS = {
   twitter: {
-    contentLink: 'https://x.com/username/status/123',
+    contentLink: 'https://x.com/username/status/1234567890123456789',
     instructions: 'Be constructive, relevant and supportive. Engage meaningfully with the content.'
   },
   instagram: {
-    contentLink: 'https://instagram.com/p/post_id',
+    contentLink: 'https://instagram.com/p/ABC123DEF456/',
     instructions: 'Create engaging content that resonates with the community. Use relevant hashtags.'
   },
   tiktok: {
-    contentLink: 'https://tiktok.com/@username/video/video_id',
+    contentLink: 'https://tiktok.com/@username/video/1234567890123456789',
     instructions: 'Create trending content that fits the platform style. Use popular sounds and effects.'
   },
   facebook: {
-    contentLink: 'https://facebook.com/groups/group_id/permalink/post_id',
+    contentLink: 'https://facebook.com/groups/123456789/posts/987654321',
     instructions: 'Share valuable content that adds to the group discussion. Be community-focused.'
   },
   whatsapp: {
-    contentLink: 'https://wa.me/phone_number',
+    contentLink: 'https://wa.me/1234567890',
     instructions: 'Share the message with your contacts. Be authentic and personal in your approach.'
   },
   snapchat: {
@@ -261,8 +355,8 @@ export default function CreateMissionPage() {
   const [selectedModel, setSelectedModel] = useState('fixed');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [isPremium, setIsPremium] = useState(false);
-  const [contentLink, setContentLink] = useState(PLATFORM_CONTENT_PLACEHOLDERS.twitter.contentLink);
-  const [instructions, setInstructions] = useState(PLATFORM_CONTENT_PLACEHOLDERS.twitter.instructions);
+  const [contentLink, setContentLink] = useState('');
+  const [instructions, setInstructions] = useState('');
   const [cap, setCap] = useState(100);
   const [capInput, setCapInput] = useState('100');
   const [rewardPerUser, setRewardPerUser] = useState(0);
@@ -293,11 +387,9 @@ export default function CreateMissionPage() {
       setCustomDescription('');
     }
 
-    const placeholders = PLATFORM_CONTENT_PLACEHOLDERS[platform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS];
-    if (placeholders) {
-      setContentLink(placeholders.contentLink);
-      setInstructions(placeholders.instructions);
-    }
+    // Clear the content link and instructions when switching platforms
+    setContentLink('');
+    setInstructions('');
   };
 
   // Calculate total price
@@ -774,7 +866,10 @@ export default function CreateMissionPage() {
                 value={contentLink}
                 onChange={(e) => setContentLink(e.target.value)}
                 className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-                placeholder={selectedPlatform === 'custom' ? "Enter your custom content link (e.g., website, app, document)" : PLATFORM_CONTENT_PLACEHOLDERS[selectedPlatform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS]?.contentLink || "Enter content link"}
+                placeholder={selectedPlatform === 'custom'
+                  ? "Enter your custom content link (e.g., https://example.com)"
+                  : `Enter ${selectedPlatform} content link (e.g., ${PLATFORM_CONTENT_PLACEHOLDERS[selectedPlatform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS]?.contentLink || 'https://example.com'})`}
+                required
               />
               {selectedPlatform === 'custom' && (
                 <p className="text-xs text-gray-400 mt-2">
@@ -789,7 +884,8 @@ export default function CreateMissionPage() {
                 onChange={(e) => setInstructions(e.target.value)}
                 rows={4}
                 className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 resize-none text-sm sm:text-base"
-                placeholder={PLATFORM_CONTENT_PLACEHOLDERS[selectedPlatform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS]?.instructions || "Enter mission instructions"}
+                placeholder="Enter detailed mission instructions for participants..."
+                required
               />
             </div>
           </div>
@@ -849,6 +945,12 @@ export default function CreateMissionPage() {
                 return;
               }
 
+              // Validate instructions
+              if (!instructions.trim()) {
+                alert('Please enter mission instructions');
+                return;
+              }
+
               // Validate URL format
               try {
                 new URL(contentLink);
@@ -857,21 +959,16 @@ export default function CreateMissionPage() {
                 return;
               }
 
-              // Validate platform-specific URL patterns
-              const url = new URL(contentLink);
-              const isValidPlatformUrl = validatePlatformUrl(selectedPlatform, url);
-
-              // Debug logging
+              // Validate platform-specific URL patterns and content
               console.log('=== URL VALIDATION DEBUG ===');
               console.log('Platform:', selectedPlatform);
               console.log('Content Link:', contentLink);
-              console.log('URL Object:', url);
-              console.log('Hostname:', url.hostname);
-              console.log('Is Valid Platform URL:', isValidPlatformUrl);
               console.log('============================');
 
-              if (!isValidPlatformUrl) {
-                alert(`Please enter a valid ${selectedPlatform} URL. Example: ${PLATFORM_CONTENT_PLACEHOLDERS[selectedPlatform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS]?.contentLink || 'https://example.com'}`);
+              const validationResult = await validatePlatformUrlContent(selectedPlatform, contentLink);
+
+              if (!validationResult.isValid) {
+                alert(`URL Validation Failed: ${validationResult.error}`);
                 return;
               }
 

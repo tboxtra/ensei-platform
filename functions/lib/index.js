@@ -290,6 +290,10 @@ app.post('/v1/missions', verifyFirebaseToken, async (req, res) => {
             res.status(400).json({ error: 'Content link is required' });
             return;
         }
+        if (!missionData.instructions || !missionData.instructions.trim()) {
+            res.status(400).json({ error: 'Mission instructions are required' });
+            return;
+        }
         // Validate URL format
         const contentLink = missionData.tweetLink || missionData.contentLink;
         try {
@@ -299,50 +303,119 @@ app.post('/v1/missions', verifyFirebaseToken, async (req, res) => {
             res.status(400).json({ error: 'Invalid URL format for content link' });
             return;
         }
-        // Validate platform-specific URL patterns
+        // Validate platform-specific URL patterns and content structure
         const url = new URL(contentLink);
         const hostname = url.hostname.toLowerCase();
+        const pathname = url.pathname;
         let isValidUrl = false;
+        let validationError = '';
         // Debug logging
         console.log('=== BACKEND URL VALIDATION DEBUG ===');
         console.log('Platform:', missionData.platform);
         console.log('Content Link:', contentLink);
         console.log('Hostname:', hostname);
+        console.log('Pathname:', pathname);
         console.log('URL Object:', url);
         switch (missionData.platform) {
             case 'twitter':
-                isValidUrl = hostname.includes('x.com') || hostname.includes('twitter.com');
+                if (hostname.includes('x.com') || hostname.includes('twitter.com')) {
+                    // Check for specific tweet pattern
+                    if (pathname.match(/\/\w+\/status\/\d+/) || pathname.match(/\/\w+\/statuses\/\d+/)) {
+                        isValidUrl = true;
+                    }
+                    else {
+                        validationError = 'Twitter URL should be a specific tweet (e.g., /username/status/123)';
+                    }
+                }
+                else {
+                    validationError = 'Invalid Twitter domain';
+                }
                 break;
             case 'instagram':
-                isValidUrl = hostname.includes('instagram.com');
+                if (hostname.includes('instagram.com')) {
+                    // Check for specific post/reel pattern
+                    if (pathname.match(/\/p\/\w+/) || pathname.match(/\/reel\/\w+/)) {
+                        isValidUrl = true;
+                    }
+                    else {
+                        validationError = 'Instagram URL should be a specific post or reel (e.g., /p/ABC123 or /reel/XYZ789)';
+                    }
+                }
+                else {
+                    validationError = 'Invalid Instagram domain';
+                }
                 break;
             case 'tiktok':
-                isValidUrl = hostname.includes('tiktok.com');
+                if (hostname.includes('tiktok.com')) {
+                    // Check for specific video pattern
+                    if (pathname.match(/\/@\w+\/video\/\d+/)) {
+                        isValidUrl = true;
+                    }
+                    else {
+                        validationError = 'TikTok URL should be a specific video (e.g., /@username/video/123456789)';
+                    }
+                }
+                else {
+                    validationError = 'Invalid TikTok domain';
+                }
                 break;
             case 'facebook':
-                isValidUrl = hostname.includes('facebook.com');
+                if (hostname.includes('facebook.com')) {
+                    // Check for specific post pattern
+                    if (pathname.match(/\/posts\/\d+/) || pathname.match(/\/groups\/\d+\/permalink\/\d+/)) {
+                        isValidUrl = true;
+                    }
+                    else {
+                        validationError = 'Facebook URL should be a specific post or group post';
+                    }
+                }
+                else {
+                    validationError = 'Invalid Facebook domain';
+                }
                 break;
             case 'whatsapp':
-                isValidUrl = hostname.includes('wa.me') || hostname.includes('whatsapp.com');
+                if (hostname.includes('wa.me') || hostname.includes('whatsapp.com')) {
+                    isValidUrl = true;
+                }
+                else {
+                    validationError = 'Invalid WhatsApp domain';
+                }
                 break;
             case 'snapchat':
-                isValidUrl = hostname.includes('snapchat.com');
+                if (hostname.includes('snapchat.com')) {
+                    isValidUrl = true;
+                }
+                else {
+                    validationError = 'Invalid Snapchat domain';
+                }
                 break;
             case 'telegram':
-                isValidUrl = hostname.includes('t.me') || hostname.includes('telegram.org');
+                if (hostname.includes('t.me') || hostname.includes('telegram.org')) {
+                    // Check for specific channel/group pattern
+                    if (pathname.match(/\/\w+/) && pathname !== '/') {
+                        isValidUrl = true;
+                    }
+                    else {
+                        validationError = 'Telegram URL should be a specific channel or group (e.g., /channel_name)';
+                    }
+                }
+                else {
+                    validationError = 'Invalid Telegram domain';
+                }
                 break;
             case 'custom':
                 isValidUrl = true; // Accept any valid URL for custom platforms
                 break;
             default:
-                isValidUrl = false;
+                validationError = 'Unsupported platform';
         }
         console.log('Is Valid URL:', isValidUrl);
+        console.log('Validation Error:', validationError);
         console.log('=====================================');
         if (!isValidUrl) {
-            console.log('VALIDATION FAILED: Invalid platform URL');
+            console.log('VALIDATION FAILED:', validationError);
             res.status(400).json({
-                error: `Invalid ${missionData.platform} URL. Please provide a valid URL for the selected platform.`
+                error: `URL Validation Failed: ${validationError}`
             });
             return;
         }

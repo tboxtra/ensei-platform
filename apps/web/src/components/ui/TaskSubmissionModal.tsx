@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
 import { getTasksForMission, TaskType, TaskAction } from '@/lib/taskTypes';
+import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 
 interface TaskSubmissionModalProps {
     isOpen: boolean;
@@ -68,7 +69,23 @@ export default function TaskSubmissionModal({
         setLoading(`${task.id}-${action.id}`);
 
         try {
-            if (action.type === 'auto') {
+            if (action.type === 'intent') {
+                // Handle Twitter intent actions
+                const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
+
+                if (!intentUrl) {
+                    const errorMessage = MissionTwitterIntents.getErrorMessage(task.id, mission);
+                    alert(errorMessage || 'Unable to generate Twitter action. Please check mission data.');
+                    return;
+                }
+
+                // Open Twitter intent in a new window
+                TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
+
+                // Show success message
+                alert(`Opening Twitter to ${action.label.toLowerCase()}. Complete the action and return to verify.`);
+
+            } else if (action.type === 'auto') {
                 // Handle automatic actions (like, retweet, follow)
                 await onTaskComplete(task.id, action.id);
 
@@ -130,7 +147,9 @@ export default function TaskSubmissionModal({
     const getActionButtonStyle = (action: TaskAction, task: TaskType) => {
         const baseStyle = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2";
 
-        if (action.type === 'auto') {
+        if (action.type === 'intent') {
+            return `${baseStyle} bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl`;
+        } else if (action.type === 'auto') {
             return `${baseStyle} bg-blue-500 hover:bg-blue-600 text-white`;
         } else if (action.type === 'verify') {
             return `${baseStyle} bg-green-500 hover:bg-green-600 text-white`;
@@ -197,33 +216,41 @@ export default function TaskSubmissionModal({
 
                             <div className="space-y-3">
                                 {task.actions.map((action) => (
-                                    <div key={action.id} className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => handleAction(task, action)}
-                                            disabled={loading === `${task.id}-${action.id}`}
-                                            className={getActionButtonStyle(action, task)}
-                                        >
-                                            {loading === `${task.id}-${action.id}` ? (
-                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            ) : (
-                                                <>
-                                                    {action.type === 'manual' && <ExternalLink className="w-4 h-4" />}
-                                                    {action.label}
-                                                </>
-                                            )}
-                                        </button>
+                                    <div key={action.id} className="space-y-2">
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => handleAction(task, action)}
+                                                disabled={loading === `${task.id}-${action.id}`}
+                                                className={getActionButtonStyle(action, task)}
+                                            >
+                                                {loading === `${task.id}-${action.id}` ? (
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        {(action.type === 'manual' || action.type === 'intent') && <ExternalLink className="w-4 h-4" />}
+                                                        {action.label}
+                                                    </>
+                                                )}
+                                            </button>
 
-                                        {action.type === 'verify' && (
-                                            <input
-                                                type="url"
-                                                placeholder="Paste your link here..."
-                                                value={verificationLinks[`${task.id}-${action.id}`] || ''}
-                                                onChange={(e) => setVerificationLinks(prev => ({
-                                                    ...prev,
-                                                    [`${task.id}-${action.id}`]: e.target.value
-                                                }))}
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
+                                            {action.type === 'verify' && (
+                                                <input
+                                                    type="url"
+                                                    placeholder="Paste your link here..."
+                                                    value={verificationLinks[`${task.id}-${action.id}`] || ''}
+                                                    onChange={(e) => setVerificationLinks(prev => ({
+                                                        ...prev,
+                                                        [`${task.id}-${action.id}`]: e.target.value
+                                                    }))}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            )}
+                                        </div>
+
+                                        {action.type === 'intent' && (
+                                            <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded-lg">
+                                                💡 This will open Twitter in a new window. Complete the action and return to verify.
+                                            </div>
                                         )}
                                     </div>
                                 ))}

@@ -46,7 +46,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Production logging control
     const isDevelopment = process.env.NODE_ENV === 'development';
     const log = (message: string, ...args: any[]) => {
