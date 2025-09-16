@@ -5,20 +5,19 @@ import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 
 export default function TwitterIntentsDemo() {
     const [tweetUrl, setTweetUrl] = useState('https://twitter.com/example_user/status/1234567890123456789');
-    const [username, setUsername] = useState('example_user');
     const [generatedUrls, setGeneratedUrls] = useState<{ [key: string]: string }>({});
 
-  const sampleMission = {
-    id: 'demo-mission',
-    title: 'Demo Twitter Mission',
-    platform: 'twitter',
-    mission_type: 'engage',
-    tweetLink: tweetUrl,
-    user_handle: username
-  };
+    const sampleMission = {
+        id: 'demo-mission',
+        title: 'Demo Twitter Mission',
+        platform: 'twitter',
+        mission_type: 'engage',
+        tweetLink: tweetUrl,
+        // Username will be auto-extracted from tweetUrl
+    };
 
-  // Test username extraction
-  const extractedUsername = tweetUrl ? TwitterIntents.extractUsername(tweetUrl) : '';
+    // Test username extraction
+    const extractedUsername = tweetUrl ? TwitterIntents.extractUsername(tweetUrl) : '';
 
     const generateUrls = () => {
         const urls: { [key: string]: string } = {};
@@ -62,21 +61,18 @@ export default function TwitterIntentsDemo() {
                             />
                         </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Username (Optional - will be auto-extracted from URL)</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="username (auto-extracted if not provided)"
-              />
-              {extractedUsername && (
-                <div className="mt-2 text-sm text-green-400">
-                  ✨ Auto-extracted username: <strong>@{extractedUsername}</strong>
+            {extractedUsername && (
+              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-green-400">✨</span>
+                  <div>
+                    <div className="text-green-400 font-medium">Auto-extracted username</div>
+                    <div className="text-white text-lg">@{extractedUsername}</div>
+                    <div className="text-green-300 text-sm">This username will be used for follow actions</div>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
                         <button
                             onClick={generateUrls}
@@ -121,40 +117,41 @@ export default function TwitterIntentsDemo() {
                     </div>
                 )}
 
-        <div className="bg-gray-800 rounded-lg p-6 mt-8">
-          <h2 className="text-xl font-semibold mb-4">How It Works</h2>
-          
-          <div className="space-y-4 text-gray-300">
-            <div>
-              <h3 className="font-medium text-white mb-2">1. Smart Username Extraction</h3>
-              <p>Our system automatically extracts usernames from Twitter URLs, so you don't need to provide them separately.</p>
-              <div className="mt-2 p-3 bg-gray-700 rounded text-sm">
-                <strong>Example:</strong> From <code>https://twitter.com/elonmusk/status/1234567890</code><br/>
-                ✨ Auto-extracts username: <strong>@elonmusk</strong>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-white mb-2">2. Intent URL Generation</h3>
-              <p>Our system generates Twitter intent URLs that open Twitter with specific actions ready to perform.</p>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-white mb-2">3. User Experience</h3>
-              <p>Users click the action button → Twitter opens in a new window → User completes the action → User returns to verify.</p>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-white mb-2">4. Verification</h3>
-              <p>Users submit proof (screenshot or link) to verify they completed the action.</p>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-white mb-2">5. Future API Integration</h3>
-              <p>When ready, these intent URLs can be easily replaced with direct API calls for automatic verification.</p>
-            </div>
-          </div>
-        </div>
+                <div className="bg-gray-800 rounded-lg p-6 mt-8">
+                    <h2 className="text-xl font-semibold mb-4">How It Works</h2>
+
+                    <div className="space-y-4 text-gray-300">
+                        <div>
+                            <h3 className="font-medium text-white mb-2">1. Fully Automatic Username Extraction</h3>
+                            <p>Our system automatically extracts usernames from Twitter URLs. No manual input required - just paste the tweet URL!</p>
+                            <div className="mt-2 p-3 bg-gray-700 rounded text-sm">
+                                <strong>Example:</strong> From <code>https://twitter.com/elonmusk/status/1234567890</code><br />
+                                ✨ Auto-extracts username: <strong>@elonmusk</strong><br />
+                                ✅ Follow action will work automatically
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="font-medium text-white mb-2">2. Intent URL Generation</h3>
+                            <p>Our system generates Twitter intent URLs that open Twitter with specific actions ready to perform.</p>
+                        </div>
+
+                        <div>
+                            <h3 className="font-medium text-white mb-2">3. User Experience</h3>
+                            <p>Users click the action button → Twitter opens in a new window → User completes the action → User returns to verify.</p>
+                        </div>
+
+                        <div>
+                            <h3 className="font-medium text-white mb-2">4. Verification</h3>
+                            <p>Users submit proof (screenshot or link) to verify they completed the action.</p>
+                        </div>
+
+                        <div>
+                            <h3 className="font-medium text-white mb-2">5. Future API Integration</h3>
+                            <p>When ready, these intent URLs can be easily replaced with direct API calls for automatic verification.</p>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mt-8">
                     <h2 className="text-xl font-semibold mb-4 text-blue-400">Supported Actions</h2>

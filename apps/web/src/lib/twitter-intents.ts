@@ -142,10 +142,10 @@ export class TwitterIntents {
      */
     static extractUsername(handle: string): string {
         if (!handle) return '';
-        
+
         // Remove @ symbol if present
         let username = handle.replace(/^@/, '');
-        
+
         // If it's a Twitter URL, extract the username from the path
         if (TwitterIntents.isTwitterUrl(username)) {
             // Extract username from various Twitter URL patterns
@@ -156,7 +156,7 @@ export class TwitterIntents {
                 /(?:twitter\.com|x\.com)\/([^\/\?]+)\/media/,  // twitter.com/username/media
                 /(?:twitter\.com|x\.com)\/([^\/\?]+)\/likes/,  // twitter.com/username/likes
             ];
-            
+
             for (const pattern of patterns) {
                 const match = username.match(pattern);
                 if (match && match[1] && match[1] !== 'intent' && match[1] !== 'search' && match[1] !== 'home') {
@@ -164,7 +164,7 @@ export class TwitterIntents {
                 }
             }
         }
-        
+
         // If it's just a handle without URL, return as is
         return username;
     }
@@ -237,7 +237,7 @@ export class MissionTwitterIntents {
             mission.platform_data?.tweet_url;
 
         const tweetId = mission.tweet_id || TwitterIntents.extractTweetId(tweetUrl || '');
-        
+
         // Extract username from tweet URL if not explicitly provided
         let username = mission.user_handle || mission.username || mission.platform_data?.username;
         if (!username && tweetUrl) {
@@ -299,7 +299,7 @@ export class MissionTwitterIntents {
             mission.platform_data?.tweet_url;
 
         const tweetId = mission.tweet_id || TwitterIntents.extractTweetId(tweetUrl || '');
-        
+
         // Extract username from tweet URL if not explicitly provided
         let username = mission.user_handle || mission.username || mission.platform_data?.username;
         if (!username && tweetUrl) {
@@ -347,7 +347,7 @@ export class MissionTwitterIntents {
             mission.platform_data?.tweet_url;
 
         const tweetId = mission.tweet_id || TwitterIntents.extractTweetId(tweetUrl || '');
-        
+
         // Extract username from tweet URL if not explicitly provided
         let username = mission.user_handle || mission.username || mission.platform_data?.username;
         if (!username && tweetUrl) {
