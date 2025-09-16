@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle, Flag, AlertCircle, Clock, User } from 'lucide-react';
-import { getMissionTaskCompletions, flagTaskCompletion, verifyTaskCompletion, getFlaggingReasons, getUserDisplayName, type TaskCompletion } from '@/lib/task-verification';
+import { getMissionTaskCompletions, flagTaskCompletion, verifyTaskCompletion, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
+import { getUserDisplayName } from '@/lib/firebase-task-completions';
 
 interface MissionListItemProps {
     mission: any;

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { EmbeddedContent } from './EmbeddedContent';
 import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
-import { completeTask, type TaskCompletion, getUserDisplayName } from '@/lib/task-verification';
+import { completeTask, type TaskCompletion } from '@/lib/task-verification';
+import { getUserDisplayName } from '@/lib/firebase-task-completions';
 import { TaskIcon, PlatformIcon } from './Icon';
 import { useAuth } from '../../contexts/UserAuthContext';
 
