@@ -29,9 +29,6 @@ export function CompactMissionCard({
     );
     const completeTaskMutation = useCompleteTask();
 
-    // Debug logging
-    console.log('CompactMissionCard - taskCompletions:', taskCompletions);
-    console.log('CompactMissionCard - mission.id:', mission.id, 'user.id:', user?.id);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -461,7 +458,6 @@ export function CompactMissionCard({
 
                                                             // Complete the task with verification using standard practice
                                                             try {
-                                                                console.log('Starting task completion:', { missionId: mission.id, taskId: task.id, userId: user.id });
                                                                 const result = await completeTaskMutation.mutateAsync({
                                                                     missionId: mission.id,
                                                                     taskId: task.id,
@@ -476,7 +472,6 @@ export function CompactMissionCard({
                                                                         tweetUrl: mission.tweetLink || mission.contentLink
                                                                     }
                                                                 });
-                                                                console.log('Task completion result:', result);
                                                                 // No notification popup - user can see the button turn green
                                                             } catch (error) {
                                                                 console.error('Error completing task:', error);
