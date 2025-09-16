@@ -366,7 +366,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                         className="flex items-center p-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
                                         onClick={() => setShowUserMenu(false)}
                                     >
-                                        <Icon name="profile" size={20} className="mr-3" />
+                                        <span className="mr-3 text-base">👤</span>
                                         <span className="font-medium text-sm">Profile</span>
                                     </Link>
                                     <Link
@@ -374,14 +374,14 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                         className="flex items-center p-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
                                         onClick={() => setShowUserMenu(false)}
                                     >
-                                        <Icon name="wallet" size={20} className="mr-3" />
+                                        <span className="mr-3 text-base">👛</span>
                                         <span className="font-medium text-sm">Wallet</span>
                                     </Link>
                                     <button
                                         onClick={handleLogout}
                                         className="w-full flex items-center p-3 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200"
                                     >
-                                        <Icon name="logout" size={20} className="mr-3" />
+                                        <span className="mr-3 text-base">🚪</span>
                                         <span className="font-medium text-sm">Sign Out</span>
                                     </button>
                                 </div>
