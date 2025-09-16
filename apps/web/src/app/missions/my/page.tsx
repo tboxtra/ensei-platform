@@ -8,6 +8,7 @@ import { ModernButton } from '../../../components/ui/ModernButton';
 import { MissionListItem } from '../../../components/ui/MissionListItem';
 import { FilterBar } from '../../../components/ui/FilterBar';
 import { StatsCard } from '../../../components/ui/StatsCard';
+import { ProtectedRoute } from '../../../components/auth/ProtectedRoute';
 
 export default function MyMissionsPage() {
     const { getMyMissions, loading, error } = useApi();
@@ -147,8 +148,9 @@ export default function MyMissionsPage() {
     }
 
     return (
-        <ModernLayout currentPage="/missions/my">
-            <div className="container mx-auto px-2 py-2">
+        <ProtectedRoute>
+            <ModernLayout currentPage="/missions/my">
+                <div className="container mx-auto px-2 py-2">
                 {/* Header */}
                 <div className="text-left mb-2">
                     <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-1">
@@ -296,6 +298,7 @@ export default function MyMissionsPage() {
                     </div>
                 )}
             </div>
-        </ModernLayout>
+            </ModernLayout>
+        </ProtectedRoute>
     );
 }

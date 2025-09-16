@@ -142,6 +142,33 @@ const PREMIUM_COST_MULTIPLIER = 5;
 const USER_POOL_FACTOR = 0.5;
 const PLATFORM_FEE_RATE = 1.0; // 100% platform fee
 
+// Helper function to validate platform-specific URLs
+const validatePlatformUrl = (platform: string, url: URL): boolean => {
+  const hostname = url.hostname.toLowerCase();
+  
+  switch (platform) {
+    case 'twitter':
+      return hostname.includes('x.com') || hostname.includes('twitter.com');
+    case 'instagram':
+      return hostname.includes('instagram.com');
+    case 'tiktok':
+      return hostname.includes('tiktok.com');
+    case 'facebook':
+      return hostname.includes('facebook.com');
+    case 'whatsapp':
+      return hostname.includes('wa.me') || hostname.includes('whatsapp.com');
+    case 'snapchat':
+      return hostname.includes('snapchat.com');
+    case 'telegram':
+      return hostname.includes('t.me') || hostname.includes('telegram.org');
+    case 'custom':
+      // For custom platforms, accept any valid URL
+      return true;
+    default:
+      return false;
+  }
+};
+
 // Helper function to get task price safely
 const getTaskPrice = (platform: string, type: string, task: string): number => {
   const platformTasks = TASK_PRICES[platform as keyof typeof TASK_PRICES];
@@ -389,7 +416,7 @@ export default function CreateMissionPage() {
 
   return (
     <ModernLayout currentPage="/missions/create">
-      <div className="max-w-7xl mx-auto px-2 py-2">
+        <div className="max-w-7xl mx-auto px-2 py-2">
         {/* Header */}
         <div className="text-left mb-2">
           <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-1">Create New Mission</h1>
@@ -816,6 +843,28 @@ export default function CreateMissionPage() {
         <ModernButton
           onClick={async () => {
             try {
+              // Validate content link
+              if (!contentLink.trim()) {
+                alert('Please enter a content link');
+                return;
+              }
+              
+              // Validate URL format
+              try {
+                new URL(contentLink);
+              } catch (urlError) {
+                alert('Please enter a valid URL for the content link');
+                return;
+              }
+              
+              // Validate platform-specific URL patterns
+              const url = new URL(contentLink);
+              const isValidPlatformUrl = validatePlatformUrl(selectedPlatform, url);
+              if (!isValidPlatformUrl) {
+                alert(`Please enter a valid ${selectedPlatform} URL. Example: ${PLATFORM_CONTENT_PLACEHOLDERS[selectedPlatform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS]?.contentLink || 'https://example.com'}`);
+                return;
+              }
+
               // Validate custom platform fields
               if (selectedPlatform === 'custom') {
                 if (!customTitle.trim()) {

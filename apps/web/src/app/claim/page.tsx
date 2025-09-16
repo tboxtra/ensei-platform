@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
+import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function ClaimPage() {
     const { getWalletBalance, getClaimableRewards, claimReward, loading, error: apiError } = useApi();
@@ -95,8 +96,9 @@ export default function ClaimPage() {
     }
 
     return (
-        <ModernLayout currentPage="/claim">
-            <div className="max-w-7xl mx-auto px-2 py-2">
+        <ProtectedRoute>
+            <ModernLayout currentPage="/claim">
+                <div className="max-w-7xl mx-auto px-2 py-2">
                 {/* Hero Header */}
                 <div className="text-left mb-2">
                     <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 via-emerald-500 to-blue-500 bg-clip-text text-transparent mb-1">
@@ -335,6 +337,7 @@ export default function ClaimPage() {
                     </div>
                 </ModernCard>
             </div>
-        </ModernLayout>
+            </ModernLayout>
+        </ProtectedRoute>
     );
 }

@@ -56,7 +56,7 @@ export default function WalletPage() {
 
   return (
     <ModernLayout currentPage="/wallet">
-      <div className="max-w-7xl mx-auto px-2 py-2">
+        <div className="max-w-7xl mx-auto px-2 py-2">
         {/* Header */}
         <div className="text-left mb-2">
           <h1 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-1">Wallet</h1>

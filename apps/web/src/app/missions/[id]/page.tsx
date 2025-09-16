@@ -6,6 +6,7 @@ import { useApi } from '../../../hooks/useApi';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
+import { ProtectedRoute } from '../../../components/auth/ProtectedRoute';
 
 export default function MissionDetailPage() {
   const params = useParams();
@@ -146,8 +147,9 @@ export default function MissionDetailPage() {
   }
 
   return (
-    <ModernLayout currentPage="/missions">
-      <div className="max-w-7xl mx-auto">
+    <ProtectedRoute>
+      <ModernLayout currentPage="/missions">
+        <div className="max-w-7xl mx-auto">
         {/* Mission Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between mb-6">
@@ -387,6 +389,7 @@ export default function MissionDetailPage() {
           )}
         </div>
       </div>
-    </ModernLayout>
+      </ModernLayout>
+    </ProtectedRoute>
   );
 }

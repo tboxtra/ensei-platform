@@ -6,6 +6,7 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
+import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -133,8 +134,9 @@ export default function ProfilePage() {
     }
 
     return (
-        <ModernLayout currentPage="/profile">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ProtectedRoute>
+            <ModernLayout currentPage="/profile">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-6 md:mb-8">
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-400 via-emerald-500 to-blue-500 bg-clip-text text-transparent mb-2">
@@ -570,6 +572,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
-        </ModernLayout>
+            </ModernLayout>
+        </ProtectedRoute>
     );
 }

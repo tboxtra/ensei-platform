@@ -135,7 +135,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
         }
     };
 
-    const refreshToken = async () => {
+    const refreshToken = async (): Promise<void> => {
         try {
             const auth = getFirebaseAuth();
             const currentUser = auth.currentUser;
@@ -143,7 +143,6 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                 const token = await currentUser.getIdToken(true); // Force refresh
                 localStorage.setItem('firebaseToken', token);
                 console.log('Token refreshed successfully');
-                return token;
             } else {
                 // No current user, clear storage
                 clearAuthState();
