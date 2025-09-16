@@ -257,8 +257,8 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                         : 'text-gray-400 hover:text-white hover:bg-white/5 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.05)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.1),inset_1px_1px_1px_rgba(255,255,255,0.08)]'
                                         }`}
                                 >
-                                    <NavigationIcon 
-                                        page={item.icon} 
+                                    <NavigationIcon
+                                        page={item.icon}
                                         size={20}
                                         className={`mr-2 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
                                     />
@@ -354,8 +354,8 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                             }`}
                                         onClick={() => setShowUserMenu(false)}
                                     >
-                                        <NavigationIcon 
-                                            page={item.icon} 
+                                        <NavigationIcon
+                                            page={item.icon}
                                             size={24}
                                             className={`mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
                                         />

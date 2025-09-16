@@ -360,8 +360,8 @@ export function CompactMissionCard({
                                     key={index}
                                     onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
                                     className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${taskCompletions.some(c => c.taskId === taskId)
-                                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                            : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                        : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                                         }`}
                                 >
                                     {taskType}
@@ -471,16 +471,16 @@ export function CompactMissionCard({
                                                     }
                                                 }}
                                                 className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${taskCompletions.some(c => c.taskId === task.id)
-                                                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30'
-                                                        : action.type === 'intent'
-                                                            ? intentCompleted[task.id]
-                                                                ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
-                                                                : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
-                                                            : action.type === 'auto'
-                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                    : action.type === 'verify'
-                                                                    ? 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                        : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30'
+                                                    : action.type === 'intent'
+                                                        ? intentCompleted[task.id]
+                                                            ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
+                                                            : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
+                                                        : action.type === 'auto'
+                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                            : action.type === 'verify'
+                                                                ? 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
                                                     }`}
                                             >
                                                 {action.label}

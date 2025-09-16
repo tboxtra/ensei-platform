@@ -9,9 +9,9 @@ import {
   getAllTaskCompletions, 
   getMissionCompletionStats, 
   clearAllTaskCompletions,
-  exportTaskCompletions,
-  type TaskCompletion 
+  exportTaskCompletions
 } from '@/lib/task-completion-storage';
+import { type TaskCompletion } from '@/lib/task-verification';
 
 export default function TestRealDataPage() {
   const [completions, setCompletions] = useState<TaskCompletion[]>([]);

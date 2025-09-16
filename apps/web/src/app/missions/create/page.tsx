@@ -822,7 +822,7 @@ export default function CreateMissionPage() {
         {/* Premium Toggle */}
         <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">👑</span>
+            <Icon name="crown" size={24} className="mr-2 sm:mr-3" />
             Target Audience
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -833,7 +833,7 @@ export default function CreateMissionPage() {
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                 }`}
             >
-              <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🌍</div>
+              <Icon name="globe" size={32} className="mb-2 sm:mb-3" />
               <div className="font-bold text-base sm:text-lg mb-1 sm:mb-2">All Users</div>
               <div className="text-xs sm:text-sm opacity-90">Standard pricing</div>
             </button>
@@ -844,7 +844,7 @@ export default function CreateMissionPage() {
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                 }`}
             >
-              <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">👑</div>
+              <Icon name="crown" size={32} className="mb-2 sm:mb-3" />
               <div className="font-bold text-base sm:text-lg mb-1 sm:mb-2">Premium Users</div>
               <div className="text-xs sm:text-sm opacity-90">5x multiplier</div>
             </button>
@@ -854,7 +854,7 @@ export default function CreateMissionPage() {
         {/* Mission Details */}
         <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📝</span>
+            <Icon name="write" size={24} className="mr-2 sm:mr-3" />
             Mission Details
           </h3>
           <div className="space-y-4 sm:space-y-6">
@@ -893,7 +893,7 @@ export default function CreateMissionPage() {
         {/* Price Preview */}
         <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-green-500/30">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">💰</span>
+            <Icon name="money" size={24} className="mr-2 sm:mr-3" />
             Price Preview
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
