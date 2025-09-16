@@ -128,14 +128,14 @@ export default function TaskVerificationDemo() {
         } else if (action === 'verify') {
             const task = mission.tasks.find(t => t.id === taskId);
             if (task && !task.completed && task.intentCompleted) {
-        const completion: TaskCompletion = {
-          taskId,
-          completed: true,
-          completedAt: new Date(),
-          userId: currentUser.id,
-          userName: currentUser.name,
-          status: 'verified'
-        };
+                const completion: TaskCompletion = {
+                    taskId,
+                    completed: true,
+                    completedAt: new Date(),
+                    userId: currentUser.id,
+                    userName: currentUser.name,
+                    status: 'verified'
+                };
 
                 setMission(prev => ({
                     ...prev,
@@ -458,6 +458,19 @@ export default function TaskVerificationDemo() {
                                   </Button>
                                 </div>
                               )}
+                              {viewMode === 'creator' && completion.status === 'flagged' && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-green-600 border-green-300 hover:bg-green-50"
+                                    onClick={() => handleVerifySubmission(completion)}
+                                  >
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Verify
+                                  </Button>
+                                </div>
+                              )}
                                                         </div>
                                                     </div>
                                                 );
@@ -474,50 +487,50 @@ export default function TaskVerificationDemo() {
                   <li>2. Complete the action on Twitter</li>
                   <li>3. Return and click "Verify Like"</li>
                   <li>4. Task is automatically verified and turns green</li>
-                  <li>5. Creator can flag if needed to remove verification</li>
+                  <li>5. Creator can flag to remove verification or verify to restore</li>
                 </ol>
               </div>
                         </CardContent>
                     </Card>
                 </div>
 
-        {/* Implementation Notes */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="text-gray-900">Implementation Plan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold mb-3 text-gray-900">Data Structure Changes</h4>
-                <ul className="text-sm space-y-1 text-gray-700">
-                  <li>• Add task completion tracking to mission data</li>
-                  <li>• Implement submission logging system</li>
-                  <li>• Create verification status management</li>
-                  <li>• Add completion timestamps and user tracking</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-3 text-gray-900">UI/UX Enhancements</h4>
-                <ul className="text-sm space-y-1 text-gray-700">
-                  <li>• Green button states for completed tasks</li>
-                  <li>• Progress indicators for mission completion</li>
-                  <li>• Submission history display</li>
-                  <li>• Creator dashboard for mission analytics</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                {/* Implementation Notes */}
+                <Card className="mt-8">
+                    <CardHeader>
+                        <CardTitle className="text-gray-900">Implementation Plan</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="font-semibold mb-3 text-gray-900">Data Structure Changes</h4>
+                                <ul className="text-sm space-y-1 text-gray-700">
+                                    <li>• Add task completion tracking to mission data</li>
+                                    <li>• Implement submission logging system</li>
+                                    <li>• Create verification status management</li>
+                                    <li>• Add completion timestamps and user tracking</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold mb-3 text-gray-900">UI/UX Enhancements</h4>
+                                <ul className="text-sm space-y-1 text-gray-700">
+                                    <li>• Green button states for completed tasks</li>
+                                    <li>• Progress indicators for mission completion</li>
+                                    <li>• Submission history display</li>
+                                    <li>• Creator dashboard for mission analytics</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {/* Flagging Modal */}
                 {showFlagModal.show && showFlagModal.completion && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900">Flag Submission</h3>
-              <p className="text-sm text-gray-700 mb-4">
-                Flagging: <strong className="text-gray-900">{mission.tasks.find(t => t.id === showFlagModal.completion?.taskId)?.name}</strong> by {showFlagModal.completion.userName}
-              </p>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-900">Flag Submission</h3>
+                            <p className="text-sm text-gray-700 mb-4">
+                                Flagging: <strong className="text-gray-900">{mission.tasks.find(t => t.id === showFlagModal.completion?.taskId)?.name}</strong> by {showFlagModal.completion.userName}
+                            </p>
 
                             <div className="space-y-2 mb-6">
                                 {FLAGGING_REASONS.map((reason) => (
