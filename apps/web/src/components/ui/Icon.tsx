@@ -174,8 +174,8 @@ export const Icon: React.FC<IconProps> = ({
     const iconPath = iconMappings[name];
     const emojiFallback = fallback || emojiFallbacks[name];
 
-  // Use real icons now that we have them
-  const useEmoji = false; // Now using real SVG icons
+    // Use real icons now that we have them
+    const useEmoji = false; // Now using real SVG icons
 
     if (useEmoji) {
         return (
