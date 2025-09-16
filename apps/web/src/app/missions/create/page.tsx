@@ -761,7 +761,7 @@ export default function CreateMissionPage() {
         {selectedPlatform === 'custom' && (
           <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-purple-500/30">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-              <Icon name="custom" size={24} className="mr-2 sm:mr-3" />
+              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚡</span>
               Custom Platform Configuration
             </h3>
             <CustomMissionForm
