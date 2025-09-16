@@ -6,6 +6,7 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
+import { PlatformIcon } from '../../components/ui/Icon';
 
 export default function ClaimPage() {
     const { getWalletBalance, getClaimableRewards, claimReward, loading, error: apiError } = useApi();
@@ -56,16 +57,7 @@ export default function ClaimPage() {
     };
 
     const getPlatformIcon = (platform: string) => {
-        const icons: { [key: string]: string } = {
-            twitter: '𝕏',
-            instagram: '📸',
-            tiktok: '🎵',
-            facebook: '📘',
-            whatsapp: '💬',
-            snapchat: '👻',
-            telegram: '📱'
-        };
-        return icons[platform] || '🌐';
+        return <PlatformIcon platform={platform} size={20} />;
     };
 
     const getStatusBadge = (status: string) => {

@@ -18,7 +18,7 @@ export function MissionListItem({
 
     const loadSubmissions = async () => {
         if (showSubmissions && submissions.length > 0) return; // Already loaded
-        
+
         setLoadingSubmissions(true);
         try {
             const missionSubmissions = await getMissionTaskCompletions(mission.id);
@@ -268,11 +268,10 @@ export function MissionListItem({
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${
-                                                submission.status === 'verified' ? 'bg-green-500/20 text-green-400' :
-                                                submission.status === 'flagged' ? 'bg-red-500/20 text-red-400' :
-                                                'bg-yellow-500/20 text-yellow-400'
-                                            }`}>
+                                            <span className={`px-2 py-1 rounded-full text-xs ${submission.status === 'verified' ? 'bg-green-500/20 text-green-400' :
+                                                    submission.status === 'flagged' ? 'bg-red-500/20 text-red-400' :
+                                                        'bg-yellow-500/20 text-yellow-400'
+                                                }`}>
                                                 {submission.status}
                                             </span>
                                         </div>
@@ -329,7 +328,7 @@ export function MissionListItem({
                         <p className="text-gray-400 mb-4">
                             Why are you flagging this submission from {showFlagModal.completion.userName}?
                         </p>
-                        
+
                         <div className="space-y-2 mb-6 max-h-48 overflow-y-auto">
                             {getFlaggingReasons().map((reason) => (
                                 <button

@@ -3,6 +3,13 @@
  * Handles task completion, verification, and flagging in the actual platform
  */
 
+import { 
+  addTaskCompletion, 
+  getMissionTaskCompletions as getStoredMissionCompletions,
+  updateTaskCompletion,
+  getAllTaskCompletions
+} from './task-completion-storage';
+
 export interface TaskCompletion {
   id: string;
   missionId: string;
@@ -80,8 +87,9 @@ export async function completeTask(
     }
   };
 
-  // In a real implementation, this would save to Firebase/database
-  console.log('Task completed:', completion);
+  // Save to real storage
+  addTaskCompletion(completion);
+  console.log('Task completed and saved:', completion);
   
   // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 100));
@@ -98,25 +106,26 @@ export async function flagTaskCompletion(
   reviewerId: string,
   reviewerName: string
 ): Promise<TaskCompletion> {
-  // In a real implementation, this would update the database
+  // Find the existing completion
+  const allCompletions = getAllTaskCompletions();
+  const existingCompletion = allCompletions.find(c => c.id === completionId);
+  
+  if (!existingCompletion) {
+    throw new Error('Task completion not found');
+  }
+
+  // Update the completion with flagged status
   const flaggedCompletion: TaskCompletion = {
-    id: completionId,
-    missionId: '',
-    taskId: '',
-    userId: '',
-    userName: '',
+    ...existingCompletion,
     status: 'flagged',
-    completedAt: new Date(),
     flaggedAt: new Date(),
     flaggedReason: reason,
-    metadata: {
-      taskType: '',
-      platform: 'twitter'
-    },
     reviewedBy: reviewerId,
     reviewedAt: new Date()
   };
 
+  // Update in storage
+  updateTaskCompletion(completionId, flaggedCompletion);
   console.log('Task flagged:', flaggedCompletion);
   
   // Simulate API call
@@ -133,24 +142,27 @@ export async function verifyTaskCompletion(
   reviewerId: string,
   reviewerName: string
 ): Promise<TaskCompletion> {
-  // In a real implementation, this would update the database
+  // Find the existing completion
+  const allCompletions = getAllTaskCompletions();
+  const existingCompletion = allCompletions.find(c => c.id === completionId);
+  
+  if (!existingCompletion) {
+    throw new Error('Task completion not found');
+  }
+
+  // Update the completion with verified status and clear flagged data
   const verifiedCompletion: TaskCompletion = {
-    id: completionId,
-    missionId: '',
-    taskId: '',
-    userId: '',
-    userName: '',
+    ...existingCompletion,
     status: 'verified',
-    completedAt: new Date(),
     verifiedAt: new Date(),
-    metadata: {
-      taskType: '',
-      platform: 'twitter'
-    },
+    flaggedReason: undefined, // Clear the flagged reason
+    flaggedAt: undefined, // Clear the flagged date
     reviewedBy: reviewerId,
     reviewedAt: new Date()
   };
 
+  // Update in storage
+  updateTaskCompletion(completionId, verifiedCompletion);
   console.log('Task verified:', verifiedCompletion);
   
   // Simulate API call
@@ -166,40 +178,8 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
   // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 200));
   
-  // Return mock data for now
-  return [
-    {
-      id: 'completion-1',
-      missionId,
-      taskId: 'like',
-      userId: 'user-1',
-      userName: 'Alice Smith',
-      status: 'verified',
-      completedAt: new Date(Date.now() - 1000 * 60 * 30),
-      verifiedAt: new Date(Date.now() - 1000 * 60 * 25),
-      metadata: {
-        taskType: 'like',
-        platform: 'twitter',
-        twitterHandle: '@alice_smith'
-      }
-    },
-    {
-      id: 'completion-2',
-      missionId,
-      taskId: 'retweet',
-      userId: 'user-2',
-      userName: 'Bob Johnson',
-      status: 'flagged',
-      completedAt: new Date(Date.now() - 1000 * 60 * 15),
-      flaggedAt: new Date(Date.now() - 1000 * 60 * 10),
-      flaggedReason: 'User didn\'t complete the task',
-      metadata: {
-        taskType: 'retweet',
-        platform: 'twitter',
-        twitterHandle: '@bob_johnson'
-      }
-    }
-  ];
+  // Return real data from storage
+  return getStoredMissionCompletions(missionId);
 }
 
 /**

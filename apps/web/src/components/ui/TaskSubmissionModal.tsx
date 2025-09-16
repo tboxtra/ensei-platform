@@ -5,6 +5,7 @@ import { X, ChevronDown, ChevronUp, ExternalLink, CheckCircle, AlertCircle } fro
 import { getTasksForMission, TaskType, TaskAction } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { completeTask, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
+import { TaskIcon } from './Icon';
 
 interface TaskSubmissionModalProps {
     isOpen: boolean;
@@ -34,6 +35,28 @@ export default function TaskSubmissionModal({
     const [verificationLinks, setVerificationLinks] = useState<{ [key: string]: string }>({});
     const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
+
+    // Helper functions to get current user data
+    const getCurrentUserId = () => {
+        // In a real app, this would come from auth context
+        // For now, we'll use a session-based approach
+        let userId = sessionStorage.getItem('current_user_id');
+        if (!userId) {
+            userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('current_user_id', userId);
+        }
+        return userId;
+    };
+
+    const getCurrentUserName = () => {
+        // In a real app, this would come from auth context
+        let userName = sessionStorage.getItem('current_user_name');
+        if (!userName) {
+            userName = 'User ' + Math.random().toString(36).substr(2, 4);
+            sessionStorage.setItem('current_user_name', userName);
+        }
+        return userName;
+    };
 
     console.log('TaskSubmissionModal render:', {
         isOpen,
@@ -117,8 +140,8 @@ export default function TaskSubmissionModal({
                 const completion = await completeTask(
                     mission.id,
                     task.id,
-                    'current-user-id', // In real app, get from auth context
-                    'Current User', // In real app, get from auth context
+                    getCurrentUserId(), // Get real user ID
+                    getCurrentUserName(), // Get real user name
                     {
                         taskType: task.id,
                         platform: 'twitter',
@@ -198,24 +221,7 @@ export default function TaskSubmissionModal({
     };
 
     const getTaskIcon = (task: TaskType) => {
-        const icons: { [key: string]: string } = {
-            like: '👍',
-            retweet: '🔄',
-            comment: '💬',
-            quote: '💭',
-            follow: '👤',
-            meme: '😂',
-            thread: '🧵',
-            article: '📝',
-            videoreview: '🎥',
-            pfp: '🖼️',
-            name_bio_keywords: '📋',
-            pinned_tweet: '📌',
-            poll: '📊',
-            spaces: '🎙️',
-            community_raid: '⚔️'
-        };
-        return icons[task.id] || '📋';
+        return <TaskIcon taskType={task.id} size={20} />;
     };
 
     return (

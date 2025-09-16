@@ -7,6 +7,7 @@ import { ModernButton } from '../../../components/ui/ModernButton';
 import { ModernInput } from '../../../components/ui/ModernInput';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import CustomMissionForm from '../../../components/missions/CustomMissionForm';
+import { Icon, PlatformIcon } from '../../../components/ui/Icon';
 
 // Constants
 const TASK_PRICES = {
@@ -520,19 +521,19 @@ export default function CreateMissionPage() {
         {/* Platform Selection */}
         <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">🌐</span>
+            <Icon name="globe" size={24} className="mr-2 sm:mr-3" />
             Choose Platform
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[
-              { id: 'twitter', icon: '𝕏', name: 'Twitter/X', color: 'from-blue-500 to-blue-600' },
-              { id: 'instagram', icon: '📸', name: 'Instagram', color: 'from-pink-500 to-purple-600' },
-              { id: 'tiktok', icon: '🎵', name: 'TikTok', color: 'from-black to-gray-800' },
-              { id: 'facebook', icon: '📘', name: 'Facebook', color: 'from-blue-600 to-blue-700' },
-              { id: 'whatsapp', icon: '💬', name: 'WhatsApp', color: 'from-green-500 to-green-600' },
-              { id: 'snapchat', icon: '👻', name: 'Snapchat', color: 'from-yellow-400 to-orange-500' },
-              { id: 'telegram', icon: '📱', name: 'Telegram', color: 'from-blue-400 to-blue-500' },
-              { id: 'custom', icon: '⚡', name: 'Custom', color: 'from-purple-500 to-indigo-600' }
+              { id: 'twitter', name: 'Twitter/X', color: 'from-blue-500 to-blue-600' },
+              { id: 'instagram', name: 'Instagram', color: 'from-pink-500 to-purple-600' },
+              { id: 'tiktok', name: 'TikTok', color: 'from-black to-gray-800' },
+              { id: 'facebook', name: 'Facebook', color: 'from-blue-600 to-blue-700' },
+              { id: 'whatsapp', name: 'WhatsApp', color: 'from-green-500 to-green-600' },
+              { id: 'snapchat', name: 'Snapchat', color: 'from-yellow-400 to-orange-500' },
+              { id: 'telegram', name: 'Telegram', color: 'from-blue-400 to-blue-500' },
+              { id: 'custom', name: 'Custom', color: 'from-purple-500 to-indigo-600' }
             ].map((platform) => (
               <button
                 key={platform.id}
@@ -542,7 +543,7 @@ export default function CreateMissionPage() {
                   : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                   }`}
               >
-                <span className="text-2xl sm:text-3xl mb-1 sm:mb-2">{platform.icon}</span>
+                <PlatformIcon platform={platform.id} size={32} className="mb-1 sm:mb-2" />
                 <span className="text-xs sm:text-sm font-medium text-center">{platform.name}</span>
               </button>
             ))}
@@ -552,14 +553,14 @@ export default function CreateMissionPage() {
         {/* Mission Type */}
         <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
           <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-            <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">🎯</span>
+            <Icon name="target" size={24} className="mr-2 sm:mr-3" />
             Mission Type
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {[
-              { id: 'engage', icon: '🎯', name: 'Engage', description: 'Interact with content', color: 'from-blue-500 to-purple-600' },
-              { id: 'content', icon: '✍️', name: 'Content Creation', description: 'Create original content', color: 'from-green-500 to-emerald-600' },
-              { id: 'ambassador', icon: '👑', name: 'Ambassador', description: 'Represent the brand', color: 'from-yellow-500 to-orange-600' }
+              { id: 'engage', name: 'Engage', description: 'Interact with content', color: 'from-blue-500 to-purple-600' },
+              { id: 'content', name: 'Content Creation', description: 'Create original content', color: 'from-green-500 to-emerald-600' },
+              { id: 'ambassador', name: 'Ambassador', description: 'Represent the brand', color: 'from-yellow-500 to-orange-600' }
             ].map((type) => (
               <button
                 key={type.id}
@@ -572,7 +573,7 @@ export default function CreateMissionPage() {
                   : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                   }`}
               >
-                <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">{type.icon}</div>
+                <Icon name={type.id as any} size={32} className="mb-2 sm:mb-3" />
                 <div className="font-bold text-base sm:text-lg mb-1 sm:mb-2">{type.name}</div>
                 <div className="text-xs sm:text-sm opacity-90">{type.description}</div>
               </button>
@@ -584,14 +585,13 @@ export default function CreateMissionPage() {
         {selectedPlatform !== 'custom' && (
           <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚙️</span>
+              <Icon name="gear" size={24} className="mr-2 sm:mr-3" />
               Mission Model
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {[
                 {
                   id: 'fixed',
-                  icon: '📊',
                   name: 'Fixed Mission',
                   description: 'Fixed participants, task-based pricing',
                   features: ['Predictable costs', 'Fixed timeline', 'Task-based rewards'],
@@ -599,7 +599,6 @@ export default function CreateMissionPage() {
                 },
                 {
                   id: 'degen',
-                  icon: '⚡',
                   name: 'Degen Mission',
                   description: 'Time-boxed, unlimited applicants',
                   features: ['Unlimited applicants', 'Time-based rewards', 'Competitive pool'],
@@ -614,7 +613,7 @@ export default function CreateMissionPage() {
                     : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                     }`}
                 >
-                  <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">{model.icon}</div>
+                  <Icon name={model.id === 'fixed' ? 'missions' : 'custom'} size={32} className="mb-2 sm:mb-3" />
                   <div className="font-bold text-lg sm:text-xl mb-1 sm:mb-2">{model.name}</div>
                   <div className="text-xs sm:text-sm opacity-90 mb-3 sm:mb-4">{model.description}</div>
                   <ul className="space-y-1">
@@ -635,7 +634,7 @@ export default function CreateMissionPage() {
         {selectedPlatform !== 'custom' && selectedModel === 'degen' && (
           <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚡</span>
+              <Icon name="custom" size={24} className="mr-2 sm:mr-3" />
               Degen Settings
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -681,7 +680,7 @@ export default function CreateMissionPage() {
         {selectedPlatform !== 'custom' && selectedModel === 'fixed' && (
           <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📊</span>
+              <Icon name="missions" size={24} className="mr-2 sm:mr-3" />
               Fixed Mission Settings
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -727,7 +726,7 @@ export default function CreateMissionPage() {
         {selectedPlatform === 'custom' && (
           <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-purple-500/30">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">👥</span>
+              <Icon name="users" size={24} className="mr-2 sm:mr-3" />
               Custom Platform Settings
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -761,7 +760,7 @@ export default function CreateMissionPage() {
         {selectedPlatform === 'custom' && (
           <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-purple-500/30">
             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-              <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚡</span>
+              <Icon name="custom" size={24} className="mr-2 sm:mr-3" />
               Custom Platform Configuration
             </h3>
             <CustomMissionForm

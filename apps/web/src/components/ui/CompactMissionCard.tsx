@@ -3,6 +3,7 @@ import { EmbeddedContent } from './EmbeddedContent';
 import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { completeTask, type TaskCompletion } from '@/lib/task-verification';
+import { TaskIcon, PlatformIcon } from './Icon';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -19,6 +20,28 @@ export function CompactMissionCard({
     const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
     const cardRef = useRef<HTMLDivElement>(null);
+
+    // Helper functions to get current user data
+    const getCurrentUserId = () => {
+        // In a real app, this would come from auth context
+        // For now, we'll use a session-based approach
+        let userId = sessionStorage.getItem('current_user_id');
+        if (!userId) {
+            userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('current_user_id', userId);
+        }
+        return userId;
+    };
+
+    const getCurrentUserName = () => {
+        // In a real app, this would come from auth context
+        let userName = sessionStorage.getItem('current_user_name');
+        if (!userName) {
+            userName = 'User ' + Math.random().toString(36).substr(2, 4);
+            sessionStorage.setItem('current_user_name', userName);
+        }
+        return userName;
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -56,19 +79,7 @@ export function CompactMissionCard({
     };
 
     const getPlatformIcon = (platform: string) => {
-        switch (platform?.toLowerCase()) {
-            case 'twitter': return '𝕏';
-            case 'instagram': return '📷';
-            case 'youtube': return '📺';
-            case 'tiktok': return '🎵';
-            case 'linkedin': return '💼';
-            case 'discord': return '💬';
-            case 'facebook': return '📘';
-            case 'whatsapp': return '💬';
-            case 'snapchat': return '👻';
-            case 'telegram': return '✈️';
-            default: return '🌐';
-        }
+        return <PlatformIcon platform={platform} size={12} />;
     };
 
     const getPlatformColor = (platform: string) => {
@@ -265,24 +276,7 @@ export function CompactMissionCard({
     const taskTypes = getTaskTypes(mission);
 
     const getTaskIcon = (taskId: string) => {
-        const icons: { [key: string]: string } = {
-            like: '👍',
-            retweet: '🔄',
-            comment: '💬',
-            quote: '💭',
-            follow: '👤',
-            meme: '😂',
-            thread: '🧵',
-            article: '📝',
-            videoreview: '🎥',
-            pfp: '🖼️',
-            name_bio_keywords: '📋',
-            pinned_tweet: '📌',
-            poll: '📊',
-            spaces: '🎙️',
-            community_raid: '⚔️'
-        };
-        return icons[taskId] || '📋';
+        return <TaskIcon taskType={taskId} size={16} />;
     };
 
     const extractUsernameFromLink = (link: string) => {
@@ -302,7 +296,7 @@ export function CompactMissionCard({
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center ${getPlatformColor(mission.platform)} shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]`}>
-                            <span className="text-white text-xs">{getPlatformIcon(mission.platform)}</span>
+                            {getPlatformIcon(mission.platform)}
                         </div>
                         <div className="flex items-center space-x-1">
                             <div className="font-semibold text-white text-sm capitalize">{getPlatformName(mission.platform)} {mission.type} mission</div>
@@ -365,11 +359,10 @@ export function CompactMissionCard({
                                 <button
                                     key={index}
                                     onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
-                                    className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${
-                                        taskCompletions.some(c => c.taskId === taskId)
+                                    className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${taskCompletions.some(c => c.taskId === taskId)
                                             ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                                             : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                    }`}
+                                        }`}
                                 >
                                     {taskType}
                                 </button>
@@ -448,8 +441,8 @@ export function CompactMissionCard({
                                                         const completion = await completeTask(
                                                             mission.id,
                                                             task.id,
-                                                            'current-user-id', // In real app, get from auth context
-                                                            'Current User', // In real app, get from auth context
+                                                            getCurrentUserId(), // Get real user ID
+                                                            getCurrentUserName(), // Get real user name
                                                             {
                                                                 taskType: task.id,
                                                                 platform: 'twitter',
@@ -477,19 +470,18 @@ export function CompactMissionCard({
                                                         console.log('Action clicked:', action);
                                                     }
                                                 }}
-                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${
-                                                    taskCompletions.some(c => c.taskId === task.id)
+                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${taskCompletions.some(c => c.taskId === task.id)
                                                         ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30'
                                                         : action.type === 'intent'
                                                             ? intentCompleted[task.id]
                                                                 ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
                                                                 : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
                                                             : action.type === 'auto'
-                                                                ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                                : action.type === 'verify'
+                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                    : action.type === 'verify'
                                                                     ? 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                                    : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                }`}
+                                                        : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                    }`}
                                             >
                                                 {action.label}
                                             </button>
