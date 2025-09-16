@@ -45,6 +45,8 @@ export function clearAuthState(): void {
         console.log('🧹 clearAuthState: Removing user and firebaseToken from localStorage');
         localStorage.removeItem('user');
         localStorage.removeItem('firebaseToken');
+        // Clear any old logout flags that might be causing issues
+        localStorage.removeItem('user_logged_out');
         console.log('✅ clearAuthState: Authentication state cleared from localStorage');
     } catch (error) {
         console.error('❌ Error clearing auth state:', error);

@@ -48,6 +48,11 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        // Clear any old logout flags that might be causing issues
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('user_logged_out');
+        }
+        
         const auth = getFirebaseAuth();
 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
@@ -149,17 +154,17 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const logout = async () => {
         try {
             console.log('🔄 Starting logout process...');
-            
+
             const auth = getFirebaseAuth();
-            
+
             // Standard Firebase logout - this should handle everything
             console.log('🔥 Calling Firebase signOut...');
             await signOut(auth);
             console.log('✅ Firebase signOut completed');
-            
+
             // Firebase onAuthStateChanged will handle clearing the state
             // No need for manual state clearing or complex persistence control
-            
+
             console.log('✅ User logged out successfully');
         } catch (err) {
             console.error('❌ Logout error:', err);
