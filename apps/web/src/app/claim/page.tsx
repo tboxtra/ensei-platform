@@ -6,7 +6,6 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
-import { PlatformIcon } from '../../components/ui/Icon';
 
 export default function ClaimPage() {
     const { getWalletBalance, getClaimableRewards, claimReward, loading, error: apiError } = useApi();

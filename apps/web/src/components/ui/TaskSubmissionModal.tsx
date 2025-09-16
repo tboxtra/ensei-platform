@@ -5,7 +5,6 @@ import { X, ChevronDown, ChevronUp, ExternalLink, CheckCircle, AlertCircle } fro
 import { getTasksForMission, TaskType, TaskAction } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { completeTask, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
-import { TaskIcon } from './Icon';
 
 interface TaskSubmissionModalProps {
     isOpen: boolean;
@@ -223,7 +222,24 @@ export default function TaskSubmissionModal({
     };
 
     const getTaskIcon = (task: TaskType) => {
-        return <TaskIcon taskType={task.id} size={20} />;
+        const icons: { [key: string]: string } = {
+            like: '👍',
+            retweet: '🔄',
+            comment: '💬',
+            quote: '💭',
+            follow: '👤',
+            meme: '😂',
+            thread: '🧵',
+            article: '📝',
+            videoreview: '🎥',
+            pfp: '🖼️',
+            name_bio_keywords: '📋',
+            pinned_tweet: '📌',
+            poll: '📊',
+            spaces: '🎙️',
+            community_raid: '⚔️'
+        };
+        return icons[task.id] || '📋';
     };
 
     return (

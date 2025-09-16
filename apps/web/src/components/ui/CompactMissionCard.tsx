@@ -4,7 +4,6 @@ import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { completeTask, type TaskCompletion } from '@/lib/task-verification';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
-import { TaskIcon, PlatformIcon } from './Icon';
 import { useAuth } from '../../contexts/UserAuthContext';
 
 interface CompactMissionCardProps {
@@ -60,7 +59,19 @@ export function CompactMissionCard({
     };
 
     const getPlatformIcon = (platform: string) => {
-        return <PlatformIcon platform={platform} size={12} />;
+        switch (platform?.toLowerCase()) {
+            case 'twitter': return '𝕏';
+            case 'instagram': return '📷';
+            case 'youtube': return '📺';
+            case 'tiktok': return '🎵';
+            case 'linkedin': return '💼';
+            case 'discord': return '💬';
+            case 'facebook': return '📘';
+            case 'whatsapp': return '💬';
+            case 'snapchat': return '👻';
+            case 'telegram': return '✈️';
+            default: return '🌐';
+        }
     };
 
     const getPlatformColor = (platform: string) => {
@@ -257,7 +268,24 @@ export function CompactMissionCard({
     const taskTypes = getTaskTypes(mission);
 
     const getTaskIcon = (taskId: string) => {
-        return <TaskIcon taskType={taskId} size={16} />;
+        const icons: { [key: string]: string } = {
+            like: '👍',
+            retweet: '🔄',
+            comment: '💬',
+            quote: '💭',
+            follow: '👤',
+            meme: '😂',
+            thread: '🧵',
+            article: '📝',
+            videoreview: '🎥',
+            pfp: '🖼️',
+            name_bio_keywords: '📋',
+            pinned_tweet: '📌',
+            poll: '📊',
+            spaces: '🎙️',
+            community_raid: '⚔️'
+        };
+        return icons[taskId] || '📋';
     };
 
     const extractUsernameFromLink = (link: string) => {
@@ -277,7 +305,7 @@ export function CompactMissionCard({
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center ${getPlatformColor(mission.platform)} shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]`}>
-                            {getPlatformIcon(mission.platform)}
+                            <span className="text-white text-xs">{getPlatformIcon(mission.platform)}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                             <div className="font-semibold text-white text-sm capitalize">{getPlatformName(mission.platform)} {mission.type} mission</div>

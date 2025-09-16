@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useApi } from '../../hooks/useApi';
-import { NavigationIcon, Icon } from '../ui/Icon';
 
 interface ModernLayoutProps {
     children: React.ReactNode;
@@ -81,13 +80,13 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     }, []);
 
     const navigation = [
-        { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
-        { href: '/missions', icon: 'discover', label: 'Discover & Earn' },
-        { href: '/missions/create', icon: 'missions', label: 'Create Mission' },
-        { href: '/missions/my', icon: 'missions', label: 'My Missions' },
-        { href: '/review', icon: 'review', label: 'Review & Earn' },
-        { href: '/claim', icon: 'claims', label: 'Claim' },
-        { href: '/wallet', icon: 'wallet', label: 'Wallet' }
+        { href: '/dashboard', icon: '🏠', label: 'Dashboard' },
+        { href: '/missions', icon: '🔍', label: 'Discover & Earn' },
+        { href: '/missions/create', icon: '🚀', label: 'Create Mission' },
+        { href: '/missions/my', icon: '📊', label: 'My Missions' },
+        { href: '/review', icon: '📄', label: 'Review & Earn' },
+        { href: '/claim', icon: '💰', label: 'Claim' },
+        { href: '/wallet', icon: '👛', label: 'Wallet' }
     ];
 
     const handleLogout = async () => {
@@ -149,12 +148,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                 <div className="flex justify-between items-center max-w-7xl mx-auto">
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <Link href="/dashboard" className="flex items-center space-x-2 sm:space-x-4">
-                            <img 
-                                src="/icons/ensei-logo-large.svg" 
-                                alt="Ensei" 
-                                className="w-10 h-10 sm:w-12 sm:h-12"
-                            />
-                            <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-green-400 bg-clip-text text-transparent">
+                            <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
                                 Ensei
                             </div>
                             <div className="hidden sm:block text-sm text-gray-400">Mission Platform</div>
@@ -200,27 +194,24 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                             <div className="py-2">
                                                 <Link
                                                     href="/profile"
-                                                    className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-700/50 hover:text-white transition-colors"
+                                                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700/50 hover:text-white transition-colors"
                                                     onClick={() => setShowUserMenu(false)}
                                                 >
-                                                    <Icon name="profile" size={16} className="mr-2" />
-                                                    Profile Settings
+                                                    👤 Profile Settings
                                                 </Link>
                                                 <Link
                                                     href="/wallet"
-                                                    className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-700/50 hover:text-white transition-colors"
+                                                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700/50 hover:text-white transition-colors"
                                                     onClick={() => setShowUserMenu(false)}
                                                 >
-                                                    <Icon name="wallet" size={16} className="mr-2" />
-                                                    Wallet
+                                                    👛 Wallet
                                                 </Link>
                                                 <div className="border-t border-gray-700 my-1"></div>
                                                 <button
                                                     onClick={handleLogout}
-                                                    className="flex items-center w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                                                    className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
                                                 >
-                                                    <Icon name="logout" size={16} className="mr-2" />
-                                                    Sign Out
+                                                    🚪 Sign Out
                                                 </button>
                                             </div>
                                         </div>
@@ -262,11 +253,9 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                         : 'text-gray-400 hover:text-white hover:bg-white/5 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.05)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.1),inset_1px_1px_1px_rgba(255,255,255,0.08)]'
                                         }`}
                                 >
-                                    <NavigationIcon
-                                        page={item.icon}
-                                        size={20}
-                                        className={`mr-2 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
-                                    />
+                                    <span className={`mr-2 text-base transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+                                        {item.icon}
+                                    </span>
                                     <span className="font-medium text-sm">{item.label}</span>
                                 </Link>
                             );
@@ -359,11 +348,9 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                             }`}
                                         onClick={() => setShowUserMenu(false)}
                                     >
-                                        <NavigationIcon
-                                            page={item.icon}
-                                            size={24}
-                                            className={`mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
-                                        />
+                                        <span className={`mr-3 text-base sm:text-lg transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+                                            {item.icon}
+                                        </span>
                                         <span className="font-medium text-sm sm:text-base">{item.label}</span>
                                     </Link>
                                 );
