@@ -46,17 +46,25 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    
+    // Production logging control
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const log = (message: string, ...args: any[]) => {
+        if (isDevelopment) {
+            console.log(message, ...args);
+        }
+    };
 
     useEffect(() => {
         // Clear any old logout flags that might be causing issues
         if (typeof window !== 'undefined') {
             localStorage.removeItem('user_logged_out');
         }
-        
+
         const auth = getFirebaseAuth();
 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-            console.log('🔥 Firebase onAuthStateChanged triggered:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
+            log('🔥 Firebase onAuthStateChanged triggered:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
 
             if (firebaseUser) {
                 try {
@@ -66,67 +74,32 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                     // Store token in localStorage for API calls
                     localStorage.setItem('firebaseToken', token);
 
-                    // Try to restore existing user data from localStorage first
-                    let userData: User;
-                    try {
-                        const existingUser = localStorage.getItem('user');
-                        if (existingUser) {
-                            const parsedUser = JSON.parse(existingUser);
-                            // Update with current Firebase data but preserve existing data
-                            userData = {
-                                ...parsedUser,
-                                id: firebaseUser.uid,
-                                email: firebaseUser.email || parsedUser.email,
-                                emailVerified: firebaseUser.emailVerified,
-                                // Keep existing name/avatar if they exist, otherwise use Firebase data
-                                name: parsedUser.name || firebaseUser.displayName || firebaseUser.email || '',
-                                firstName: parsedUser.firstName || firebaseUser.displayName?.split(' ')[0] || '',
-                                lastName: parsedUser.lastName || firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-                                avatar: parsedUser.avatar || firebaseUser.photoURL || '',
-                                joinedAt: parsedUser.joinedAt || firebaseUser.metadata.creationTime || new Date().toISOString(),
-                            };
-                        } else {
-                            // Create new user object if no existing data
-                            userData = {
-                                id: firebaseUser.uid,
-                                email: firebaseUser.email || '',
-                                name: firebaseUser.displayName || firebaseUser.email || '',
-                                firstName: firebaseUser.displayName?.split(' ')[0] || '',
-                                lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-                                avatar: firebaseUser.photoURL || '',
-                                joinedAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
-                                emailVerified: firebaseUser.emailVerified,
-                            };
-                        }
-                    } catch (err) {
-                        console.error('Error parsing existing user data:', err);
-                        // Fallback to creating new user object
-                        userData = {
-                            id: firebaseUser.uid,
-                            email: firebaseUser.email || '',
-                            name: firebaseUser.displayName || firebaseUser.email || '',
-                            firstName: firebaseUser.displayName?.split(' ')[0] || '',
-                            lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-                            avatar: firebaseUser.photoURL || '',
-                            joinedAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
-                            emailVerified: firebaseUser.emailVerified,
-                        };
-                    }
+                    // Create user data from Firebase (primary source of truth)
+                    const userData: User = {
+                        id: firebaseUser.uid,
+                        email: firebaseUser.email || '',
+                        name: firebaseUser.displayName || firebaseUser.email || '',
+                        firstName: firebaseUser.displayName?.split(' ')[0] || '',
+                        lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+                        avatar: firebaseUser.photoURL || '',
+                        joinedAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+                        emailVerified: firebaseUser.emailVerified,
+                    };
 
                     // Store user data
                     localStorage.setItem('user', JSON.stringify(userData));
                     setUser(userData);
-                    console.log('User authenticated via Firebase:', userData.email);
+                    log('User authenticated via Firebase:', userData.email);
                 } catch (err) {
                     console.error('Error getting Firebase token:', err);
                     setError('Failed to get authentication token');
                 }
             } else {
                 // User is signed out - clear everything
-                console.log('🧹 Firebase confirmed user signed out, clearing state...');
+                log('🧹 Firebase confirmed user signed out, clearing state...');
                 clearAuthState();
                 setUser(null);
-                console.log('✅ User signed out and state cleared');
+                log('✅ User signed out and state cleared');
             }
             setIsLoading(false);
         });
@@ -153,19 +126,19 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
 
     const logout = async () => {
         try {
-            console.log('🔄 Starting logout process...');
+            log('🔄 Starting logout process...');
 
             const auth = getFirebaseAuth();
 
             // Standard Firebase logout - this should handle everything
-            console.log('🔥 Calling Firebase signOut...');
+            log('🔥 Calling Firebase signOut...');
             await signOut(auth);
-            console.log('✅ Firebase signOut completed');
+            log('✅ Firebase signOut completed');
 
             // Firebase onAuthStateChanged will handle clearing the state
             // No need for manual state clearing or complex persistence control
 
-            console.log('✅ User logged out successfully');
+            log('✅ User logged out successfully');
         } catch (err) {
             console.error('❌ Logout error:', err);
             // Only clear state if Firebase signOut fails
@@ -182,12 +155,12 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
             if (currentUser) {
                 const token = await currentUser.getIdToken(true); // Force refresh
                 localStorage.setItem('firebaseToken', token);
-                console.log('Token refreshed successfully');
+                log('Token refreshed successfully');
             } else {
                 // No current user, clear storage
                 clearAuthState();
                 setUser(null);
-                console.log('No current user found, cleared storage');
+                log('No current user found, cleared storage');
             }
         } catch (err) {
             console.error('Token refresh error:', err);
@@ -203,7 +176,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
             const currentUser = auth.currentUser;
             if (currentUser) {
                 await sendVerificationEmail(currentUser);
-                console.log('Verification email sent successfully');
+                log('Verification email sent successfully');
             } else {
                 throw new Error('No authenticated user found');
             }

@@ -138,6 +138,14 @@ export function useApi() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { logout: authLogout } = useAuth();
+    
+    // Production logging control
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const log = (message: string, ...args: any[]) => {
+        if (isDevelopment) {
+            console.log(message, ...args);
+        }
+    };
 
     const makeRequest = useCallback(async <T>(
         endpoint: string,
@@ -151,7 +159,7 @@ export function useApi() {
             const token = typeof window !== 'undefined' ? localStorage.getItem('firebaseToken') : null;
 
             // Debug logging
-            console.log('API Request Debug:', {
+            log('API Request Debug:', {
                 endpoint,
                 hasToken: !!token,
                 tokenLength: token?.length || 0,
@@ -293,22 +301,22 @@ export function useApi() {
 
     const logout = useCallback(async (): Promise<void> => {
         try {
-            console.log('🔄 useApi logout: Starting logout process...');
+            log('🔄 useApi logout: Starting logout process...');
 
             // Call logout endpoint if available
             try {
                 await makeRequest('/v1/auth/logout', {
                     method: 'POST',
                 });
-                console.log('✅ useApi logout: API logout successful');
+                log('✅ useApi logout: API logout successful');
             } catch (err) {
                 console.warn('⚠️ useApi logout: API logout failed, but continuing with Firebase logout:', err);
             }
 
             // Use auth context logout to properly sign out from Firebase
-            console.log('🔥 useApi logout: Calling Firebase signOut...');
+            log('🔥 useApi logout: Calling Firebase signOut...');
             await authLogout();
-            console.log('✅ useApi logout: Firebase signOut completed');
+            log('✅ useApi logout: Firebase signOut completed');
 
         } catch (err) {
             console.error('❌ useApi logout: Error during logout:', err);
@@ -316,10 +324,10 @@ export function useApi() {
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('firebaseToken');
                 localStorage.removeItem('user');
-                console.log('🧹 useApi logout: Fallback localStorage clearing completed');
+                log('🧹 useApi logout: Fallback localStorage clearing completed');
             }
         }
-    }, [makeRequest, authLogout]);
+    }, [makeRequest, authLogout, log]);
 
     const getCurrentUser = useCallback(async (): Promise<any> => {
         try {

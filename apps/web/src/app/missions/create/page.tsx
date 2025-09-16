@@ -860,6 +860,16 @@ export default function CreateMissionPage() {
               // Validate platform-specific URL patterns
               const url = new URL(contentLink);
               const isValidPlatformUrl = validatePlatformUrl(selectedPlatform, url);
+
+              // Debug logging
+              console.log('=== URL VALIDATION DEBUG ===');
+              console.log('Platform:', selectedPlatform);
+              console.log('Content Link:', contentLink);
+              console.log('URL Object:', url);
+              console.log('Hostname:', url.hostname);
+              console.log('Is Valid Platform URL:', isValidPlatformUrl);
+              console.log('============================');
+
               if (!isValidPlatformUrl) {
                 alert(`Please enter a valid ${selectedPlatform} URL. Example: ${PLATFORM_CONTENT_PLACEHOLDERS[selectedPlatform as keyof typeof PLATFORM_CONTENT_PLACEHOLDERS]?.contentLink || 'https://example.com'}`);
                 return;

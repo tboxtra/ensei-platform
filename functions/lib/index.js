@@ -303,6 +303,12 @@ app.post('/v1/missions', verifyFirebaseToken, async (req, res) => {
         const url = new URL(contentLink);
         const hostname = url.hostname.toLowerCase();
         let isValidUrl = false;
+        // Debug logging
+        console.log('=== BACKEND URL VALIDATION DEBUG ===');
+        console.log('Platform:', missionData.platform);
+        console.log('Content Link:', contentLink);
+        console.log('Hostname:', hostname);
+        console.log('URL Object:', url);
         switch (missionData.platform) {
             case 'twitter':
                 isValidUrl = hostname.includes('x.com') || hostname.includes('twitter.com');
@@ -331,7 +337,10 @@ app.post('/v1/missions', verifyFirebaseToken, async (req, res) => {
             default:
                 isValidUrl = false;
         }
+        console.log('Is Valid URL:', isValidUrl);
+        console.log('=====================================');
         if (!isValidUrl) {
+            console.log('VALIDATION FAILED: Invalid platform URL');
             res.status(400).json({
                 error: `Invalid ${missionData.platform} URL. Please provide a valid URL for the selected platform.`
             });

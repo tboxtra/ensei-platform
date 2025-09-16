@@ -2,6 +2,14 @@
  * Authentication utility functions for managing user sessions
  */
 
+// Production logging control
+const isDevelopment = process.env.NODE_ENV === 'development';
+const log = (message: string, ...args: any[]) => {
+    if (isDevelopment) {
+        console.log(message, ...args);
+    }
+};
+
 export interface AuthState {
     isAuthenticated: boolean;
     user: any | null;
@@ -11,6 +19,7 @@ export interface AuthState {
 
 /**
  * Get the current authentication state from localStorage
+ * Note: This function is kept for potential future use but not currently used
  */
 export function getAuthState(): AuthState {
     if (typeof window === 'undefined') {
@@ -42,12 +51,12 @@ export function clearAuthState(): void {
     if (typeof window === 'undefined') return;
 
     try {
-        console.log('🧹 clearAuthState: Removing user and firebaseToken from localStorage');
+        log('🧹 clearAuthState: Removing user and firebaseToken from localStorage');
         localStorage.removeItem('user');
         localStorage.removeItem('firebaseToken');
         // Clear any old logout flags that might be causing issues
         localStorage.removeItem('user_logged_out');
-        console.log('✅ clearAuthState: Authentication state cleared from localStorage');
+        log('✅ clearAuthState: Authentication state cleared from localStorage');
     } catch (error) {
         console.error('❌ Error clearing auth state:', error);
     }
@@ -55,6 +64,7 @@ export function clearAuthState(): void {
 
 /**
  * Check if the current token is expired (basic check)
+ * Note: This function is kept for potential future use but not currently used
  */
 export function isTokenExpired(token: string): boolean {
     try {
@@ -70,13 +80,14 @@ export function isTokenExpired(token: string): boolean {
 
 /**
  * Validate authentication state and clear if invalid
+ * Note: This function is kept for potential future use but not currently used
  */
 export function validateAuthState(): AuthState {
     const authState = getAuthState();
 
     if (authState.isAuthenticated && authState.token) {
         if (isTokenExpired(authState.token)) {
-            console.log('Token is expired, clearing auth state');
+            log('Token is expired, clearing auth state');
             clearAuthState();
             return { isAuthenticated: false, user: null, token: null, emailVerified: false };
         }
