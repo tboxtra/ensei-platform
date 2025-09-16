@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { EmbeddedContent } from './EmbeddedContent';
 import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
+import { completeTask, type TaskCompletion } from '@/lib/task-verification';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -15,6 +16,8 @@ export function CompactMissionCard({
     onViewDetails
 }: CompactMissionCardProps) {
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
+    const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
+    const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
     const cardRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -406,7 +409,7 @@ export function CompactMissionCard({
                                         {task.actions.map((action) => (
                                             <button
                                                 key={action.id}
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     if (action.type === 'intent') {
                                                         // Handle Twitter intent actions
                                                         const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
@@ -420,8 +423,41 @@ export function CompactMissionCard({
                                                         // Open Twitter intent in a new window
                                                         TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
 
+                                                        // Mark intent as completed
+                                                        setIntentCompleted(prev => ({
+                                                            ...prev,
+                                                            [task.id]: true
+                                                        }));
+
                                                         // Show success message
                                                         alert(`Opening Twitter to ${action.label.toLowerCase()}. Complete the action and return to verify.`);
+
+                                                    } else if (action.type === 'verify') {
+                                                        // Handle verification actions
+                                                        // Check if intent was completed first
+                                                        if (!intentCompleted[task.id]) {
+                                                            alert(`Please complete the Twitter action first by clicking "${task.actions.find(a => a.type === 'intent')?.label || 'the intent button'}"`);
+                                                            return;
+                                                        }
+
+                                                        // Complete the task with verification
+                                                        const completion = await completeTask(
+                                                            mission.id,
+                                                            task.id,
+                                                            'current-user-id', // In real app, get from auth context
+                                                            'Current User', // In real app, get from auth context
+                                                            {
+                                                                taskType: task.id,
+                                                                platform: 'twitter',
+                                                                twitterHandle: mission.username,
+                                                                tweetUrl: mission.tweetLink || mission.contentLink
+                                                            }
+                                                        );
+
+                                                        // Add to completions
+                                                        setTaskCompletions(prev => [...prev, completion]);
+
+                                                        alert(`✅ ${task.name} completed and verified successfully!`);
 
                                                     } else if (action.type === 'manual' && action.id === 'view_tweet') {
                                                         window.open(mission.tweetLink || mission.contentLink, '_blank');
@@ -433,18 +469,23 @@ export function CompactMissionCard({
                                                             window.open(`https://twitter.com/${username}`, '_blank');
                                                         }
                                                     } else {
-                                                        // Handle auto actions or verification actions
+                                                        // Handle auto actions
                                                         console.log('Action clicked:', action);
                                                     }
                                                 }}
-                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${action.type === 'intent'
-                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
-                                                    : action.type === 'auto'
-                                                        ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                        : action.type === 'verify'
-                                                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                                            : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                    }`}
+                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${
+                                                    action.type === 'intent'
+                                                        ? intentCompleted[task.id]
+                                                            ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
+                                                            : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
+                                                        : action.type === 'auto'
+                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                            : action.type === 'verify'
+                                                                ? taskCompletions.some(c => c.taskId === task.id)
+                                                                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                                                    : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                }`}
                                             >
                                                 {action.label}
                                             </button>

@@ -32,6 +32,8 @@ export default function TaskSubmissionModal({
     const [taskStates, setTaskStates] = useState<TaskState>({});
     const [loading, setLoading] = useState<string | null>(null);
     const [verificationLinks, setVerificationLinks] = useState<{ [key: string]: string }>({});
+    const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
+    const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
 
     console.log('TaskSubmissionModal render:', {
         isOpen,
@@ -83,6 +85,12 @@ export default function TaskSubmissionModal({
                 // Open Twitter intent in a new window
                 TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
 
+                // Mark intent as completed
+                setIntentCompleted(prev => ({
+                    ...prev,
+                    [task.id]: true
+                }));
+
                 // Show success message
                 alert(`Opening Twitter to ${action.label.toLowerCase()}. Complete the action and return to verify.`);
 
@@ -99,26 +107,43 @@ export default function TaskSubmissionModal({
                 }));
             } else if (action.type === 'verify') {
                 // Handle verification actions
-                const verificationData = {
-                    link: verificationLinks[`${task.id}-${action.id}`] || '',
-                    action: action.id
-                };
-
-                if (!verificationData.link) {
-                    alert('Please provide a verification link');
+                // Check if intent was completed first
+                if (!intentCompleted[task.id]) {
+                    alert(`Please complete the Twitter action first by clicking "${task.actions.find(a => a.type === 'intent')?.label || 'the intent button'}"`);
                     return;
                 }
 
-                await onTaskComplete(task.id, action.id, verificationData);
+                // Complete the task with verification
+                const completion = await completeTask(
+                    mission.id,
+                    task.id,
+                    'current-user-id', // In real app, get from auth context
+                    'Current User', // In real app, get from auth context
+                    {
+                        taskType: task.id,
+                        platform: 'twitter',
+                        twitterHandle: mission.username,
+                        tweetUrl: mission.tweetLink || mission.contentLink
+                    }
+                );
 
+                // Add to completions
+                setTaskCompletions(prev => [...prev, completion]);
+
+                // Update task state
                 setTaskStates(prev => ({
                     ...prev,
                     [task.id]: {
                         ...prev[task.id],
                         completed: true,
-                        verificationData
+                        verificationData: { status: 'verified' }
                     }
                 }));
+
+                // Call the original onTaskComplete callback
+                await onTaskComplete(task.id, action.id, { status: 'verified' });
+
+                alert(`✅ ${task.name} completed and verified successfully!`);
             } else if (action.type === 'manual') {
                 // Handle manual actions (view tweet, view profile)
                 if (action.id === 'view_tweet' || action.id === 'view_post') {
@@ -149,11 +174,19 @@ export default function TaskSubmissionModal({
         const baseStyle = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2";
 
         if (action.type === 'intent') {
+            // Show yellow if intent completed, blue if not
+            if (intentCompleted[task.id]) {
+                return `${baseStyle} bg-yellow-500 hover:bg-yellow-600 text-white shadow-lg hover:shadow-xl`;
+            }
             return `${baseStyle} bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl`;
         } else if (action.type === 'auto') {
             return `${baseStyle} bg-blue-500 hover:bg-blue-600 text-white`;
         } else if (action.type === 'verify') {
-            return `${baseStyle} bg-green-500 hover:bg-green-600 text-white`;
+            // Show green if task completed, gray if not
+            if (taskStates[task.id]?.completed) {
+                return `${baseStyle} bg-green-500 hover:bg-green-600 text-white`;
+            }
+            return `${baseStyle} bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300`;
         } else {
             return `${baseStyle} bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300`;
         }
@@ -264,3 +297,4 @@ export default function TaskSubmissionModal({
         </div>
     );
 }
+
