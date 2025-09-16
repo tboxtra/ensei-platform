@@ -1,137 +1,153 @@
-# ==========================================================
-#  Ensei Platform — Cursor Guardrails (.cursorrules)
-#  Place this file at the monorepo root.
-# ==========================================================
+# Ensei Platform - Cursor Rules
 
-workspace:
-  root: "."
-  allowOutsideRoot: false
-  deniedGlobs:
-    - "**/node_modules/**"
-    - "**/.turbo/**"
-    - "**/dist/**"
-    - "**/build/**"
-    - "**/.next/**"
-    - "./index.html"
-    - "./app.js"
-    - "./styles.css"
+## Core Principles
 
-conventions:
-  language: "TypeScript"
-  style: "ESLint + Prettier"
-  packageManager: "npm"
-  monorepoTool: "turbo"
+### 1. Industry Standards & Best Practices
+- **Always implement industry-standard patterns** for any task or feature
+- Follow **SOLID principles** and **clean architecture** patterns
+- Use **TypeScript strict mode** with proper type definitions
+- Implement **proper error handling** with try-catch blocks and user-friendly messages
+- Follow **React best practices**: hooks, functional components, proper state management
+- Use **semantic HTML** and **accessibility standards** (WCAG 2.1 AA)
+- Implement **responsive design** with mobile-first approach
+- Follow **RESTful API design** principles for backend endpoints
 
-guardrails:
-  - "ALWAYS use npm instead of yarn for package management. Never use yarn commands."
-  - "Do NOT create duplicate constants. Use the single source of truth in packages/shared-types and services/mission-engine."
-  - "Every new request/response must have a Zod schema in packages/validation-schemas and types in packages/shared-types."
-  - "API gateway is thin: import pricing and task logic from services/mission-engine; do not re-implement math in routes or clients."
-  - "Update docs/api/openapi.yaml and regenerate packages/api-client when API contracts change."
-  - "Implement ALL social media mission categories (Engage, Content, Ambassador) for Twitter, Instagram, TikTok, Facebook, WhatsApp, Snapchat, Telegram."
-  - "Keep Telegram platform fully supported (engage/content/ambassador) and include Twitter 'Follow' in Engage."
-  - "Degen: unlimited applicants, time-boxed, winner-cap per preset, user pool = 50% of creator USD cost; Premium multiplies total cost ×5 (never ×4)."
-  - "USD↔Honors rate is 1 USD = 450 Honors (exported from shared-types)."
-  - "Prefer small, composable commits with clear scopes."
+### 2. Scalability Requirements
+- **Design for large-scale usage** (10,000+ concurrent users)
+- Use **database indexing** and **query optimization**
+- Implement **caching strategies** (Redis, CDN, browser caching)
+- Use **pagination** for large data sets
+- Implement **rate limiting** and **DDoS protection**
+- Use **connection pooling** for database connections
+- Implement **horizontal scaling** patterns
+- Use **microservices architecture** where appropriate
+- Implement **async processing** for heavy operations
+- Use **queue systems** for background tasks
 
-paths:
-  sharedTypes: "packages/shared-types/src"
-  validationSchemas: "packages/validation-schemas/src"
-  apiGateway: "services/api-gateway/src"
-  missionEngine: "services/mission-engine/src"
-  webApp: "apps/web"
-  adminApp: "apps/admin-dashboard"
-  telegramApp: "apps/telegram-bot"
+### 3. Data Management & Storage
+- **NEVER depend on localStorage** for critical application state
+- Use **server-side state management** for user data, authentication, and business logic
+- Implement **proper session management** with secure tokens
+- Use **database transactions** for data consistency
+- Implement **data validation** on both client and server sides
+- Use **environment variables** for configuration
+- Implement **proper backup and recovery** strategies
+- Use **encrypted storage** for sensitive data
 
-requiredFiles:
-  - "packages/shared-types/src/pricing.ts"
-  - "packages/shared-types/src/missions.ts"
-  - "services/mission-engine/src/index.ts"
-  - "services/mission-engine/src/pricing/fixed.ts"
-  - "services/mission-engine/src/pricing/degen.ts"
-  - "services/mission-engine/src/tasks/catalog.ts"
-  - "packages/validation-schemas/src/mission/createFixedMission.schema.ts"
-  - "packages/validation-schemas/src/mission/createDegenMission.schema.ts"
-  - "services/api-gateway/src/index.ts"
-  - "services/api-gateway/src/routes/missions.ts"
+### 4. Authentication & Security
+- Use **JWT tokens** with proper expiration and refresh mechanisms
+- Implement **OAuth 2.0** for third-party integrations
+- Use **HTTPS everywhere** with proper SSL certificates
+- Implement **CORS** properly for cross-origin requests
+- Use **input sanitization** and **XSS protection**
+- Implement **CSRF protection**
+- Use **secure headers** (HSTS, CSP, etc.)
+- Implement **proper password hashing** (bcrypt, Argon2)
 
-pricingTruth:
-  honorsPerUsd: 450
-  premiumMultiplier: 5
-  userPoolFactor: 0.5
-  degenPresets:
-    - { hours: 1,   costUSD: 15,   maxWinners: 1,  label: "1 hr" }
-    - { hours: 3,   costUSD: 30,   maxWinners: 2,  label: "3 hrs" }
-    - { hours: 6,   costUSD: 80,   maxWinners: 3,  label: "6 hrs" }
-    - { hours: 8,   costUSD: 150,  maxWinners: 3,  label: "8 hrs" }
-    - { hours: 12,  costUSD: 180,  maxWinners: 5,  label: "12 hrs" }
-    - { hours: 18,  costUSD: 300,  maxWinners: 5,  label: "18 hrs" }
-    - { hours: 24,  costUSD: 400,  maxWinners: 5,  label: "24 hrs" }
-    - { hours: 36,  costUSD: 500,  maxWinners: 10, label: "36 hrs" }
-    - { hours: 48,  costUSD: 600,  maxWinners: 10, label: "48 hrs" }
-    - { hours: 72,  costUSD: 800,  maxWinners: 10, label: "3 days" }
-    - { hours: 96,  costUSD: 1000, maxWinners: 10, label: "4 days" }
-    - { hours: 168, costUSD: 1500, maxWinners: 10, label: "7 days" }
-    - { hours: 240, costUSD: 2000, maxWinners: 10, label: "10 days" }
+### 5. Performance Optimization
+- Implement **lazy loading** for components and routes
+- Use **code splitting** and **tree shaking**
+- Optimize **bundle size** and **loading times**
+- Implement **image optimization** and **lazy loading**
+- Use **CDN** for static assets
+- Implement **service workers** for offline functionality
+- Use **memoization** for expensive calculations
+- Implement **virtual scrolling** for large lists
 
-platformTasks:
-  twitter:
-    engage:     [ "like", "follow", "retweet", "comment", "quote" ]
-    content:    [ "meme", "thread", "article", "videoreview" ]
-    ambassador: [ "pfp", "name_bio_keywords", "pinned_tweet", "poll", "spaces", "community_raid" ]
-  instagram:
-    engage:     [ "like", "comment", "follow", "story_repost" ]
-    content:    [ "feed_post", "reel", "carousel", "meme" ]
-    ambassador: [ "pfp", "hashtag_in_bio", "story_highlight" ]
-  tiktok:
-    engage:     [ "like", "comment", "repost_duet", "follow" ]
-    content:    [ "skit", "challenge", "product_review", "status_style" ]
-    ambassador: [ "pfp", "hashtag_in_bio", "pinned_branded_video" ]
-  facebook:
-    engage:     [ "like", "comment", "follow", "share_post" ]
-    content:    [ "group_post", "video", "meme_flyer" ]
-    ambassador: [ "pfp", "bio_keyword", "pinned_post" ]
-  whatsapp:
-    engage:     [ "status_50_views" ]
-    content:    [ "flyer_clip_status", "broadcast_message" ]
-    ambassador: [ "pfp", "keyword_in_about" ]
-  snapchat:
-    engage:     [ "story_100_views", "snap_repost" ]
-    content:    [ "meme_flyer_snap", "branded_snap_video" ]
-    ambassador: [ "pfp_avatar", "hashtag_in_profile", "branded_lens" ]
-  telegram:
-    engage:     [ "join_channel", "react_to_post", "reply_in_group", "share_invite" ]
-    content:    [ "channel_post", "short_video_in_channel", "guide_thread" ]
-    ambassador: [ "pfp", "mention_in_bio", "pin_invite_link" ]
+### 6. Testing & Quality Assurance
+- Write **unit tests** for all business logic
+- Implement **integration tests** for API endpoints
+- Use **end-to-end tests** for critical user flows
+- Implement **error monitoring** and **logging**
+- Use **code coverage** tools (minimum 80% coverage)
+- Implement **automated testing** in CI/CD pipeline
+- Use **static analysis** tools (ESLint, Prettier, TypeScript)
+- Implement **performance monitoring**
 
-commands:
-  install: "npm install"
-  buildAll: "npm run build"
-  devApi: "cd services/api-gateway && npm run dev"
-  devWeb: "cd apps/web && npm run dev"
-  testAll: "npm run test"
-  apiHealth: "curl -sf http://localhost:3001/health"
+### 7. Database Design
+- Use **normalized database schema** with proper relationships
+- Implement **database migrations** for schema changes
+- Use **indexes** for frequently queried fields
+- Implement **soft deletes** instead of hard deletes
+- Use **database constraints** for data integrity
+- Implement **audit trails** for important data changes
+- Use **connection pooling** and **query optimization**
+- Implement **database backup** and **recovery procedures**
 
-reviewChecklist:
-  - "Are all new endpoints validated with Zod from packages/validation-schemas?"
-  - "Are API responses/types exported via packages/api-client?"
-  - "Did we avoid duplicating pricing logic outside mission-engine?"
-  - "Does the UI (apps/web) fetch presets and pricing from the API (not re-compute locally)?"
-  - "Are ALL platform tasks (Engage, Content, Ambassador) supported as defined in platformTasks?"
-  - "Are Telegram tasks and Twitter Follow included?"
-  - "Did we add tests (unit/integration) and update docs/api/openapi.yaml?"
+### 8. API Design
+- Use **RESTful conventions** with proper HTTP methods
+- Implement **proper status codes** and error responses
+- Use **API versioning** for backward compatibility
+- Implement **rate limiting** and **throttling**
+- Use **API documentation** (OpenAPI/Swagger)
+- Implement **request/response validation**
+- Use **proper error handling** with meaningful messages
+- Implement **API monitoring** and **analytics**
 
-warningMessage: >
-  You are working inside the Ensei monorepo root. Do not create files outside this tree.
-  If a path is missing, create it under apps/, services/, or packages/ as appropriate.
+### 9. Frontend Architecture
+- Use **component-based architecture** with reusable components
+- Implement **proper state management** (Redux, Zustand, or Context API)
+- Use **custom hooks** for business logic
+- Implement **error boundaries** for error handling
+- Use **proper routing** with lazy loading
+- Implement **SEO optimization** with meta tags
+- Use **progressive web app** features where appropriate
+- Implement **accessibility** features (ARIA labels, keyboard navigation)
 
-  Don't forget to check docs/PROMPTS/ENSEI_DEV_PROMPT.md for additional instructions.
-  Don't forget to check docs/PRODUCT_TECH_UPDATE.md for additional update
-  Don't forget to check docs/REPO_STRUCTURE.md for the repo structure
-  Don't forget to check docs/DEVELOPMENT.md for the development guide
-  Don't forget to check docs/API_CONTRACTS.md for the API contracts
-  Don't forget to check docs/UI_COMPONENTS.md for the UI components
-  Don't forget to check docs/BLOCKCHAIN_UTILS.md for the blockchain utils
-  Don't forget to check docs/TESTING.md for the testing guide
-  Don't forget to check docs/ENVIRONMENT_VARIABLES.md for the environment variables
-  Don't forget to check docs/TROUBLESHOOTING.md for the troubleshooting guide
+### 10. Deployment & DevOps
+- Use **containerization** (Docker) for consistent deployments
+- Implement **CI/CD pipelines** with automated testing
+- Use **infrastructure as code** (Terraform, CloudFormation)
+- Implement **monitoring** and **alerting** systems
+- Use **log aggregation** and **analysis** tools
+- Implement **blue-green deployments** for zero downtime
+- Use **environment-specific configurations**
+- Implement **disaster recovery** procedures
+
+## Implementation Guidelines
+
+### When implementing any feature:
+1. **Start with requirements analysis** and technical design
+2. **Create proper TypeScript interfaces** and types
+3. **Implement error handling** from the beginning
+4. **Write tests** alongside the implementation
+5. **Consider scalability** implications
+6. **Use proper data validation** and sanitization
+7. **Implement proper logging** and monitoring
+8. **Document the implementation** with comments
+9. **Consider security implications** of the feature
+10. **Test with realistic data volumes**
+
+### Code Quality Standards:
+- **Maximum function length**: 50 lines
+- **Maximum file length**: 300 lines
+- **Maximum cyclomatic complexity**: 10
+- **Use meaningful variable and function names**
+- **Write self-documenting code** with clear intent
+- **Use consistent formatting** and style
+- **Remove unused code** and dependencies
+- **Use proper imports** and exports
+
+### Security Checklist:
+- [ ] Input validation implemented
+- [ ] Output encoding applied
+- [ ] Authentication required where needed
+- [ ] Authorization checks in place
+- [ ] Sensitive data encrypted
+- [ ] Error messages don't leak information
+- [ ] Logging doesn't expose sensitive data
+- [ ] HTTPS enforced
+- [ ] CORS configured properly
+- [ ] Rate limiting implemented
+
+### Performance Checklist:
+- [ ] Database queries optimized
+- [ ] Caching implemented where appropriate
+- [ ] Images optimized and lazy loaded
+- [ ] Code splitting implemented
+- [ ] Bundle size analyzed
+- [ ] Loading states implemented
+- [ ] Error boundaries in place
+- [ ] Memory leaks prevented
+- [ ] API response times acceptable
+- [ ] CDN configured for static assets

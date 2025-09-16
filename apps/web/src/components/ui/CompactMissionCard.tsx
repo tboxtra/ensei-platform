@@ -480,21 +480,21 @@ export function CompactMissionCard({
                                                             }
 
                                                         } else if (action.type === 'manual' && action.id === 'view_tweet') {
-                                                        window.open(mission.tweetLink || mission.contentLink, '_blank');
-                                                    } else if (action.type === 'manual' && action.id === 'view_post') {
-                                                        window.open(mission.contentLink, '_blank');
-                                                    } else if (action.type === 'manual' && action.id === 'view_profile') {
-                                                        const username = extractUsernameFromLink(mission.tweetLink);
-                                                        if (username) {
-                                                            window.open(`https://twitter.com/${username}`, '_blank');
-                                                        }
-                                                    } else {
+                                                            window.open(mission.tweetLink || mission.contentLink, '_blank');
+                                                        } else if (action.type === 'manual' && action.id === 'view_post') {
+                                                            window.open(mission.contentLink, '_blank');
+                                                        } else if (action.type === 'manual' && action.id === 'view_profile') {
+                                                            const username = extractUsernameFromLink(mission.tweetLink);
+                                                            if (username) {
+                                                                window.open(`https://twitter.com/${username}`, '_blank');
+                                                            }
+                                                        } else {
                                                             // Handle auto actions
-                                                        console.log('Action clicked:', action);
+                                                            console.log('Action clicked:', action);
                                                         }
                                                     } catch (error) {
                                                         console.error('Error handling action:', error);
-                                                        alert('Error completing action. Please try again.');
+                                                        // Silent error - React Query will handle retry
                                                     }
                                                 }}
                                                 disabled={completeTaskMutation.isPending}
@@ -505,12 +505,12 @@ export function CompactMissionCard({
                                                             ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
                                                             : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
                                                         : action.type === 'auto'
-                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                    : action.type === 'verify'
+                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                            : action.type === 'verify'
                                                                 ? completeTaskMutation.isPending
                                                                     ? 'bg-gray-500/20 text-gray-400 cursor-wait'
                                                                     : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                        : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
                                                     }`}
                                             >
                                                 {action.type === 'verify' && completeTaskMutation.isPending ? (

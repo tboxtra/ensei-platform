@@ -37,6 +37,7 @@ export default function TaskSubmissionModal({
     const [verificationLinks, setVerificationLinks] = useState<{ [key: string]: string }>({});
     const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
+    const completeTaskMutation = useCompleteTask();
 
     console.log('TaskSubmissionModal render:', {
         isOpen,
@@ -94,8 +95,7 @@ export default function TaskSubmissionModal({
                     [task.id]: true
                 }));
 
-                // Show success message
-                alert(`Opening Twitter to ${action.label.toLowerCase()}. Complete the action and return to verify.`);
+                // No notification popup - user can see the button state change
 
             } else if (action.type === 'auto') {
                 // Handle automatic actions (like, retweet, follow)
@@ -112,49 +112,49 @@ export default function TaskSubmissionModal({
                 // Handle verification actions
                 // Check if intent was completed first
                 if (!intentCompleted[task.id]) {
-                    alert(`Please complete the Twitter action first by clicking "${task.actions.find(a => a.type === 'intent')?.label || 'the intent button'}"`);
-                    return;
+                    return; // Silent fail - user can see button state
                 }
 
                 // Check if user is authenticated
                 if (!isAuthenticated || !user) {
-                    alert('Please log in to complete tasks');
-                    return;
+                    return; // Silent fail - user should be logged in
                 }
 
-                // Complete the task with verification
-                const completion = await completeTask(
-                    mission.id,
-                    task.id,
-                    user.id,
-                    user.name,
-                    user.email,
-                    mission.username, // userSocialHandle
-                    {
-                        taskType: task.id,
-                        platform: 'twitter',
-                        twitterHandle: mission.username,
-                        tweetUrl: mission.tweetLink || mission.contentLink
-                    }
-                );
+                // Complete the task with verification using React Query
+                try {
+                    await completeTaskMutation.mutateAsync({
+                        missionId: mission.id,
+                        taskId: task.id,
+                        userId: user.id,
+                        userName: user.name,
+                        userEmail: user.email,
+                        userSocialHandle: mission.username,
+                        metadata: {
+                            taskType: task.id,
+                            platform: 'twitter',
+                            twitterHandle: mission.username,
+                            tweetUrl: mission.tweetLink || mission.contentLink
+                        }
+                    });
 
-                // Add to completions
-                setTaskCompletions(prev => [...prev, completion]);
+                    // Update task state
+                    setTaskStates(prev => ({
+                        ...prev,
+                        [task.id]: {
+                            ...prev[task.id],
+                            completed: true,
+                            verificationData: { status: 'verified' }
+                        }
+                    }));
 
-                // Update task state
-                setTaskStates(prev => ({
-                    ...prev,
-                    [task.id]: {
-                        ...prev[task.id],
-                        completed: true,
-                        verificationData: { status: 'verified' }
-                    }
-                }));
+                    // Call the original onTaskComplete callback
+                    await onTaskComplete(task.id, action.id, { status: 'verified' });
 
-                // Call the original onTaskComplete callback
-                await onTaskComplete(task.id, action.id, { status: 'verified' });
-
-                alert(`✅ ${task.name} completed and verified successfully!`);
+                    // No notification popup - user can see the button turn green
+                } catch (error) {
+                    console.error('Error completing task:', error);
+                    // Silent error - React Query will handle retry
+                }
             } else if (action.type === 'manual') {
                 // Handle manual actions (view tweet, view profile)
                 if (action.id === 'view_tweet' || action.id === 'view_post') {
@@ -169,7 +169,7 @@ export default function TaskSubmissionModal({
             }
         } catch (error) {
             console.error('Error handling action:', error);
-            alert('Error completing action. Please try again.');
+            // Silent error - React Query will handle retry
         } finally {
             setLoading(null);
         }
