@@ -396,10 +396,6 @@ export function CompactMissionCard({
                             return (
                                 <div className="space-y-2">
                                     <div className="mb-3 px-3 py-2 bg-gray-800/20 rounded-lg border-b border-gray-700/30">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xs">{getTaskIcon(task.id)}</span>
-                                            <h4 className="text-xs font-medium text-gray-400">{task.name}</h4>
-                                        </div>
                                         <p className="text-xs text-gray-500 leading-relaxed">
                                             {mission.instructions || 'No instructions provided for this task.'}
                                         </p>

@@ -16,10 +16,14 @@ function VerifyEmailContent() {
 
     useEffect(() => {
         const verifyEmail = async () => {
-            const actionCode = searchParams.get('oobCode');
+            // Try multiple parameter names that Firebase might use
+            const actionCode = searchParams.get('oobCode') || searchParams.get('code') || searchParams.get('token');
             const mode = searchParams.get('mode');
 
+            console.log('Verification parameters:', { actionCode, mode, allParams: Object.fromEntries(searchParams.entries()) });
+
             if (!actionCode || mode !== 'verifyEmail') {
+                console.log('Invalid verification parameters');
                 setStatus('invalid');
                 return;
             }
@@ -32,15 +36,39 @@ function VerifyEmailContent() {
                 // Then apply the verification
                 await verifyEmailWithCode(actionCode);
                 setStatus('success');
+                
+                // Update localStorage with verified status
+                const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                userData.emailVerified = true;
+                localStorage.setItem('user', JSON.stringify(userData));
+                
+                // Auto-redirect after 2 seconds
+                setTimeout(() => {
+                    router.push('/dashboard');
+                }, 2000);
+                
             } catch (error: any) {
                 console.error('Email verification failed:', error);
-                setErrorMessage(error.message || 'Email verification failed');
+                let errorMessage = 'Email verification failed';
+                
+                // Provide more specific error messages
+                if (error.code === 'auth/expired-action-code') {
+                    errorMessage = 'This verification link has expired. Please request a new one.';
+                } else if (error.code === 'auth/invalid-action-code') {
+                    errorMessage = 'This verification link is invalid. Please request a new one.';
+                } else if (error.code === 'auth/user-disabled') {
+                    errorMessage = 'This account has been disabled. Please contact support.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                setErrorMessage(errorMessage);
                 setStatus('error');
             }
         };
 
         verifyEmail();
-    }, [searchParams]);
+    }, [searchParams, router]);
 
     const handleContinue = () => {
         router.push('/dashboard');
@@ -82,6 +110,17 @@ function VerifyEmailContent() {
                                         Verified: {userEmail}
                                     </p>
                                 )}
+                                
+                                {/* Auto-redirect message */}
+                                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
+                                    <div className="flex items-center justify-center space-x-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+                                        <span className="text-green-400 text-sm">
+                                            Redirecting to dashboard...
+                                        </span>
+                                    </div>
+                                </div>
+                                
                                 <ModernButton
                                     onClick={handleContinue}
                                     className="w-full"

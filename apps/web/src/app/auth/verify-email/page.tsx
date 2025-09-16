@@ -43,7 +43,7 @@ export default function VerifyEmailPage() {
         } catch (error: any) {
             console.error('Error resending verification email:', error);
             let errorMessage = 'Failed to resend verification email';
-            
+
             // Provide more specific error messages
             if (error.code === 'auth/too-many-requests') {
                 errorMessage = 'Too many requests. Please wait a few minutes before trying again.';
@@ -52,7 +52,7 @@ export default function VerifyEmailPage() {
             } else if (error.message) {
                 errorMessage = error.message;
             }
-            
+
             setResendError(errorMessage);
         } finally {
             setResendLoading(false);
@@ -69,31 +69,31 @@ export default function VerifyEmailPage() {
         const checkVerification = async () => {
             try {
                 checkCount++;
-                
+
                 // Force refresh the user's auth state from Firebase
                 const auth = getFirebaseAuth();
                 if (auth.currentUser) {
                     await auth.currentUser.reload();
                     const updatedUser = auth.currentUser;
-                    
+
                     if (updatedUser.emailVerified) {
                         // Update localStorage with verified status
                         const userData = JSON.parse(localStorage.getItem('user') || '{}');
                         userData.emailVerified = true;
                         localStorage.setItem('user', JSON.stringify(userData));
-                        
+
                         // Redirect to dashboard
                         router.push('/dashboard');
                         return true; // Stop checking
                     }
                 }
-                
+
                 // Stop checking after max attempts
                 if (checkCount >= maxChecks) {
                     console.log('Stopped checking verification status after maximum attempts');
                     return true; // Stop checking
                 }
-                
+
                 return false; // Continue checking
             } catch (error) {
                 console.error('Error checking verification status:', error);
@@ -164,7 +164,14 @@ export default function VerifyEmailPage() {
                                 <p className="text-gray-300">
                                     Check your email and click the verification link. You'll be automatically redirected once verified.
                                 </p>
-                                
+
+                                {/* Helpful tip */}
+                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                                    <p className="text-blue-400 text-sm">
+                                        💡 <strong>Tip:</strong> Don't see the email? Check your spam folder!
+                                    </p>
+                                </div>
+
                                 {/* Auto-check indicator */}
                                 <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>

@@ -100,11 +100,37 @@ export const googleProvider = new GoogleAuthProvider();
 // Email verification utilities
 export const sendVerificationEmail = async (user: any) => {
     try {
-        await sendEmailVerification(user);
-        console.log('Verification email sent successfully');
+        // Create action code settings with a mobile-friendly URL
+        const actionCodeSettings = {
+            // Use the main domain for better mobile compatibility
+            url: `${window.location.origin}/auth/verify-email/action`,
+            handleCodeInApp: true,
+            // Configure for better mobile experience
+            iOS: {
+                bundleId: 'com.ensei.app'
+            },
+            android: {
+                packageName: 'com.ensei.app',
+                installApp: false,
+                minimumVersion: '1.0.0'
+            }
+        };
+        
+        await sendEmailVerification(user, actionCodeSettings);
+        console.log('Verification email sent successfully to:', user.email);
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error sending verification email:', error);
+        
+        // Provide more specific error information
+        if (error.code === 'auth/too-many-requests') {
+            throw new Error('Too many verification emails sent. Please wait before requesting another.');
+        } else if (error.code === 'auth/user-not-found') {
+            throw new Error('User account not found. Please try signing up again.');
+        } else if (error.code === 'auth/invalid-email') {
+            throw new Error('Invalid email address. Please check your email and try again.');
+        }
+        
         throw error;
     }
 };
