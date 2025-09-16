@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { EmbeddedContent } from './EmbeddedContent';
 import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
-import { completeTask, type TaskCompletion } from '@/lib/task-verification';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
 import { useAuth } from '../../contexts/UserAuthContext';
+import { useUserMissionTaskCompletions, useCompleteTask, useIsTaskCompleted } from '../../hooks/useTaskCompletions';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -19,9 +19,15 @@ export function CompactMissionCard({
 }: CompactMissionCardProps) {
     const { user, isAuthenticated } = useAuth();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
-    const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
     const cardRef = useRef<HTMLDivElement>(null);
+
+    // Standard practice: Use React Query hooks for server state management
+    const { data: taskCompletions = [], isLoading: isLoadingCompletions } = useUserMissionTaskCompletions(
+        mission.id, 
+        user?.id || ''
+    );
+    const completeTaskMutation = useCompleteTask();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -416,78 +422,86 @@ export function CompactMissionCard({
                                             <button
                                                 key={action.id}
                                                 onClick={async () => {
-                                                    if (action.type === 'intent') {
-                                                        // Handle Twitter intent actions
-                                                        const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
+                                                    try {
+                                                        if (action.type === 'intent') {
+                                                            // Handle Twitter intent actions
+                                                            const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
 
-                                                        if (!intentUrl) {
-                                                            const errorMessage = MissionTwitterIntents.getErrorMessage(task.id, mission);
-                                                            alert(errorMessage || 'Unable to generate Twitter action. Please check mission data.');
-                                                            return;
-                                                        }
-
-                                                        // Open Twitter intent in a new window
-                                                        TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
-
-                                                        // Mark intent as completed
-                                                        setIntentCompleted(prev => ({
-                                                            ...prev,
-                                                            [task.id]: true
-                                                        }));
-
-                                                        // Show success message
-                                                        alert(`Opening Twitter to ${action.label.toLowerCase()}. Complete the action and return to verify.`);
-
-                                                    } else if (action.type === 'verify') {
-                                                        // Handle verification actions
-                                                        // Check if intent was completed first
-                                                        if (!intentCompleted[task.id]) {
-                                                            alert(`Please complete the Twitter action first by clicking "${task.actions.find(a => a.type === 'intent')?.label || 'the intent button'}"`);
-                                                            return;
-                                                        }
-
-                                                        // Check if user is authenticated
-                                                        if (!isAuthenticated || !user) {
-                                                            alert('Please log in to complete tasks');
-                                                            return;
-                                                        }
-
-                                                        // Complete the task with verification
-                                                        const completion = await completeTask(
-                                                            mission.id,
-                                                            task.id,
-                                                            user.id,
-                                                            user.name,
-                                                            user.email,
-                                                            mission.username, // Use mission username as social handle
-                                                            {
-                                                                taskType: task.id,
-                                                                platform: 'twitter',
-                                                                twitterHandle: mission.username,
-                                                                tweetUrl: mission.tweetLink || mission.contentLink
+                                                            if (!intentUrl) {
+                                                                const errorMessage = MissionTwitterIntents.getErrorMessage(task.id, mission);
+                                                                alert(errorMessage || 'Unable to generate Twitter action. Please check mission data.');
+                                                                return;
                                                             }
-                                                        );
 
-                                                        // Add to completions
-                                                        setTaskCompletions(prev => [...prev, completion]);
+                                                            // Open Twitter intent in a new window
+                                                            TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
 
-                                                        alert(`✅ ${task.name} completed and verified successfully!`);
+                                                            // Mark intent as completed
+                                                            setIntentCompleted(prev => ({
+                                                                ...prev,
+                                                                [task.id]: true
+                                                            }));
 
-                                                    } else if (action.type === 'manual' && action.id === 'view_tweet') {
-                                                        window.open(mission.tweetLink || mission.contentLink, '_blank');
-                                                    } else if (action.type === 'manual' && action.id === 'view_post') {
-                                                        window.open(mission.contentLink, '_blank');
-                                                    } else if (action.type === 'manual' && action.id === 'view_profile') {
-                                                        const username = extractUsernameFromLink(mission.tweetLink);
-                                                        if (username) {
-                                                            window.open(`https://twitter.com/${username}`, '_blank');
+                                                            // Show success message
+                                                            alert(`Opening Twitter to ${action.label.toLowerCase()}. Complete the action and return to verify.`);
+
+                                                        } else if (action.type === 'verify') {
+                                                            // Handle verification actions
+                                                            // Check if intent was completed first
+                                                            if (!intentCompleted[task.id]) {
+                                                                alert(`Please complete the Twitter action first by clicking "${task.actions.find(a => a.type === 'intent')?.label || 'the intent button'}"`);
+                                                                return;
+                                                            }
+
+                                                            // Check if user is authenticated
+                                                            if (!isAuthenticated || !user) {
+                                                                alert('Please log in to complete tasks');
+                                                                return;
+                                                            }
+
+                                                        // Complete the task with verification using standard practice
+                                                        try {
+                                                            await completeTaskMutation.mutateAsync({
+                                                                missionId: mission.id,
+                                                                taskId: task.id,
+                                                                userId: user.id,
+                                                                userName: user.name,
+                                                                userEmail: user.email,
+                                                                userSocialHandle: mission.username,
+                                                                metadata: {
+                                                                    taskType: task.id,
+                                                                    platform: 'twitter',
+                                                                    twitterHandle: mission.username,
+                                                                    tweetUrl: mission.tweetLink || mission.contentLink
+                                                                }
+                                                            });
+
+                                                            alert(`✅ ${task.name} completed and verified successfully!`);
+                                                        } catch (error) {
+                                                            console.error('Error completing task:', error);
+                                                            alert('Failed to complete task. Please try again.');
                                                         }
-                                                    } else {
-                                                        // Handle auto actions
-                                                        console.log('Action clicked:', action);
+
+                                                        } else if (action.type === 'manual' && action.id === 'view_tweet') {
+                                                            window.open(mission.tweetLink || mission.contentLink, '_blank');
+                                                        } else if (action.type === 'manual' && action.id === 'view_post') {
+                                                            window.open(mission.contentLink, '_blank');
+                                                        } else if (action.type === 'manual' && action.id === 'view_profile') {
+                                                            const username = extractUsernameFromLink(mission.tweetLink);
+                                                            if (username) {
+                                                                window.open(`https://twitter.com/${username}`, '_blank');
+                                                            }
+                                                        } else {
+                                                            // Handle auto actions
+                                                            console.log('Action clicked:', action);
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Error handling action:', error);
+                                                        alert('Error completing action. Please try again.');
                                                     }
                                                 }}
-                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${taskCompletions.some(c => c.taskId === task.id)
+                                                disabled={completeTaskMutation.isPending}
+                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] disabled:opacity-50 disabled:cursor-not-allowed ${taskCompletions.some(c => c.taskId === task.id)
                                                     ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30'
                                                     : action.type === 'intent'
                                                         ? intentCompleted[task.id]
@@ -496,11 +510,20 @@ export function CompactMissionCard({
                                                         : action.type === 'auto'
                                                             ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                                                             : action.type === 'verify'
-                                                                ? 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                                ? completeTaskMutation.isPending
+                                                                    ? 'bg-gray-500/20 text-gray-400 cursor-wait'
+                                                                    : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
                                                                 : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                    }`}
+                                                }`}
                                             >
-                                                {action.label}
+                                                {action.type === 'verify' && completeTaskMutation.isPending ? (
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="animate-spin">⏳</span>
+                                                        Verifying...
+                                                    </span>
+                                                ) : (
+                                                    action.label
+                                                )}
                                             </button>
                                         ))}
                                     </div>
