@@ -173,6 +173,11 @@ export default function TaskSubmissionModal({
     const getActionButtonStyle = (action: TaskAction, task: TaskType) => {
         const baseStyle = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2";
 
+        // If task is verified, show all buttons as verified
+        if (taskCompletions.some(c => c.taskId === task.id)) {
+            return `${baseStyle} bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl`;
+        }
+
         if (action.type === 'intent') {
             // Show yellow if intent completed, blue if not
             if (intentCompleted[task.id]) {
