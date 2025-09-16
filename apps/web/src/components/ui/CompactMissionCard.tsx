@@ -24,10 +24,14 @@ export function CompactMissionCard({
 
     // Standard practice: Use React Query hooks for server state management
     const { data: taskCompletions = [], isLoading: isLoadingCompletions } = useUserMissionTaskCompletions(
-        mission.id,
+        mission.id, 
         user?.id || ''
     );
     const completeTaskMutation = useCompleteTask();
+
+    // Debug logging
+    console.log('CompactMissionCard - taskCompletions:', taskCompletions);
+    console.log('CompactMissionCard - mission.id:', mission.id, 'user.id:', user?.id);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -457,7 +461,8 @@ export function CompactMissionCard({
 
                                                             // Complete the task with verification using standard practice
                                                             try {
-                                                                await completeTaskMutation.mutateAsync({
+                                                                console.log('Starting task completion:', { missionId: mission.id, taskId: task.id, userId: user.id });
+                                                                const result = await completeTaskMutation.mutateAsync({
                                                                     missionId: mission.id,
                                                                     taskId: task.id,
                                                                     userId: user.id,
@@ -471,7 +476,7 @@ export function CompactMissionCard({
                                                                         tweetUrl: mission.tweetLink || mission.contentLink
                                                                     }
                                                                 });
-
+                                                                console.log('Task completion result:', result);
                                                                 // No notification popup - user can see the button turn green
                                                             } catch (error) {
                                                                 console.error('Error completing task:', error);
@@ -479,17 +484,17 @@ export function CompactMissionCard({
                                                             }
 
                                                         } else if (action.type === 'manual' && action.id === 'view_tweet') {
-                                                            window.open(mission.tweetLink || mission.contentLink, '_blank');
-                                                        } else if (action.type === 'manual' && action.id === 'view_post') {
-                                                            window.open(mission.contentLink, '_blank');
-                                                        } else if (action.type === 'manual' && action.id === 'view_profile') {
-                                                            const username = extractUsernameFromLink(mission.tweetLink);
-                                                            if (username) {
-                                                                window.open(`https://twitter.com/${username}`, '_blank');
-                                                            }
-                                                        } else {
+                                                        window.open(mission.tweetLink || mission.contentLink, '_blank');
+                                                    } else if (action.type === 'manual' && action.id === 'view_post') {
+                                                        window.open(mission.contentLink, '_blank');
+                                                    } else if (action.type === 'manual' && action.id === 'view_profile') {
+                                                        const username = extractUsernameFromLink(mission.tweetLink);
+                                                        if (username) {
+                                                            window.open(`https://twitter.com/${username}`, '_blank');
+                                                        }
+                                                    } else {
                                                             // Handle auto actions
-                                                            console.log('Action clicked:', action);
+                                                        console.log('Action clicked:', action);
                                                         }
                                                     } catch (error) {
                                                         console.error('Error handling action:', error);
@@ -504,12 +509,12 @@ export function CompactMissionCard({
                                                             ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
                                                             : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
                                                         : action.type === 'auto'
-                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                            : action.type === 'verify'
+                                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                    : action.type === 'verify'
                                                                 ? completeTaskMutation.isPending
                                                                     ? 'bg-gray-500/20 text-gray-400 cursor-wait'
                                                                     : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                        : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
                                                     }`}
                                             >
                                                 {action.type === 'verify' && completeTaskMutation.isPending ? (
