@@ -115,13 +115,13 @@ export const sendVerificationEmail = async (user: any) => {
                 minimumVersion: '1.0.0'
             }
         };
-        
+
         await sendEmailVerification(user, actionCodeSettings);
         console.log('Verification email sent successfully to:', user.email);
         return true;
     } catch (error: any) {
         console.error('Error sending verification email:', error);
-        
+
         // Provide more specific error information
         if (error.code === 'auth/too-many-requests') {
             throw new Error('Too many verification emails sent. Please wait before requesting another.');
@@ -130,7 +130,7 @@ export const sendVerificationEmail = async (user: any) => {
         } else if (error.code === 'auth/invalid-email') {
             throw new Error('Invalid email address. Please check your email and try again.');
         }
-        
+
         throw error;
     }
 };

@@ -36,21 +36,21 @@ function VerifyEmailContent() {
                 // Then apply the verification
                 await verifyEmailWithCode(actionCode);
                 setStatus('success');
-                
+
                 // Update localStorage with verified status
                 const userData = JSON.parse(localStorage.getItem('user') || '{}');
                 userData.emailVerified = true;
                 localStorage.setItem('user', JSON.stringify(userData));
-                
+
                 // Auto-redirect after 2 seconds
                 setTimeout(() => {
                     router.push('/dashboard');
                 }, 2000);
-                
+
             } catch (error: any) {
                 console.error('Email verification failed:', error);
                 let errorMessage = 'Email verification failed';
-                
+
                 // Provide more specific error messages
                 if (error.code === 'auth/expired-action-code') {
                     errorMessage = 'This verification link has expired. Please request a new one.';
@@ -61,7 +61,7 @@ function VerifyEmailContent() {
                 } else if (error.message) {
                     errorMessage = error.message;
                 }
-                
+
                 setErrorMessage(errorMessage);
                 setStatus('error');
             }
@@ -110,7 +110,7 @@ function VerifyEmailContent() {
                                         Verified: {userEmail}
                                     </p>
                                 )}
-                                
+
                                 {/* Auto-redirect message */}
                                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
                                     <div className="flex items-center justify-center space-x-2">
@@ -120,7 +120,7 @@ function VerifyEmailContent() {
                                         </span>
                                     </div>
                                 </div>
-                                
+
                                 <ModernButton
                                     onClick={handleContinue}
                                     className="w-full"
