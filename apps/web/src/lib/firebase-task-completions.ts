@@ -239,10 +239,10 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
                         status: 'verified', // Legacy completions are considered verified
                         completedAt: new Date(taskCompletion.completed_at) as any,
                         verifiedAt: new Date(taskCompletion.completed_at) as any,
-                        flaggedAt: null,
+                        flaggedAt: null as any,
                         flaggedReason: null,
                         reviewedBy: null,
-                        reviewedAt: null,
+                        reviewedAt: null as any,
                         metadata: {
                             taskType: taskCompletion.task_id,
                             platform: 'twitter',

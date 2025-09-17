@@ -336,10 +336,10 @@ export function VerificationMissionCard({
                                                         }
                                                     }}
                                                     className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${action.type === 'auto'
-                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                            : action.type === 'verify'
-                                                                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                                                        ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                                        : action.type === 'verify'
+                                                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                                            : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
                                                         }`}
                                                 >
                                                     {action.label}
