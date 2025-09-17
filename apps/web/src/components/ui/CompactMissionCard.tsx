@@ -30,6 +30,14 @@ export function CompactMissionCard({
     );
     const completeTaskMutation = useCompleteTask();
 
+    // Debug logging
+    console.log('CompactMissionCard Debug:', {
+        missionId: mission.id,
+        userId: user?.id,
+        taskCompletions,
+        isLoadingCompletions
+    });
+
 
 
 
@@ -305,6 +313,13 @@ export function CompactMissionCard({
         const taskCompletionsForTask = taskCompletions
             .filter(c => c.taskId === taskId)
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        console.log('getTaskCompletionStatus Debug:', {
+            taskId,
+            allCompletions: taskCompletions,
+            taskCompletionsForTask,
+            latestCompletion: taskCompletionsForTask[0]
+        });
         
         if (taskCompletionsForTask.length === 0) {
             return { status: 'not_completed', flaggedReason: null };

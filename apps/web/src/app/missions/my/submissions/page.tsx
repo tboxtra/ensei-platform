@@ -33,6 +33,15 @@ export default function MissionSubmissionsPage() {
         selectedMission?.id || ''
     );
 
+    // Debug logging
+    console.log('My Missions Debug:', {
+        selectedMissionId: selectedMission?.id,
+        submissions,
+        loadingSubmissions,
+        flagTaskCompletionMutation: flagTaskCompletionMutation.isPending,
+        verifyTaskCompletionMutation: verifyTaskCompletionMutation.isPending
+    });
+
     // Mock missions data
     useEffect(() => {
         setMissions([

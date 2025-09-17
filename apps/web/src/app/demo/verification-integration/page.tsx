@@ -97,19 +97,19 @@ export default function VerificationIntegrationDemoPage() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold text-white">Step 2: Try Verification on Mission Tasks</h2>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {mockMissions.map((mission) => (
-              <div key={mission.id} className="space-y-4">
-                <VerificationMissionCard
-                  mission={mission}
-                  onParticipate={(missionId, taskType) => {
-                    console.log('Participate clicked:', missionId, taskType);
-                  }}
-                  onViewDetails={(missionId) => {
-                    console.log('View details clicked:', missionId);
-                  }}
-                  userXAccount={userXAccount || undefined}
-                  onVerificationSubmitted={handleVerificationSubmitted}
-                />
+                        {mockMissions.map((mission) => (
+                            <div key={mission.id} className="space-y-4">
+                                <VerificationMissionCard
+                                    mission={mission}
+                                    onParticipate={(missionId, taskType) => {
+                                        console.log('Participate clicked:', missionId, taskType);
+                                    }}
+                                    onViewDetails={(missionId) => {
+                                        console.log('View details clicked:', missionId);
+                                    }}
+                                    userXAccount={userXAccount || undefined}
+                                    onVerificationSubmitted={handleVerificationSubmitted}
+                                />
 
                             </div>
                         ))}

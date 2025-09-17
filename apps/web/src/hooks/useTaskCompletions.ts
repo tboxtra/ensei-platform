@@ -27,7 +27,12 @@ export const taskCompletionKeys = {
 export function useMissionTaskCompletions(missionId: string) {
     return useQuery({
         queryKey: taskCompletionKeys.mission(missionId),
-        queryFn: () => getMissionTaskCompletions(missionId),
+        queryFn: async () => {
+            console.log('Fetching mission task completions for:', missionId);
+            const result = await getMissionTaskCompletions(missionId);
+            console.log('Mission task completions result:', result);
+            return result;
+        },
         enabled: !!missionId,
         staleTime: 2 * 60 * 1000, // 2 minutes for task completions
     });

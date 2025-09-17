@@ -188,15 +188,15 @@ export default function VerificationDemoPage() {
                 {/* Review System Section */}
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold text-white">3. Review & Earn System</h2>
-          {getCurrentSubmission() ? (
-            <ReviewCard
-              submission={getCurrentSubmission()!}
-              onReview={handleReviewSubmission}
-              reviewerId="current_user"
-              reviewerExpertise={userExpertise}
-              reviewerXUsername={userXAccount?.username}
-            />
-          ) : (
+                    {getCurrentSubmission() ? (
+                        <ReviewCard
+                            submission={getCurrentSubmission()!}
+                            onReview={handleReviewSubmission}
+                            reviewerId="current_user"
+                            reviewerExpertise={userExpertise}
+                            reviewerXUsername={userXAccount?.username}
+                        />
+                    ) : (
                         <div className="bg-gray-800/40 rounded-lg p-8 border border-gray-700/50 text-center">
                             <p className="text-gray-400">
                                 No more submissions to review. Great job! 🎉
@@ -220,8 +220,8 @@ export default function VerificationDemoPage() {
                                     </div>
                                     <div className="text-right">
                                         <span className={`px-2 py-1 rounded text-xs font-medium ${submission.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                submission.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                                                    'bg-red-500/20 text-red-400'
+                                            submission.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                                                'bg-red-500/20 text-red-400'
                                             }`}>
                                             {submission.status}
                                         </span>

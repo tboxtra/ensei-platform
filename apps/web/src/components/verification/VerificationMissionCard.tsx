@@ -58,7 +58,7 @@ export function VerificationMissionCard({
     const getTaskTypes = () => {
         const missionType = mission.mission_type || mission.type || 'engage';
         const tasks = getTasksForMission(mission.platform, missionType);
-        
+
         // Enhanced task name mapping for verification
         const taskNameMapping: { [key: string]: { display: string, id: string } } = {
             'like': { display: 'Like', id: 'like' },
@@ -100,7 +100,7 @@ export function VerificationMissionCard({
     const getTaskCompletionStatus = (taskId: string) => {
         const completion = taskCompletions.find(tc => tc.taskId === taskId);
         if (!completion) return { status: 'incomplete' as const, completedAt: null, flaggedReason: null, flaggedAt: null };
-        
+
         return {
             status: completion.status as 'completed' | 'flagged' | 'incomplete',
             completedAt: completion.completedAt,
@@ -114,7 +114,7 @@ export function VerificationMissionCard({
             ...prev,
             [submission.taskId]: 'verified'
         }));
-        
+
         if (onVerificationSubmitted) {
             onVerificationSubmitted(submission);
         }
@@ -122,7 +122,7 @@ export function VerificationMissionCard({
 
     const getTaskButtonStyle = (taskId: string, completionStatus: any) => {
         const baseStyle = 'px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)]';
-        
+
         if (completionStatus.status === 'completed' || verificationStatus[taskId] === 'verified') {
             return `${baseStyle} bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30`;
         } else if (completionStatus.status === 'flagged') {
@@ -142,7 +142,7 @@ export function VerificationMissionCard({
                     <div className="flex-1">
                         <h3 className="text-white font-medium text-lg mb-2">{mission.title}</h3>
                         <p className="text-gray-400 text-sm mb-3">{mission.description}</p>
-                        
+
                         {/* Mission Stats */}
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                             <span>Reward: {mission.reward || 0} points</span>
@@ -150,7 +150,7 @@ export function VerificationMissionCard({
                             <span>Type: {mission.mission_type || mission.type || 'engage'}</span>
                         </div>
                     </div>
-                    
+
                     {onViewDetails && (
                         <button
                             onClick={() => onViewDetails(mission.id)}
@@ -179,7 +179,7 @@ export function VerificationMissionCard({
                         const taskId = task.taskId;
                         const taskType = task.displayName;
                         const completionStatus = getTaskCompletionStatus(taskId);
-                        
+
                         return (
                             <div key={index} className="relative group">
                                 <button
@@ -193,7 +193,7 @@ export function VerificationMissionCard({
                                         {taskType}
                                     </div>
                                 </button>
-                                
+
                                 {/* Tooltip for flagged tasks */}
                                 {completionStatus.status === 'flagged' && completionStatus.flaggedReason && (
                                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-red-900/95 text-red-100 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
@@ -203,8 +203,8 @@ export function VerificationMissionCard({
                                         </div>
                                         <div className="text-red-200">{completionStatus.flaggedReason}</div>
                                         <div className="text-red-300 text-xs mt-1">
-                                            {completionStatus.flaggedAt ? 
-                                                `Flagged ${new Date(completionStatus.flaggedAt).toLocaleDateString()}` : 
+                                            {completionStatus.flaggedAt ?
+                                                `Flagged ${new Date(completionStatus.flaggedAt).toLocaleDateString()}` :
                                                 'Please redo this task correctly'
                                             }
                                         </div>
@@ -264,7 +264,7 @@ export function VerificationMissionCard({
                                                         >
                                                             {selectedTask === 'comment' ? 'Comment on Twitter' : 'Quote on Twitter'}
                                                         </button>
-                                                        
+
                                                         <InlineVerification
                                                             taskId={selectedTask}
                                                             missionId={mission.id}
@@ -275,7 +275,7 @@ export function VerificationMissionCard({
                                                     </div>
                                                 );
                                             }
-                                            
+
                                             // For other actions, show the normal button
                                             return (
                                                 <button
@@ -330,13 +330,12 @@ export function VerificationMissionCard({
                                                             console.error('Error handling action:', error);
                                                         }
                                                     }}
-                                                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${
-                                                        action.type === 'auto'
+                                                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${action.type === 'auto'
                                                             ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                                                             : action.type === 'verify'
                                                                 ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                                                                 : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {action.label}
                                                 </button>

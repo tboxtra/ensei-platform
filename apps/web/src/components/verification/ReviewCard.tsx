@@ -8,11 +8,11 @@ import { EmbeddedContent } from '@/components/ui/EmbeddedContent';
 import { TwitterIntents } from '@/lib/twitter-intents';
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({
-  submission,
-  onReview,
-  reviewerId,
-  reviewerExpertise,
-  reviewerXUsername
+    submission,
+    onReview,
+    reviewerId,
+    reviewerExpertise,
+    reviewerXUsername
 }) => {
     const [rating, setRating] = useState(0);
     const [reviewerCommentLink, setReviewerCommentLink] = useState('');
@@ -43,17 +43,17 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             return false;
         }
 
-    // Extract username from reviewer comment link
-    const linkUsername = extractUsernameFromXLink(link);
-    if (linkUsername && reviewerXUsername) {
-      if (linkUsername.toLowerCase() !== reviewerXUsername.toLowerCase()) {
-        setError(`This link doesn't match your X account (@${reviewerXUsername})`);
-        return false;
-      }
-    } else if (linkUsername && !reviewerXUsername) {
-      setError('Please link your X account to submit review comments');
-      return false;
-    }
+        // Extract username from reviewer comment link
+        const linkUsername = extractUsernameFromXLink(link);
+        if (linkUsername && reviewerXUsername) {
+            if (linkUsername.toLowerCase() !== reviewerXUsername.toLowerCase()) {
+                setError(`This link doesn't match your X account (@${reviewerXUsername})`);
+                return false;
+            }
+        } else if (linkUsername && !reviewerXUsername) {
+            setError('Please link your X account to submit review comments');
+            return false;
+        }
 
         setError('');
         return true;
@@ -67,6 +67,22 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             // X link format: https://x.com/username/status/1234567890
             if (pathParts.length >= 1) {
                 return pathParts[0];
+            }
+
+            return null;
+        } catch {
+            return null;
+        }
+    };
+
+    const extractTweetIdFromUrl = (link: string): string | null => {
+        try {
+            const url = new URL(link);
+            const pathParts = url.pathname.split('/').filter(part => part);
+
+            // X link format: https://x.com/username/status/1234567890
+            if (pathParts.length >= 3 && pathParts[1] === 'status') {
+                return pathParts[2];
             }
 
             return null;
@@ -165,29 +181,32 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                             </p>
                         </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400 text-sm">Submission Link:</span>
-                <a 
-                  href={submission.submissionLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 text-sm underline"
-                >
-                  View {submission.taskType}
-                </a>
-              </div>
-              <ModernButton
-                onClick={() => {
-                  // Open Twitter intent to comment on the submission
-                  const commentUrl = TwitterIntents.generateCommentUrl(submission.submissionLink);
-                  TwitterIntents.openIntent(commentUrl, 'comment');
-                }}
-                className="bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30 text-xs px-3 py-1"
-              >
-                Comment on Twitter
-              </ModernButton>
-            </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-gray-400 text-sm">Submission Link:</span>
+                                <a
+                                    href={submission.submissionLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 text-sm underline"
+                                >
+                                    View {submission.taskType}
+                                </a>
+                            </div>
+                            <ModernButton
+                                onClick={() => {
+                                    // Extract tweet ID from submission link and open Twitter intent to comment
+                                    const tweetId = extractTweetIdFromUrl(submission.submissionLink);
+                                    if (tweetId) {
+                                        const commentUrl = TwitterIntents.reply(tweetId);
+                                        TwitterIntents.openIntent(commentUrl, 'comment');
+                                    }
+                                }}
+                                className="bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30 text-xs px-3 py-1"
+                            >
+                                Comment on Twitter
+                            </ModernButton>
+                        </div>
 
                         {/* Embedded Content Preview */}
                         <div className="mt-4">
