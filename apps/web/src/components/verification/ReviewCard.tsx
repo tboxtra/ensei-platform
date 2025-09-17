@@ -218,6 +218,9 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                         onChange={setReviewerCommentLink}
                         disabled={isLoading}
                     />
+                    {error && (
+                        <p className="text-red-400 text-xs mt-1">{error}</p>
+                    )}
                     <p className="text-gray-400 text-sm">
                         Share the link to your comment on the submission. This helps verify your review quality.
                     </p>

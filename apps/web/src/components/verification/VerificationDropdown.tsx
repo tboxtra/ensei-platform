@@ -195,6 +195,9 @@ export const VerificationDropdown: React.FC<VerificationDropdownProps> = ({
                             onChange={handleLinkChange}
                             disabled={isLoading || isValidating}
                         />
+                        {error && (
+                            <p className="text-red-400 text-xs mt-1">{error}</p>
+                        )}
 
                         {isValidating && (
                             <div className="flex items-center gap-2 text-blue-400 text-sm">

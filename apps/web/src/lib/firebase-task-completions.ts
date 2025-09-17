@@ -87,7 +87,7 @@ export async function completeTask(
         userName,
         userEmail,
         userSocialHandle: userSocialHandle || null, // Convert undefined to null for Firebase
-        status: status as const,
+        status: status,
         completedAt: serverTimestamp(),
         verifiedAt: status === 'verified' ? serverTimestamp() : null,
         metadata: {

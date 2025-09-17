@@ -188,10 +188,12 @@ export const InlineVerification: React.FC<InlineVerificationProps> = ({
           placeholder="https://x.com/yourusername/status/1234567890"
           value={submissionLink}
           onChange={handleLinkChange}
-          error={error}
           disabled={validationStatus === 'validating'}
           className="text-sm"
         />
+        {error && (
+          <p className="text-red-400 text-xs mt-1">{error}</p>
+        )}
       </div>
       <ModernButton
         onClick={handleVerify}
