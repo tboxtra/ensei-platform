@@ -10,14 +10,9 @@ import { useUserMissionTaskCompletions, useCompleteTask, useIsTaskCompleted } fr
 import { Flag, AlertTriangle } from 'lucide-react';
 import { XAccount } from '@/types/verification';
 import { InlineVerification } from './InlineVerification';
-import { 
-    getTaskButtonStyle, 
-    getMainTaskButtonStyle, 
-    getInputFieldStyle,
-    handleTaskCompletion,
-    isTaskCompleted,
-    type TaskCompletionSystemState 
-} from '@/lib/task-completion-system';
+import {
+    isTaskCompleted
+} from '@/hooks/useTaskStatusSystem';
 
 interface VerificationMissionCardProps {
     mission: any;
@@ -122,8 +117,8 @@ export function VerificationMissionCard({
         setTaskCompletions(prev => {
             const existing = prev.find(tc => tc.taskId === submission.taskId);
             if (existing) {
-                return prev.map(tc => 
-                    tc.taskId === submission.taskId 
+                return prev.map(tc =>
+                    tc.taskId === submission.taskId
                         ? { ...tc, status: 'verified' as const, verifiedAt: new Date() }
                         : tc
                 );
@@ -136,7 +131,7 @@ export function VerificationMissionCard({
                 }];
             }
         });
-        
+
         if (onVerificationSubmitted) {
             onVerificationSubmitted(submission);
         }
@@ -191,10 +186,10 @@ export function VerificationMissionCard({
 
                         return (
                             <div key={index} className="relative group">
-                                    <button
-                                        onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
-                                        className={getMainTaskButtonStyle(taskId, taskCompletions)}
-                                    >
+                                <button
+                                    onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                >
                                     <div className="flex items-center gap-1">
                                         {completionStatus.status === 'flagged' && (
                                             <Flag className="w-3 h-3" />
@@ -259,22 +254,22 @@ export function VerificationMissionCard({
                                                 if ((selectedTask === 'comment' || selectedTask === 'quote')) {
                                                     if (action.type === 'intent') {
                                                         return (
-                                                        <button
-                                                            key={action.id}
-                                                            onClick={() => {
-                                                                const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
-                                                                if (intentUrl) {
-                                                                    TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
-                                                                    setIntentCompleted(prev => ({
-                                                                        ...prev,
-                                                                        [task.id]: true
-                                                                    }));
-                                                                }
-                                                            }}
-                                                            className={getTaskButtonStyle(task.id, taskCompletions, intentCompleted, 'intent')}
-                                                        >
-                                                            {selectedTask === 'comment' ? 'Comment on Twitter' : 'Quote on Twitter'}
-                                                        </button>
+                                                            <button
+                                                                key={action.id}
+                                                                onClick={() => {
+                                                                    const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
+                                                                    if (intentUrl) {
+                                                                        TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
+                                                                        setIntentCompleted(prev => ({
+                                                                            ...prev,
+                                                                            [task.id]: true
+                                                                        }));
+                                                                    }
+                                                                }}
+                                                                className="px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                                                            >
+                                                                {selectedTask === 'comment' ? 'Comment on Twitter' : 'Quote on Twitter'}
+                                                            </button>
                                                         );
                                                     } else if (action.type === 'verify') {
                                                         return (

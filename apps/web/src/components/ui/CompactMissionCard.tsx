@@ -4,11 +4,11 @@ import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
 import { useAuth } from '../../contexts/UserAuthContext';
-import { 
-    useUserMissionTaskCompletions, 
-    useCompleteTask, 
+import {
+    useUserMissionTaskCompletions,
+    useCompleteTask,
     useRedoTaskCompletion,
-    useTaskStatusInfo 
+    useTaskStatusInfo
 } from '../../hooks/useTaskStatusSystem';
 import { getTaskStatusInfo } from '@/lib/task-status-system';
 import { Flag, AlertTriangle } from 'lucide-react';
@@ -457,7 +457,7 @@ export function CompactMissionCard({
                                             <div className="text-red-200">{completionStatus.flaggedReason}</div>
                                             <div className="text-red-300 text-xs mt-1">
                                                 {completionStatus.flaggedAt ?
-                                                    `Flagged ${completionStatus.flaggedAt.toDate().toLocaleDateString()}` :
+                                                    `Flagged ${completionStatus.flaggedAt.toLocaleDateString()}` :
                                                     'Please redo this task correctly'
                                                 }
                                             </div>
@@ -542,7 +542,7 @@ export function CompactMissionCard({
 
                                                             // Get current task status to determine action
                                                             const taskStatusInfo = await getTaskStatusInfo(mission.id, task.id, user.id);
-                                                            
+
                                                             try {
                                                                 if (taskStatusInfo.canRedo) {
                                                                     // Redo flagged task

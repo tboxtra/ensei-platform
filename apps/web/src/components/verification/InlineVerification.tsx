@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { XAccount } from '@/types/verification';
-import { getInputFieldStyle, getTaskButtonStyle } from '@/lib/task-completion-system';
+// Removed import - using unified task-status-system instead
 import { ModernButton } from '@/components/ui/ModernButton';
 import { ModernInput } from '@/components/ui/ModernInput';
 
@@ -195,7 +195,7 @@ export const InlineVerification: React.FC<InlineVerificationProps> = ({
                     value={submissionLink}
                     onChange={(e) => handleLinkChange(e.target.value)}
                     disabled={validationStatus === 'validating'}
-                    className={getInputFieldStyle()}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {error && (
                     <p className="text-red-400 text-xs mt-1">{error}</p>

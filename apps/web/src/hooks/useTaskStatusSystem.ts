@@ -24,7 +24,7 @@ import {
 export const taskStatusKeys = {
     all: ['taskStatus'] as const,
     mission: (missionId: string) => [...taskStatusKeys.all, 'mission', missionId] as const,
-    userTask: (missionId: string, taskId: string, userId: string) => 
+    userTask: (missionId: string, taskId: string, userId: string) =>
         [...taskStatusKeys.all, 'userTask', missionId, taskId, userId] as const,
 };
 
@@ -67,7 +67,7 @@ export function useTaskStatusInfo(missionId: string, taskId: string, userId: str
  */
 export function useCompleteTask() {
     const queryClient = useQueryClient();
-    
+
     return useMutation({
         mutationFn: async ({
             missionId,
@@ -88,12 +88,12 @@ export function useCompleteTask() {
         }) => {
             return completeTask(missionId, taskId, userId, userName, userEmail, userSocialHandle, metadata);
         },
-        
+
         onSuccess: (data, variables) => {
             // Invalidate and refetch all related queries
             queryClient.invalidateQueries({ queryKey: taskStatusKeys.mission(variables.missionId) });
-            queryClient.invalidateQueries({ 
-                queryKey: taskStatusKeys.userTask(variables.missionId, variables.taskId, variables.userId) 
+            queryClient.invalidateQueries({
+                queryKey: taskStatusKeys.userTask(variables.missionId, variables.taskId, variables.userId)
             });
         },
     });
@@ -104,7 +104,7 @@ export function useCompleteTask() {
  */
 export function useFlagTaskCompletion() {
     const queryClient = useQueryClient();
-    
+
     return useMutation({
         mutationFn: async ({
             completionId,
@@ -119,7 +119,7 @@ export function useFlagTaskCompletion() {
         }) => {
             return flagTaskCompletion(completionId, reason, reviewerId, reviewerName);
         },
-        
+
         onSuccess: () => {
             // Invalidate all queries to ensure UI updates everywhere
             queryClient.invalidateQueries();
@@ -132,7 +132,7 @@ export function useFlagTaskCompletion() {
  */
 export function useRedoTaskCompletion() {
     const queryClient = useQueryClient();
-    
+
     return useMutation({
         mutationFn: async ({
             missionId,
@@ -153,12 +153,12 @@ export function useRedoTaskCompletion() {
         }) => {
             return redoTaskCompletion(missionId, taskId, userId, userName, userEmail, userSocialHandle, metadata);
         },
-        
+
         onSuccess: (data, variables) => {
             // Invalidate and refetch all related queries
             queryClient.invalidateQueries({ queryKey: taskStatusKeys.mission(variables.missionId) });
-            queryClient.invalidateQueries({ 
-                queryKey: taskStatusKeys.userTask(variables.missionId, variables.taskId, variables.userId) 
+            queryClient.invalidateQueries({
+                queryKey: taskStatusKeys.userTask(variables.missionId, variables.taskId, variables.userId)
             });
         },
     });
@@ -169,7 +169,7 @@ export function useRedoTaskCompletion() {
  */
 export function useVerifyTaskCompletion() {
     const queryClient = useQueryClient();
-    
+
     return useMutation({
         mutationFn: async ({
             completionId,
@@ -182,7 +182,7 @@ export function useVerifyTaskCompletion() {
         }) => {
             return verifyTaskCompletion(completionId, reviewerId, reviewerName);
         },
-        
+
         onSuccess: () => {
             // Invalidate all queries to ensure UI updates everywhere
             queryClient.invalidateQueries();
@@ -199,9 +199,9 @@ export function useVerifyTaskCompletion() {
  */
 export function useUserMissionTaskCompletions(missionId: string, userId: string) {
     const { data: allCompletions, ...rest } = useMissionTaskCompletions(missionId);
-    
+
     const userCompletions = allCompletions?.filter(c => c.userId === userId) || [];
-    
+
     return {
         data: userCompletions,
         ...rest,
@@ -213,6 +213,6 @@ export function useUserMissionTaskCompletions(missionId: string, userId: string)
  */
 export function useIsTaskCompleted(missionId: string, taskId: string, userId: string) {
     const { data: taskStatusInfo } = useTaskStatusInfo(missionId, taskId, userId);
-    
+
     return taskStatusInfo?.status === 'completed' || taskStatusInfo?.status === 'verified' || false;
 }

@@ -12,15 +12,15 @@
  */
 
 import { getFirebaseFirestore } from './firebase';
-import { 
-    collection, 
-    addDoc, 
-    updateDoc, 
-    doc, 
-    getDocs, 
-    query, 
-    where, 
-    orderBy, 
+import {
+    collection,
+    addDoc,
+    updateDoc,
+    doc,
+    getDocs,
+    query,
+    where,
+    orderBy,
     serverTimestamp,
     Timestamp,
     getDoc
@@ -86,7 +86,7 @@ export async function completeTask(
     metadata: Record<string, any> = {}
 ): Promise<TaskCompletionRecord> {
     const db = getFirebaseFirestore();
-    
+
     const completionData = {
         missionId,
         taskId,
@@ -113,7 +113,7 @@ export async function completeTask(
     try {
         const docRef = await addDoc(collection(db, COLLECTION_NAME), completionData);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
             const data = docSnap.data();
             return {
@@ -127,7 +127,7 @@ export async function completeTask(
                 updatedAt: data.updatedAt as Timestamp
             } as TaskCompletionRecord;
         }
-        
+
         throw new Error('Failed to create task completion');
     } catch (error) {
         console.error('Error completing task:', error);
@@ -145,7 +145,7 @@ export async function flagTaskCompletion(
     reviewerName: string
 ): Promise<void> {
     const db = getFirebaseFirestore();
-    
+
     try {
         const completionRef = doc(db, COLLECTION_NAME, completionId);
         await updateDoc(completionRef, {
@@ -175,7 +175,7 @@ export async function redoTaskCompletion(
     metadata: Record<string, any> = {}
 ): Promise<TaskCompletionRecord> {
     const db = getFirebaseFirestore();
-    
+
     const completionData = {
         missionId,
         taskId,
@@ -202,7 +202,7 @@ export async function redoTaskCompletion(
     try {
         const docRef = await addDoc(collection(db, COLLECTION_NAME), completionData);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
             const data = docSnap.data();
             return {
@@ -216,7 +216,7 @@ export async function redoTaskCompletion(
                 updatedAt: data.updatedAt as Timestamp
             } as TaskCompletionRecord;
         }
-        
+
         throw new Error('Failed to create task redo completion');
     } catch (error) {
         console.error('Error redoing task completion:', error);
@@ -233,7 +233,7 @@ export async function verifyTaskCompletion(
     reviewerName: string
 ): Promise<void> {
     const db = getFirebaseFirestore();
-    
+
     try {
         const completionRef = doc(db, COLLECTION_NAME, completionId);
         await updateDoc(completionRef, {
@@ -256,17 +256,17 @@ export async function verifyTaskCompletion(
  */
 export async function getMissionTaskCompletions(missionId: string): Promise<TaskCompletionRecord[]> {
     const db = getFirebaseFirestore();
-    
+
     try {
         const q = query(
             collection(db, COLLECTION_NAME),
             where('missionId', '==', missionId),
             orderBy('createdAt', 'desc')
         );
-        
+
         const querySnapshot = await getDocs(q);
         const completions: TaskCompletionRecord[] = [];
-        
+
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             completions.push({
@@ -280,7 +280,7 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
                 updatedAt: data.updatedAt as Timestamp
             } as TaskCompletionRecord);
         });
-        
+
         return completions;
     } catch (error) {
         console.error('Error getting mission task completions:', error);
@@ -297,12 +297,12 @@ export async function getTaskStatusInfo(
     userId: string
 ): Promise<TaskStatusInfo> {
     const completions = await getMissionTaskCompletions(missionId);
-    
+
     // Filter for this specific user and task
     const userTaskCompletions = completions
         .filter(c => c.taskId === taskId && c.userId === userId)
         .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-    
+
     if (userTaskCompletions.length === 0) {
         return {
             status: 'not_completed',
@@ -311,9 +311,9 @@ export async function getTaskStatusInfo(
             canFlag: false
         };
     }
-    
+
     const latestCompletion = userTaskCompletions[0];
-    
+
     return {
         status: latestCompletion.status,
         flaggedReason: latestCompletion.flaggedReason || undefined,
@@ -334,9 +334,9 @@ export async function getTaskStatusInfo(
  * Check if a task is completed by a user
  */
 export function isTaskCompleted(completions: TaskCompletionRecord[], taskId: string, userId: string): boolean {
-    return completions.some(c => 
-        c.taskId === taskId && 
-        c.userId === userId && 
+    return completions.some(c =>
+        c.taskId === taskId &&
+        c.userId === userId &&
         (c.status === 'completed' || c.status === 'verified')
     );
 }
@@ -345,13 +345,13 @@ export function isTaskCompleted(completions: TaskCompletionRecord[], taskId: str
  * Get the latest completion for a specific user and task
  */
 export function getLatestCompletion(
-    completions: TaskCompletionRecord[], 
-    taskId: string, 
+    completions: TaskCompletionRecord[],
+    taskId: string,
     userId: string
 ): TaskCompletionRecord | null {
     const userTaskCompletions = completions
         .filter(c => c.taskId === taskId && c.userId === userId)
         .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-    
+
     return userTaskCompletions.length > 0 ? userTaskCompletions[0] : null;
 }
