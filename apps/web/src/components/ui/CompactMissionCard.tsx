@@ -4,7 +4,13 @@ import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
 import { useAuth } from '../../contexts/UserAuthContext';
-import { useUserMissionTaskCompletions, useCompleteTask, useIsTaskCompleted } from '../../hooks/useTaskCompletions';
+import { 
+    useUserMissionTaskCompletions, 
+    useCompleteTask, 
+    useRedoTaskCompletion,
+    useTaskStatusInfo 
+} from '../../hooks/useTaskStatusSystem';
+import { getTaskStatusInfo } from '@/lib/task-status-system';
 import { Flag, AlertTriangle } from 'lucide-react';
 
 interface CompactMissionCardProps {
@@ -23,20 +29,14 @@ export function CompactMissionCard({
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
     const cardRef = useRef<HTMLDivElement>(null);
 
-    // Standard practice: Use React Query hooks for server state management
+    // Unified Task Status System - single source of truth
     const { data: taskCompletions = [], isLoading: isLoadingCompletions } = useUserMissionTaskCompletions(
         mission.id,
         user?.id || ''
     );
     const completeTaskMutation = useCompleteTask();
+    const redoTaskMutation = useRedoTaskCompletion();
 
-    // Debug logging
-    console.log('CompactMissionCard Debug:', {
-        missionId: mission.id,
-        userId: user?.id,
-        taskCompletions,
-        isLoadingCompletions
-    });
 
 
 
@@ -314,12 +314,6 @@ export function CompactMissionCard({
             .filter(c => c.taskId === taskId)
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-        console.log('getTaskCompletionStatus Debug:', {
-            taskId,
-            allCompletions: taskCompletions,
-            taskCompletionsForTask,
-            latestCompletion: taskCompletionsForTask[0]
-        });
 
         if (taskCompletionsForTask.length === 0) {
             return { status: 'not_completed', flaggedReason: null };
@@ -535,7 +529,7 @@ export function CompactMissionCard({
                                                             // No notification popup - user can see the button state change
 
                                                         } else if (action.type === 'verify') {
-                                                            // Handle verification actions
+                                                            // Handle verification actions using unified system
                                                             // Check if intent was completed first
                                                             if (!intentCompleted[task.id]) {
                                                                 return; // Silent fail - user can see button state
@@ -546,23 +540,43 @@ export function CompactMissionCard({
                                                                 return; // Silent fail - user should be logged in
                                                             }
 
-                                                            // Complete the task with verification using standard practice
+                                                            // Get current task status to determine action
+                                                            const taskStatusInfo = await getTaskStatusInfo(mission.id, task.id, user.id);
+                                                            
                                                             try {
-                                                                const result = await completeTaskMutation.mutateAsync({
-                                                                    missionId: mission.id,
-                                                                    taskId: task.id,
-                                                                    userId: user.id,
-                                                                    userName: user.name,
-                                                                    userEmail: user.email,
-                                                                    userSocialHandle: mission.username || null, // Firebase doesn't allow undefined
-                                                                    metadata: {
-                                                                        taskType: task.id,
-                                                                        platform: 'twitter',
-                                                                        twitterHandle: mission.username || null,
-                                                                        tweetUrl: mission.tweetLink || mission.contentLink
-                                                                    }
-                                                                });
-                                                                // No notification popup - user can see the button turn green
+                                                                if (taskStatusInfo.canRedo) {
+                                                                    // Redo flagged task
+                                                                    await redoTaskMutation.mutateAsync({
+                                                                        missionId: mission.id,
+                                                                        taskId: task.id,
+                                                                        userId: user.id,
+                                                                        userName: user.name,
+                                                                        userEmail: user.email,
+                                                                        userSocialHandle: mission.username || null,
+                                                                        metadata: {
+                                                                            taskType: task.id,
+                                                                            platform: 'twitter',
+                                                                            twitterHandle: mission.username || null,
+                                                                            tweetUrl: mission.tweetLink || mission.contentLink
+                                                                        }
+                                                                    });
+                                                                } else {
+                                                                    // Complete new task
+                                                                    await completeTaskMutation.mutateAsync({
+                                                                        missionId: mission.id,
+                                                                        taskId: task.id,
+                                                                        userId: user.id,
+                                                                        userName: user.name,
+                                                                        userEmail: user.email,
+                                                                        userSocialHandle: mission.username || null,
+                                                                        metadata: {
+                                                                            taskType: task.id,
+                                                                            platform: 'twitter',
+                                                                            twitterHandle: mission.username || null,
+                                                                            tweetUrl: mission.tweetLink || mission.contentLink
+                                                                        }
+                                                                    });
+                                                                }
                                                             } catch (error) {
                                                                 console.error('Error completing task:', error);
                                                                 // Silent error - React Query will handle retry

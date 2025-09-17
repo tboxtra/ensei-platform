@@ -212,7 +212,6 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
 
         // If no completions found in new collection, try legacy collection
         if (completions.length === 0) {
-            console.log('No completions in taskCompletions collection, checking mission_participations...');
 
             // Get participations for this mission
             const participationQuery = query(
@@ -257,7 +256,6 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
             });
         }
 
-        console.log(`Found ${completions.length} task completions for mission ${missionId}`);
         return completions;
     } catch (error) {
         console.error('Error getting mission task completions:', error);

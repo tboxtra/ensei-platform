@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Flag, AlertCircle, Clock, User, Calendar } from 'lucide-react';
 import { getMissionTaskCompletions, flagTaskCompletion, verifyTaskCompletion, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
-import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
+import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskStatusSystem';
 
 interface Mission {
     id: string;
@@ -33,14 +33,6 @@ export default function MissionSubmissionsPage() {
         selectedMission?.id || ''
     );
 
-    // Debug logging
-    console.log('My Missions Debug:', {
-        selectedMissionId: selectedMission?.id,
-        submissions,
-        loadingSubmissions,
-        flagTaskCompletionMutation: flagTaskCompletionMutation.isPending,
-        verifyTaskCompletionMutation: verifyTaskCompletionMutation.isPending
-    });
 
     // Mock missions data
     useEffect(() => {
@@ -70,7 +62,6 @@ export default function MissionSubmissionsPage() {
 
     const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
         try {
-            console.log('Flagging submission:', completion.id, reason);
             await flagTaskCompletionMutation.mutateAsync({
                 completionId: completion.id,
                 reason,

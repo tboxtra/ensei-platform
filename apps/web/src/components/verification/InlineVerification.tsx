@@ -144,15 +144,17 @@ export const InlineVerification: React.FC<InlineVerificationProps> = ({
     };
 
     const getButtonStyle = () => {
+        const baseStyle = 'px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)]';
+
         switch (validationStatus) {
             case 'valid':
-                return 'bg-green-500/20 text-green-400 border-green-500/30';
+                return `${baseStyle} bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30`;
             case 'invalid':
-                return 'bg-red-500/20 text-red-400 border-red-500/30';
+                return `${baseStyle} bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30`;
             case 'validating':
-                return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+                return `${baseStyle} bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30`;
             default:
-                return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+                return `${baseStyle} bg-gray-500/20 text-gray-400 hover:bg-gray-500/30`;
         }
     };
 
@@ -173,50 +175,50 @@ export const InlineVerification: React.FC<InlineVerificationProps> = ({
     if (!showInput) {
         const taskPrefix = taskId === 'quote' ? 'Quote' : taskId === 'comment' ? 'Comment' : '';
         return (
-            <ModernButton
+            <button
                 onClick={() => setShowInput(true)}
                 disabled={!userXAccount}
-                className="bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30"
+                className="px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {taskPrefix ? `Verify ${taskPrefix}` : 'Verify'}
-            </ModernButton>
+            </button>
         );
     }
 
     return (
         <div className="flex gap-2 items-center">
             <div className="flex-1">
-                <ModernInput
+                <input
+                    type="text"
                     placeholder="https://x.com/yourusername/status/1234567890"
                     value={submissionLink}
-                    onChange={handleLinkChange}
+                    onChange={(e) => handleLinkChange(e.target.value)}
                     disabled={validationStatus === 'validating'}
-                    className="text-sm"
+                    className="w-full px-2 py-1 rounded-lg text-xs font-medium bg-gray-800/40 text-white placeholder-gray-400 border border-gray-700/50 focus:border-blue-500/50 focus:outline-none transition-all duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 {error && (
                     <p className="text-red-400 text-xs mt-1">{error}</p>
                 )}
             </div>
-            <ModernButton
+            <button
                 onClick={handleVerify}
                 disabled={validationStatus === 'validating' || !submissionLink.trim() || !userXAccount}
-                className={`${getButtonStyle()} min-w-[100px]`}
+                className={`${getButtonStyle()} min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed`}
             >
                 {getButtonText()}
-            </ModernButton>
-            <ModernButton
+            </button>
+            <button
                 onClick={() => {
                     setShowInput(false);
                     setSubmissionLink('');
                     setValidationStatus('idle');
                     setError('');
                 }}
-                variant="secondary"
                 disabled={validationStatus === 'validating'}
-                className="text-xs px-2 py-1"
+                className="px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 ✕
-            </ModernButton>
+            </button>
         </div>
     );
 };

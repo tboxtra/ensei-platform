@@ -195,3 +195,36 @@
 - **Vercel Analytics** for performance monitoring
 
 Remember: **Quality over speed**. Always implement features with industry standards, proper testing, and scalability in mind.
+
+## 🏗️ **SYSTEM ARCHITECTURE PRINCIPLES**
+
+### **CRITICAL RULE: Always Create Systems, Never Patches**
+- **NEVER** create isolated paths or patches for operations
+- **ALWAYS** design complete, integrated systems for each functionality
+- **EVERY** feature must be part of a cohesive, maintainable system
+- **AVOID** quick fixes that create technical debt
+- **BUILD** for long-term scalability and maintainability
+
+### **System Design Requirements:**
+1. **Unified Data Flow**: All related operations must use the same data sources and state management
+2. **Consistent Architecture**: Follow the same patterns across all features
+3. **Proper Error Handling**: Every system must have comprehensive error boundaries
+4. **Real-time Updates**: All systems must support live data synchronization
+5. **Type Safety**: Full TypeScript coverage with proper interfaces
+6. **Testing**: Every system must be testable and tested
+7. **Documentation**: Clear system documentation and API contracts
+
+### **Anti-Patterns to Avoid:**
+- ❌ Creating separate code paths for similar operations
+- ❌ Patching existing systems instead of redesigning them
+- ❌ Using different data sources for related features
+- ❌ Implementing quick fixes without considering the bigger picture
+- ❌ Building features in isolation without system integration
+
+### **System Integration Checklist:**
+- [ ] Does this feature integrate with existing systems?
+- [ ] Are we using consistent data sources and state management?
+- [ ] Does this follow the same architectural patterns?
+- [ ] Is error handling consistent across the system?
+- [ ] Are real-time updates working properly?
+- [ ] Is the code maintainable and scalable?

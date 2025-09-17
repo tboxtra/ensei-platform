@@ -27,12 +27,7 @@ export const taskCompletionKeys = {
 export function useMissionTaskCompletions(missionId: string) {
     return useQuery({
         queryKey: taskCompletionKeys.mission(missionId),
-        queryFn: async () => {
-            console.log('Fetching mission task completions for:', missionId);
-            const result = await getMissionTaskCompletions(missionId);
-            console.log('Mission task completions result:', result);
-            return result;
-        },
+        queryFn: () => getMissionTaskCompletions(missionId),
         enabled: !!missionId,
         staleTime: 2 * 60 * 1000, // 2 minutes for task completions
     });
@@ -151,10 +146,9 @@ export function useFlagTaskCompletion() {
         },
 
         onSuccess: (data, variables) => {
-            // Invalidate all mission queries to refetch updated data
-            queryClient.invalidateQueries({ queryKey: taskCompletionKeys.all });
-            // Force refetch of all mission data
-            queryClient.refetchQueries({ queryKey: taskCompletionKeys.all });
+            // Invalidate and refetch ALL queries to ensure UI updates
+            queryClient.invalidateQueries();
+            queryClient.refetchQueries();
         },
     });
 }
@@ -180,10 +174,9 @@ export function useVerifyTaskCompletion() {
         },
 
         onSuccess: (data, variables) => {
-            // Invalidate all mission queries to refetch updated data
-            queryClient.invalidateQueries({ queryKey: taskCompletionKeys.all });
-            // Force refetch of all mission data
-            queryClient.refetchQueries({ queryKey: taskCompletionKeys.all });
+            // Invalidate and refetch ALL queries to ensure UI updates
+            queryClient.invalidateQueries();
+            queryClient.refetchQueries();
         },
     });
 }
