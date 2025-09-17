@@ -26,6 +26,15 @@
         "paths": {
             "@/*": [
                 "./src/*"
+            ],
+            "@web/features/*": [
+                "./src/features/*"
+            ],
+            "@web/shared/*": [
+                "./src/shared/*"
+            ],
+            "@types/*": [
+                "../../packages/shared-types/src/*"
             ]
         }
     },

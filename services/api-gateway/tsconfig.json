@@ -24,6 +24,15 @@
       ],
       "@ensei/mission-engine": [
         "../mission-engine/src"
+      ],
+      "@api/modules/*": [
+        "./src/modules/*"
+      ],
+      "@api/shared/*": [
+        "./src/shared/*"
+      ],
+      "@types/*": [
+        "../../packages/shared-types/src/*"
       ]
     }
   },

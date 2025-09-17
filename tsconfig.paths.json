@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@web/features/*": [
+                "apps/web/src/features/*"
+            ],
+            "@web/shared/*": [
+                "apps/web/src/shared/*"
+            ],
+            "@api/modules/*": [
+                "services/api-gateway/src/modules/*"
+            ],
+            "@api/shared/*": [
+                "services/api-gateway/src/shared/*"
+            ],
+            "@types/*": [
+                "packages/shared-types/src/*"
+            ]
+        }
+    }
+}

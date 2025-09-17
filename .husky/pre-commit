@@ -3,6 +3,10 @@
 
 echo "🔍 Running pre-commit checks..."
 
+# Check project structure (prevent global buckets)
+echo "🏗️ Checking project structure..."
+node tools/scripts/check-structure.js
+
 # Run linting on changed files
 echo "📝 Running linting on changed files..."
 npm run lint:changed

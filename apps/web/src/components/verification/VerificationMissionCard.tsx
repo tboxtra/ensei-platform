@@ -11,7 +11,7 @@ import { Flag, AlertTriangle } from 'lucide-react';
 import { XAccount } from '@/types/verification';
 import { InlineVerification } from './InlineVerification';
 import {
-    isTaskCompleted
+    useIsTaskCompleted
 } from '@/hooks/useTaskStatusSystem';
 
 interface VerificationMissionCardProps {
