@@ -457,7 +457,7 @@ export function CompactMissionCard({
                                             <div className="text-red-200">{completionStatus.flaggedReason}</div>
                                             <div className="text-red-300 text-xs mt-1">
                                                 {completionStatus.flaggedAt ?
-                                                    `Flagged ${new Date(completionStatus.flaggedAt).toLocaleDateString()}` :
+                                                    `Flagged ${completionStatus.flaggedAt.toLocaleDateString()}` :
                                                     'Please redo this task correctly'
                                                 }
                                             </div>
