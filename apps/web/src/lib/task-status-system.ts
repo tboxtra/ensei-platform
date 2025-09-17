@@ -11,8 +11,8 @@
  * - Type-safe operations with comprehensive error handling
  */
 
+import { getFirebaseFirestore } from './firebase';
 import { 
-    getFirebaseFirestore, 
     collection, 
     addDoc, 
     updateDoc, 
@@ -22,8 +22,9 @@ import {
     where, 
     orderBy, 
     serverTimestamp,
-    Timestamp 
-} from './firebase';
+    Timestamp,
+    getDoc
+} from 'firebase/firestore';
 
 // ============================================================================
 // TYPES & INTERFACES

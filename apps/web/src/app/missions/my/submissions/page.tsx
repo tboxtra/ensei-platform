@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Flag, AlertCircle, Clock, User, Calendar } from 'lucide-react';
-import { getMissionTaskCompletions, flagTaskCompletion, verifyTaskCompletion, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
+import { getFlaggingReasons } from '@/lib/task-verification';
+import { type TaskCompletionRecord } from '@/lib/task-status-system';
 import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskStatusSystem';
 
 interface Mission {
@@ -22,7 +23,7 @@ interface Mission {
 export default function MissionSubmissionsPage() {
     const [missions, setMissions] = useState<Mission[]>([]);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    const [showFlagModal, setShowFlagModal] = useState<{ completion: TaskCompletion | null, show: boolean }>({ completion: null, show: false });
+    const [showFlagModal, setShowFlagModal] = useState<{ completion: TaskCompletionRecord | null, show: boolean }>({ completion: null, show: false });
 
     // Use React Query hooks for real-time updates
     const flagTaskCompletionMutation = useFlagTaskCompletion();

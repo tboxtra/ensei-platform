@@ -10,6 +10,14 @@ import { useUserMissionTaskCompletions, useCompleteTask, useIsTaskCompleted } fr
 import { Flag, AlertTriangle } from 'lucide-react';
 import { XAccount } from '@/types/verification';
 import { InlineVerification } from './InlineVerification';
+import { 
+    getTaskButtonStyle, 
+    getMainTaskButtonStyle, 
+    getInputFieldStyle,
+    handleTaskCompletion,
+    isTaskCompleted,
+    type TaskCompletionState 
+} from '@/lib/task-completion-system';
 
 interface VerificationMissionCardProps {
     mission: any;
@@ -29,11 +37,11 @@ export function VerificationMissionCard({
     const { user, isAuthenticated } = useAuth();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
-    const [verificationStatus, setVerificationStatus] = useState<{ [taskId: string]: 'idle' | 'verified' | 'pending' }>({});
+    const [taskCompletions, setTaskCompletions] = useState<TaskCompletionState[]>([]);
     const cardRef = useRef<HTMLDivElement>(null);
 
     // Standard practice: Use React Query hooks for server state management
-    const { data: taskCompletions = [], isLoading: isLoadingCompletions } = useUserMissionTaskCompletions(
+    const { data: serverTaskCompletions = [], isLoading: isLoadingCompletions } = useUserMissionTaskCompletions(
         mission.id,
         user?.id || ''
     );
@@ -110,29 +118,30 @@ export function VerificationMissionCard({
     };
 
     const handleVerificationSubmitted = (submission: any) => {
-        setVerificationStatus(prev => ({
-            ...prev,
-            [submission.taskId]: 'verified'
-        }));
-
+        // Update task completion state
+        setTaskCompletions(prev => {
+            const existing = prev.find(tc => tc.taskId === submission.taskId);
+            if (existing) {
+                return prev.map(tc => 
+                    tc.taskId === submission.taskId 
+                        ? { ...tc, status: 'verified' as const, verifiedAt: new Date() }
+                        : tc
+                );
+            } else {
+                return [...prev, {
+                    taskId: submission.taskId,
+                    status: 'verified' as const,
+                    completedAt: new Date(),
+                    verifiedAt: new Date()
+                }];
+            }
+        });
+        
         if (onVerificationSubmitted) {
             onVerificationSubmitted(submission);
         }
     };
 
-    const getTaskButtonStyle = (taskId: string, completionStatus: any) => {
-        const baseStyle = 'px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)]';
-
-        if (completionStatus.status === 'completed' || verificationStatus[taskId] === 'verified') {
-            return `${baseStyle} bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30`;
-        } else if (completionStatus.status === 'flagged') {
-            return `${baseStyle} bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30`;
-        } else if (verificationStatus[taskId] === 'pending') {
-            return `${baseStyle} bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30`;
-        } else {
-            return `${baseStyle} bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30`;
-        }
-    };
 
     return (
         <div ref={cardRef} className="bg-gray-800/40 rounded-lg border border-gray-700/50 overflow-hidden">
@@ -182,10 +191,10 @@ export function VerificationMissionCard({
 
                         return (
                             <div key={index} className="relative group">
-                                <button
-                                    onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
-                                    className={getTaskButtonStyle(taskId, completionStatus)}
-                                >
+                                    <button
+                                        onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
+                                        className={getMainTaskButtonStyle(taskId, taskCompletions)}
+                                    >
                                     <div className="flex items-center gap-1">
                                         {completionStatus.status === 'flagged' && (
                                             <Flag className="w-3 h-3" />
@@ -250,25 +259,22 @@ export function VerificationMissionCard({
                                                 if ((selectedTask === 'comment' || selectedTask === 'quote')) {
                                                     if (action.type === 'intent') {
                                                         return (
-                                                            <button
-                                                                key={action.id}
-                                                                onClick={() => {
-                                                                    const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
-                                                                    if (intentUrl) {
-                                                                        TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
-                                                                        setIntentCompleted(prev => ({
-                                                                            ...prev,
-                                                                            [task.id]: true
-                                                                        }));
-                                                                    }
-                                                                }}
-                                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${intentCompleted[task.id]
-                                                                        ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
-                                                                        : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
-                                                                    }`}
-                                                            >
-                                                                {selectedTask === 'comment' ? 'Comment on Twitter' : 'Quote on Twitter'}
-                                                            </button>
+                                                        <button
+                                                            key={action.id}
+                                                            onClick={() => {
+                                                                const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
+                                                                if (intentUrl) {
+                                                                    TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
+                                                                    setIntentCompleted(prev => ({
+                                                                        ...prev,
+                                                                        [task.id]: true
+                                                                    }));
+                                                                }
+                                                            }}
+                                                            className={getTaskButtonStyle(task.id, taskCompletions, intentCompleted, 'intent')}
+                                                        >
+                                                            {selectedTask === 'comment' ? 'Comment on Twitter' : 'Quote on Twitter'}
+                                                        </button>
                                                         );
                                                     } else if (action.type === 'verify') {
                                                         return (
