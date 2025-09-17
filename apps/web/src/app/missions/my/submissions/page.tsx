@@ -61,7 +61,7 @@ export default function MissionSubmissionsPage() {
         ]);
     }, []);
 
-    const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
+    const handleFlagSubmission = async (completion: TaskCompletionRecord, reason: string) => {
         try {
             await flagTaskCompletionMutation.mutateAsync({
                 completionId: completion.id,
@@ -78,7 +78,7 @@ export default function MissionSubmissionsPage() {
         }
     };
 
-    const handleVerifySubmission = async (completion: TaskCompletion) => {
+    const handleVerifySubmission = async (completion: TaskCompletionRecord) => {
         try {
             await verifyTaskCompletionMutation.mutateAsync({
                 completionId: completion.id,
