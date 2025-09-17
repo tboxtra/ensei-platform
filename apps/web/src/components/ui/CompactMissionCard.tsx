@@ -10,7 +10,7 @@ import {
     useRedoTaskCompletion,
     useTaskStatusInfo
 } from '../../hooks/useTaskStatusSystem';
-import { getTaskStatusInfo } from '@/lib/task-status-system';
+// Removed getTaskStatusInfo import - using React Query hooks instead
 import { Flag, AlertTriangle } from 'lucide-react';
 
 interface CompactMissionCardProps {
@@ -540,11 +540,11 @@ export function CompactMissionCard({
                                                                 return; // Silent fail - user should be logged in
                                                             }
 
-                                                            // Get current task status to determine action
-                                                            const taskStatusInfo = await getTaskStatusInfo(mission.id, task.id, user.id);
-
+                                                            // Get current task status from local state
+                                                            const completionStatus = getTaskCompletionStatus(task.id);
+                                                            
                                                             try {
-                                                                if (taskStatusInfo.canRedo) {
+                                                                if (completionStatus.status === 'flagged') {
                                                                     // Redo flagged task
                                                                     await redoTaskMutation.mutateAsync({
                                                                         missionId: mission.id,

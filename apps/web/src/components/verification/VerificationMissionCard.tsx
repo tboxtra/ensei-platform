@@ -29,7 +29,7 @@ export function VerificationMissionCard({
     const { user, isAuthenticated } = useAuth();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
-    const [taskCompletions, setTaskCompletions] = useState<TaskCompletionSystemState[]>([]);
+    const [taskCompletions, setTaskCompletions] = useState<any[]>([]);
     const cardRef = useRef<HTMLDivElement>(null);
 
     // Standard practice: Use React Query hooks for server state management
