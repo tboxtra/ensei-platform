@@ -324,7 +324,7 @@ export function CompactMissionCard({
         return {
             status: latestCompletion.status,
             flaggedReason: latestCompletion.flaggedReason || null,
-            flaggedAt: latestCompletion.flaggedAt || null
+            flaggedAt: latestCompletion.flaggedAt?.toDate() || null
         };
     };
 

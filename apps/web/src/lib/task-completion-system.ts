@@ -9,6 +9,7 @@ export interface TaskCompletionSystemState {
   completedAt?: Date;
   verifiedAt?: Date;
   flaggedReason?: string;
+  flaggedAt?: Date;
 }
 
 export interface TaskActionState {
