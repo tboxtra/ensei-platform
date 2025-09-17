@@ -213,19 +213,19 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
         // If no completions found in new collection, try legacy collection
         if (completions.length === 0) {
             console.log('No completions in taskCompletions collection, checking mission_participations...');
-            
+
             // Get participations for this mission
             const participationQuery = query(
                 collection(db, 'mission_participations'),
                 where('mission_id', '==', missionId)
             );
-            
+
             const participationSnapshot = await getDocs(participationQuery);
-            
+
             participationSnapshot.forEach((participationDoc) => {
                 const participationData = participationDoc.data();
                 const tasksCompleted = participationData.tasks_completed || [];
-                
+
                 tasksCompleted.forEach((taskCompletion: any) => {
                     // Convert legacy format to new format
                     const convertedCompletion: TaskCompletion = {
@@ -240,8 +240,8 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
                         completedAt: new Date(taskCompletion.completed_at) as any,
                         verifiedAt: new Date(taskCompletion.completed_at) as any,
                         flaggedAt: null as any,
-                        flaggedReason: null,
-                        reviewedBy: null,
+                        flaggedReason: null as any,
+                        reviewedBy: null as any,
                         reviewedAt: null as any,
                         metadata: {
                             taskType: taskCompletion.task_id,
@@ -251,7 +251,7 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
                         createdAt: new Date(taskCompletion.completed_at) as any,
                         updatedAt: new Date(taskCompletion.completed_at) as any
                     };
-                    
+
                     completions.push(convertedCompletion);
                 });
             });
