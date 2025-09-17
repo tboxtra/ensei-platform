@@ -312,7 +312,7 @@ export function CompactMissionCard({
         // Get all completions for this task, sorted by creation date (newest first)
         const taskCompletionsForTask = taskCompletions
             .filter(c => c.taskId === taskId)
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
 
 
         if (taskCompletionsForTask.length === 0) {

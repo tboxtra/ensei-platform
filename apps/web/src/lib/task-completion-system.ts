@@ -3,7 +3,7 @@
  * Provides consistent task completion logic and styling across the platform
  */
 
-export interface TaskCompletionState {
+export interface TaskCompletionSystemState {
   taskId: string;
   status: 'not_started' | 'intent_completed' | 'verified' | 'flagged';
   completedAt?: Date;
@@ -21,7 +21,7 @@ export interface TaskCompletionSystemProps {
   missionId: string;
   taskId: string;
   userId: string;
-  taskCompletions: TaskCompletionState[];
+  taskCompletions: TaskCompletionSystemState[];
   intentCompleted: { [taskId: string]: boolean };
   onTaskComplete?: (taskId: string, actionId: string, verificationData?: any) => void;
   onIntentComplete?: (taskId: string) => void;
@@ -33,7 +33,7 @@ export interface TaskCompletionSystemProps {
  */
 export function getTaskButtonStyle(
   taskId: string,
-  taskCompletions: TaskCompletionState[],
+  taskCompletions: TaskCompletionSystemState[],
   intentCompleted: { [taskId: string]: boolean },
   actionType: 'intent' | 'verify' | 'auto' | 'manual' = 'intent'
 ): string {
@@ -83,7 +83,7 @@ export function getTaskButtonStyle(
  */
 export function getMainTaskButtonStyle(
   taskId: string,
-  taskCompletions: TaskCompletionState[]
+  taskCompletions: TaskCompletionSystemState[]
 ): string {
   const baseStyle = 'px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)]';
   
@@ -146,7 +146,7 @@ export async function handleTaskCompletion(
  */
 export function isTaskCompleted(
   taskId: string,
-  taskCompletions: TaskCompletionState[]
+  taskCompletions: TaskCompletionSystemState[]
 ): boolean {
   const completion = taskCompletions.find(tc => tc.taskId === taskId);
   return completion?.status === 'verified';
@@ -157,7 +157,7 @@ export function isTaskCompleted(
  */
 export function isTaskFlagged(
   taskId: string,
-  taskCompletions: TaskCompletionState[]
+  taskCompletions: TaskCompletionSystemState[]
 ): boolean {
   const completion = taskCompletions.find(tc => tc.taskId === taskId);
   return completion?.status === 'flagged';
@@ -168,8 +168,8 @@ export function isTaskFlagged(
  */
 export function getTaskCompletionStatus(
   taskId: string,
-  taskCompletions: TaskCompletionState[]
-): TaskCompletionState['status'] {
+  taskCompletions: TaskCompletionSystemState[]
+): TaskCompletionSystemState['status'] {
   const completion = taskCompletions.find(tc => tc.taskId === taskId);
   return completion?.status || 'not_started';
 }
