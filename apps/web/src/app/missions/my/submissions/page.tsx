@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Flag, AlertCircle, Clock, User, Calendar } from 'lucide-react';
 import { getMissionTaskCompletions, flagTaskCompletion, verifyTaskCompletion, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
+import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
 
 interface Mission {
     id: string;
@@ -21,9 +22,16 @@ interface Mission {
 export default function MissionSubmissionsPage() {
     const [missions, setMissions] = useState<Mission[]>([]);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    const [submissions, setSubmissions] = useState<TaskCompletion[]>([]);
-    const [loading, setLoading] = useState(false);
     const [showFlagModal, setShowFlagModal] = useState<{ completion: TaskCompletion | null, show: boolean }>({ completion: null, show: false });
+
+    // Use React Query hooks for real-time updates
+    const flagTaskCompletionMutation = useFlagTaskCompletion();
+    const verifyTaskCompletionMutation = useVerifyTaskCompletion();
+    
+    // Get submissions for selected mission using React Query
+    const { data: submissions = [], isLoading: loadingSubmissions } = useMissionTaskCompletions(
+        selectedMission?.id || ''
+    );
 
     // Mock missions data
     useEffect(() => {
@@ -51,24 +59,16 @@ export default function MissionSubmissionsPage() {
         ]);
     }, []);
 
-    const loadSubmissions = async (missionId: string) => {
-        setLoading(true);
-        try {
-            const missionSubmissions = await getMissionTaskCompletions(missionId);
-            setSubmissions(missionSubmissions);
-        } catch (error) {
-            console.error('Error loading submissions:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
         try {
-            await flagTaskCompletion(completion.id, reason, 'creator-1', 'Mission Creator');
+            await flagTaskCompletionMutation.mutateAsync({
+                completionId: completion.id,
+                reason,
+                reviewerId: 'creator-1',
+                reviewerName: 'Mission Creator'
+            });
             // React Query will automatically refetch and update the UI
             setShowFlagModal({ completion: null, show: false });
-            // Show success message without alert
             console.log(`Submission flagged: ${reason}`);
         } catch (error) {
             console.error('Error flagging submission:', error);
@@ -78,7 +78,11 @@ export default function MissionSubmissionsPage() {
 
     const handleVerifySubmission = async (completion: TaskCompletion) => {
         try {
-            await verifyTaskCompletion(completion.id, 'creator-1', 'Mission Creator');
+            await verifyTaskCompletionMutation.mutateAsync({
+                completionId: completion.id,
+                reviewerId: 'creator-1',
+                reviewerName: 'Mission Creator'
+            });
             // React Query will automatically refetch and update the UI
             console.log('Submission verified successfully!');
         } catch (error) {
@@ -106,7 +110,7 @@ export default function MissionSubmissionsPage() {
     };
 
     // Check if there are any flagged submissions that need attention
-    const hasFlaggedSubmissions = missions.some(mission => 
+    const hasFlaggedSubmissions = missions.some(mission =>
         (mission as any).completions?.some((completion: TaskCompletion) => completion.status === 'flagged')
     );
 
@@ -133,7 +137,6 @@ export default function MissionSubmissionsPage() {
                                             }`}
                                         onClick={() => {
                                             setSelectedMission(mission);
-                                            loadSubmissions(mission.id);
                                         }}
                                     >
                                         <h3 className="font-medium text-gray-900 mb-1">{mission.title}</h3>
@@ -159,18 +162,22 @@ export default function MissionSubmissionsPage() {
                                 </h2>
                                 {selectedMission && (
                                     <Button
-                                        onClick={() => loadSubmissions(selectedMission.id)}
-                                        disabled={loading}
+                                        onClick={() => window.location.reload()}
                                         className="bg-blue-500 hover:bg-blue-600 text-white"
                                     >
-                                        {loading ? 'Loading...' : 'Refresh'}
+                                        Refresh
                                     </Button>
                                 )}
                             </div>
 
                             {selectedMission ? (
                                 <div className="space-y-4">
-                                    {submissions.length === 0 ? (
+                                    {loadingSubmissions ? (
+                                        <div className="text-center py-8">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                                            <p className="text-gray-600">Loading submissions...</p>
+                                        </div>
+                                    ) : submissions.length === 0 ? (
                                         <div className="text-center py-8">
                                             <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                             <p className="text-gray-600">No submissions yet for this mission</p>

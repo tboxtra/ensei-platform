@@ -138,7 +138,7 @@ export type CreateDegenMissionOutput = z.output<typeof CreateDegenMissionSchema>
 export function getValidTasks(platform: Platform, type: MissionType): string[] {
     // Handle custom platform case
     if (platform === 'custom') return [];
-    
+
     const platformTasks = PLATFORM_TASKS[platform as keyof typeof PLATFORM_TASKS];
     if (!platformTasks) return [];
 

@@ -65,6 +65,21 @@ export async function completeTask(
 ): Promise<TaskCompletion> {
     const db = getFirebaseFirestore();
 
+    // Check if there's an existing flagged completion for this user/task
+    const existingCompletions = await getDocs(
+        query(
+            collection(db, COLLECTION_NAME),
+            where('missionId', '==', missionId),
+            where('taskId', '==', taskId),
+            where('userId', '==', userId),
+            where('status', '==', 'flagged')
+        )
+    );
+
+    // If there's a flagged completion, create a new one with pending status
+    const hasFlaggedCompletion = !existingCompletions.empty;
+    const status = hasFlaggedCompletion ? 'pending' : 'verified';
+
     const completionData = {
         missionId,
         taskId,
@@ -72,9 +87,9 @@ export async function completeTask(
         userName,
         userEmail,
         userSocialHandle: userSocialHandle || null, // Convert undefined to null for Firebase
-        status: 'verified' as const, // Tasks are verified by default
+        status: status as const,
         completedAt: serverTimestamp(),
-        verifiedAt: serverTimestamp(),
+        verifiedAt: status === 'verified' ? serverTimestamp() : null,
         metadata: {
             taskType: taskId,
             platform: 'twitter',
@@ -95,7 +110,7 @@ export async function completeTask(
                 id: docRef.id,
                 ...data,
                 completedAt: data.completedAt as Timestamp,
-                verifiedAt: data.verifiedAt as Timestamp,
+                verifiedAt: data.verifiedAt as Timestamp | null,
                 createdAt: data.createdAt as Timestamp,
                 updatedAt: data.updatedAt as Timestamp
             } as TaskCompletion;
