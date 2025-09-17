@@ -150,9 +150,7 @@ export const XAccountLinker: React.FC<XAccountLinkerProps> = ({
                         placeholder="Enter your X username (without @)"
                         value={xUsername}
                         onChange={handleUsernameChange}
-                        error={error}
                         disabled={isLoading || isValidating}
-                        required
                     />
 
                     {isValidating && (

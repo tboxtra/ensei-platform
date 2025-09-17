@@ -180,9 +180,7 @@ export const VerificationDropdown: React.FC<VerificationDropdownProps> = ({
                             placeholder="https://x.com/yourusername/status/1234567890"
                             value={submissionLink}
                             onChange={handleLinkChange}
-                            error={error}
                             disabled={isLoading || isValidating}
-                            required
                         />
 
                         {isValidating && (

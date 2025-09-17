@@ -119,13 +119,16 @@ export type CreateFixedMissionOutput = z.output<typeof CreateFixedMissionSchema>
 
 // Helper function to get valid tasks for a platform and type
 export function getValidTasks(platform: Platform, type: MissionType): string[] {
-    const platformTasks = PLATFORM_TASKS[platform];
+    // Handle custom platform case
+    if (platform === 'custom') return [];
+    
+    const platformTasks = PLATFORM_TASKS[platform as keyof typeof PLATFORM_TASKS];
     if (!platformTasks) return [];
 
     const missionTypeTasks = platformTasks[type];
     if (!missionTypeTasks) return [];
 
-    return missionTypeTasks.map(task => task.key);
+    return missionTypeTasks.map((task: any) => task.key);
 }
 
 // Helper function to validate tasks

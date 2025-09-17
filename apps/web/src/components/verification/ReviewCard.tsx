@@ -175,9 +175,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                         placeholder="https://x.com/yourusername/status/1234567890"
                         value={reviewerCommentLink}
                         onChange={setReviewerCommentLink}
-                        error={error}
                         disabled={isLoading}
-                        required
                     />
                     <p className="text-gray-400 text-sm">
                         Share the link to your comment on the submission. This helps verify your review quality.
