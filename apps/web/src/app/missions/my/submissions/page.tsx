@@ -66,9 +66,10 @@ export default function MissionSubmissionsPage() {
     const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
         try {
             await flagTaskCompletion(completion.id, reason, 'creator-1', 'Mission Creator');
-            loadSubmissions(completion.missionId);
+            // React Query will automatically refetch and update the UI
             setShowFlagModal({ completion: null, show: false });
-            alert(`Submission flagged: ${reason}`);
+            // Show success message without alert
+            console.log(`Submission flagged: ${reason}`);
         } catch (error) {
             console.error('Error flagging submission:', error);
             alert('Error flagging submission');
@@ -78,8 +79,8 @@ export default function MissionSubmissionsPage() {
     const handleVerifySubmission = async (completion: TaskCompletion) => {
         try {
             await verifyTaskCompletion(completion.id, 'creator-1', 'Mission Creator');
-            loadSubmissions(completion.missionId);
-            alert('Submission verified successfully!');
+            // React Query will automatically refetch and update the UI
+            console.log('Submission verified successfully!');
         } catch (error) {
             console.error('Error verifying submission:', error);
             alert('Error verifying submission');
@@ -103,6 +104,11 @@ export default function MissionSubmissionsPage() {
             default: return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>;
         }
     };
+
+    // Check if there are any flagged submissions that need attention
+    const hasFlaggedSubmissions = missions.some(mission => 
+        mission.completions?.some((completion: TaskCompletion) => completion.status === 'flagged')
+    );
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -232,8 +238,9 @@ export default function MissionSubmissionsPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            className="text-green-600 border-green-300 hover:bg-green-50"
+                                                            className="text-green-600 border-green-300 hover:bg-green-50 animate-pulse"
                                                             onClick={() => handleVerifySubmission(submission)}
+                                                            title="Resubmission available - Click to verify"
                                                         >
                                                             <CheckCircle className="w-3 h-3 mr-1" />
                                                             Verify

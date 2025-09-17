@@ -42,6 +42,7 @@ export function useUserMissionTaskCompletions(missionId: string, userId: string)
 
     const userCompletions = allCompletions?.filter(c => c.userId === userId) || [];
 
+
     return {
         data: userCompletions,
         ...rest,

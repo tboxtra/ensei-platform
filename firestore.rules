@@ -89,5 +89,16 @@ service cloud.firestore {
       allow read, write: if request.auth != null && 
         (request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
     }
+    
+    // Task completions - users can read/write their own completions, admins can read all
+    match /taskCompletions/{completionId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource.data.userId == request.auth.uid || 
+         request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
+      allow create: if request.auth != null && 
+        (request.auth.uid == request.resource.data.userId || 
+         request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
+    }
   }
 }

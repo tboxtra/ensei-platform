@@ -5,6 +5,7 @@ import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
 import { useAuth } from '../../contexts/UserAuthContext';
 import { useUserMissionTaskCompletions, useCompleteTask, useIsTaskCompleted } from '../../hooks/useTaskCompletions';
+import { Flag, AlertTriangle } from 'lucide-react';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -28,6 +29,8 @@ export function CompactMissionCard({
         user?.id || ''
     );
     const completeTaskMutation = useCompleteTask();
+
+
 
 
     useEffect(() => {
@@ -295,6 +298,18 @@ export function CompactMissionCard({
         return icons[taskId] || '📋';
     };
 
+    // Get task completion status with flagged information
+    const getTaskCompletionStatus = (taskId: string) => {
+        const completion = taskCompletions.find(c => c.taskId === taskId);
+        if (!completion) return { status: 'not_completed', flaggedReason: null };
+        
+        return {
+            status: completion.status,
+            flaggedReason: completion.flaggedReason || null,
+            flaggedAt: completion.flaggedAt || null
+        };
+    };
+
     const extractUsernameFromLink = (link: string) => {
         if (!link) return null;
         const match = link.match(/twitter\.com\/([^\/]+)/);
@@ -370,18 +385,55 @@ export function CompactMissionCard({
                             const originalTask = mission.tasks[index];
                             const mapping = taskNameMapping[originalTask?.toLowerCase()];
                             const taskId = mapping ? mapping.id : originalTask?.toLowerCase();
+                            const completionStatus = getTaskCompletionStatus(taskId);
+
+                            // Determine button styling based on status
+                            const getButtonStyling = () => {
+                                switch (completionStatus.status) {
+                                    case 'flagged':
+                                        return 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30';
+                                    case 'verified':
+                                        return 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30';
+                                    case 'pending':
+                                        return 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30';
+                                    default:
+                                        return 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30';
+                                }
+                            };
 
                             return (
-                                <button
-                                    key={index}
-                                    onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
-                                    className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${taskCompletions.some(c => c.taskId === taskId)
-                                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                        : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                        }`}
-                                >
-                                    {taskType}
-                                </button>
+                                <div key={index} className="relative group">
+                                    <button
+                                        onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
+                                        className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${getButtonStyling()}`}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            {completionStatus.status === 'flagged' && (
+                                                <Flag className="w-3 h-3" />
+                                            )}
+                                            {taskType}
+                                        </div>
+                                    </button>
+                                    
+                                    {/* Tooltip for flagged tasks */}
+                                    {completionStatus.status === 'flagged' && completionStatus.flaggedReason && (
+                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-red-900/95 text-red-100 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
+                                            <div className="flex items-center gap-1 mb-1">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                <span className="font-semibold">Flagged</span>
+                                            </div>
+                                            <div className="text-red-200">{completionStatus.flaggedReason}</div>
+                                            <div className="text-red-300 text-xs mt-1">
+                                                {completionStatus.flaggedAt ? 
+                                                    `Flagged ${new Date(completionStatus.flaggedAt).toLocaleDateString()}` : 
+                                                    'Please redo this task correctly'
+                                                }
+                                            </div>
+                                            {/* Arrow */}
+                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-red-900/95"></div>
+                                        </div>
+                                    )}
+                                </div>
                             );
                         })}
                     </div>
@@ -497,29 +549,86 @@ export function CompactMissionCard({
                                                     }
                                                 }}
                                                 disabled={completeTaskMutation.isPending}
-                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] disabled:opacity-50 disabled:cursor-not-allowed ${taskCompletions.some(c => c.taskId === task.id)
-                                                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30'
-                                                    : action.type === 'intent'
-                                                        ? intentCompleted[task.id]
+                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] disabled:opacity-50 disabled:cursor-not-allowed ${(() => {
+                                                    const taskStatus = getTaskCompletionStatus(task.id);
+                                                    
+                                                    // If task is flagged, show red styling
+                                                    if (taskStatus.status === 'flagged') {
+                                                        return 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 animate-pulse';
+                                                    }
+                                                    
+                                                    // If task is verified, show green styling
+                                                    if (taskStatus.status === 'verified') {
+                                                        return 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30';
+                                                    }
+                                                    
+                                                    // If task is pending, show yellow styling
+                                                    if (taskStatus.status === 'pending') {
+                                                        return 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30';
+                                                    }
+                                                    
+                                                    // Default styling based on action type
+                                                    if (action.type === 'intent') {
+                                                        return intentCompleted[task.id]
                                                             ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
-                                                            : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
-                                                        : action.type === 'auto'
-                                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                                            : action.type === 'verify'
-                                                                ? completeTaskMutation.isPending
-                                                                    ? 'bg-gray-500/20 text-gray-400 cursor-wait'
-                                                                    : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                                : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-                                                    }`}
+                                                            : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30';
+                                                    }
+                                                    
+                                                    if (action.type === 'auto') {
+                                                        return 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30';
+                                                    }
+                                                    
+                                                    if (action.type === 'verify') {
+                                                        return completeTaskMutation.isPending
+                                                            ? 'bg-gray-500/20 text-gray-400 cursor-wait'
+                                                            : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30';
+                                                    }
+                                                    
+                                                    return 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30';
+                                                })()}`}
                                             >
-                                                {action.type === 'verify' && completeTaskMutation.isPending ? (
-                                                    <span className="flex items-center gap-1">
-                                                        <span className="animate-spin">⏳</span>
-                                                        Verifying...
-                                                    </span>
-                                                ) : (
-                                                    action.label
-                                                )}
+                                                {(() => {
+                                                    const taskStatus = getTaskCompletionStatus(task.id);
+                                                    
+                                                    if (action.type === 'verify' && completeTaskMutation.isPending) {
+                                                        return (
+                                                            <span className="flex items-center gap-1">
+                                                                <span className="animate-spin">⏳</span>
+                                                                Verifying...
+                                                            </span>
+                                                        );
+                                                    }
+                                                    
+                                                    // Show special text for flagged tasks
+                                                    if (taskStatus.status === 'flagged') {
+                                                        return (
+                                                            <span className="flex items-center gap-1">
+                                                                <Flag className="w-3 h-3" />
+                                                                Redo Task
+                                                            </span>
+                                                        );
+                                                    }
+                                                    
+                                                    // Show special text for verified tasks
+                                                    if (taskStatus.status === 'verified') {
+                                                        return (
+                                                            <span className="flex items-center gap-1">
+                                                                ✓ {action.label}
+                                                            </span>
+                                                        );
+                                                    }
+                                                    
+                                                    // Show special text for pending tasks
+                                                    if (taskStatus.status === 'pending') {
+                                                        return (
+                                                            <span className="flex items-center gap-1">
+                                                                ⏳ {action.label}
+                                                            </span>
+                                                        );
+                                                    }
+                                                    
+                                                    return action.label;
+                                                })()}
                                             </button>
                                         ))}
                                     </div>

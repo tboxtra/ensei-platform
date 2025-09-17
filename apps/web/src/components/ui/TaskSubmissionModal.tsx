@@ -121,20 +121,20 @@ export default function TaskSubmissionModal({
 
                 // Complete the task with verification using React Query
                 try {
-                await completeTaskMutation.mutateAsync({
-                    missionId: mission.id,
-                    taskId: task.id,
-                    userId: user.id,
-                    userName: user.name,
-                    userEmail: user.email,
-                    userSocialHandle: mission.username || null, // Firebase doesn't allow undefined
-                    metadata: {
-                        taskType: task.id,
-                        platform: 'twitter',
-                        twitterHandle: mission.username || null,
-                        tweetUrl: mission.tweetLink || mission.contentLink
-                    }
-                });
+                    await completeTaskMutation.mutateAsync({
+                        missionId: mission.id,
+                        taskId: task.id,
+                        userId: user.id,
+                        userName: user.name,
+                        userEmail: user.email,
+                        userSocialHandle: mission.username || null, // Firebase doesn't allow undefined
+                        metadata: {
+                            taskType: task.id,
+                            platform: 'twitter',
+                            twitterHandle: mission.username || null,
+                            tweetUrl: mission.tweetLink || mission.contentLink
+                        }
+                    });
 
                     // Update task state
                     setTaskStates(prev => ({

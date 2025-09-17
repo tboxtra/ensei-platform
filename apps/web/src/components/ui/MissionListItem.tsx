@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle, Flag, AlertCircle, Clock, User } from 'lucide-react';
-import { getMissionTaskCompletions, flagTaskCompletion, verifyTaskCompletion, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
+import { getMissionTaskCompletions, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
+import { useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
 
 interface MissionListItemProps {
     mission: any;
@@ -16,6 +17,10 @@ export function MissionListItem({
     const [submissions, setSubmissions] = useState<TaskCompletion[]>([]);
     const [loadingSubmissions, setLoadingSubmissions] = useState(false);
     const [showFlagModal, setShowFlagModal] = useState<{ completion: TaskCompletion | null, show: boolean }>({ completion: null, show: false });
+
+    // Use React Query hooks for mutations
+    const flagTaskCompletionMutation = useFlagTaskCompletion();
+    const verifyTaskCompletionMutation = useVerifyTaskCompletion();
 
     const loadSubmissions = async () => {
         if (showSubmissions && submissions.length > 0) return; // Already loaded
@@ -34,8 +39,13 @@ export function MissionListItem({
 
     const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
         try {
-            await flagTaskCompletion(completion.id, reason, 'creator-1', 'Mission Creator');
-            loadSubmissions();
+            await flagTaskCompletionMutation.mutateAsync({
+                completionId: completion.id,
+                reason,
+                reviewerId: 'creator-1',
+                reviewerName: 'Mission Creator'
+            });
+            // React Query will automatically refetch and update the UI
             setShowFlagModal({ completion: null, show: false });
             // Silent success - user can see status change
         } catch (error) {
@@ -46,8 +56,12 @@ export function MissionListItem({
 
     const handleVerifySubmission = async (completion: TaskCompletion) => {
         try {
-            await verifyTaskCompletion(completion.id, 'creator-1', 'Mission Creator');
-            loadSubmissions();
+            await verifyTaskCompletionMutation.mutateAsync({
+                completionId: completion.id,
+                reviewerId: 'creator-1',
+                reviewerName: 'Mission Creator'
+            });
+            // React Query will automatically refetch and update the UI
             // Silent success - user can see status change
         } catch (error) {
             console.error('Error verifying submission:', error);
