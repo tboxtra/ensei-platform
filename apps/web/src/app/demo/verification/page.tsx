@@ -188,14 +188,15 @@ export default function VerificationDemoPage() {
                 {/* Review System Section */}
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold text-white">3. Review & Earn System</h2>
-                    {getCurrentSubmission() ? (
-                        <ReviewCard
-                            submission={getCurrentSubmission()!}
-                            onReview={handleReviewSubmission}
-                            reviewerId="current_user"
-                            reviewerExpertise={userExpertise}
-                        />
-                    ) : (
+          {getCurrentSubmission() ? (
+            <ReviewCard
+              submission={getCurrentSubmission()!}
+              onReview={handleReviewSubmission}
+              reviewerId="current_user"
+              reviewerExpertise={userExpertise}
+              reviewerXUsername={userXAccount?.username}
+            />
+          ) : (
                         <div className="bg-gray-800/40 rounded-lg p-8 border border-gray-700/50 text-center">
                             <p className="text-gray-400">
                                 No more submissions to review. Great job! 🎉

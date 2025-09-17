@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CompactMissionCard } from '@/components/ui/CompactMissionCard';
+import { VerificationMissionCard } from '@/components/verification/VerificationMissionCard';
 import { XAccount, VerificationSubmission } from '@/types/verification';
 import { XAccountLinker } from '@/components/verification/XAccountLinker';
-import { InlineVerification } from '@/components/verification/InlineVerification';
 
 export default function VerificationIntegrationDemoPage() {
     const [userXAccount, setUserXAccount] = useState<XAccount | null>(null);
@@ -98,62 +97,20 @@ export default function VerificationIntegrationDemoPage() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold text-white">Step 2: Try Verification on Mission Tasks</h2>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {mockMissions.map((mission) => (
-                            <div key={mission.id} className="space-y-4">
-                                <h3 className="text-lg font-medium text-white">{mission.title}</h3>
-                                <CompactMissionCard
-                                    mission={mission}
-                                    onParticipate={(missionId, taskType) => {
-                                        console.log('Participate clicked:', missionId, taskType);
-                                    }}
-                                    onViewDetails={(missionId) => {
-                                        console.log('View details clicked:', missionId);
-                                    }}
-                                />
+            {mockMissions.map((mission) => (
+              <div key={mission.id} className="space-y-4">
+                <VerificationMissionCard
+                  mission={mission}
+                  onParticipate={(missionId, taskType) => {
+                    console.log('Participate clicked:', missionId, taskType);
+                  }}
+                  onViewDetails={(missionId) => {
+                    console.log('View details clicked:', missionId);
+                  }}
+                  userXAccount={userXAccount || undefined}
+                  onVerificationSubmitted={handleVerificationSubmitted}
+                />
 
-                {/* Show verification integration for comment/quote tasks */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-300">Inline Verification:</h4>
-                  <div className="space-y-2">
-                    <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-5 h-5 bg-blue-500/20 rounded-full flex items-center justify-center">
-                          <span className="text-blue-400 font-bold text-xs">💬</span>
-                        </div>
-                        <span className="text-white text-sm font-medium">Comment Task</span>
-                      </div>
-                      <p className="text-gray-400 text-xs mb-2">
-                        Click "Verify" to input your comment link and validate it
-                      </p>
-                      <InlineVerification
-                        taskId="comment"
-                        missionId="mission_1"
-                        missionTitle="Product Launch Campaign"
-                        userXAccount={userXAccount || undefined}
-                        onVerificationSubmitted={handleVerificationSubmitted}
-                      />
-                    </div>
-                    
-                    <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-5 h-5 bg-purple-500/20 rounded-full flex items-center justify-center">
-                          <span className="text-purple-400 font-bold text-xs">💭</span>
-                        </div>
-                        <span className="text-white text-sm font-medium">Quote Task</span>
-                      </div>
-                      <p className="text-gray-400 text-xs mb-2">
-                        Click "Verify" to input your quote link and validate it
-                      </p>
-                      <InlineVerification
-                        taskId="quote"
-                        missionId="mission_2"
-                        missionTitle="Sustainability Initiative"
-                        userXAccount={userXAccount || undefined}
-                        onVerificationSubmitted={handleVerificationSubmitted}
-                      />
-                    </div>
-                  </div>
-                </div>
                             </div>
                         ))}
                     </div>
@@ -172,8 +129,8 @@ export default function VerificationIntegrationDemoPage() {
                                             <p className="text-gray-400 text-sm">
                                                 {submission.taskType} • {submission.reviews.length}/5 reviews •
                                                 <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${submission.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                        submission.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                                                            'bg-red-500/20 text-red-400'
+                                                    submission.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                                                        'bg-red-500/20 text-red-400'
                                                     }`}>
                                                     {submission.status}
                                                 </span>
@@ -200,19 +157,19 @@ export default function VerificationIntegrationDemoPage() {
                     )}
                 </div>
 
-        {/* Instructions */}
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6">
-          <h3 className="text-blue-400 font-medium text-lg mb-3">How to Test the Inline Verification System:</h3>
-          <ol className="text-blue-300 text-sm space-y-2 list-decimal list-inside">
-            <li>Link your X account using the form above</li>
-            <li>Click "Verify" button next to Comment or Quote tasks</li>
-            <li>Input field will appear - enter your X (Twitter) link</li>
-            <li>Click "Verify" to validate (takes 5 seconds)</li>
-            <li>Green = Verified, Red = Invalid (shows for 5 seconds)</li>
-            <li>Your submission will appear in the submissions list below</li>
-            <li>In production, your submission would be reviewed by 5 experts</li>
-          </ol>
-        </div>
+                {/* Instructions */}
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6">
+                    <h3 className="text-blue-400 font-medium text-lg mb-3">How to Test the Inline Verification System:</h3>
+                    <ol className="text-blue-300 text-sm space-y-2 list-decimal list-inside">
+                        <li>Link your X account using the form above</li>
+                        <li>Click "Verify" button next to Comment or Quote tasks</li>
+                        <li>Input field will appear - enter your X (Twitter) link</li>
+                        <li>Click "Verify" to validate (takes 5 seconds)</li>
+                        <li>Green = Verified, Red = Invalid (shows for 5 seconds)</li>
+                        <li>Your submission will appear in the submissions list below</li>
+                        <li>In production, your submission would be reviewed by 5 experts</li>
+                    </ol>
+                </div>
             </div>
         </div>
     );

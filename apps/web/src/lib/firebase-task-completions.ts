@@ -77,6 +77,7 @@ export async function completeTask(
     );
 
     // If there's a flagged completion, create a new one with pending status
+    // This allows the user to redo the task and wait for creator verification
     const hasFlaggedCompletion = !existingCompletions.empty;
     const status = hasFlaggedCompletion ? 'pending' : 'verified';
 

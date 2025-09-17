@@ -5,12 +5,14 @@ import { ReviewCardProps, Review } from '@/types/verification';
 import { ModernButton } from '@/components/ui/ModernButton';
 import { ModernInput } from '@/components/ui/ModernInput';
 import { EmbeddedContent } from '@/components/ui/EmbeddedContent';
+import { TwitterIntents } from '@/lib/twitter-intents';
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({
-    submission,
-    onReview,
-    reviewerId,
-    reviewerExpertise
+  submission,
+  onReview,
+  reviewerId,
+  reviewerExpertise,
+  reviewerXUsername
 }) => {
     const [rating, setRating] = useState(0);
     const [reviewerCommentLink, setReviewerCommentLink] = useState('');
@@ -22,57 +24,56 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         setError('');
     };
 
-  const validateReviewerCommentLink = (link: string): boolean => {
-    if (!link.trim()) {
-      setError('Please enter your comment link');
-      return false;
-    }
+    const validateReviewerCommentLink = (link: string): boolean => {
+        if (!link.trim()) {
+            setError('Please enter your comment link');
+            return false;
+        }
 
-    try {
-      new URL(link);
-    } catch {
-      setError('Please enter a valid URL');
-      return false;
-    }
+        try {
+            new URL(link);
+        } catch {
+            setError('Please enter a valid URL');
+            return false;
+        }
 
-    // Check if it's an X (Twitter) link
-    if (!link.includes('twitter.com') && !link.includes('x.com')) {
-      setError('Please enter a valid X (Twitter) link');
-      return false;
-    }
+        // Check if it's an X (Twitter) link
+        if (!link.includes('twitter.com') && !link.includes('x.com')) {
+            setError('Please enter a valid X (Twitter) link');
+            return false;
+        }
 
     // Extract username from reviewer comment link
     const linkUsername = extractUsernameFromXLink(link);
-    if (linkUsername) {
-      // For demo purposes, we'll use a mock reviewer username
-      // In production, this would be the actual reviewer's X username
-      const reviewerUsername = 'reviewer_username'; // This should come from reviewer's linked X account
-      
-      if (linkUsername.toLowerCase() !== reviewerUsername.toLowerCase()) {
-        setError(`This link doesn't match your X account (@${reviewerUsername})`);
+    if (linkUsername && reviewerXUsername) {
+      if (linkUsername.toLowerCase() !== reviewerXUsername.toLowerCase()) {
+        setError(`This link doesn't match your X account (@${reviewerXUsername})`);
         return false;
       }
+    } else if (linkUsername && !reviewerXUsername) {
+      setError('Please link your X account to submit review comments');
+      return false;
     }
 
-    setError('');
-    return true;
-  };
+        setError('');
+        return true;
+    };
 
-  const extractUsernameFromXLink = (link: string): string | null => {
-    try {
-      const url = new URL(link);
-      const pathParts = url.pathname.split('/').filter(part => part);
-      
-      // X link format: https://x.com/username/status/1234567890
-      if (pathParts.length >= 1) {
-        return pathParts[0];
-      }
-      
-      return null;
-    } catch {
-      return null;
-    }
-  };
+    const extractUsernameFromXLink = (link: string): string | null => {
+        try {
+            const url = new URL(link);
+            const pathParts = url.pathname.split('/').filter(part => part);
+
+            // X link format: https://x.com/username/status/1234567890
+            if (pathParts.length >= 1) {
+                return pathParts[0];
+            }
+
+            return null;
+        } catch {
+            return null;
+        }
+    };
 
     const handleSubmitReview = async () => {
         if (rating === 0) {
@@ -154,40 +155,52 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                     </div>
                 </div>
 
-        {/* Submission Details */}
-        <div className="bg-gray-700/30 rounded-lg p-4">
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-white font-medium">{submission.missionTitle}</h4>
-              <p className="text-gray-400 text-sm">
-                {submission.taskType} by @{submission.username}
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400 text-sm">Submission Link:</span>
-              <a 
-                href={submission.submissionLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 text-sm underline"
+                {/* Submission Details */}
+                <div className="bg-gray-700/30 rounded-lg p-4">
+                    <div className="space-y-3">
+                        <div>
+                            <h4 className="text-white font-medium">{submission.missionTitle}</h4>
+                            <p className="text-gray-400 text-sm">
+                                {submission.taskType} by @{submission.username}
+                            </p>
+                        </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 text-sm">Submission Link:</span>
+                <a 
+                  href={submission.submissionLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 text-sm underline"
+                >
+                  View {submission.taskType}
+                </a>
+              </div>
+              <ModernButton
+                onClick={() => {
+                  // Open Twitter intent to comment on the submission
+                  const commentUrl = TwitterIntents.generateCommentUrl(submission.submissionLink);
+                  TwitterIntents.openIntent(commentUrl, 'comment');
+                }}
+                className="bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30 text-xs px-3 py-1"
               >
-                View {submission.taskType}
-              </a>
+                Comment on Twitter
+              </ModernButton>
             </div>
 
-            {/* Embedded Content Preview */}
-            <div className="mt-4">
-              <h5 className="text-white text-sm font-medium mb-2">Content Preview:</h5>
-              <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
-                <EmbeddedContent
-                  url={submission.submissionLink}
-                  className="aspect-[4/3] rounded-lg"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+                        {/* Embedded Content Preview */}
+                        <div className="mt-4">
+                            <h5 className="text-white text-sm font-medium mb-2">Content Preview:</h5>
+                            <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
+                                <EmbeddedContent
+                                    url={submission.submissionLink}
+                                    className="aspect-[4/3] rounded-lg"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Rating Section */}
                 <div className="space-y-3">

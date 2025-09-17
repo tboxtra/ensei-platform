@@ -78,10 +78,11 @@ export interface VerificationDropdownProps {
 
 // Review card props
 export interface ReviewCardProps {
-    submission: VerificationSubmission;
-    onReview: (review: Partial<Review>) => void;
-    reviewerId: string;
-    reviewerExpertise: UserExpertise[];
+  submission: VerificationSubmission;
+  onReview: (review: Partial<Review>) => void;
+  reviewerId: string;
+  reviewerExpertise: UserExpertise[];
+  reviewerXUsername?: string; // X username of the reviewer
 }
 
 // X account linking props

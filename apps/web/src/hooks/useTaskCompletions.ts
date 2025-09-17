@@ -148,6 +148,8 @@ export function useFlagTaskCompletion() {
         onSuccess: (data, variables) => {
             // Invalidate all mission queries to refetch updated data
             queryClient.invalidateQueries({ queryKey: taskCompletionKeys.all });
+            // Force refetch of all mission data
+            queryClient.refetchQueries({ queryKey: taskCompletionKeys.all });
         },
     });
 }
@@ -175,6 +177,8 @@ export function useVerifyTaskCompletion() {
         onSuccess: (data, variables) => {
             // Invalidate all mission queries to refetch updated data
             queryClient.invalidateQueries({ queryKey: taskCompletionKeys.all });
+            // Force refetch of all mission data
+            queryClient.refetchQueries({ queryKey: taskCompletionKeys.all });
         },
     });
 }

@@ -299,14 +299,23 @@ export function CompactMissionCard({
     };
 
     // Get task completion status with flagged information
+    // Standard practice: Return the most recent completion status
     const getTaskCompletionStatus = (taskId: string) => {
-        const completion = taskCompletions.find(c => c.taskId === taskId);
-        if (!completion) return { status: 'not_completed', flaggedReason: null };
+        // Get all completions for this task, sorted by creation date (newest first)
+        const taskCompletionsForTask = taskCompletions
+            .filter(c => c.taskId === taskId)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        if (taskCompletionsForTask.length === 0) {
+            return { status: 'not_completed', flaggedReason: null };
+        }
 
+        // Return the most recent completion
+        const latestCompletion = taskCompletionsForTask[0];
         return {
-            status: completion.status,
-            flaggedReason: completion.flaggedReason || null,
-            flaggedAt: completion.flaggedAt || null
+            status: latestCompletion.status,
+            flaggedReason: latestCompletion.flaggedReason || null,
+            flaggedAt: latestCompletion.flaggedAt || null
         };
     };
 
@@ -403,8 +412,8 @@ export function CompactMissionCard({
 
                             return (
                                 <div key={index} className="relative">
-                                <button
-                                    onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
+                                    <button
+                                        onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
                                         className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${getButtonStyling()}`}
                                         onMouseEnter={(e) => {
                                             // Only show tooltip for flagged tasks
@@ -422,13 +431,13 @@ export function CompactMissionCard({
                                             {completionStatus.status === 'flagged' && (
                                                 <Flag className="w-3 h-3" />
                                             )}
-                                    {taskType}
+                                            {taskType}
                                         </div>
-                                </button>
-                                    
+                                    </button>
+
                                     {/* Tooltip for flagged tasks - only shows on button hover */}
                                     {completionStatus.status === 'flagged' && completionStatus.flaggedReason && (
-                                        <div 
+                                        <div
                                             className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-red-900/95 text-red-100 text-xs rounded-lg shadow-lg transition-opacity duration-200 pointer-events-none z-10 max-w-xs"
                                             style={{ opacity: 0 }}
                                         >
@@ -438,8 +447,8 @@ export function CompactMissionCard({
                                             </div>
                                             <div className="text-red-200">{completionStatus.flaggedReason}</div>
                                             <div className="text-red-300 text-xs mt-1">
-                                                {completionStatus.flaggedAt ? 
-                                                    `Flagged ${new Date(completionStatus.flaggedAt).toLocaleDateString()}` : 
+                                                {completionStatus.flaggedAt ?
+                                                    `Flagged ${new Date(completionStatus.flaggedAt).toLocaleDateString()}` :
                                                     'Please redo this task correctly'
                                                 }
                                             </div>
@@ -490,30 +499,30 @@ export function CompactMissionCard({
                                                 key={action.id}
                                                 onClick={async () => {
                                                     try {
-                                                    if (action.type === 'intent') {
-                                                        // Handle Twitter intent actions
-                                                        const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
+                                                        if (action.type === 'intent') {
+                                                            // Handle Twitter intent actions
+                                                            const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
 
-                                                        if (!intentUrl) {
+                                                            if (!intentUrl) {
                                                                 // Silent fail - user can see button state
-                                                            return;
-                                                        }
+                                                                return;
+                                                            }
 
-                                                        // Open Twitter intent in a new window
-                                                        TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
+                                                            // Open Twitter intent in a new window
+                                                            TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
 
-                                                        // Mark intent as completed
-                                                        setIntentCompleted(prev => ({
-                                                            ...prev,
-                                                            [task.id]: true
-                                                        }));
+                                                            // Mark intent as completed
+                                                            setIntentCompleted(prev => ({
+                                                                ...prev,
+                                                                [task.id]: true
+                                                            }));
 
                                                             // No notification popup - user can see the button state change
 
-                                                    } else if (action.type === 'verify') {
-                                                        // Handle verification actions
-                                                        // Check if intent was completed first
-                                                        if (!intentCompleted[task.id]) {
+                                                        } else if (action.type === 'verify') {
+                                                            // Handle verification actions
+                                                            // Check if intent was completed first
+                                                            if (!intentCompleted[task.id]) {
                                                                 return; // Silent fail - user can see button state
                                                             }
 
@@ -532,10 +541,10 @@ export function CompactMissionCard({
                                                                     userEmail: user.email,
                                                                     userSocialHandle: mission.username || null, // Firebase doesn't allow undefined
                                                                     metadata: {
-                                                                taskType: task.id,
-                                                                platform: 'twitter',
+                                                                        taskType: task.id,
+                                                                        platform: 'twitter',
                                                                         twitterHandle: mission.username || null,
-                                                                tweetUrl: mission.tweetLink || mission.contentLink
+                                                                        tweetUrl: mission.tweetLink || mission.contentLink
                                                                     }
                                                                 });
                                                                 // No notification popup - user can see the button turn green
@@ -544,18 +553,18 @@ export function CompactMissionCard({
                                                                 // Silent error - React Query will handle retry
                                                             }
 
-                                                    } else if (action.type === 'manual' && action.id === 'view_tweet') {
-                                                        window.open(mission.tweetLink || mission.contentLink, '_blank');
-                                                    } else if (action.type === 'manual' && action.id === 'view_post') {
-                                                        window.open(mission.contentLink, '_blank');
-                                                    } else if (action.type === 'manual' && action.id === 'view_profile') {
-                                                        const username = extractUsernameFromLink(mission.tweetLink);
-                                                        if (username) {
-                                                            window.open(`https://twitter.com/${username}`, '_blank');
-                                                        }
-                                                    } else {
-                                                        // Handle auto actions
-                                                        console.log('Action clicked:', action);
+                                                        } else if (action.type === 'manual' && action.id === 'view_tweet') {
+                                                            window.open(mission.tweetLink || mission.contentLink, '_blank');
+                                                        } else if (action.type === 'manual' && action.id === 'view_post') {
+                                                            window.open(mission.contentLink, '_blank');
+                                                        } else if (action.type === 'manual' && action.id === 'view_profile') {
+                                                            const username = extractUsernameFromLink(mission.tweetLink);
+                                                            if (username) {
+                                                                window.open(`https://twitter.com/${username}`, '_blank');
+                                                            }
+                                                        } else {
+                                                            // Handle auto actions
+                                                            console.log('Action clicked:', action);
                                                         }
                                                     } catch (error) {
                                                         console.error('Error handling action:', error);
@@ -584,7 +593,7 @@ export function CompactMissionCard({
                                                     // Default styling based on action type
                                                     if (action.type === 'intent') {
                                                         return intentCompleted[task.id]
-                                                                ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
+                                                            ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
                                                             : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30';
                                                     }
 

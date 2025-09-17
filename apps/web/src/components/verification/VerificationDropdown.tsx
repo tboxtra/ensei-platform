@@ -13,11 +13,11 @@ export const VerificationDropdown: React.FC<VerificationDropdownProps> = ({
     onClose,
     userXAccount
 }) => {
-  const [submissionLink, setSubmissionLink] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+    const [submissionLink, setSubmissionLink] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [isValidating, setIsValidating] = useState(false);
+    const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
 
     const taskType = taskId === 'comment' ? 'Comment' : 'Quote';
 
@@ -90,62 +90,62 @@ export const VerificationDropdown: React.FC<VerificationDropdownProps> = ({
         }
     };
 
-  const handleSubmission = async () => {
-    if (!submissionLink.trim()) {
-      setError('Please enter your submission link');
-      return;
-    }
+    const handleSubmission = async () => {
+        if (!submissionLink.trim()) {
+            setError('Please enter your submission link');
+            return;
+        }
 
-    if (!userXAccount) {
-      setError('Please link your X account first to submit verifications');
-      return;
-    }
+        if (!userXAccount) {
+            setError('Please link your X account first to submit verifications');
+            return;
+        }
 
-    setValidationStatus('validating');
-    setError('');
+        setValidationStatus('validating');
+        setError('');
 
-    try {
-      const isValid = await validateSubmissionLink(submissionLink);
-      
-      if (!isValid) {
-        setValidationStatus('invalid');
-        // Show invalid status for 5 seconds
-        setTimeout(() => {
-          setValidationStatus('idle');
-        }, 5000);
-        return;
-      }
+        try {
+            const isValid = await validateSubmissionLink(submissionLink);
 
-      setValidationStatus('valid');
-      
-      // Create verification submission
-      const submission: Partial<VerificationSubmission> = {
-        userId: 'current_user', // Will be replaced with actual user ID
-        missionId,
-        taskId,
-        submissionLink: submissionLink.trim(),
-        username: userXAccount.username,
-        status: 'pending',
-        reviews: [],
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        missionTitle,
-        taskType
-      };
+            if (!isValid) {
+                setValidationStatus('invalid');
+                // Show invalid status for 5 seconds
+                setTimeout(() => {
+                    setValidationStatus('idle');
+                }, 5000);
+                return;
+            }
 
-      // Wait a moment to show the valid status, then submit
-      setTimeout(() => {
-        onSubmission(submission);
-        onClose();
-      }, 1000);
-    } catch (err) {
-      setError('Failed to submit verification. Please try again.');
-      setValidationStatus('invalid');
-      setTimeout(() => {
-        setValidationStatus('idle');
-      }, 5000);
-    }
-  };
+            setValidationStatus('valid');
+
+            // Create verification submission
+            const submission: Partial<VerificationSubmission> = {
+                userId: 'current_user', // Will be replaced with actual user ID
+                missionId,
+                taskId,
+                submissionLink: submissionLink.trim(),
+                username: userXAccount.username,
+                status: 'pending',
+                reviews: [],
+                createdAt: new Date(),
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+                missionTitle,
+                taskType
+            };
+
+            // Wait a moment to show the valid status, then submit
+            setTimeout(() => {
+                onSubmission(submission);
+                onClose();
+            }, 1000);
+        } catch (err) {
+            setError('Failed to submit verification. Please try again.');
+            setValidationStatus('invalid');
+            setTimeout(() => {
+                setValidationStatus('idle');
+            }, 5000);
+        }
+    };
 
     const handleLinkChange = (value: string) => {
         setSubmissionLink(value);
@@ -220,30 +220,29 @@ export const VerificationDropdown: React.FC<VerificationDropdownProps> = ({
                     </div>
                 )}
 
-        <div className="flex gap-3">
-          <ModernButton
-            onClick={handleSubmission}
-            disabled={validationStatus === 'validating' || !submissionLink.trim() || !userXAccount}
-            className={`flex-1 ${
-              validationStatus === 'valid' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-              validationStatus === 'invalid' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-              validationStatus === 'validating' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-              'bg-blue-500/20 text-blue-400 border-blue-500/30'
-            }`}
-          >
-            {validationStatus === 'validating' ? 'Validating...' :
-             validationStatus === 'valid' ? '✓ Verified' :
-             validationStatus === 'invalid' ? '✗ Invalid' :
-             `Submit ${taskType} Verification`}
-          </ModernButton>
-          <ModernButton
-            onClick={onClose}
-            variant="secondary"
-            disabled={validationStatus === 'validating'}
-          >
-            Cancel
-          </ModernButton>
-        </div>
+                <div className="flex gap-3">
+                    <ModernButton
+                        onClick={handleSubmission}
+                        disabled={validationStatus === 'validating' || !submissionLink.trim() || !userXAccount}
+                        className={`flex-1 ${validationStatus === 'valid' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                                validationStatus === 'invalid' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                                    validationStatus === 'validating' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                                        'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                            }`}
+                    >
+                        {validationStatus === 'validating' ? 'Validating...' :
+                            validationStatus === 'valid' ? '✓ Verified' :
+                                validationStatus === 'invalid' ? '✗ Invalid' :
+                                    `Submit ${taskType} Verification`}
+                    </ModernButton>
+                    <ModernButton
+                        onClick={onClose}
+                        variant="secondary"
+                        disabled={validationStatus === 'validating'}
+                    >
+                        Cancel
+                    </ModernButton>
+                </div>
             </div>
         </div>
     );

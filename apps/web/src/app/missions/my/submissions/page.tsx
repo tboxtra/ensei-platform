@@ -27,7 +27,7 @@ export default function MissionSubmissionsPage() {
     // Use React Query hooks for real-time updates
     const flagTaskCompletionMutation = useFlagTaskCompletion();
     const verifyTaskCompletionMutation = useVerifyTaskCompletion();
-    
+
     // Get submissions for selected mission using React Query
     const { data: submissions = [], isLoading: loadingSubmissions } = useMissionTaskCompletions(
         selectedMission?.id || ''
@@ -61,6 +61,7 @@ export default function MissionSubmissionsPage() {
 
     const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
         try {
+            console.log('Flagging submission:', completion.id, reason);
             await flagTaskCompletionMutation.mutateAsync({
                 completionId: completion.id,
                 reason,
