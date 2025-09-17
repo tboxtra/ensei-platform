@@ -6,13 +6,10 @@ import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
 import { useAuth } from '../../contexts/UserAuthContext';
-import { useUserMissionTaskCompletions, useCompleteTask, useIsTaskCompleted } from '../../hooks/useTaskCompletions';
+import { useUserMissionTaskCompletions, useCompleteTask } from '../../hooks/useTaskCompletions';
 import { Flag, AlertTriangle } from 'lucide-react';
 import { XAccount } from '@/types/verification';
 import { InlineVerification } from './InlineVerification';
-import {
-    useIsTaskCompleted
-} from '@/hooks/useTaskStatusSystem';
 
 interface VerificationMissionCardProps {
     mission: any;
