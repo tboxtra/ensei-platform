@@ -113,7 +113,7 @@ export default function MissionSubmissionsPage() {
 
     // Check if there are any flagged submissions that need attention
     const hasFlaggedSubmissions = missions.some(mission =>
-        (mission as any).completions?.some((completion: TaskCompletion) => completion.status === 'flagged')
+        (mission as any).completions?.some((completion: TaskCompletionRecord) => completion.status === 'flagged')
     );
 
     return (
