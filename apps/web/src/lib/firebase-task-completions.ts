@@ -180,11 +180,13 @@ export async function verifyTaskCompletion(
 
 /**
  * Get task completions for a specific mission
+ * This function reads from both the new taskCompletions collection and the legacy mission_participations collection
  */
 export async function getMissionTaskCompletions(missionId: string): Promise<TaskCompletion[]> {
     const db = getFirebaseFirestore();
 
     try {
+        // Get completions from the new taskCompletions collection
         const q = query(
             collection(db, COLLECTION_NAME),
             where('missionId', '==', missionId),
@@ -208,6 +210,54 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
             } as TaskCompletion);
         });
 
+        // If no completions found in new collection, try legacy collection
+        if (completions.length === 0) {
+            console.log('No completions in taskCompletions collection, checking mission_participations...');
+            
+            // Get participations for this mission
+            const participationQuery = query(
+                collection(db, 'mission_participations'),
+                where('mission_id', '==', missionId)
+            );
+            
+            const participationSnapshot = await getDocs(participationQuery);
+            
+            participationSnapshot.forEach((participationDoc) => {
+                const participationData = participationDoc.data();
+                const tasksCompleted = participationData.tasks_completed || [];
+                
+                tasksCompleted.forEach((taskCompletion: any) => {
+                    // Convert legacy format to new format
+                    const convertedCompletion: TaskCompletion = {
+                        id: `${participationDoc.id}-${taskCompletion.task_id}`,
+                        missionId: missionId,
+                        taskId: taskCompletion.task_id,
+                        userId: participationData.user_id,
+                        userName: participationData.user_name || 'Unknown User',
+                        userEmail: participationData.user_email || null,
+                        userSocialHandle: participationData.user_social_handle || null,
+                        status: 'verified', // Legacy completions are considered verified
+                        completedAt: new Date(taskCompletion.completed_at) as any,
+                        verifiedAt: new Date(taskCompletion.completed_at) as any,
+                        flaggedAt: null,
+                        flaggedReason: null,
+                        reviewedBy: null,
+                        reviewedAt: null,
+                        metadata: {
+                            taskType: taskCompletion.task_id,
+                            platform: 'twitter',
+                            ...taskCompletion.verification_data
+                        },
+                        createdAt: new Date(taskCompletion.completed_at) as any,
+                        updatedAt: new Date(taskCompletion.completed_at) as any
+                    };
+                    
+                    completions.push(convertedCompletion);
+                });
+            });
+        }
+
+        console.log(`Found ${completions.length} task completions for mission ${missionId}`);
         return completions;
     } catch (error) {
         console.error('Error getting mission task completions:', error);

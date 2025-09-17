@@ -245,11 +245,12 @@ export function VerificationMissionCard({
 
                                     <div className="flex gap-2 flex-wrap">
                                         {task.actions.map((action) => {
-                                            // For comment and quote tasks, show both intent and verify options
-                                            if ((selectedTask === 'comment' || selectedTask === 'quote') && action.type === 'intent') {
-                                                return (
-                                                    <div key={action.id} className="flex gap-2">
+                                            // For comment and quote tasks, show only 2 buttons: intent and verify
+                                            if ((selectedTask === 'comment' || selectedTask === 'quote')) {
+                                                if (action.type === 'intent') {
+                                                    return (
                                                         <button
+                                                            key={action.id}
                                                             onClick={() => {
                                                                 const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
                                                                 if (intentUrl) {
@@ -264,16 +265,20 @@ export function VerificationMissionCard({
                                                         >
                                                             {selectedTask === 'comment' ? 'Comment on Twitter' : 'Quote on Twitter'}
                                                         </button>
-
+                                                    );
+                                                } else if (action.type === 'verify') {
+                                                    return (
                                                         <InlineVerification
+                                                            key={action.id}
                                                             taskId={selectedTask}
                                                             missionId={mission.id}
                                                             missionTitle={mission.title}
                                                             userXAccount={userXAccount}
                                                             onVerificationSubmitted={handleVerificationSubmitted}
                                                         />
-                                                    </div>
-                                                );
+                                                    );
+                                                }
+                                                return null;
                                             }
 
                                             // For other actions, show the normal button

@@ -157,6 +157,7 @@ export const InlineVerification: React.FC<InlineVerificationProps> = ({
     };
 
     const getButtonText = () => {
+        const taskPrefix = taskId === 'quote' ? 'Quote' : taskId === 'comment' ? 'Comment' : '';
         switch (validationStatus) {
             case 'validating':
                 return 'Validating...';
@@ -165,18 +166,19 @@ export const InlineVerification: React.FC<InlineVerificationProps> = ({
             case 'invalid':
                 return '✗ Invalid';
             default:
-                return 'Verify';
+                return taskPrefix ? `Verify ${taskPrefix}` : 'Verify';
         }
     };
 
     if (!showInput) {
+        const taskPrefix = taskId === 'quote' ? 'Quote' : taskId === 'comment' ? 'Comment' : '';
         return (
             <ModernButton
                 onClick={() => setShowInput(true)}
                 disabled={!userXAccount}
                 className="bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30"
             >
-                Verify
+                {taskPrefix ? `Verify ${taskPrefix}` : 'Verify'}
             </ModernButton>
         );
     }
