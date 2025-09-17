@@ -106,7 +106,7 @@ export default function MissionSubmissionsPage() {
     };
 
     // Check if there are any flagged submissions that need attention
-    const hasFlaggedSubmissions = missions.some(mission => 
+    const hasFlaggedSubmissions = missions.some(mission =>
         mission.completions?.some((completion: TaskCompletion) => completion.status === 'flagged')
     );
 
