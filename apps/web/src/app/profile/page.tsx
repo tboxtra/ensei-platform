@@ -52,9 +52,29 @@ export default function ProfilePage() {
     const [syncStatus, setSyncStatus] = useState<'loading' | 'synced' | 'offline' | 'syncing'>('loading');
     const [isInitialized, setIsInitialized] = useState<boolean>(initialTwitterState.initialized);
     const [syncMessage, setSyncMessage] = useState<string>('');
+    const [userStats, setUserStats] = useState({
+        missionsCreated: 0,
+        missionsCompleted: 0,
+        totalEarned: 0,
+        totalSubmissions: 0,
+        approvedSubmissions: 0,
+        reputation: 0
+    });
+    const [accountSettings, setAccountSettings] = useState({
+        emailNotifications: true,
+        pushNotifications: true,
+        marketingEmails: false,
+        twoFactorAuth: false
+    });
+    const [ratingPreferences, setRatingPreferences] = useState({
+        autoApprove: false,
+        requireReview: true,
+        strictMode: false
+    });
 
     useEffect(() => {
         loadUserData();
+        loadUserStats();
     }, []);
 
     const loadUserData = async () => {
@@ -94,14 +114,14 @@ export default function ProfilePage() {
             // Use proper conflict resolution to merge local and server data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
-            
+
             const mergedUserData = mergeUserData(currentUser, freshUserData);
             console.log('loadUserData: Merged user data:', mergedUserData);
-            
+
             // Update Twitter username state from merged data
             const mergedTwitterHandle = mergedUserData.twitter_handle || mergedUserData.twitter || '';
             console.log('loadUserData: Twitter handle from merged data:', mergedTwitterHandle);
-            
+
             setTwitterUsername(mergedTwitterHandle);
             setTwitterStatus(mergedTwitterHandle ? 'saved' : 'empty');
 
@@ -115,6 +135,27 @@ export default function ProfilePage() {
         } finally {
             setLoading(false);
             setIsInitialized(true);
+        }
+    };
+
+    const loadUserStats = async () => {
+        try {
+            // Load user stats from localStorage or calculate from missions
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const userObj = JSON.parse(userData);
+                // Set stats from user data if available, otherwise use defaults
+                setUserStats({
+                    missionsCreated: userObj.missionsCreated || 0,
+                    missionsCompleted: userObj.missionsCompleted || 0,
+                    totalEarned: userObj.totalEarned || 0,
+                    totalSubmissions: userObj.totalSubmissions || 0,
+                    approvedSubmissions: userObj.approvedSubmissions || 0,
+                    reputation: userObj.reputation || 0
+                });
+            }
+        } catch (err) {
+            console.warn('Failed to load user stats:', err);
         }
     };
 
@@ -177,7 +218,7 @@ export default function ProfilePage() {
     // Industry standard conflict resolution - merge user data intelligently
     const mergeUserData = (localData: any, serverData: any) => {
         console.log('Merging user data:', { localData, serverData });
-        
+
         const merged = {
             ...serverData, // Start with server data as base
             // Preserve local changes that server doesn't have or has empty
@@ -186,7 +227,7 @@ export default function ProfilePage() {
             // Use server timestamp for other fields
             updated_at: serverData?.updated_at || new Date().toISOString()
         };
-        
+
         console.log('Merged user data:', merged);
         return merged;
     };
@@ -201,11 +242,11 @@ export default function ProfilePage() {
                 return result;
             } catch (error: any) {
                 console.error(`Save attempt ${i + 1} failed:`, error);
-                
+
                 if (i === maxRetries - 1) {
                     throw new Error(`Failed to save after ${maxRetries} attempts: ${error.message}`);
                 }
-                
+
                 // Exponential backoff
                 const delay = 1000 * Math.pow(2, i);
                 console.log(`Retrying in ${delay}ms...`);
@@ -217,20 +258,20 @@ export default function ProfilePage() {
     // Background sync queue for failed saves
     const backgroundSyncQueue = {
         queue: [] as Array<{ id: string; data: any; timestamp: number }>,
-        
-        add: function(id: string, data: any) {
+
+        add: function (id: string, data: any) {
             const item = { id, data, timestamp: Date.now() };
             this.queue.push(item);
             console.log('Added to background sync queue:', item);
             this.process();
         },
-        
-        process: async function() {
+
+        process: async function () {
             if (this.queue.length === 0) return;
-            
+
             const item = this.queue.shift();
             if (!item) return;
-            
+
             try {
                 await saveWithRetry(item.data);
                 console.log('Background sync successful for:', item.id);
@@ -247,7 +288,7 @@ export default function ProfilePage() {
     // Twitter username management functions with optimistic updates
     const handleAddTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         const validation = validateTwitterUsername(formData.twitter);
         if (!validation.isValid) {
             setError(validation.message || 'Invalid Twitter username');
@@ -255,22 +296,22 @@ export default function ProfilePage() {
         }
 
         const formattedUsername = formatTwitterUsername(formData.twitter);
-        
+
         // 1. OPTIMISTIC UPDATE - Update UI immediately
         const previousUsername = twitterUsername;
         const previousStatus = twitterStatus;
-        
+
         setTwitterUsername(formattedUsername);
         setTwitterStatus('saved');
         setTwitterLoading(true);
         setSyncStatus('syncing');
         setFormData(prev => ({ ...prev, twitter: '' }));
-        
+
         try {
             // 2. Get current user data from localStorage to ensure we have complete data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -289,31 +330,31 @@ export default function ProfilePage() {
             // 3. Save to Firebase with retry mechanism
             const updatedUser = await saveWithRetry(profileData);
             console.log('Firebase response:', updatedUser);
-            
+
             if (!updatedUser) {
                 throw new Error('Firebase returned empty response');
             }
-            
+
             // 4. SUCCESS - Update state with server response
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
             setSyncStatus('synced');
             setSyncMessage('');
             setError(null);
-            
+
         } catch (err: any) {
             console.error('Error saving Twitter username:', err);
-            
+
             // 5. ROLLBACK - Revert optimistic update
             setTwitterUsername(previousUsername);
             setTwitterStatus(previousStatus);
             setFormData(prev => ({ ...prev, twitter: formattedUsername }));
             setSyncStatus('offline');
-            
+
             // 6. Show user-friendly error and queue for background retry
             setError('Failed to save Twitter username. Will retry in background.');
             setSyncMessage('Save failed - retrying in background...');
-            
+
             // 7. Queue for background sync
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
@@ -324,9 +365,9 @@ export default function ProfilePage() {
                 twitter: formattedUsername,
                 twitter_handle: formattedUsername
             };
-            
+
             backgroundSyncQueue.add('addTwitterUsername', profileData);
-            
+
         } finally {
             setTwitterLoading(false);
         }
@@ -339,7 +380,7 @@ export default function ProfilePage() {
 
     const handleSaveTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         const validation = validateTwitterUsername(formData.twitter);
         if (!validation.isValid) {
             setError(validation.message || 'Invalid Twitter username');
@@ -349,11 +390,11 @@ export default function ProfilePage() {
         const formattedUsername = formatTwitterUsername(formData.twitter);
         setTwitterLoading(true);
         setSyncStatus('syncing');
-        
+
         try {
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -388,11 +429,11 @@ export default function ProfilePage() {
     const handleRemoveTwitterUsername = async () => {
         setTwitterLoading(true);
         setSyncStatus('syncing');
-        
+
         try {
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -415,6 +456,50 @@ export default function ProfilePage() {
             setSyncMessage('Remove failed - retrying in background...');
         } finally {
             setTwitterLoading(false);
+        }
+    };
+
+    const handleAccountSettingChange = (field: string, value: boolean) => {
+        setAccountSettings(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleRatingPreferenceChange = (field: string, value: boolean) => {
+        setRatingPreferences(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSaveAccountSettings = async () => {
+        setLoading(true);
+        try {
+            // Save account settings to localStorage (in real app, this would go to API)
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const userObj = JSON.parse(userData);
+                const updatedUser = { ...userObj, accountSettings };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to save account settings');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveRatingPreferences = async () => {
+        setLoading(true);
+        try {
+            // Save rating preferences to localStorage (in real app, this would go to API)
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const userObj = JSON.parse(userData);
+                const updatedUser = { ...userObj, ratingPreferences };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to save rating preferences');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -540,7 +625,7 @@ export default function ProfilePage() {
                                 )}
                             </div>
                         </div>
-                        
+
                         <p className="text-gray-400 text-sm mb-4">
                             Link your Twitter account for mission verification
                         </p>
@@ -559,13 +644,12 @@ export default function ProfilePage() {
                                                 type="text"
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
-                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${
-                                                    formData.twitter ?
+                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
                                                         validateTwitterUsername(formData.twitter).isValid ?
                                                             'border-green-500/50 focus:ring-green-500' :
                                                             'border-red-500/50 focus:ring-red-500'
                                                         : 'border-gray-700/50 focus:ring-green-500'
-                                                }`}
+                                                    }`}
                                                 placeholder="yourusername"
                                             />
                                             <button
@@ -631,13 +715,12 @@ export default function ProfilePage() {
                                                 type="text"
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
-                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${
-                                                    formData.twitter ?
+                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
                                                         validateTwitterUsername(formData.twitter).isValid ?
                                                             'border-green-500/50 focus:ring-green-500' :
                                                             'border-red-500/50 focus:ring-red-500'
                                                         : 'border-gray-700/50 focus:ring-green-500'
-                                                }`}
+                                                    }`}
                                                 placeholder="yourusername"
                                             />
                                             <button
@@ -666,6 +749,268 @@ export default function ProfilePage() {
                         )}
                     </ModernCard>
 
+                    {/* Statistics Section */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                        <ModernCard className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-400 text-xs">Missions Created</p>
+                                    <p className="text-lg font-bold text-green-400">
+                                        {userStats.missionsCreated}
+                                    </p>
+                                </div>
+                                <div className="text-xl">🚀</div>
+                            </div>
+                        </ModernCard>
+
+                        <ModernCard className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-400 text-xs">Missions Completed</p>
+                                    <p className="text-lg font-bold text-blue-400">
+                                        {userStats.missionsCompleted}
+                                    </p>
+                                </div>
+                                <div className="text-xl">✅</div>
+                            </div>
+                        </ModernCard>
+
+                        <ModernCard className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-400 text-xs">Total Earned</p>
+                                    <p className="text-lg font-bold text-yellow-400">
+                                        {userStats.totalEarned.toLocaleString()} Honors
+                                    </p>
+                                </div>
+                                <div className="text-xl">💰</div>
+                            </div>
+                        </ModernCard>
+                    </div>
+
+                    {/* Additional Stats Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                        <ModernCard className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-400 text-xs">Total Submissions</p>
+                                    <p className="text-lg font-bold text-purple-400">
+                                        {userStats.totalSubmissions}
+                                    </p>
+                                </div>
+                                <div className="text-xl">📝</div>
+                            </div>
+                        </ModernCard>
+
+                        <ModernCard className="bg-gradient-to-br from-emerald-600/20 to-teal-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-400 text-xs">Approved</p>
+                                    <p className="text-lg font-bold text-emerald-400">
+                                        {userStats.approvedSubmissions}
+                                    </p>
+                                </div>
+                                <div className="text-xl">🎯</div>
+                            </div>
+                        </ModernCard>
+
+                        <ModernCard className="bg-gradient-to-br from-red-600/20 to-rose-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-400 text-xs">Reputation</p>
+                                    <p className="text-lg font-bold text-red-400">
+                                        {userStats.reputation}
+                                    </p>
+                                </div>
+                                <div className="text-xl">⭐</div>
+                            </div>
+                        </ModernCard>
+                    </div>
+
+                    {/* Security Section */}
+                    <ModernCard className="bg-gradient-to-br from-red-600/20 to-rose-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] mb-8">
+                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <span>🔒</span>
+                            Security Settings
+                        </h3>
+                        
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                                <div>
+                                    <h4 className="text-white font-medium">Two-Factor Authentication</h4>
+                                    <p className="text-gray-400 text-sm">Add an extra layer of security to your account</p>
+                                </div>
+                                <button
+                                    onClick={() => handleAccountSettingChange('twoFactorAuth', !accountSettings.twoFactorAuth)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        accountSettings.twoFactorAuth
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                    }`}
+                                >
+                                    {accountSettings.twoFactorAuth ? 'Enabled' : 'Enable'}
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                                <div>
+                                    <h4 className="text-white font-medium">Account Actions</h4>
+                                    <p className="text-gray-400 text-sm">Manage your account security and data</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 hover:text-red-300 text-sm font-medium transition-all duration-200"
+                                    >
+                                        Sign Out
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </ModernCard>
+
+                    {/* Account Settings Section */}
+                    <ModernCard className="bg-gradient-to-br from-indigo-600/20 to-blue-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] mb-8">
+                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <span>⚙️</span>
+                            Account Settings
+                        </h3>
+                        
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                                <div>
+                                    <h4 className="text-white font-medium">Email Notifications</h4>
+                                    <p className="text-gray-400 text-sm">Receive notifications about mission updates</p>
+                                </div>
+                                <button
+                                    onClick={() => handleAccountSettingChange('emailNotifications', !accountSettings.emailNotifications)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        accountSettings.emailNotifications
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                    }`}
+                                >
+                                    {accountSettings.emailNotifications ? 'Enabled' : 'Disabled'}
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                                <div>
+                                    <h4 className="text-white font-medium">Push Notifications</h4>
+                                    <p className="text-gray-400 text-sm">Receive push notifications on your device</p>
+                                </div>
+                                <button
+                                    onClick={() => handleAccountSettingChange('pushNotifications', !accountSettings.pushNotifications)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        accountSettings.pushNotifications
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                    }`}
+                                >
+                                    {accountSettings.pushNotifications ? 'Enabled' : 'Disabled'}
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                                <div>
+                                    <h4 className="text-white font-medium">Marketing Emails</h4>
+                                    <p className="text-gray-400 text-sm">Receive promotional content and updates</p>
+                                </div>
+                                <button
+                                    onClick={() => handleAccountSettingChange('marketingEmails', !accountSettings.marketingEmails)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        accountSettings.marketingEmails
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                    }`}
+                                >
+                                    {accountSettings.marketingEmails ? 'Enabled' : 'Disabled'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 pt-4 border-t border-gray-700">
+                            <ModernButton
+                                onClick={handleSaveAccountSettings}
+                                disabled={loading}
+                                className="bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-indigo-500/25"
+                            >
+                                {loading ? 'Saving...' : 'Save Settings'}
+                            </ModernButton>
+                        </div>
+                    </ModernCard>
+
+                    {/* Ratings Preference Section */}
+                    <ModernCard className="bg-gradient-to-br from-amber-600/20 to-yellow-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] mb-8">
+                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <span>⭐</span>
+                            Rating Preferences
+                        </h3>
+                        
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                                <div>
+                                    <h4 className="text-white font-medium">Auto-Approve Submissions</h4>
+                                    <p className="text-gray-400 text-sm">Automatically approve submissions that meet criteria</p>
+                                </div>
+                                <button
+                                    onClick={() => handleRatingPreferenceChange('autoApprove', !ratingPreferences.autoApprove)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        ratingPreferences.autoApprove
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                    }`}
+                                >
+                                    {ratingPreferences.autoApprove ? 'Enabled' : 'Disabled'}
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                                <div>
+                                    <h4 className="text-white font-medium">Require Manual Review</h4>
+                                    <p className="text-gray-400 text-sm">All submissions must be manually reviewed</p>
+                                </div>
+                                <button
+                                    onClick={() => handleRatingPreferenceChange('requireReview', !ratingPreferences.requireReview)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        ratingPreferences.requireReview
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                    }`}
+                                >
+                                    {ratingPreferences.requireReview ? 'Enabled' : 'Disabled'}
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                                <div>
+                                    <h4 className="text-white font-medium">Strict Mode</h4>
+                                    <p className="text-gray-400 text-sm">Apply stricter validation rules for submissions</p>
+                                </div>
+                                <button
+                                    onClick={() => handleRatingPreferenceChange('strictMode', !ratingPreferences.strictMode)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        ratingPreferences.strictMode
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                    }`}
+                                >
+                                    {ratingPreferences.strictMode ? 'Enabled' : 'Disabled'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 pt-4 border-t border-gray-700">
+                            <ModernButton
+                                onClick={handleSaveRatingPreferences}
+                                disabled={loading}
+                                className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-amber-500/25"
+                            >
+                                {loading ? 'Saving...' : 'Save Preferences'}
+                            </ModernButton>
+                        </div>
+                    </ModernCard>
+
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-between">
                         <ModernButton
@@ -675,7 +1020,7 @@ export default function ProfilePage() {
                         >
                             {loading ? 'Saving...' : 'Save Changes'}
                         </ModernButton>
-                        
+
                         <ModernButton
                             onClick={handleLogout}
                             className="bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 hover:text-red-300 px-6 py-3 rounded-lg font-medium transition-all duration-200"
