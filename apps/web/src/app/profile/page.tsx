@@ -25,28 +25,40 @@ export default function ProfilePage() {
         twitter: ''
     });
 
+    // Initialize Twitter username state from localStorage immediately
+    const getInitialTwitterState = () => {
+        if (typeof window !== 'undefined') {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const userObj = JSON.parse(userData);
+                const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
+                return {
+                    username: twitterHandle,
+                    status: twitterHandle ? 'saved' as const : 'empty' as const,
+                    initialized: true
+                };
+            }
+        }
+        return {
+            username: '',
+            status: 'empty' as const,
+            initialized: false
+        };
+    };
+
+    const initialTwitterState = getInitialTwitterState();
+    
     // Twitter username state management
-    const [twitterUsername, setTwitterUsername] = useState<string>('');
+    const [twitterUsername, setTwitterUsername] = useState<string>(initialTwitterState.username);
     const [isEditingTwitter, setIsEditingTwitter] = useState<boolean>(false);
-    const [twitterStatus, setTwitterStatus] = useState<'empty' | 'saved' | 'editing'>('empty');
+    const [twitterStatus, setTwitterStatus] = useState<'empty' | 'saved' | 'editing'>(initialTwitterState.status);
     const [twitterLoading, setTwitterLoading] = useState<boolean>(false);
     const [syncStatus, setSyncStatus] = useState<'loading' | 'synced' | 'offline' | 'syncing'>('loading');
-    const [isInitialized, setIsInitialized] = useState<boolean>(false);
+    const [isInitialized, setIsInitialized] = useState<boolean>(initialTwitterState.initialized);
 
     useEffect(() => {
         loadUserData();
     }, []);
-
-    // Additional useEffect to ensure Twitter username state is properly initialized
-    useEffect(() => {
-        if (user && !twitterUsername) {
-            const twitterHandle = user.twitter_handle || user.twitter || '';
-            if (twitterHandle) {
-                setTwitterUsername(twitterHandle);
-                setTwitterStatus('saved');
-            }
-        }
-    }, [user, twitterUsername]);
 
     const loadUserData = async () => {
         setLoading(true);
@@ -68,12 +80,14 @@ export default function ProfilePage() {
                 twitter: userObj.twitter || ''
             });
 
-            // Set Twitter username state from localStorage (fast initial render)
+            // Update Twitter username state from localStorage (only if not already initialized)
             const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
-            setTwitterUsername(twitterHandle);
-            setTwitterStatus(twitterHandle ? 'saved' : 'empty');
-            setIsInitialized(true);
-            
+            if (!isInitialized) {
+                setTwitterUsername(twitterHandle);
+                setTwitterStatus(twitterHandle ? 'saved' : 'empty');
+                setIsInitialized(true);
+            }
+
             // Set sync status to syncing while we fetch from Firebase
             setSyncStatus('syncing');
         } else {
