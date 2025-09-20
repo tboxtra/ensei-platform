@@ -110,12 +110,10 @@ export default function ProfilePage() {
                 twitter: freshUserData.twitter || ''
             });
 
-            // Update Twitter username state from fresh data (only if different)
+            // Update Twitter username state from fresh data
             const freshTwitterHandle = freshUserData.twitter_handle || freshUserData.twitter || '';
-            if (freshTwitterHandle !== twitterUsername) {
-                setTwitterUsername(freshTwitterHandle);
-                setTwitterStatus(freshTwitterHandle ? 'saved' : 'empty');
-            }
+            setTwitterUsername(freshTwitterHandle);
+            setTwitterStatus(freshTwitterHandle ? 'saved' : 'empty');
 
             // Update localStorage with fresh data
             localStorage.setItem('user', JSON.stringify(freshUserData));
@@ -206,11 +204,11 @@ export default function ProfilePage() {
             console.log('Firebase response:', updatedUser);
             console.log('Firebase response type:', typeof updatedUser);
             console.log('Firebase response keys:', updatedUser ? Object.keys(updatedUser) : 'null/undefined');
-            
+
             if (!updatedUser) {
                 throw new Error('Firebase returned empty response');
             }
-            
+
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
