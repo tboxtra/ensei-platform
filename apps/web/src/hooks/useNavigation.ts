@@ -12,22 +12,22 @@ export const ROUTES = {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
     VERIFY_EMAIL: '/auth/verify-email',
-    
+
     // Main app routes
     DASHBOARD: '/dashboard',
     PROFILE: '/profile',
     WALLET: '/wallet',
-    
+
     // Mission routes
     MISSIONS: '/missions',
     CREATE_MISSION: '/missions/create',
     MY_MISSIONS: '/missions/my',
     MISSION_DETAIL: (id: string) => `/missions/${id}`,
-    
+
     // Review routes
     REVIEW: '/review',
     CLAIM: '/claim',
-    
+
     // Admin routes
     ADMIN: '/admin',
     ADMIN_MISSIONS: '/admin/missions',

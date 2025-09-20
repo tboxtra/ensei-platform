@@ -182,7 +182,7 @@ export const useUpdateUserProfile = () => {
 export const useCreateMission = () => {
     const { createMission } = useApi();
     const queryClient = useQueryClient();
-    
+
     return useMutation({
         mutationFn: createMission,
         onSuccess: () => {
@@ -204,9 +204,25 @@ export const useCreateMission = () => {
 export const useCompleteTask = () => {
     const { completeTask } = useApi();
     const queryClient = useQueryClient();
-    
+
     return useMutation({
-        mutationFn: completeTask,
+        mutationFn: async (params: {
+            missionId: string;
+            taskId: string;
+            actionId: string;
+            verificationData?: any;
+            platform?: string;
+            missionType?: string;
+        }) => {
+            return completeTask(
+                params.missionId,
+                params.taskId,
+                params.actionId,
+                params.verificationData,
+                params.platform,
+                params.missionType
+            );
+        },
         onSuccess: () => {
             // Industry Standard: Invalidate user data cache after task completion
             queryClient.invalidateQueries({ queryKey: userDataKeys.profile() });

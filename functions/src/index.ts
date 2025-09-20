@@ -1910,7 +1910,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
         const userData = userDoc.data();
         const currentMissionsCompleted = userData?.stats?.missionsCompleted || 0;
         const currentTotalEarned = userData?.stats?.totalHonorsEarned || 0;
-        
+
         await userRef.update({
           'stats.missionsCompleted': currentMissionsCompleted + 1,
           'stats.totalHonorsEarned': currentTotalEarned + taskHonors,

@@ -4,17 +4,17 @@ import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import providers to prevent SSR issues
-const QueryProvider = dynamic(() => import('./QueryProvider'), {
+const QueryProvider = dynamic(() => import('../components/providers/QueryProvider'), {
     ssr: false,
     loading: () => <div>Loading...</div>
 });
 
-const FirebaseInitializer = dynamic(() => import('./FirebaseInitializer'), {
+const FirebaseInitializer = dynamic(() => import('../components/providers/FirebaseInitializer'), {
     ssr: false,
     loading: () => <div>Loading...</div>
 });
 
-const UserAuthProvider = dynamic(() => import('../../contexts/UserAuthContext').then(mod => ({ default: mod.UserAuthProvider })), {
+const UserAuthProvider = dynamic(() => import('../contexts/UserAuthContext').then(mod => ({ default: mod.UserAuthProvider })), {
     ssr: false,
     loading: () => <div>Loading...</div>
 });
