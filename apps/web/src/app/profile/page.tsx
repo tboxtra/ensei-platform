@@ -7,12 +7,13 @@ import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
-import { useUserData } from '../../contexts/UserDataContext';
+import { useCombinedUserData, useUpdateUserProfile } from '../../hooks/useUserDataQuery';
 
 export default function ProfilePage() {
     const router = useRouter();
-    const { logout, updateProfile, loading: apiLoading, error: apiError } = useApi();
-    const { user, userStats, loading, error, syncStatus, refreshUserData, updateUserData, isInitialized } = useUserData();
+    const { logout } = useApi();
+    const { data: userData, isLoading, error, refetch } = useCombinedUserData();
+    const updateProfileMutation = useUpdateUserProfile();
     const [formError, setFormError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         firstName: '',
@@ -38,9 +39,9 @@ export default function ProfilePage() {
     // Initialize Twitter username state from localStorage immediately
     const getInitialTwitterState = () => {
         if (typeof window !== 'undefined') {
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                const userObj = JSON.parse(userData);
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            const userObj = JSON.parse(userData);
                 const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
                 return {
                     username: twitterHandle,
@@ -66,16 +67,16 @@ export default function ProfilePage() {
     const [syncMessage, setSyncMessage] = useState<string>('');
 
     useEffect(() => {
-        if (user) {
+        if (userData?.profile) {
             setFormData({
-                firstName: user.firstName || user.name?.split(' ')[0] || '',
-                lastName: user.lastName || user.name?.split(' ')[1] || '',
-                email: user.email || '',
-                twitter: user.twitter || ''
+                firstName: userData.profile.firstName || userData.profile.name?.split(' ')[0] || '',
+                lastName: userData.profile.lastName || userData.profile.name?.split(' ')[1] || '',
+                email: userData.profile.email || '',
+                twitter: userData.profile.twitter || ''
             });
         }
         loadSecuritySettings();
-    }, [user]);
+    }, [userData]);
 
 
     const loadSecuritySettings = async () => {
@@ -101,7 +102,7 @@ export default function ProfilePage() {
 
     const handleSaveProfile = async () => {
         try {
-            // Industry standard: Save all profile changes to Firebase
+            // Industry standard: Save all profile changes to Firebase using React Query mutation
             const profileData = {
                 firstName: formData.firstName,
                 lastName: formData.lastName,
@@ -112,14 +113,10 @@ export default function ProfilePage() {
             };
 
             console.log('Saving profile to Firebase:', profileData);
-            const updatedUser = await updateProfile(profileData);
-            console.log('Profile saved successfully:', updatedUser);
+            await updateProfileMutation.mutateAsync(profileData);
+            console.log('Profile saved successfully');
             
-            // Update global user data
-            updateUserData(updatedUser);
-            
-            // Refresh data from Firebase to ensure consistency
-            await refreshUserData();
+            // React Query automatically handles cache invalidation and refetching
         } catch (err: any) {
             console.error('Failed to save profile:', err);
             setFormError(err.message || 'Failed to save profile');
@@ -206,7 +203,7 @@ export default function ProfilePage() {
                 updated_at: new Date().toISOString()
             };
 
-            await updateProfile(profileData);
+            await updateProfileMutation.mutateAsync(profileData);
             console.log('Password changed successfully');
 
         } catch (err: any) {
@@ -235,7 +232,7 @@ export default function ProfilePage() {
                 updated_at: new Date().toISOString()
             };
 
-            await updateProfile(profileData);
+            await updateProfileMutation.mutateAsync(profileData);
             console.log('2FA setting updated successfully');
 
         } catch (err: any) {
@@ -271,7 +268,7 @@ export default function ProfilePage() {
         try {
             // 2. Get current user data from localStorage to ensure we have complete data
             const currentUserData = localStorage.getItem('user');
-            const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
+            const currentUser = currentUserData ? JSON.parse(currentUserData) : userData?.profile;
 
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
@@ -284,16 +281,11 @@ export default function ProfilePage() {
 
             console.log('Saving Twitter username to Firebase:', profileData);
 
-            // 3. Save to Firebase with industry standard approach
-            const updatedUser = await updateProfile(profileData);
-            console.log('Firebase response:', updatedUser);
+            // 3. Save to Firebase with React Query mutation
+            await updateProfileMutation.mutateAsync(profileData);
+            console.log('Twitter username saved successfully');
 
-            if (!updatedUser) {
-                throw new Error('Firebase returned empty response');
-            }
-
-            // 4. SUCCESS - Update global user data
-            updateUserData(updatedUser);
+            // 4. SUCCESS - React Query handles cache invalidation automatically
             setSyncMessage('');
             setFormError(null);
 
@@ -335,7 +327,7 @@ export default function ProfilePage() {
 
         try {
             const currentUserData = localStorage.getItem('user');
-            const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
+            const currentUser = currentUserData ? JSON.parse(currentUserData) : userData?.profile;
 
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
@@ -346,8 +338,7 @@ export default function ProfilePage() {
                 updated_at: new Date().toISOString()
             };
 
-            const updatedUser = await updateProfile(profileData);
-            updateUserData(updatedUser);
+            await updateProfileMutation.mutateAsync(profileData);
             setTwitterUsername(formattedUsername);
             setTwitterStatus('saved');
             setFormData(prev => ({ ...prev, twitter: '' }));
@@ -373,7 +364,7 @@ export default function ProfilePage() {
 
         try {
             const currentUserData = localStorage.getItem('user');
-            const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
+            const currentUser = currentUserData ? JSON.parse(currentUserData) : userData?.profile;
 
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
@@ -384,8 +375,7 @@ export default function ProfilePage() {
                 updated_at: new Date().toISOString()
             };
 
-            const updatedUser = await updateProfile(profileData);
-            updateUserData(updatedUser);
+            await updateProfileMutation.mutateAsync(profileData);
             setTwitterUsername('');
             setTwitterStatus('empty');
             setSyncMessage('');
@@ -412,9 +402,9 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Error Display */}
-                    {(error || formError) && (
+                    {(error || formError || updateProfileMutation.error) && (
                         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                            <p className="text-red-400 text-sm">{error || formError}</p>
+                            <p className="text-red-400 text-sm">{error?.message || formError || updateProfileMutation.error?.message}</p>
                         </div>
                     )}
 
@@ -425,13 +415,13 @@ export default function ProfilePage() {
                             <div className="text-center">
                                 <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-blue-500 mx-auto mb-4">
                                     <img
-                                        src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`}
-                                        alt={user?.name || 'User'}
-                                            className="w-full h-full object-cover"
-                                        />
+                                        src={userData?.profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.profile.email}`}
+                                        alt={userData?.profile.name || 'User'}
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
-                                <h3 className="text-white font-semibold mb-1">{user?.name || 'User'}</h3>
-                                <p className="text-gray-400 text-sm">{user?.email}</p>
+                                <h3 className="text-white font-semibold mb-1">{userData?.profile.name || 'User'}</h3>
+                                <p className="text-gray-400 text-sm">{userData?.profile.email}</p>
                                 <p className="text-xs text-gray-500 mt-2">Profile picture managed by Google</p>
                                 </div>
                             </ModernCard>
@@ -495,25 +485,25 @@ export default function ProfilePage() {
                                 </span>
                             </h3>
                             <div className="flex items-center gap-2">
-                                {syncStatus === 'loading' && (
+                                {isLoading && (
                                     <span className="text-xs text-blue-400 flex items-center gap-1">
                                         <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                                         Loading...
                                     </span>
                                 )}
-                                {syncStatus === 'syncing' && (
+                                {updateProfileMutation.isPending && (
                                     <span className="text-xs text-yellow-400 flex items-center gap-1">
                                         <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
                                         {syncMessage || 'Syncing...'}
                                     </span>
                                 )}
-                                {syncStatus === 'synced' && (
+                                {!isLoading && !updateProfileMutation.isPending && (
                                     <span className="text-xs text-green-400 flex items-center gap-1">
                                         <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                                         Synced
                                     </span>
                                 )}
-                                {syncStatus === 'offline' && (
+                                {error && (
                                     <span className="text-xs text-orange-400 flex items-center gap-1">
                                         <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
                                         {syncMessage || 'Offline'}
@@ -526,7 +516,7 @@ export default function ProfilePage() {
                             Link your Twitter account for mission verification
                         </p>
 
-                        {!isInitialized ? (
+                        {isLoading ? (
                             <div className="flex items-center justify-center py-8">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
                             </div>
@@ -652,7 +642,7 @@ export default function ProfilePage() {
                                         <div>
                                     <p className="text-gray-400 text-xs">Missions Created</p>
                                     <p className="text-lg font-bold text-green-400">
-                                        {userStats.missionsCreated}
+                                        {userData?.stats.missionsCreated || 0}
                                     </p>
                                                         </div>
                                 <div className="text-xl">🚀</div>
@@ -664,7 +654,7 @@ export default function ProfilePage() {
                                 <div>
                                     <p className="text-gray-400 text-xs">Missions Completed</p>
                                     <p className="text-lg font-bold text-blue-400">
-                                        {userStats.missionsCompleted}
+                                        {userData?.stats.missionsCompleted || 0}
                                     </p>
                                                         </div>
                                 <div className="text-xl">✅</div>
@@ -676,7 +666,7 @@ export default function ProfilePage() {
                                         <div>
                                     <p className="text-gray-400 text-xs">Total Earned</p>
                                     <p className="text-lg font-bold text-yellow-400">
-                                        {userStats.totalEarned.toLocaleString()} Honors
+                                        {(userData?.stats.totalEarned || 0).toLocaleString()} Honors
                                     </p>
                                                 </div>
                                 <div className="text-xl">💰</div>
@@ -691,7 +681,7 @@ export default function ProfilePage() {
                                         <div>
                                     <p className="text-gray-400 text-xs">Total Submissions</p>
                                     <p className="text-lg font-bold text-purple-400">
-                                        {userStats.totalSubmissions}
+                                        {userData?.stats.totalSubmissions || 0}
                                     </p>
                                                 </div>
                                 <div className="text-xl">📝</div>
@@ -703,7 +693,7 @@ export default function ProfilePage() {
                                 <div>
                                     <p className="text-gray-400 text-xs">Approved</p>
                                     <p className="text-lg font-bold text-emerald-400">
-                                        {userStats.approvedSubmissions}
+                                        {userData?.stats.approvedSubmissions || 0}
                                     </p>
                                                 </div>
                                 <div className="text-xl">🎯</div>
@@ -715,7 +705,7 @@ export default function ProfilePage() {
                                         <div>
                                     <p className="text-gray-400 text-xs">User Rating</p>
                                     <p className="text-lg font-bold text-indigo-400">
-                                        {userStats.userRating.toFixed(1)}/5.0
+                                        {(userData?.stats.userRating || 0).toFixed(1)}/5.0
                                     </p>
                                 </div>
                                 <div className="text-xl">⭐</div>
@@ -727,7 +717,7 @@ export default function ProfilePage() {
                                                 <div>
                                     <p className="text-gray-400 text-xs">Reviews Given</p>
                                     <p className="text-lg font-bold text-amber-400">
-                                        {userStats.totalReviews}
+                                        {userData?.stats.totalReviews || 0}
                                     </p>
                                                 </div>
                                 <div className="text-xl">📊</div>
@@ -828,13 +818,13 @@ export default function ProfilePage() {
                                             </div>
                                 <button
                                     onClick={handleToggle2FA}
-                                    disabled={loading}
+                                    disabled={isLoading}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${securitySettings.twoFactorEnabled
                                         ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                         : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                                         }`}
                                 >
-                                    {loading ? 'Updating...' : (securitySettings.twoFactorEnabled ? 'Enabled' : 'Enable')}
+                                    {isLoading ? 'Updating...' : (securitySettings.twoFactorEnabled ? 'Enabled' : 'Enable')}
                                 </button>
                                             </div>
 
@@ -881,10 +871,10 @@ export default function ProfilePage() {
                     <div className="flex justify-end">
                         <ModernButton
                             onClick={handleSaveProfile}
-                            disabled={loading}
+                            disabled={isLoading || updateProfileMutation.isPending}
                             className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-green-500/25"
                         >
-                            {loading ? 'Saving...' : 'Save Changes'}
+                            {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                         </ModernButton>
                     </div>
                 </div>

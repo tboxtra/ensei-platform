@@ -6,11 +6,11 @@ import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
-import { useUserData } from '../../contexts/UserDataContext';
+import { useCombinedUserData } from '../../hooks/useUserDataQuery';
 
 export default function DashboardPage() {
   const { getMissions, getWalletBalance, loading } = useApi();
-  const { userStats, user, loading: userLoading } = useUserData();
+  const { data: userData, isLoading: userLoading, refetch } = useCombinedUserData();
   const [stats, setStats] = useState({
     missionsCreated: 0,
     usdSpent: 0,
@@ -22,18 +22,23 @@ export default function DashboardPage() {
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
+  // Force refresh user data when dashboard mounts
+  useEffect(() => {
+    refetch();
+  }, []);
+
   useEffect(() => {
     const loadDashboardStats = async () => {
       try {
         setLoadingStats(true);
 
-        // Use global userStats for missions created
-        const missionsCreated = userStats.missionsCreated;
+        // Use React Query data for missions created
+        const missionsCreated = userData?.stats.missionsCreated || 0;
 
         // Load all missions for additional calculations
         const allMissions = await getMissions();
-        const userData = localStorage.getItem('user');
-        const userId = userData ? JSON.parse(userData).id : null;
+        const localUserData = localStorage.getItem('user');
+        const userId = localUserData ? JSON.parse(localUserData).id : null;
 
         const userMissions = Array.isArray(allMissions)
           ? allMissions.filter(mission => mission.created_by === userId)
@@ -92,7 +97,7 @@ export default function DashboardPage() {
     };
 
     loadDashboardStats();
-  }, [getMissions, getWalletBalance, userStats]);
+  }, [getMissions, getWalletBalance, userData]);
   return (
     <ProtectedRoute>
       <ModernLayout currentPage="/dashboard">

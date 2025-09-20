@@ -46,6 +46,7 @@ interface UserDataContextType {
     refreshUserData: () => Promise<void>;
     updateUserData: (updates: Partial<UserData>) => void;
     isInitialized: boolean;
+    forceRefresh: () => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -79,6 +80,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
     const [error, setError] = useState<string | null>(null);
     const [syncStatus, setSyncStatus] = useState<'loading' | 'synced' | 'offline' | 'syncing'>('loading');
     const [isInitialized, setIsInitialized] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // Load user data from localStorage immediately on mount
     useEffect(() => {
@@ -88,7 +90,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
                 if (userData) {
                     const userObj = JSON.parse(userData);
                     setUser(userObj);
-                    
+
                     // Calculate stats from user data
                     const stats = {
                         missionsCreated: userObj.stats?.missions_created || userObj.missionsCreated || 0,
@@ -114,23 +116,23 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
     // Refresh user data from Firebase
     const refreshUserData = useCallback(async () => {
         if (loading) return; // Prevent multiple simultaneous requests
-        
+
         setLoading(true);
         setSyncStatus('syncing');
         setError(null);
 
         try {
             console.log('UserDataContext: Fetching fresh data from Firebase...');
-            
+
             // Fetch both profile and ratings data in parallel
             const [freshUserData, userRatingsData] = await Promise.all([
                 getUserProfile(),
                 getUserRatings()
             ]);
-            
+
             console.log('UserDataContext: Fresh user data:', freshUserData);
             console.log('UserDataContext: User ratings data:', userRatingsData);
-            
+
             if (freshUserData) {
                 // Merge profile and ratings data
                 const mergedUserData: UserData = {
@@ -142,7 +144,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
 
                 // Update user state
                 setUser(mergedUserData);
-                
+
                 // Calculate and update stats
                 const stats: UserStats = {
                     missionsCreated: mergedUserData.stats?.missions_created || mergedUserData.missionsCreated || 0,
@@ -159,7 +161,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
                 // Update localStorage with fresh data
                 localStorage.setItem('user', JSON.stringify(mergedUserData));
                 setSyncStatus('synced');
-                
+
                 console.log('UserDataContext: Data refreshed successfully');
             }
         } catch (err: any) {
@@ -177,7 +179,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
 
         const updatedUser = { ...user, ...updates };
         setUser(updatedUser);
-        
+
         // Update stats if relevant fields changed
         const stats: UserStats = {
             missionsCreated: updatedUser.stats?.missions_created || updatedUser.missionsCreated || 0,
@@ -195,13 +197,18 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
         localStorage.setItem('user', JSON.stringify(updatedUser));
     }, [user]);
 
-    // Auto-refresh data when component mounts (if user exists)
+    // Force refresh function
+    const forceRefresh = useCallback(() => {
+        setRefreshTrigger(prev => prev + 1);
+    }, []);
+
+    // Auto-refresh data when component mounts, user changes, or force refresh is triggered
     useEffect(() => {
-        if (user && !loading) {
+        if (user && !loading && isInitialized) {
             // Refresh data in background
             refreshUserData();
         }
-    }, [user?.id]); // Only refresh when user ID changes
+    }, [user?.id, isInitialized, refreshTrigger]); // Refresh when user ID changes, initialized, or force refresh triggered
 
     const value: UserDataContextType = {
         user,
@@ -211,7 +218,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
         syncStatus,
         refreshUserData,
         updateUserData,
-        isInitialized
+        isInitialized,
+        forceRefresh
     };
 
     return (
