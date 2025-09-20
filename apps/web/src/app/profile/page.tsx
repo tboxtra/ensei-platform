@@ -36,6 +36,24 @@ export default function ProfilePage() {
         loadUserData();
     }, []);
 
+    // Additional useEffect to ensure Twitter username state is properly initialized
+    useEffect(() => {
+        if (user && !twitterUsername) {
+            const twitterHandle = user.twitter_handle || user.twitter || '';
+            console.log('Additional useEffect - setting Twitter username:', {
+                user: user,
+                twitterUsername: twitterUsername,
+                twitter_handle: user.twitter_handle,
+                twitter: user.twitter,
+                finalHandle: twitterHandle
+            });
+            if (twitterHandle) {
+                setTwitterUsername(twitterHandle);
+                setTwitterStatus('saved');
+            }
+        }
+    }, [user, twitterUsername]);
+
     const loadUserData = async () => {
         setLoading(true);
         setError(null);
@@ -58,9 +76,15 @@ export default function ProfilePage() {
 
             // Set Twitter username state from localStorage (fast initial render)
             const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
+            console.log('Loading Twitter username from localStorage:', {
+                twitter_handle: userObj.twitter_handle,
+                twitter: userObj.twitter,
+                finalHandle: twitterHandle,
+                userObj: userObj
+            });
             setTwitterUsername(twitterHandle);
             setTwitterStatus(twitterHandle ? 'saved' : 'empty');
-            
+
             // Set sync status to syncing while we fetch from Firebase
             setSyncStatus('syncing');
         } else {
@@ -89,7 +113,7 @@ export default function ProfilePage() {
                 setTwitterUsername(freshTwitterHandle);
                 setTwitterStatus(freshTwitterHandle ? 'saved' : 'empty');
             }
-            
+
             // Update localStorage with fresh data
             localStorage.setItem('user', JSON.stringify(freshUserData));
             setSyncStatus('synced');
@@ -139,7 +163,7 @@ export default function ProfilePage() {
     // Twitter username management functions
     const handleAddTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         setTwitterLoading(true);
         setSyncStatus('syncing');
         try {
@@ -161,7 +185,7 @@ export default function ProfilePage() {
             const updatedUser = await updateProfile(profileData);
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
-            
+
             setTwitterUsername(formattedUsername);
             setTwitterStatus('saved');
             setFormData(prev => ({ ...prev, twitter: '' }));
@@ -181,7 +205,7 @@ export default function ProfilePage() {
 
     const handleSaveTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         setTwitterLoading(true);
         setSyncStatus('syncing');
         try {
@@ -203,7 +227,7 @@ export default function ProfilePage() {
             const updatedUser = await updateProfile(profileData);
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
-            
+
             setTwitterUsername(formattedUsername);
             setTwitterStatus('saved');
             setSyncStatus('synced');
@@ -224,7 +248,7 @@ export default function ProfilePage() {
         if (!confirm('Are you sure you want to remove your Twitter username? This will affect mission verification.')) {
             return;
         }
-        
+
         setTwitterLoading(true);
         setSyncStatus('syncing');
         try {
@@ -237,7 +261,7 @@ export default function ProfilePage() {
             const updatedUser = await updateProfile(profileData);
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
-            
+
             setTwitterUsername('');
             setTwitterStatus('empty');
             setFormData(prev => ({ ...prev, twitter: '' }));
@@ -518,6 +542,7 @@ export default function ProfilePage() {
                                                 </div>
                                             </div>
 
+                                            {console.log('Twitter section render:', { twitterStatus, twitterUsername, user: user?.twitter_handle || user?.twitter })}
                                             {twitterStatus === 'empty' && (
                                                 <div>
                                                     <div className="flex items-center gap-2">
@@ -527,10 +552,10 @@ export default function ProfilePage() {
                                                             value={formData.twitter}
                                                             onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
                                                             className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm sm:text-base ${formData.twitter ?
-                                                                    validateTwitterUsername(formData.twitter).isValid ?
-                                                                        'border-green-500/50 focus:ring-green-500' :
-                                                                        'border-red-500/50 focus:ring-red-500'
-                                                                    : 'border-gray-700/50 focus:ring-green-500'
+                                                                validateTwitterUsername(formData.twitter).isValid ?
+                                                                    'border-green-500/50 focus:ring-green-500' :
+                                                                    'border-red-500/50 focus:ring-red-500'
+                                                                : 'border-gray-700/50 focus:ring-green-500'
                                                                 }`}
                                                             placeholder="yourusername"
                                                         />
@@ -598,10 +623,10 @@ export default function ProfilePage() {
                                                             value={formData.twitter}
                                                             onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
                                                             className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm sm:text-base ${formData.twitter ?
-                                                                    validateTwitterUsername(formData.twitter).isValid ?
-                                                                        'border-green-500/50 focus:ring-green-500' :
-                                                                        'border-red-500/50 focus:ring-red-500'
-                                                                    : 'border-gray-700/50 focus:ring-green-500'
+                                                                validateTwitterUsername(formData.twitter).isValid ?
+                                                                    'border-green-500/50 focus:ring-green-500' :
+                                                                    'border-red-500/50 focus:ring-red-500'
+                                                                : 'border-gray-700/50 focus:ring-green-500'
                                                                 }`}
                                                             placeholder="yourusername"
                                                         />
