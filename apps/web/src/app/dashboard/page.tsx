@@ -6,9 +6,11 @@ import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
+import { useUserData } from '../../contexts/UserDataContext';
 
 export default function DashboardPage() {
   const { getMissions, getWalletBalance, loading } = useApi();
+  const { userStats, user, loading: userLoading } = useUserData();
   const [stats, setStats] = useState({
     missionsCreated: 0,
     usdSpent: 0,
@@ -25,7 +27,10 @@ export default function DashboardPage() {
       try {
         setLoadingStats(true);
 
-        // Load all missions and filter for user's missions
+        // Use global userStats for missions created
+        const missionsCreated = userStats.missionsCreated;
+        
+        // Load all missions for additional calculations
         const allMissions = await getMissions();
         const userData = localStorage.getItem('user');
         const userId = userData ? JSON.parse(userData).id : null;
@@ -33,7 +38,6 @@ export default function DashboardPage() {
         const userMissions = Array.isArray(allMissions)
           ? allMissions.filter(mission => mission.created_by === userId)
           : [];
-        const missionsCreated = userMissions.length; // This includes both active and inactive missions
 
         // Calculate USD spent on created missions
         const usdSpent = userMissions.reduce((total, mission: any) => {
@@ -43,22 +47,11 @@ export default function DashboardPage() {
           return total;
         }, 0);
 
-        // Calculate honors earned from participated missions (missions where user is a participant)
-        const participatedMissions = Array.isArray(allMissions)
-          ? allMissions.filter(mission =>
-            mission.participants &&
-            Array.isArray(mission.participants) &&
-            mission.participants.some((p: any) => p.user_id === userId)
-          )
-          : [];
+        // Use global userStats for honors earned
+        const honorsEarned = userStats.totalEarned;
 
-        const honorsEarned = participatedMissions.reduce((total, mission: any) => {
-          const participant = mission.participants?.find((p: any) => p.user_id === userId);
-          return total + (participant?.honors_earned || 0);
-        }, 0);
-
-        // TODO: Calculate reviews done (this would need a separate API call)
-        const reviewsDone = 0; // Placeholder
+        // Use global userStats for reviews done
+        const reviewsDone = userStats.totalReviews;
 
         console.log('Dashboard: User missions found:', {
           userId,
@@ -100,7 +93,7 @@ export default function DashboardPage() {
     };
 
     loadDashboardStats();
-  }, [getMissions, getWalletBalance]);
+  }, [getMissions, getWalletBalance, userStats]);
   return (
     <ProtectedRoute>
       <ModernLayout currentPage="/dashboard">

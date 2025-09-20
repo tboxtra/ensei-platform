@@ -7,13 +7,13 @@ import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
+import { useUserData } from '../../contexts/UserDataContext';
 
 export default function ProfilePage() {
     const router = useRouter();
-    const { getCurrentUser, getUserProfile, getUserRatings, logout, updateProfile, loading: apiLoading, error: apiError } = useApi();
-    const [user, setUser] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { logout, updateProfile, loading: apiLoading, error: apiError } = useApi();
+    const { user, userStats, loading, error, syncStatus, refreshUserData, updateUserData, isInitialized } = useUserData();
+    const [formError, setFormError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -63,153 +63,20 @@ export default function ProfilePage() {
     const [isEditingTwitter, setIsEditingTwitter] = useState<boolean>(false);
     const [twitterStatus, setTwitterStatus] = useState<'empty' | 'saved' | 'editing'>(initialTwitterState.status);
     const [twitterLoading, setTwitterLoading] = useState<boolean>(false);
-    const [syncStatus, setSyncStatus] = useState<'loading' | 'synced' | 'offline' | 'syncing'>('loading');
-    const [isInitialized, setIsInitialized] = useState<boolean>(initialTwitterState.initialized);
     const [syncMessage, setSyncMessage] = useState<string>('');
 
-    // User statistics state
-    const [userStats, setUserStats] = useState({
-        missionsCreated: 0,
-        missionsCompleted: 0,
-        totalEarned: 0,
-        totalSubmissions: 0,
-        approvedSubmissions: 0,
-        reputation: 0,
-        userRating: 0,
-        totalReviews: 0
-    });
-
     useEffect(() => {
-        loadUserData();
-        loadUserStats();
-        loadSecuritySettings();
-    }, []);
-
-    const loadUserData = async () => {
-        setLoading(true);
-        setSyncStatus('loading');
-
-        try {
-            // Load from localStorage first for fast initial render
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            const userObj = JSON.parse(userData);
-            setUser(userObj);
+        if (user) {
             setFormData({
-                firstName: userObj.firstName || userObj.name?.split(' ')[0] || '',
-                lastName: userObj.lastName || userObj.name?.split(' ')[1] || '',
-                email: userObj.email || '',
-                    twitter: userObj.twitter || ''
-                });
-            }
-        } catch (err) {
-            console.warn('Failed to load user data from localStorage:', err);
-        }
-
-        // Then try to refresh from API in background (ensure data is current)
-        try {
-            console.log('loadUserData: Fetching fresh data from Firebase...');
-            const freshUserData = await getUserProfile();
-            console.log('loadUserData: Fresh data from Firebase:', freshUserData);
-            setUser(freshUserData);
-            setFormData({
-                firstName: freshUserData.firstName || freshUserData.name?.split(' ')[0] || '',
-                lastName: freshUserData.lastName || freshUserData.name?.split(' ')[1] || '',
-                email: freshUserData.email || '',
-                twitter: freshUserData.twitter || ''
+                firstName: user.firstName || user.name?.split(' ')[0] || '',
+                lastName: user.lastName || user.name?.split(' ')[1] || '',
+                email: user.email || '',
+                twitter: user.twitter || ''
             });
-
-            // Use proper conflict resolution to merge local and server data
-            const currentUserData = localStorage.getItem('user');
-            const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
-
-            const mergedUserData = mergeUserData(currentUser, freshUserData);
-            console.log('loadUserData: Merged user data:', mergedUserData);
-
-            // Update Twitter username state from merged data
-            const mergedTwitterHandle = mergedUserData.twitter_handle || mergedUserData.twitter || '';
-            console.log('loadUserData: Twitter handle from merged data:', mergedTwitterHandle);
-
-            setTwitterUsername(mergedTwitterHandle);
-            setTwitterStatus(mergedTwitterHandle ? 'saved' : 'empty');
-
-            // Update localStorage with merged data
-            localStorage.setItem('user', JSON.stringify(mergedUserData));
-            setSyncStatus('synced');
-        } catch (err) {
-            console.warn('Failed to refresh user data from API, using cached data:', err);
-            setSyncStatus('offline');
-            // Don't show error or redirect - just use the localStorage data we already loaded
-        } finally {
-            setLoading(false);
-            setIsInitialized(true);
         }
-    };
+        loadSecuritySettings();
+    }, [user]);
 
-    const loadUserStats = async () => {
-        try {
-            // Load user stats from Firebase data
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                const userObj = JSON.parse(userData);
-                console.log('Loading user stats from localStorage:', userObj);
-                
-                // Map Firebase stats to our state - using correct field names
-                setUserStats({
-                    missionsCreated: userObj.stats?.missions_created || userObj.missionsCreated || 0,
-                    missionsCompleted: userObj.stats?.missions_completed || userObj.missionsCompleted || 0,
-                    totalEarned: userObj.stats?.total_honors_earned || userObj.totalEarned || 0,
-                    totalSubmissions: userObj.totalSubmissions || 0,
-                    approvedSubmissions: userObj.approvedSubmissions || 0,
-                    reputation: userObj.reputation || 0,
-                    userRating: userObj.userRating || 0,
-                    totalReviews: userObj.totalReviews || 0
-                });
-            }
-
-            // Also fetch fresh data from Firebase to ensure accuracy
-            try {
-                const [freshUserData, userRatingsData] = await Promise.all([
-                    getUserProfile(),
-                    getUserRatings()
-                ]);
-                
-                console.log('Fresh user data from Firebase:', freshUserData);
-                console.log('User ratings data from Firebase:', userRatingsData);
-                
-                if (freshUserData) {
-                    // Update stats with fresh data including ratings
-                    setUserStats({
-                        missionsCreated: freshUserData.stats?.missions_created || freshUserData.missionsCreated || 0,
-                        missionsCompleted: freshUserData.stats?.missions_completed || freshUserData.missionsCompleted || 0,
-                        totalEarned: freshUserData.stats?.total_honors_earned || freshUserData.totalEarned || 0,
-                        totalSubmissions: userRatingsData?.totalSubmissions || freshUserData.totalSubmissions || 0,
-                        approvedSubmissions: freshUserData.approvedSubmissions || 0,
-                        reputation: freshUserData.reputation || 0,
-                        userRating: userRatingsData?.totalRating || freshUserData.userRating || 0,
-                        totalReviews: userRatingsData?.totalReviews || freshUserData.totalReviews || 0
-                    });
-
-                    // Update localStorage with fresh data including ratings
-                    const currentUserData = localStorage.getItem('user');
-                    const currentUser = currentUserData ? JSON.parse(currentUserData) : {};
-                    const updatedUser = { 
-                        ...currentUser, 
-                        ...freshUserData,
-                        userRating: userRatingsData?.totalRating || 0,
-                        totalReviews: userRatingsData?.totalReviews || 0,
-                        totalSubmissions: userRatingsData?.totalSubmissions || 0
-                    };
-                    localStorage.setItem('user', JSON.stringify(updatedUser));
-                    setUser(updatedUser);
-                }
-            } catch (err) {
-                console.warn('Failed to fetch fresh user stats:', err);
-            }
-        } catch (err) {
-            console.warn('Failed to load user stats:', err);
-        }
-    };
 
     const loadSecuritySettings = async () => {
         try {
@@ -233,8 +100,6 @@ export default function ProfilePage() {
     };
 
     const handleSaveProfile = async () => {
-        setLoading(true);
-        setError(null);
         try {
             // Industry standard: Save all profile changes to Firebase
             const profileData = {
@@ -249,16 +114,15 @@ export default function ProfilePage() {
             console.log('Saving profile to Firebase:', profileData);
             const updatedUser = await updateProfile(profileData);
             console.log('Profile saved successfully:', updatedUser);
-
-            setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            setSyncStatus('synced');
+            
+            // Update global user data
+            updateUserData(updatedUser);
+            
+            // Refresh data from Firebase to ensure consistency
+            await refreshUserData();
         } catch (err: any) {
             console.error('Failed to save profile:', err);
-            setError(err.message || 'Failed to save profile');
-            setSyncStatus('offline');
-        } finally {
-            setLoading(false);
+            setFormError(err.message || 'Failed to save profile');
         }
     };
 
@@ -300,37 +164,21 @@ export default function ProfilePage() {
         return username.replace('@', '').toLowerCase();
     };
 
-    // Industry standard conflict resolution - merge user data intelligently
-    const mergeUserData = (localData: any, serverData: any) => {
-        console.log('Merging user data:', { localData, serverData });
-
-        const merged = {
-            ...serverData, // Start with server data as base
-            // Preserve local changes that server doesn't have or has empty
-            twitter: localData?.twitter || serverData?.twitter || '',
-            twitter_handle: localData?.twitter_handle || serverData?.twitter_handle || '',
-            // Use server timestamp for other fields
-            updated_at: serverData?.updated_at || new Date().toISOString()
-        };
-
-        console.log('Merged user data:', merged);
-        return merged;
-    };
 
     // Industry standard password change with Firebase Auth
     const handlePasswordChange = async () => {
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            setError('New passwords do not match');
+            setFormError('New passwords do not match');
             return;
         }
 
         if (passwordForm.newPassword.length < 8) {
-            setError('Password must be at least 8 characters long');
+            setFormError('Password must be at least 8 characters long');
             return;
         }
 
         setPasswordLoading(true);
-        setError(null);
+        setFormError(null);
 
         try {
             // Industry standard: Use Firebase Auth for password changes
@@ -363,7 +211,7 @@ export default function ProfilePage() {
 
         } catch (err: any) {
             console.error('Failed to change password:', err);
-            setError(err.message || 'Failed to change password');
+            setFormError(err.message || 'Failed to change password');
         } finally {
             setPasswordLoading(false);
         }
@@ -371,7 +219,7 @@ export default function ProfilePage() {
 
     // Industry standard 2FA toggle
     const handleToggle2FA = async () => {
-        setLoading(true);
+        // Loading is managed by global context
         try {
             const updatedSettings = {
                 ...securitySettings,
@@ -392,9 +240,9 @@ export default function ProfilePage() {
 
         } catch (err: any) {
             console.error('Failed to update 2FA setting:', err);
-            setError(err.message || 'Failed to update 2FA setting');
+            setFormError(err.message || 'Failed to update 2FA setting');
         } finally {
-            setLoading(false);
+            // Loading is managed by global context
         }
     };
 
@@ -404,7 +252,7 @@ export default function ProfilePage() {
 
         const validation = validateTwitterUsername(formData.twitter);
         if (!validation.isValid) {
-            setError(validation.message || 'Invalid Twitter username');
+            setFormError(validation.message || 'Invalid Twitter username');
             return;
         }
 
@@ -417,7 +265,7 @@ export default function ProfilePage() {
         setTwitterUsername(formattedUsername);
         setTwitterStatus('saved');
         setTwitterLoading(true);
-        setSyncStatus('syncing');
+        // Sync status is managed by global context
         setFormData(prev => ({ ...prev, twitter: '' }));
 
         try {
@@ -444,12 +292,10 @@ export default function ProfilePage() {
                 throw new Error('Firebase returned empty response');
             }
 
-            // 4. SUCCESS - Update state with server response
-            setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            setSyncStatus('synced');
+            // 4. SUCCESS - Update global user data
+            updateUserData(updatedUser);
             setSyncMessage('');
-            setError(null);
+            setFormError(null);
 
         } catch (err: any) {
             console.error('Error saving Twitter username:', err);
@@ -458,10 +304,10 @@ export default function ProfilePage() {
             setTwitterUsername(previousUsername);
             setTwitterStatus(previousStatus);
             setFormData(prev => ({ ...prev, twitter: formattedUsername }));
-            setSyncStatus('offline');
+            // Sync status is managed by global context
 
             // 6. Show user-friendly error
-            setError('Failed to save Twitter username. Please try again.');
+            setFormError('Failed to save Twitter username. Please try again.');
             setSyncMessage('Save failed - please retry');
 
         } finally {
@@ -479,13 +325,13 @@ export default function ProfilePage() {
 
         const validation = validateTwitterUsername(formData.twitter);
         if (!validation.isValid) {
-            setError(validation.message || 'Invalid Twitter username');
+            setFormError(validation.message || 'Invalid Twitter username');
             return;
         }
 
         const formattedUsername = formatTwitterUsername(formData.twitter);
         setTwitterLoading(true);
-        setSyncStatus('syncing');
+        // Sync status is managed by global context
 
         try {
             const currentUserData = localStorage.getItem('user');
@@ -501,17 +347,15 @@ export default function ProfilePage() {
             };
 
             const updatedUser = await updateProfile(profileData);
-            setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
+            updateUserData(updatedUser);
             setTwitterUsername(formattedUsername);
             setTwitterStatus('saved');
             setFormData(prev => ({ ...prev, twitter: '' }));
-            setSyncStatus('synced');
             setSyncMessage('');
-            setError(null);
+            setFormError(null);
         } catch (err: any) {
-            setError(err.message || 'Failed to save Twitter username');
-            setSyncStatus('offline');
+            setFormError(err.message || 'Failed to save Twitter username');
+            // Sync status is managed by global context
             setSyncMessage('Save failed - please retry');
         } finally {
             setTwitterLoading(false);
@@ -525,7 +369,7 @@ export default function ProfilePage() {
 
     const handleRemoveTwitterUsername = async () => {
         setTwitterLoading(true);
-        setSyncStatus('syncing');
+        // Sync status is managed by global context
 
         try {
             const currentUserData = localStorage.getItem('user');
@@ -541,16 +385,14 @@ export default function ProfilePage() {
             };
 
             const updatedUser = await updateProfile(profileData);
-            setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
+            updateUserData(updatedUser);
             setTwitterUsername('');
             setTwitterStatus('empty');
-            setSyncStatus('synced');
             setSyncMessage('');
-            setError(null);
+            setFormError(null);
         } catch (err: any) {
-            setError(err.message || 'Failed to remove Twitter username');
-            setSyncStatus('offline');
+            setFormError(err.message || 'Failed to remove Twitter username');
+            // Sync status is managed by global context
             setSyncMessage('Remove failed - please retry');
         } finally {
             setTwitterLoading(false);
@@ -570,9 +412,9 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Error Display */}
-                    {error && (
+                    {(error || formError) && (
                         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                            <p className="text-red-400 text-sm">{error}</p>
+                            <p className="text-red-400 text-sm">{error || formError}</p>
                         </div>
                     )}
 
@@ -699,10 +541,10 @@ export default function ProfilePage() {
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
                                                 className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
-                                                        validateTwitterUsername(formData.twitter).isValid ?
-                                                            'border-green-500/50 focus:ring-green-500' :
-                                                            'border-red-500/50 focus:ring-red-500'
-                                                        : 'border-gray-700/50 focus:ring-green-500'
+                                                    validateTwitterUsername(formData.twitter).isValid ?
+                                                        'border-green-500/50 focus:ring-green-500' :
+                                                        'border-red-500/50 focus:ring-red-500'
+                                                    : 'border-gray-700/50 focus:ring-green-500'
                                                     }`}
                                                 placeholder="yourusername"
                                             />
@@ -770,10 +612,10 @@ export default function ProfilePage() {
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
                                                 className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
-                                                        validateTwitterUsername(formData.twitter).isValid ?
-                                                            'border-green-500/50 focus:ring-green-500' :
-                                                            'border-red-500/50 focus:ring-red-500'
-                                                        : 'border-gray-700/50 focus:ring-green-500'
+                                                    validateTwitterUsername(formData.twitter).isValid ?
+                                                        'border-green-500/50 focus:ring-green-500' :
+                                                        'border-red-500/50 focus:ring-red-500'
+                                                    : 'border-gray-700/50 focus:ring-green-500'
                                                     }`}
                                                 placeholder="yourusername"
                                             />
@@ -988,8 +830,8 @@ export default function ProfilePage() {
                                     onClick={handleToggle2FA}
                                     disabled={loading}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${securitySettings.twoFactorEnabled
-                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                                         }`}
                                 >
                                     {loading ? 'Updating...' : (securitySettings.twoFactorEnabled ? 'Enabled' : 'Enable')}

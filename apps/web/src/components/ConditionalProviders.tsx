@@ -25,6 +25,11 @@ const UserAuthProvider = dynamic(() => import('../contexts/UserAuthContext').the
     loading: () => <div>Loading...</div>
 });
 
+const UserDataProvider = dynamic(() => import('../contexts/UserDataContext').then(mod => ({ default: mod.UserDataProvider })), {
+    ssr: false,
+    loading: () => <div>Loading...</div>
+});
+
 interface ConditionalProvidersProps {
     children: React.ReactNode;
 }
@@ -35,7 +40,9 @@ export const ConditionalProviders: React.FC<ConditionalProvidersProps> = ({ chil
             <QueryProvider>
                 <FirebaseInitializer>
                     <UserAuthProvider>
-                        {children}
+                        <UserDataProvider>
+                            {children}
+                        </UserDataProvider>
                     </UserAuthProvider>
                 </FirebaseInitializer>
             </QueryProvider>
