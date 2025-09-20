@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Solutions - Industry Standards Implementation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .glass-effect {
+            background: rgba(31, 41, 55, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .inset-shadow {
+            box-shadow: inset -2px -2px 6px rgba(0, 0, 0, 0.4), inset 2px 2px 6px rgba(255, 255, 255, 0.05);
+        }
+
+        .solution-card {
+            border-left: 4px solid #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .code-block {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- Header -->
+        <div class="text-center space-y-4">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
+                Integration Solutions - Industry Standards
+            </h1>
+            <p class="text-gray-400 text-lg">
+                Comprehensive Solutions for All Critical Issues Using Industry Best Practices
+            </p>
+            <div class="flex justify-center space-x-4 text-sm">
+                <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                    ✅ SOLID Principles
+                </span>
+                <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                    🏗️ Clean Architecture
+                </span>
+                <span class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">
+                    🔒 Security First
+                </span>
+            </div>
+        </div>
+
+        <!-- Solution 1: Complete API Specifications -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 text-green-400">
+                <i data-lucide="api" class="w-6 h-6"></i>
+                Solution 1: Complete API Specifications (OpenAPI 3.0)
+            </h2>
+
+            <div class="solution-card rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-green-400 mb-3">Industry Standard: OpenAPI 3.0 Specification</h3>
+                <p class="text-sm text-gray-300 mb-4">
+                    Following REST API design principles with comprehensive OpenAPI documentation, proper HTTP status
+                    codes, and standardized error responses.
+                </p>
+
+                <div class="code-block mb-4">
+                    <pre><code>// OpenAPI 3.0 Specification
+openapi: 3.0.3
+info:
+  title: Ensei Platform API
+  version: 1.0.0
+  description: Complete verification system API
+
+paths:
+  /api/tasks/complete:
+    post:
+      summary: Complete a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCompletionRequest'
+      responses:
+        '200':
+          description: Task completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCompletionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+components:
+  schemas:
+    TaskCompletionRequest:
+      type: object
+      required:
+        - taskId
+        - missionId
+        - userId
+        - completionType
+      properties:
+        taskId:
+          type: string
+          pattern: '^[a-zA-Z0-9_-]+$'
+        missionId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        completionType:
+          type: string
+          enum: [direct, link_submission]
+        submittedLink:
+          type: string
+          format: uri
+          description: Required for link_submission type
+        metadata:
+          type: object
+          additionalProperties: true
+
+    TaskCompletionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            completionId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [completed, verified, flagged]
+            timestamp:
+              type: string
+              format: date-time
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+            timestamp:
+              type: string
+              format: date-time
+            requestId:
+              type: string
+              format: uuid</code></pre>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">TypeScript Interfaces</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Request/Response type safety</div>
+                            <div>• Runtime validation with Zod</div>
+                            <div>• Auto-generated client SDKs</div>
+                            <div>• API documentation generation</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Implementation Benefits</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Contract-first development</div>
+                            <div>• Automated testing</div>
+                            <div>• Client-server sync</div>
+                            <div>• Version management</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solution 2: Firebase Security Rules -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 text-blue-400">
+                <i data-lucide="shield" class="w-6 h-6"></i>
+                Solution 2: Comprehensive Firebase Security Rules
+            </h2>
+
+            <div class="solution-card rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-green-400 mb-3">Industry Standard: Defense in Depth Security</h3>
+                <p class="text-sm text-gray-300 mb-4">
+                    Implementing multi-layered security with proper authentication, authorization, and data validation
+                    following OWASP guidelines.
+                </p>
+
+                <div class="code-block mb-4">
+                    <pre><code>// Firestore Security Rules (firestore.rules)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profiles - users can only access their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null 
+        && request.auth.uid == userId
+        && isValidUserData(request.resource.data);
+    }
+
+    // Task completions - users can create, read their own, creators can verify
+    match /taskCompletions/{completionId} {
+      allow create: if request.auth != null 
+        && request.auth.uid == resource.data.userId
+        && isValidTaskCompletion(resource.data);
+      
+      allow read: if request.auth != null 
+        && (request.auth.uid == resource.data.userId 
+            || request.auth.uid == resource.data.missionCreatorId);
+      
+      allow update: if request.auth != null 
+        && (request.auth.uid == resource.data.userId 
+            || request.auth.uid == resource.data.missionCreatorId)
+        && isValidTaskCompletionUpdate(request.resource.data);
+    }
+
+    // Review assignments - reviewers can read and update
+    match /reviewAssignments/{assignmentId} {
+      allow read, update: if request.auth != null 
+        && request.auth.uid == resource.data.reviewerId
+        && isValidReviewAssignment(request.resource.data);
+    }
+
+    // Helper functions for data validation
+    function isValidUserData(data) {
+      return data.keys().hasAll(['email', 'name', 'createdAt'])
+        && data.email is string
+        && data.name is string
+        && data.createdAt is timestamp
+        && (data.twitterUsername == null || data.twitterUsername is string);
+    }
+
+    function isValidTaskCompletion(data) {
+      return data.keys().hasAll(['taskId', 'missionId', 'userId', 'status', 'createdAt'])
+        && data.taskId is string
+        && data.missionId is string
+        && data.userId is string
+        && data.status in ['completed', 'verified', 'flagged']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidTaskCompletionUpdate(data) {
+      return data.status in ['completed', 'verified', 'flagged']
+        && (data.status == 'flagged' ? data.flagReason is string : true);
+    }
+
+    function isValidReviewAssignment(data) {
+      return data.keys().hasAll(['submissionId', 'reviewerId', 'status'])
+        && data.status in ['pending', 'completed', 'skipped']
+        && data.reviewerId is string;
+    }
+  }
+}</code></pre>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Authentication</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Firebase Auth integration</div>
+                            <div>• JWT token validation</div>
+                            <div>• User session management</div>
+                            <div>• Role-based access control</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Authorization</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Resource ownership validation</div>
+                            <div>• Creator permissions</div>
+                            <div>• Reviewer access control</div>
+                            <div>• Admin override capabilities</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Data Validation</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Schema validation</div>
+                            <div>• Type checking</div>
+                            <div>• Required field validation</div>
+                            <div>• Business rule enforcement</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solution 3: Data Migration Strategy -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 text-purple-400">
+                <i data-lucide="database" class="w-6 h-6"></i>
+                Solution 3: Zero-Downtime Data Migration Strategy
+            </h2>
+
+            <div class="solution-card rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-green-400 mb-3">Industry Standard: Blue-Green Deployment with Data
+                    Migration</h3>
+                <p class="text-sm text-gray-300 mb-4">
+                    Implementing a comprehensive migration strategy with rollback capabilities, data integrity checks,
+                    and zero-downtime deployment.
+                </p>
+
+                <div class="code-block mb-4">
+                    <pre><code>// Migration Script (TypeScript)
+import { Firestore } from '@google-cloud/firestore';
+import { logger } from './utils/logger';
+import { validateDataIntegrity } from './utils/validation';
+
+interface MigrationConfig {
+  batchSize: number;
+  maxRetries: number;
+  rollbackEnabled: boolean;
+  dryRun: boolean;
+}
+
+class DataMigrationService {
+  private db: Firestore;
+  private config: MigrationConfig;
+
+  constructor(config: MigrationConfig) {
+    this.db = new Firestore();
+    this.config = config;
+  }
+
+  async migrateTaskCompletions(): Promise<MigrationResult> {
+    const startTime = Date.now();
+    let processedCount = 0;
+    let errorCount = 0;
+    const errors: MigrationError[] = [];
+
+    try {
+      // Step 1: Backup existing data
+      await this.createBackup('mission_participations');
+      
+      // Step 2: Migrate data in batches
+      const batch = this.db.batch();
+      const oldCompletions = await this.db
+        .collection('mission_participations')
+        .limit(this.config.batchSize)
+        .get();
+
+      for (const doc of oldCompletions.docs) {
+        try {
+          const newData = this.transformTaskCompletion(doc.data());
+          
+          // Validate data integrity
+          if (!validateDataIntegrity(newData)) {
+            throw new Error(`Invalid data for document ${doc.id}`);
+          }
+
+          // Create new document
+          const newDocRef = this.db.collection('taskCompletions').doc();
+          batch.set(newDocRef, {
+            ...newData,
+            migratedFrom: doc.id,
+            migratedAt: new Date(),
+            migrationVersion: '1.0.0'
+          });
+
+          processedCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push({
+            documentId: doc.id,
+            error: error.message,
+            timestamp: new Date()
+          });
+        }
+      }
+
+      // Step 3: Commit batch if not dry run
+      if (!this.config.dryRun) {
+        await batch.commit();
+      }
+
+      // Step 4: Validate migration
+      await this.validateMigration(processedCount);
+
+      return {
+        success: errorCount === 0,
+        processedCount,
+        errorCount,
+        errors,
+        duration: Date.now() - startTime
+      };
+
+    } catch (error) {
+      logger.error('Migration failed', error);
+      
+      // Rollback if enabled
+      if (this.config.rollbackEnabled) {
+        await this.rollback();
+      }
+      
+      throw error;
+    }
+  }
+
+  private transformTaskCompletion(oldData: any): any {
+    return {
+      taskId: oldData.task_id,
+      missionId: oldData.mission_id,
+      userId: oldData.user_id,
+      status: this.mapStatus(oldData.status),
+      completionType: this.determineCompletionType(oldData),
+      createdAt: oldData.created_at,
+      updatedAt: new Date(),
+      metadata: {
+        originalStatus: oldData.status,
+        migratedFrom: 'mission_participations'
+      }
+    };
+  }
+
+  private async createBackup(collectionName: string): Promise<void> {
+    const backupCollection = `${collectionName}_backup_${Date.now()}`;
+    // Implementation for creating backup
+  }
+
+  private async rollback(): Promise<void> {
+    // Implementation for rollback procedure
+  }
+}</code></pre>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Migration Phases</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Phase 1: Data backup and validation</div>
+                            <div>• Phase 2: Parallel data migration</div>
+                            <div>• Phase 3: Data integrity verification</div>
+                            <div>• Phase 4: Traffic switching</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Rollback Strategy</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Automated rollback triggers</div>
+                            <div>• Data consistency checks</div>
+                            <div>• Service restoration procedures</div>
+                            <div>• Monitoring and alerting</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solution 4: Comprehensive Error Handling -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 text-yellow-400">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                Solution 4: Enterprise-Grade Error Handling
+            </h2>
+
+            <div class="solution-card rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-green-400 mb-3">Industry Standard: Circuit Breaker Pattern with Retry
+                    Logic</h3>
+                <p class="text-sm text-gray-300 mb-4">
+                    Implementing comprehensive error handling with circuit breakers, exponential backoff, and graceful
+                    degradation following enterprise patterns.
+                </p>
+
+                <div class="code-block mb-4">
+                    <pre><code>// Error Handling Service (TypeScript)
+import { CircuitBreaker } from 'opossum';
+import { logger } from './utils/logger';
+import { Sentry } from '@sentry/nextjs';
+
+export enum ErrorType {
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
+  RATE_LIMIT_ERROR = 'RATE_LIMIT_ERROR',
+  FIREBASE_ERROR = 'FIREBASE_ERROR',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
+}
+
+export interface ErrorContext {
+  userId?: string;
+  operation: string;
+  timestamp: Date;
+  requestId: string;
+  metadata?: Record<string, any>;
+}
+
+export class ErrorHandlingService {
+  private circuitBreakers: Map<string, CircuitBreaker> = new Map();
+
+  constructor() {
+    this.initializeCircuitBreakers();
+  }
+
+  private initializeCircuitBreakers(): void {
+    // Firebase operations circuit breaker
+    this.circuitBreakers.set('firebase', new CircuitBreaker(
+      this.firebaseOperation.bind(this),
+      {
+        timeout: 5000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+        rollingCountTimeout: 10000,
+        rollingCountBuckets: 10
+      }
+    ));
+
+    // API operations circuit breaker
+    this.circuitBreakers.set('api', new CircuitBreaker(
+      this.apiOperation.bind(this),
+      {
+        timeout: 10000,
+        errorThresholdPercentage: 60,
+        resetTimeout: 60000,
+        rollingCountTimeout: 15000,
+        rollingCountBuckets: 10
+      }
+    ));
+  }
+
+  async handleError(
+    error: Error, 
+    context: ErrorContext, 
+    retryable: boolean = true
+  ): Promise<never> {
+    const errorType = this.classifyError(error);
+    const errorId = this.generateErrorId();
+
+    // Log error with context
+    logger.error('Application error occurred', {
+      errorId,
+      errorType,
+      message: error.message,
+      stack: error.stack,
+      context
+    });
+
+    // Send to monitoring service
+    Sentry.captureException(error, {
+      tags: {
+        errorType,
+        operation: context.operation,
+        userId: context.userId
+      },
+      extra: context.metadata
+    });
+
+    // Handle specific error types
+    switch (errorType) {
+      case ErrorType.NETWORK_ERROR:
+        return this.handleNetworkError(error, context, retryable);
+      case ErrorType.RATE_LIMIT_ERROR:
+        return this.handleRateLimitError(error, context);
+      case ErrorType.AUTHENTICATION_ERROR:
+        return this.handleAuthenticationError(error, context);
+      case ErrorType.VALIDATION_ERROR:
+        return this.handleValidationError(error, context);
+      default:
+        return this.handleUnknownError(error, context);
+    }
+  }
+
+  private classifyError(error: Error): ErrorType {
+    if (error.message.includes('network') || error.message.includes('fetch')) {
+      return ErrorType.NETWORK_ERROR;
+    }
+    if (error.message.includes('rate limit') || error.message.includes('429')) {
+      return ErrorType.RATE_LIMIT_ERROR;
+    }
+    if (error.message.includes('auth') || error.message.includes('401')) {
+      return ErrorType.AUTHENTICATION_ERROR;
+    }
+    if (error.message.includes('validation') || error.message.includes('400')) {
+      return ErrorType.VALIDATION_ERROR;
+    }
+    if (error.message.includes('firebase') || error.message.includes('firestore')) {
+      return ErrorType.FIREBASE_ERROR;
+    }
+    return ErrorType.UNKNOWN_ERROR;
+  }
+
+  private async handleNetworkError(
+    error: Error, 
+    context: ErrorContext, 
+    retryable: boolean
+  ): Promise<never> {
+    if (retryable) {
+      // Implement exponential backoff retry
+      await this.retryWithBackoff(context.operation, 3);
+    }
+    
+    throw new UserFriendlyError(
+      'Network connection issue. Please check your internet connection and try again.',
+      'NETWORK_ERROR',
+      context
+    );
+  }
+
+  private async retryWithBackoff(operation: string, maxRetries: number): Promise<void> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      try {
+        // Retry the operation
+        return;
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+      }
+    }
+  }
+}
+
+// Custom error classes
+export class UserFriendlyError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public context: ErrorContext
+  ) {
+    super(message);
+    this.name = 'UserFriendlyError';
+  }
+}</code></pre>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Error Classification</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Network connectivity issues</div>
+                            <div>• Authentication failures</div>
+                            <div>• Rate limiting errors</div>
+                            <div>• Validation errors</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Recovery Strategies</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Exponential backoff retry</div>
+                            <div>• Circuit breaker pattern</div>
+                            <div>• Graceful degradation</div>
+                            <div>• Fallback mechanisms</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Monitoring & Alerting</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Sentry integration</div>
+                            <div>• Error rate monitoring</div>
+                            <div>• Performance metrics</div>
+                            <div>• User impact tracking</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solution 5: Testing Strategy -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 text-indigo-400">
+                <i data-lucide="test-tube" class="w-6 h-6"></i>
+                Solution 5: Comprehensive Testing Strategy
+            </h2>
+
+            <div class="solution-card rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-green-400 mb-3">Industry Standard: Test Pyramid with TDD/BDD</h3>
+                <p class="text-sm text-gray-300 mb-4">
+                    Implementing a comprehensive testing strategy following the test pyramid with unit, integration, and
+                    E2E tests using industry-standard tools.
+                </p>
+
+                <div class="code-block mb-4">
+                    <pre><code>// Testing Configuration (Jest + Testing Library)
+// jest.config.js
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
+  moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/test/**/*',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};
+
+// Unit Test Example
+import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TaskCompletionButton } from './TaskCompletionButton';
+
+describe('TaskCompletionButton', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+  });
+
+  it('should complete task successfully', async () => {
+    const mockCompleteTask = jest.fn().mockResolvedValue({
+      success: true,
+      data: { completionId: '123', status: 'completed' }
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TaskCompletionButton 
+          taskId="like"
+          missionId="mission-123"
+          onComplete={mockCompleteTask}
+        />
+      </QueryClientProvider>
+    );
+
+    const button = screen.getByRole('button', { name: /open twitter/i });
+    fireEvent.click(button);
+
+    expect(mockCompleteTask).toHaveBeenCalledWith({
+      taskId: 'like',
+      missionId: 'mission-123',
+      completionType: 'direct'
+    });
+  });
+
+  it('should handle network errors gracefully', async () => {
+    const mockCompleteTask = jest.fn().mockRejectedValue(
+      new Error('Network error')
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TaskCompletionButton 
+          taskId="like"
+          missionId="mission-123"
+          onComplete={mockCompleteTask}
+        />
+      </QueryClientProvider>
+    );
+
+    const button = screen.getByRole('button', { name: /open twitter/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(screen.getByText(/network connection issue/i)).toBeInTheDocument();
+    });
+  });
+});
+
+// Integration Test Example
+import { setupServer } from 'msw/node';
+import { rest } from 'msw';
+
+const server = setupServer(
+  rest.post('/api/tasks/complete', (req, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.json({
+        success: true,
+        data: {
+          completionId: '123',
+          status: 'completed',
+          timestamp: new Date().toISOString()
+        }
+      })
+    );
+  })
+);
+
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+// E2E Test Example (Playwright)
+import { test, expect } from '@playwright/test';
+
+test('complete task flow', async ({ page }) => {
+  await page.goto('/missions');
+  
+  // Wait for missions to load
+  await page.waitForSelector('[data-testid="mission-card"]');
+  
+  // Click on first task button
+  await page.click('[data-testid="task-button-like"]');
+  
+  // Verify Twitter opens in new tab
+  const [newPage] = await Promise.all([
+    page.context().waitForEvent('page'),
+    page.click('[data-testid="open-twitter-button"]')
+  ]);
+  
+  await expect(newPage).toHaveURL(/twitter\.com/);
+  await newPage.close();
+  
+  // Return to original page and verify
+  await page.click('[data-testid="verify-like-button"]');
+  
+  await expect(page.locator('[data-testid="task-status"]')).toHaveText('✓ Verified');
+});</code></pre>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Unit Tests</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Component behavior testing</div>
+                            <div>• Utility function testing</div>
+                            <div>• Hook testing with React Testing Library</div>
+                            <div>• 80%+ code coverage requirement</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">Integration Tests</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• API endpoint testing</div>
+                            <div>• Database integration testing</div>
+                            <div>• Mock service worker (MSW)</div>
+                            <div>• Firebase emulator testing</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/40 rounded p-3">
+                        <h4 class="font-medium text-white mb-2">E2E Tests</h4>
+                        <div class="text-xs space-y-1 text-gray-300">
+                            <div>• Playwright for browser testing</div>
+                            <div>• Critical user journey testing</div>
+                            <div>• Cross-browser compatibility</div>
+                            <div>• Performance testing</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Implementation Roadmap -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow border-2 border-green-500/30">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 text-green-400">
+                <i data-lucide="map" class="w-6 h-6"></i>
+                Industry-Standard Implementation Roadmap
+            </h2>
+
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <h3 class="font-semibold text-green-400">Phase 1: Foundation (Week 1-2)</h3>
+                        <ul class="text-sm space-y-2 text-gray-300">
+                            <li class="flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                                <span>Complete OpenAPI 3.0 specifications</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                                <span>Implement Firebase security rules</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                                <span>Set up comprehensive error handling</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                                <span>Create data migration scripts</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="font-semibold text-blue-400">Phase 2: Development (Week 3-4)</h3>
+                        <ul class="text-sm space-y-2 text-gray-300">
+                            <li class="flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-400"></i>
+                                <span>Implement core system components</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-400"></i>
+                                <span>Create comprehensive test suite</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-400"></i>
+                                <span>Set up monitoring and analytics</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-400"></i>
+                                <span>Implement accessibility compliance</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                    <p class="text-green-200 text-sm">
+                        <strong>Industry Standards Applied:</strong> All solutions follow SOLID principles, Clean
+                        Architecture,
+                        OWASP security guidelines, and enterprise-grade patterns. The implementation ensures
+                        scalability,
+                        maintainability, and production readiness.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
+
+

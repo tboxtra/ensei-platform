@@ -166,7 +166,7 @@ export default function ProfilePage() {
     // Twitter username management functions
     const handleAddTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-
+        
         setTwitterLoading(true);
         setSyncStatus('syncing');
         try {
@@ -190,7 +190,14 @@ export default function ProfilePage() {
                 twitter_handle: formattedUsername
             };
 
+            console.log('Saving Twitter username to Firebase:', {
+                profileData,
+                user,
+                formData
+            });
+
             const updatedUser = await updateProfile(profileData);
+            console.log('Firebase response:', updatedUser);
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
 

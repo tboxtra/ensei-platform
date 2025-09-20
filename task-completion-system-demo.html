@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Completion System Demo - Comprehensive System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .glass-effect {
+            background: rgba(31, 41, 55, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .inset-shadow {
+            box-shadow: inset -2px -2px 6px rgba(0, 0, 0, 0.4), inset 2px 2px 6px rgba(255, 255, 255, 0.05);
+        }
+
+        .inset-shadow-hover:hover {
+            box-shadow: inset -1px -1px 3px rgba(0, 0, 0, 0.3), inset 1px 1px 3px rgba(255, 255, 255, 0.08);
+        }
+
+        .task-button {
+            transition: all 0.2s ease;
+            box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.3), inset 1px 1px 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .task-button:hover {
+            box-shadow: inset -1px -1px 1px rgba(0, 0, 0, 0.2), inset 1px 1px 1px rgba(255, 255, 255, 0.15);
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+
+        <!-- Header -->
+        <div class="text-center space-y-4">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+                Task Completion System Demo
+            </h1>
+            <p class="text-gray-400 text-lg">
+                Comprehensive System with Link Submission & Direct Verification
+            </p>
+            <div class="flex justify-center space-x-4 text-sm">
+                <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                    🔗 Link Submission Tasks
+                </span>
+                <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                    ⚡ Direct Verification Tasks
+                </span>
+            </div>
+        </div>
+
+        <!-- Color System Legend -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="palette" class="w-6 h-6"></i>
+                Standard Color System
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="space-y-2">
+                    <div
+                        class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-lg">
+                        Not Completed
+                    </div>
+                    <p class="text-xs text-gray-400">Initial state - ready to start</p>
+                </div>
+                <div class="space-y-2">
+                    <div
+                        class="task-button bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg">
+                        Completed/Pending
+                    </div>
+                    <p class="text-xs text-gray-400">Task done, awaiting verification</p>
+                </div>
+                <div class="space-y-2">
+                    <div
+                        class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg">
+                        Verified ✓
+                    </div>
+                    <p class="text-xs text-gray-400">Approved by creator</p>
+                </div>
+                <div class="space-y-2">
+                    <div class="task-button bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg">
+                        Flagged ⚠️
+                    </div>
+                    <p class="text-xs text-gray-400">Needs to be redone</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Types Demo -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="list-checks" class="w-6 h-6"></i>
+                Task Types & Completion Flows
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Link Submission Tasks -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-blue-400 flex items-center gap-2">
+                        <i data-lucide="link" class="w-5 h-5"></i>
+                        Link Submission Tasks
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium">Comment Task</span>
+                                <span
+                                    class="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
+                                    Link Required
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                        Comment on Twitter
+                                    </button>
+                                    <button
+                                        class="task-button bg-gray-500/20 text-gray-400 border border-gray-500/30 px-3 py-1 rounded text-sm cursor-not-allowed">
+                                        Complete Intent First
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Flow: Open Twitter → Submit Link → Creator Verifies
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium">Quote Task</span>
+                                <span
+                                    class="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
+                                    Link Required
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded text-sm">
+                                        ✓ Completed
+                                    </button>
+                                    <button
+                                        class="task-button bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded text-sm">
+                                        Verify Task
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Status: Intent completed, ready for verification
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Direct Verification Tasks -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-green-400 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                        Direct Verification Tasks
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium">Like Task</span>
+                                <span
+                                    class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/30">
+                                    Direct Verify
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                        Like on Twitter
+                                    </button>
+                                    <button
+                                        class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                        Verify Like
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Flow: Open Twitter → Verify Directly (No Link Needed)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium">Follow Task</span>
+                                <span
+                                    class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/30">
+                                    Direct Verify
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded text-sm">
+                                        ✓ Completed
+                                    </button>
+                                    <button
+                                        class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded text-sm">
+                                        ✓ Verified
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Status: Completed and verified automatically
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mission Card Demo -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="layers" class="w-6 h-6"></i>
+                Mission Card with Task Buttons
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Mission Card -->
+                <div class="glass-effect rounded-xl p-4 inset-shadow-hover">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                                <span class="text-white text-xs">🐦</span>
+                            </div>
+                            <div class="font-semibold text-white text-sm">Twitter Engage Mission</div>
+                        </div>
+                        <span
+                            class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                            Fixed
+                        </span>
+                    </div>
+
+                    <div class="bg-gray-800/30 rounded-lg p-3 mb-3 aspect-[4/3] flex items-center justify-center">
+                        <p class="text-gray-300 text-sm text-center">
+                            Sample tweet content would be embedded here
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between text-sm mb-3">
+                        <div class="text-green-400 font-semibold">100 HONORS</div>
+                        <div class="text-gray-400">50 winners</div>
+                    </div>
+
+                    <!-- Task Buttons -->
+                    <div class="flex flex-wrap gap-1.5 mb-3">
+                        <button
+                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                            Like
+                        </button>
+                        <button
+                            class="task-button bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded-full text-xs">
+                            Comment
+                        </button>
+                        <button
+                            class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                            Follow ✓
+                        </button>
+                        <button
+                            class="task-button bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded-full text-xs relative">
+                            <i data-lucide="flag" class="w-3 h-3 inline mr-1"></i>
+                            Quote
+                        </button>
+                    </div>
+
+                    <div class="flex items-center">
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                        <span class="text-sm text-gray-400">In Progress</span>
+                    </div>
+                </div>
+
+                <!-- Task Details Panel -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold">Task Details & Actions</h3>
+
+                    <!-- Like Task (Direct Verification) -->
+                    <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium">Like Task</span>
+                            <span
+                                class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/30">
+                                Direct Verify
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                    Like on Twitter
+                                </button>
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                    Verify Like
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                Click "Like on Twitter" to open Twitter, then "Verify Like" to complete.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Comment Task (Link Submission) -->
+                    <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium">Comment Task</span>
+                            <span
+                                class="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
+                                Link Required
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                    ✓ Completed
+                                </button>
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                    Verify Comment
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                Intent completed. Click "Verify Comment" to open link submission slider.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Flagged Task -->
+                    <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium">Quote Task</span>
+                            <span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded border border-red-500/30">
+                                Flagged
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                    Quote on Twitter
+                                </button>
+                                <button
+                                    class="task-button bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1 rounded text-sm">
+                                    Redo Task
+                                </button>
+                            </div>
+                            <div class="bg-red-900/20 border border-red-500/30 rounded p-2">
+                                <p class="text-xs text-red-200">
+                                    <i data-lucide="alert-triangle" class="w-3 h-3 inline mr-1"></i>
+                                    <strong>Flagged:</strong> Please provide a more meaningful quote with your own
+                                    thoughts.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Link Submission Slider Demo -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="link" class="w-6 h-6"></i>
+                Link Submission Slider Demo
+            </h2>
+
+            <div class="space-y-4">
+                <p class="text-gray-300">
+                    For comment and quote tasks, clicking "Verify" opens a link submission slider between the buttons.
+                </p>
+
+                <!-- Demo of the slider -->
+                <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                    <h3 class="text-white font-medium mb-3">Comment Task - Link Submission Flow</h3>
+
+                    <!-- Step 1: Initial state -->
+                    <div class="space-y-2 mb-4">
+                        <p class="text-sm text-gray-400">Step 1: After completing intent</p>
+                        <div class="flex gap-2">
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                ✓ Completed
+                            </button>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Verify Comment
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Slider opened -->
+                    <div class="space-y-2 mb-4">
+                        <p class="text-sm text-gray-400">Step 2: Click "Verify Comment" - Slider opens</p>
+                        <div class="flex gap-2 items-center">
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                ✓ Completed
+                            </button>
+                            <div class="w-64">
+                                <input type="text" placeholder="Submit Comment Link"
+                                    class="w-full px-2 py-1 rounded-lg text-xs font-medium bg-gray-800/40 text-white placeholder-gray-400 border border-gray-700/50 focus:border-blue-500/50 focus:outline-none transition-all duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]" />
+                            </div>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Verify
+                            </button>
+                            <button
+                                class="task-button bg-gray-500/20 text-gray-400 border border-gray-500/30 px-2 py-1 rounded-full text-xs">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: After submission -->
+                    <div class="space-y-2">
+                        <p class="text-sm text-gray-400">Step 3: After link submission - Task verified</p>
+                        <div class="flex gap-2">
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                ✓ Completed
+                            </button>
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                ✓ Verified
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <p class="text-blue-200 text-sm">
+                        <strong>Key Features:</strong> The link submission slider appears between the action buttons,
+                        allowing users to paste their comment/quote link. After submission, the task status changes
+                        to "Verified" and the creator can see the submitted link in the "My Missions" page.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Features -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="settings" class="w-6 h-6"></i>
+                System Features & Benefits
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>
+                        <h3 class="font-semibold">Unified System</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        Single source of truth for all task completions, eliminating data inconsistencies.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 text-blue-400"></i>
+                        <h3 class="font-semibold">Real-time Updates</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        React Query integration provides instant UI updates without page reloads.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="palette" class="w-5 h-5 text-yellow-400"></i>
+                        <h3 class="font-semibold">Consistent Colors</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        Standardized color system across all components for better UX.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="link" class="w-5 h-5 text-purple-400"></i>
+                        <h3 class="font-semibold">Flexible Workflows</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        Supports both link submission and direct verification workflows.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="shield" class="w-5 h-5 text-red-400"></i>
+                        <h3 class="font-semibold">Flagging System</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        Creators can flag tasks with reasons, users can redo them.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="zap" class="w-5 h-5 text-green-400"></i>
+                        <h3 class="font-semibold">Optimistic Updates</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        UI updates immediately with rollback on errors for smooth UX.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Implementation -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="code" class="w-6 h-6"></i>
+                Technical Implementation
+            </h2>
+
+            <div class="space-y-4">
+                <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                    <h3 class="font-semibold text-blue-400 mb-2">Core Files Created/Updated:</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">comprehensive-task-system.ts</code> - Core
+                            system logic with link submission</li>
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">useComprehensiveTaskSystem.ts</code> - React
+                            Query hooks with link completion</li>
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">CompactMissionCard.tsx</code> - Updated UI
+                            with InlineVerification</li>
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">InlineVerification.tsx</code> - Link
+                            submission slider component</li>
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">completeTaskWithLink()</code> - New function
+                            for link submissions</li>
+                    </ul>
+                </div>
+
+                <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                    <h3 class="font-semibold text-green-400 mb-2">Key Features:</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• Two task types: Link Submission & Direct Verification</li>
+                        <li>• Link submission slider for comment/quote tasks</li>
+                        <li>• Action buttons match task button size and structure</li>
+                        <li>• Standardized color system (Blue → Yellow → Green → Red)</li>
+                        <li>• Real-time updates with React Query</li>
+                        <li>• Comprehensive error handling and rollback</li>
+                        <li>• Flagging system with reason display</li>
+                        <li>• Optimistic updates for smooth UX</li>
+                    </ul>
+                </div>
+
+                <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                    <h3 class="font-semibold text-yellow-400 mb-2">Task Completion Flow:</h3>
+                    <div class="text-sm text-gray-300 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs">1</span>
+                            <span>User clicks task button (Like, Comment, etc.)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs">2</span>
+                            <span>System determines task type (Link vs Direct)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs">3</span>
+                            <span>User completes action (Twitter intent or direct verify)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs">4</span>
+                            <span>For link tasks: Slider opens for link submission</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs">5</span>
+                            <span>System updates status and UI in real-time</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval Section -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow border-2 border-yellow-500/30">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 text-yellow-400">
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                Ready for Approval
+            </h2>
+
+            <div class="space-y-4">
+                <p class="text-gray-300">
+                    This comprehensive task completion system has been implemented with:
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-green-400">✅ Completed Features:</h3>
+                        <ul class="text-sm text-gray-300 space-y-1">
+                            <li>• Unified task completion system</li>
+                            <li>• Two workflow types (Link + Direct)</li>
+                            <li>• Standard color system</li>
+                            <li>• Real-time updates</li>
+                            <li>• Flagging system</li>
+                            <li>• Error handling</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-blue-400">🔧 Technical Details:</h3>
+                        <ul class="text-sm text-gray-300 space-y-1">
+                            <li>• React Query integration</li>
+                            <li>• Firebase Firestore backend</li>
+                            <li>• TypeScript type safety</li>
+                            <li>• Optimistic updates</li>
+                            <li>• Cache invalidation</li>
+                            <li>• Component reusability</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                    <p class="text-yellow-200 text-sm">
+                        <strong>Note:</strong> The system is ready for deployment. All task completion flows have been
+                        tested and the color system is standardized.
+                        The "My Missions" page will now show real-time updates without requiring page reloads.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Add some interactive functionality for demo
+        document.addEventListener('DOMContentLoaded', function () {
+            // Add click handlers to demo buttons
+            const demoButtons = document.querySelectorAll('.task-button');
+            demoButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    // Add a subtle animation
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Completion System Demo - Comprehensive System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .glass-effect {
+            background: rgba(31, 41, 55, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .inset-shadow {
+            box-shadow: inset -2px -2px 6px rgba(0, 0, 0, 0.4), inset 2px 2px 6px rgba(255, 255, 255, 0.05);
+        }
+
+        .inset-shadow-hover:hover {
+            box-shadow: inset -1px -1px 3px rgba(0, 0, 0, 0.3), inset 1px 1px 3px rgba(255, 255, 255, 0.08);
+        }
+
+        .task-button {
+            transition: all 0.2s ease;
+            box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.3), inset 1px 1px 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .task-button:hover {
+            box-shadow: inset -1px -1px 1px rgba(0, 0, 0, 0.2), inset 1px 1px 1px rgba(255, 255, 255, 0.15);
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+
+        <!-- Header -->
+        <div class="text-center space-y-4">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+                Task Completion System Demo
+            </h1>
+            <p class="text-gray-400 text-lg">
+                Comprehensive System with Link Submission & Direct Verification
+            </p>
+            <div class="flex justify-center space-x-4 text-sm">
+                <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                    🔗 Link Submission Tasks
+                </span>
+                <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                    ⚡ Direct Verification Tasks
+                </span>
+            </div>
+        </div>
+
+        <!-- Color System Legend -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="palette" class="w-6 h-6"></i>
+                Standard Color System
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="space-y-2">
+                    <div
+                        class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-lg">
+                        Not Completed
+                    </div>
+                    <p class="text-xs text-gray-400">Initial state - ready to start</p>
+                </div>
+                <div class="space-y-2">
+                    <div
+                        class="task-button bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg">
+                        Completed/Pending
+                    </div>
+                    <p class="text-xs text-gray-400">Task done, awaiting verification</p>
+                </div>
+                <div class="space-y-2">
+                    <div
+                        class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg">
+                        Verified ✓
+                    </div>
+                    <p class="text-xs text-gray-400">Approved by creator</p>
+                </div>
+                <div class="space-y-2">
+                    <div class="task-button bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg">
+                        Flagged ⚠️
+                    </div>
+                    <p class="text-xs text-gray-400">Needs to be redone</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Types Demo -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="list-checks" class="w-6 h-6"></i>
+                Task Types & Completion Flows
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Link Submission Tasks -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-blue-400 flex items-center gap-2">
+                        <i data-lucide="link" class="w-5 h-5"></i>
+                        Link Submission Tasks
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium">Comment Task</span>
+                                <span
+                                    class="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
+                                    Link Required
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                        Comment on Twitter
+                                    </button>
+                                    <button
+                                        class="task-button bg-gray-500/20 text-gray-400 border border-gray-500/30 px-3 py-1 rounded text-sm cursor-not-allowed">
+                                        Complete Intent First
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Flow: Open Twitter → Submit Link → Creator Verifies
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium">Quote Task</span>
+                                <span
+                                    class="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
+                                    Link Required
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded text-sm">
+                                        ✓ Completed
+                                    </button>
+                                    <button
+                                        class="task-button bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded text-sm">
+                                        Verify Task
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Status: Intent completed, ready for verification
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Direct Verification Tasks -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-green-400 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                        Direct Verification Tasks
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium">Like Task</span>
+                                <span
+                                    class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/30">
+                                    Direct Verify
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                        Like on Twitter
+                                    </button>
+                                    <button
+                                        class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                        Verify Like
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Flow: Open Twitter → Verify Directly (No Link Needed)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium">Follow Task</span>
+                                <span
+                                    class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/30">
+                                    Direct Verify
+                                </span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded text-sm">
+                                        ✓ Completed
+                                    </button>
+                                    <button
+                                        class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded text-sm">
+                                        ✓ Verified
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Status: Completed and verified automatically
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mission Card Demo -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="layers" class="w-6 h-6"></i>
+                Mission Card with Task Buttons
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Mission Card -->
+                <div class="glass-effect rounded-xl p-4 inset-shadow-hover">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                                <span class="text-white text-xs">🐦</span>
+                            </div>
+                            <div class="font-semibold text-white text-sm">Twitter Engage Mission</div>
+                        </div>
+                        <span
+                            class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                            Fixed
+                        </span>
+                    </div>
+
+                    <div class="bg-gray-800/30 rounded-lg p-3 mb-3 aspect-[4/3] flex items-center justify-center">
+                        <p class="text-gray-300 text-sm text-center">
+                            Sample tweet content would be embedded here
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between text-sm mb-3">
+                        <div class="text-green-400 font-semibold">100 HONORS</div>
+                        <div class="text-gray-400">50 winners</div>
+                    </div>
+
+                    <!-- Task Buttons -->
+                    <div class="flex flex-wrap gap-1.5 mb-3">
+                        <button
+                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                            Like
+                        </button>
+                        <button
+                            class="task-button bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded-full text-xs">
+                            Comment
+                        </button>
+                        <button
+                            class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                            Follow ✓
+                        </button>
+                        <button
+                            class="task-button bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded-full text-xs relative">
+                            <i data-lucide="flag" class="w-3 h-3 inline mr-1"></i>
+                            Quote
+                        </button>
+                    </div>
+
+                    <div class="flex items-center">
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                        <span class="text-sm text-gray-400">In Progress</span>
+                    </div>
+                </div>
+
+                <!-- Task Details Panel -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold">Task Details & Actions</h3>
+
+                    <!-- Like Task (Direct Verification) -->
+                    <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium">Like Task</span>
+                            <span
+                                class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/30">
+                                Direct Verify
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                    Like on Twitter
+                                </button>
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                    Verify Like
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                Click "Like on Twitter" to open Twitter, then "Verify Like" to complete.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Comment Task (Link Submission) -->
+                    <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium">Comment Task</span>
+                            <span
+                                class="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
+                                Link Required
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                    ✓ Completed
+                                </button>
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                    Verify Comment
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                Intent completed. Click "Verify Comment" to open link submission slider.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Flagged Task -->
+                    <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium">Quote Task</span>
+                            <span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded border border-red-500/30">
+                                Flagged
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded text-sm">
+                                    Quote on Twitter
+                                </button>
+                                <button
+                                    class="task-button bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1 rounded text-sm">
+                                    Redo Task
+                                </button>
+                            </div>
+                            <div class="bg-red-900/20 border border-red-500/30 rounded p-2">
+                                <p class="text-xs text-red-200">
+                                    <i data-lucide="alert-triangle" class="w-3 h-3 inline mr-1"></i>
+                                    <strong>Flagged:</strong> Please provide a more meaningful quote with your own
+                                    thoughts.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Link Submission Slider Demo -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="link" class="w-6 h-6"></i>
+                Link Submission Slider Demo
+            </h2>
+
+            <div class="space-y-4">
+                <p class="text-gray-300">
+                    For comment and quote tasks, clicking "Verify" opens a link submission slider between the buttons.
+                </p>
+
+                <!-- Demo of the slider -->
+                <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                    <h3 class="text-white font-medium mb-3">Comment Task - Link Submission Flow</h3>
+
+                    <!-- Step 1: Initial state -->
+                    <div class="space-y-2 mb-4">
+                        <p class="text-sm text-gray-400">Step 1: After completing intent</p>
+                        <div class="flex gap-2">
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                ✓ Completed
+                            </button>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Verify Comment
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Slider opened -->
+                    <div class="space-y-2 mb-4">
+                        <p class="text-sm text-gray-400">Step 2: Click "Verify Comment" - Slider opens</p>
+                        <div class="flex gap-2 items-center">
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                ✓ Completed
+                            </button>
+                            <div class="w-64">
+                                <input type="text" placeholder="Submit Comment Link"
+                                    class="w-full px-2 py-1 rounded-lg text-xs font-medium bg-gray-800/40 text-white placeholder-gray-400 border border-gray-700/50 focus:border-blue-500/50 focus:outline-none transition-all duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]" />
+                            </div>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Verify
+                            </button>
+                            <button
+                                class="task-button bg-gray-500/20 text-gray-400 border border-gray-500/30 px-2 py-1 rounded-full text-xs">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: After submission -->
+                    <div class="space-y-2">
+                        <p class="text-sm text-gray-400">Step 3: After link submission - Task verified</p>
+                        <div class="flex gap-2">
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                ✓ Completed
+                            </button>
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                ✓ Verified
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <p class="text-blue-200 text-sm">
+                        <strong>Key Features:</strong> The link submission slider appears between the action buttons,
+                        allowing users to paste their comment/quote link. After submission, the task status changes
+                        to "Verified" and the creator can see the submitted link in the "My Missions" page.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Features -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="settings" class="w-6 h-6"></i>
+                System Features & Benefits
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>
+                        <h3 class="font-semibold">Unified System</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        Single source of truth for all task completions, eliminating data inconsistencies.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 text-blue-400"></i>
+                        <h3 class="font-semibold">Real-time Updates</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        React Query integration provides instant UI updates without page reloads.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="palette" class="w-5 h-5 text-yellow-400"></i>
+                        <h3 class="font-semibold">Consistent Colors</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        Standardized color system across all components for better UX.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="link" class="w-5 h-5 text-purple-400"></i>
+                        <h3 class="font-semibold">Flexible Workflows</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        Supports both link submission and direct verification workflows.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="shield" class="w-5 h-5 text-red-400"></i>
+                        <h3 class="font-semibold">Flagging System</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        Creators can flag tasks with reasons, users can redo them.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="zap" class="w-5 h-5 text-green-400"></i>
+                        <h3 class="font-semibold">Optimistic Updates</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">
+                        UI updates immediately with rollback on errors for smooth UX.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Implementation -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="code" class="w-6 h-6"></i>
+                Technical Implementation
+            </h2>
+
+            <div class="space-y-4">
+                <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                    <h3 class="font-semibold text-blue-400 mb-2">Core Files Created/Updated:</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">comprehensive-task-system.ts</code> - Core
+                            system logic with link submission</li>
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">useComprehensiveTaskSystem.ts</code> - React
+                            Query hooks with link completion</li>
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">CompactMissionCard.tsx</code> - Updated UI
+                            with InlineVerification</li>
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">InlineVerification.tsx</code> - Link
+                            submission slider component</li>
+                        <li>• <code class="bg-gray-700 px-2 py-1 rounded">completeTaskWithLink()</code> - New function
+                            for link submissions</li>
+                    </ul>
+                </div>
+
+                <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                    <h3 class="font-semibold text-green-400 mb-2">Key Features:</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• Two task types: Link Submission & Direct Verification</li>
+                        <li>• Link submission slider for comment/quote tasks</li>
+                        <li>• Action buttons match task button size and structure</li>
+                        <li>• Standardized color system (Blue → Yellow → Green → Red)</li>
+                        <li>• Real-time updates with React Query</li>
+                        <li>• Comprehensive error handling and rollback</li>
+                        <li>• Flagging system with reason display</li>
+                        <li>• Optimistic updates for smooth UX</li>
+                    </ul>
+                </div>
+
+                <div class="bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                    <h3 class="font-semibold text-yellow-400 mb-2">Task Completion Flow:</h3>
+                    <div class="text-sm text-gray-300 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs">1</span>
+                            <span>User clicks task button (Like, Comment, etc.)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs">2</span>
+                            <span>System determines task type (Link vs Direct)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs">3</span>
+                            <span>User completes action (Twitter intent or direct verify)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs">4</span>
+                            <span>For link tasks: Slider opens for link submission</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs">5</span>
+                            <span>System updates status and UI in real-time</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval Section -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow border-2 border-yellow-500/30">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 text-yellow-400">
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                Ready for Approval
+            </h2>
+
+            <div class="space-y-4">
+                <p class="text-gray-300">
+                    This comprehensive task completion system has been implemented with:
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-green-400">✅ Completed Features:</h3>
+                        <ul class="text-sm text-gray-300 space-y-1">
+                            <li>• Unified task completion system</li>
+                            <li>• Two workflow types (Link + Direct)</li>
+                            <li>• Standard color system</li>
+                            <li>• Real-time updates</li>
+                            <li>• Flagging system</li>
+                            <li>• Error handling</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-blue-400">🔧 Technical Details:</h3>
+                        <ul class="text-sm text-gray-300 space-y-1">
+                            <li>• React Query integration</li>
+                            <li>• Firebase Firestore backend</li>
+                            <li>• TypeScript type safety</li>
+                            <li>• Optimistic updates</li>
+                            <li>• Cache invalidation</li>
+                            <li>• Component reusability</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                    <p class="text-yellow-200 text-sm">
+                        <strong>Note:</strong> The system is ready for deployment. All task completion flows have been
+                        tested and the color system is standardized.
+                        The "My Missions" page will now show real-time updates without requiring page reloads.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Add some interactive functionality for demo
+        document.addEventListener('DOMContentLoaded', function () {
+            // Add click handlers to demo buttons
+            const demoButtons = document.querySelectorAll('.task-button');
+            demoButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    // Add a subtle animation
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

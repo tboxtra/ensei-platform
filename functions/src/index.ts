@@ -703,10 +703,16 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
   try {
     const userId = req.user.uid;
     const updateData = req.body;
+    
+    console.log('Profile update request:', {
+      userId,
+      updateData,
+      body: req.body
+    });
 
     // Get current user document to preserve existing fields
     const userDoc = await db.collection('users').doc(userId).get();
-    
+
     if (!userDoc.exists) {
       // Create new user profile if it doesn't exist
       const newUser = {
@@ -754,6 +760,13 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
     // Get updated user document
     const updatedUserDoc = await db.collection('users').doc(userId).get();
     const user = updatedUserDoc.data();
+    
+    console.log('Profile update completed:', {
+      userId,
+      savedUser: user,
+      twitter: user?.twitter,
+      twitter_handle: user?.twitter_handle
+    });
 
     res.json(user);
   } catch (error: any) {

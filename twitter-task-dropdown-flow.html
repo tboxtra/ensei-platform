@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Task Dropdown Flow - Direct vs Link Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .glass-effect {
+            background: rgba(31, 41, 55, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .inset-shadow {
+            box-shadow: inset -2px -2px 6px rgba(0, 0, 0, 0.4), inset 2px 2px 6px rgba(255, 255, 255, 0.05);
+        }
+
+        .task-button {
+            transition: all 0.2s ease;
+            box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.3), inset 1px 1px 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .task-button:hover {
+            box-shadow: inset -1px -1px 1px rgba(0, 0, 0, 0.2), inset 1px 1px 1px rgba(255, 255, 255, 0.15);
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
+        }
+
+        .flow-step {
+            border-left: 3px solid #3b82f6;
+            padding-left: 1rem;
+            margin-left: 0.5rem;
+        }
+
+        .flow-step.completed {
+            border-left-color: #10b981;
+        }
+
+        .flow-step.in-progress {
+            border-left-color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen p-4">
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="text-center space-y-4">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                Twitter Task Dropdown Flow
+            </h1>
+            <p class="text-gray-400 text-lg">
+                Complete visual demonstration of Twitter task completion with dropdown interactions
+            </p>
+        </div>
+
+        <!-- Twitter Mission Card -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="twitter" class="w-6 h-6 text-blue-400"></i>
+                Twitter Mission - Task Completion Flow
+            </h2>
+
+            <!-- Mission Card -->
+            <div class="bg-gray-800/40 rounded-xl p-4 border border-gray-700/50 mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                            <span class="text-white text-xs">🐦</span>
+                        </div>
+                        <div class="font-semibold text-white text-sm">Twitter Mission</div>
+                    </div>
+                    <span
+                        class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                        100 HONORS
+                    </span>
+                </div>
+
+                <!-- Mission Content -->
+                <div class="bg-gray-700/40 rounded-lg p-3 mb-3">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div
+                            class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                            C
+                        </div>
+                        <div>
+                            <div class="font-medium text-white text-sm">Company Account</div>
+                            <div class="text-xs text-gray-400">@company • 2 days ago</div>
+                        </div>
+                    </div>
+                    <p class="text-white text-sm mb-3">🚀 Excited to announce our revolutionary new product! This is
+                        going to change everything. #Innovation #Tech</p>
+                    <div class="text-xs text-gray-400">💬 1,247 comments • 🔄 892 retweets • ❤️ 2,156 likes</div>
+                </div>
+
+                <!-- Task Buttons - Initial State -->
+                <div class="flex flex-wrap gap-1.5 mb-3">
+                    <div class="relative">
+                        <button
+                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs"
+                            onclick="toggleDropdown('like-1')">
+                            Like
+                        </button>
+                        <!-- Dropdown for Like Task -->
+                        <div id="like-1-dropdown"
+                            class="hidden absolute top-full left-0 mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-gray-700/50 z-20 min-w-[200px]">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap"
+                                    onclick="simulateDirectVerification('like-1')">
+                                    Open Twitter
+                                </button>
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap"
+                                    onclick="simulateDirectVerification('like-1')">
+                                    Verify Like
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        <button
+                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs"
+                            onclick="toggleDropdown('comment-1')">
+                            Comment
+                        </button>
+                        <!-- Dropdown for Comment Task -->
+                        <div id="comment-1-dropdown"
+                            class="hidden absolute top-full left-0 mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-gray-700/50 z-20 min-w-[200px]">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap"
+                                    onclick="simulateLinkVerification('comment-1')">
+                                    Open Twitter
+                                </button>
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap"
+                                    onclick="simulateLinkVerification('comment-1')">
+                                    Verify Comment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        <button
+                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs"
+                            onclick="toggleDropdown('follow-1')">
+                            Follow
+                        </button>
+                        <!-- Dropdown for Follow Task -->
+                        <div id="follow-1-dropdown"
+                            class="hidden absolute top-full left-0 mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-gray-700/50 z-20 min-w-[200px]">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap"
+                                    onclick="simulateDirectVerification('follow-1')">
+                                    Open Twitter
+                                </button>
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap"
+                                    onclick="simulateDirectVerification('follow-1')">
+                                    Verify Follow
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        <button
+                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs"
+                            onclick="toggleDropdown('quote-1')">
+                            Quote
+                        </button>
+                        <!-- Dropdown for Quote Task -->
+                        <div id="quote-1-dropdown"
+                            class="hidden absolute top-full left-0 mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-gray-700/50 z-20 min-w-[200px]">
+                            <div class="flex gap-2">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap"
+                                    onclick="simulateLinkVerification('quote-1')">
+                                    Open Twitter
+                                </button>
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap"
+                                    onclick="simulateLinkVerification('quote-1')">
+                                    Verify Quote
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Indicator -->
+                <div class="flex items-center">
+                    <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse mr-2"></div>
+                    <span class="text-sm text-gray-400">Ready to Start</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direct Verification Flow -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="zap" class="w-6 h-6 text-green-400"></i>
+                Direct Verification Tasks (Like, Follow)
+            </h2>
+            <p class="text-gray-400 mb-6">Tasks that can be verified instantly without requiring link submission</p>
+
+            <div class="space-y-4">
+                <!-- Step 1: Initial State -->
+                <div class="flow-step">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span
+                            class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-semibold">1</span>
+                        <span class="text-sm font-medium text-gray-300">Initial State - Task buttons ready</span>
+                    </div>
+                    <div class="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
+                        <div class="flex gap-1.5">
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Like
+                            </button>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Follow
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Blue color indicates task is not started</p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Click Task - Dropdown Opens -->
+                <div class="flow-step">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span
+                            class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-semibold">2</span>
+                        <span class="text-sm font-medium text-gray-300">User clicks "Like" - Dropdown opens</span>
+                    </div>
+                    <div class="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
+                        <div class="flex gap-1.5">
+                            <div class="relative">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                    Like
+                                </button>
+                                <!-- Dropdown visible -->
+                                <div
+                                    class="absolute top-full left-0 mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-gray-700/50 z-20 min-w-[200px]">
+                                    <div class="flex gap-2">
+                                        <button
+                                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap">
+                                            Open Twitter
+                                        </button>
+                                        <button
+                                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap">
+                                            Verify Like
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Follow
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Dropdown appears with "Open Twitter" and "Verify Like"
+                            options</p>
+                    </div>
+                </div>
+
+                <!-- Step 3: After Verification -->
+                <div class="flow-step completed">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span
+                            class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs font-semibold">3</span>
+                        <span class="text-sm font-medium text-gray-300">After verification - Task name retained, color
+                            changed</span>
+                    </div>
+                    <div class="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
+                        <div class="flex gap-1.5">
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                Like
+                            </button>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Follow
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Task name "Like" is retained, only the color changes to
+                            green (verified)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Link Verification Flow -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="link" class="w-6 h-6 text-blue-400"></i>
+                Link Verification Tasks (Comment, Quote)
+            </h2>
+            <p class="text-gray-400 mb-6">Tasks that require link submission for verification</p>
+
+            <div class="space-y-4">
+                <!-- Step 1: Initial State -->
+                <div class="flow-step">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span
+                            class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-semibold">1</span>
+                        <span class="text-sm font-medium text-gray-300">Initial State - Task buttons ready</span>
+                    </div>
+                    <div class="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
+                        <div class="flex gap-1.5">
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Comment
+                            </button>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Quote
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Blue color indicates task is not started</p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Click Task - Dropdown Opens -->
+                <div class="flow-step">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span
+                            class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-semibold">2</span>
+                        <span class="text-sm font-medium text-gray-300">User clicks "Comment" - Dropdown opens</span>
+                    </div>
+                    <div class="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
+                        <div class="flex gap-1.5">
+                            <div class="relative">
+                                <button
+                                    class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                    Comment
+                                </button>
+                                <!-- Dropdown visible -->
+                                <div
+                                    class="absolute top-full left-0 mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-gray-700/50 z-20 min-w-[200px]">
+                                    <div class="flex gap-2">
+                                        <button
+                                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap">
+                                            Open Twitter
+                                        </button>
+                                        <button
+                                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs whitespace-nowrap">
+                                            Verify Comment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Quote
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Dropdown appears with "Open Twitter" and "Verify Comment"
+                            options</p>
+                    </div>
+                </div>
+
+                <!-- Step 3: After Clicking "Verify Comment" - Link Submission Slider -->
+                <div class="flow-step in-progress">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span
+                            class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-xs font-semibold">3</span>
+                        <span class="text-sm font-medium text-gray-300">User clicks "Verify Comment" - Link submission
+                            slider appears</span>
+                    </div>
+                    <div class="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
+                        <div class="flex gap-1.5">
+                            <div class="relative">
+                                <button
+                                    class="task-button bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded-full text-xs">
+                                    Comment
+                                </button>
+                                <!-- Link submission slider in dropdown -->
+                                <div
+                                    class="absolute top-full left-0 mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-gray-700/50 z-20 min-w-[200px]">
+                                    <div
+                                        class="flex items-center gap-2 bg-gray-700/50 rounded-lg p-2 border border-gray-600/50">
+                                        <input type="text" placeholder="Paste comment link..."
+                                            class="px-2 py-1 rounded text-xs bg-gray-600/50 text-white placeholder-gray-400 border border-gray-500/50 focus:border-blue-500/50 focus:outline-none w-40">
+                                        <button
+                                            class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-xs"
+                                            onclick="simulateLinkSubmit('comment-1')">
+                                            Submit
+                                        </button>
+                                        <button
+                                            class="task-button bg-gray-500/20 text-gray-400 border border-gray-500/30 px-2 py-1 rounded text-xs">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Quote
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Link submission slider appears in dropdown, task color
+                            changes to yellow (completed)</p>
+                    </div>
+                </div>
+
+                <!-- Step 4: After Link Submission -->
+                <div class="flow-step completed">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span
+                            class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs font-semibold">4</span>
+                        <span class="text-sm font-medium text-gray-300">Link submitted - Task verified
+                            immediately</span>
+                    </div>
+                    <div class="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
+                        <div class="flex gap-1.5">
+                            <button
+                                class="task-button bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs">
+                                Comment
+                            </button>
+                            <button
+                                class="task-button bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded-full text-xs">
+                                Quote
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Task name "Comment" is retained, color changes to green
+                            (verified)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Flow Summary -->
+        <div class="glass-effect rounded-xl p-6 inset-shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-6 h-6 text-green-400"></i>
+                Complete Flow Summary
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                    <h3 class="font-semibold text-green-400 mb-3">Direct Verification Tasks</h3>
+                    <div class="space-y-2 text-sm text-gray-300">
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-blue-500 rounded-full"></span>
+                            <span>Initial: Blue "Like" button</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-blue-500 rounded-full"></span>
+                            <span>Click: Dropdown with "Open Twitter" + "Verify Like"</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-green-500 rounded-full"></span>
+                            <span>Verified: Green "Like" button (name retained)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <h3 class="font-semibold text-blue-400 mb-3">Link Verification Tasks</h3>
+                    <div class="space-y-2 text-sm text-gray-300">
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-blue-500 rounded-full"></span>
+                            <span>Initial: Blue "Comment" button</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-blue-500 rounded-full"></span>
+                            <span>Click: Dropdown with "Open Twitter" + "Verify Comment"</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-yellow-500 rounded-full"></span>
+                            <span>Verify: Yellow "Comment" + Link submission slider</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-green-500 rounded-full"></span>
+                            <span>Submitted: Green "Comment" button (name retained)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 bg-gray-800/40 rounded-lg p-4 border border-gray-700/50">
+                <h3 class="font-semibold text-yellow-400 mb-2">Key Design Principles</h3>
+                <ul class="text-sm text-gray-300 space-y-1">
+                    <li>• <strong>Task names are always retained</strong> - Only colors change to indicate status</li>
+                    <li>• <strong>Dropdowns appear on demand</strong> - Clean interface until user interaction</li>
+                    <li>• <strong>Consistent color coding</strong> - Blue (not started), Yellow (completed), Green
+                        (verified)</li>
+                    <li>• <strong>Platform-specific actions</strong> - "Open Twitter" for all Twitter tasks</li>
+                    <li>• <strong>Immediate feedback</strong> - Optimistic updates for better UX</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Dropdown toggle functionality
+        function toggleDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId + '-dropdown');
+            if (dropdown) {
+                // Close all other dropdowns
+                document.querySelectorAll('[id$="-dropdown"]').forEach(dd => {
+                    if (dd.id !== dropdownId + '-dropdown') {
+                        dd.classList.add('hidden');
+                    }
+                });
+
+                // Toggle current dropdown
+                dropdown.classList.toggle('hidden');
+            }
+        }
+
+        // Simulate direct verification (Like, Follow)
+        function simulateDirectVerification(taskId) {
+            const taskButton = document.querySelector(`button[onclick="toggleDropdown('${taskId}')"]`);
+            if (taskButton) {
+                // Change to verified state
+                taskButton.className = taskButton.className.replace('bg-blue-500/20 text-blue-400 border-blue-500/30', 'bg-green-500/20 text-green-400 border-green-500/30');
+
+                // Close dropdown
+                const dropdown = document.getElementById(taskId + '-dropdown');
+                if (dropdown) {
+                    dropdown.classList.add('hidden');
+                }
+
+                // Show notification
+                showNotification('Task verified successfully!', 'success');
+            }
+        }
+
+        // Simulate link verification (Comment, Quote)
+        function simulateLinkVerification(taskId) {
+            const taskButton = document.querySelector(`button[onclick="toggleDropdown('${taskId}')"]`);
+            if (taskButton) {
+                // Change to completed state (yellow)
+                taskButton.className = taskButton.className.replace('bg-blue-500/20 text-blue-400 border-blue-500/30', 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30');
+
+                // Close dropdown
+                const dropdown = document.getElementById(taskId + '-dropdown');
+                if (dropdown) {
+                    dropdown.classList.add('hidden');
+                }
+
+                // Show notification
+                showNotification('Task completed! Please submit link for verification.', 'info');
+            }
+        }
+
+        // Simulate link submission
+        function simulateLinkSubmit(taskId) {
+            const taskButton = document.querySelector(`button[onclick="toggleDropdown('${taskId}')"]`);
+            if (taskButton) {
+                // Change to verified state (green)
+                taskButton.className = taskButton.className.replace('bg-yellow-500/20 text-yellow-400 border-yellow-500/30', 'bg-green-500/20 text-green-400 border-green-500/30');
+
+                // Close dropdown
+                const dropdown = document.getElementById(taskId + '-dropdown');
+                if (dropdown) {
+                    dropdown.classList.add('hidden');
+                }
+
+                // Show notification
+                showNotification('Link submitted! Task verified successfully.', 'success');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                    type === 'info' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                        'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                }`;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.relative')) {
+                document.querySelectorAll('[id$="-dropdown"]').forEach(dropdown => {
+                    dropdown.classList.add('hidden');
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
