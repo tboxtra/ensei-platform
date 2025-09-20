@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useApi } from '../../hooks/useApi';
+import { useLayoutData } from '../../hooks/useLayoutData';
+import { useNavigation } from '../../hooks/useNavigation';
 
 interface ModernLayoutProps {
     children: React.ReactNode;
@@ -10,63 +12,16 @@ interface ModernLayoutProps {
 }
 
 export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
-    const [user, setUser] = useState<any>(null);
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
-    const [quickStats, setQuickStats] = useState({
-        missionsCreated: 0,
-        missionsCompleted: 0,
-        totalEarned: 0
-    });
-    const { logout, getMissions } = useApi();
+    
+    // Industry Standard: Use centralized React Query data
+    const { user, quickStats, isLoading, isAuthenticated, userDisplayName, userAvatar, userEmail, refetch } = useLayoutData();
+    const { logout } = useApi();
+    const { navigateTo } = useNavigation();
 
-    useEffect(() => {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            setUser(JSON.parse(userData));
-        }
-        setIsLoading(false);
-    }, []);
-
-    // Fetch quick stats data
-    useEffect(() => {
-        const fetchQuickStats = async () => {
-            if (!user) return;
-
-            try {
-                const allMissions = await getMissions();
-
-                const userMissions = allMissions?.filter((mission: any) =>
-                    mission.created_by === user.id
-                ) || [];
-
-                const participatedMissions = allMissions?.filter((mission: any) =>
-                    mission.participants?.some((participant: any) => participant.id === user.id)
-                ) || [];
-
-                const missionsCreated = userMissions.length;
-                const missionsCompleted = participatedMissions.filter((mission: any) =>
-                    mission.status === 'completed' || mission.status === 'ended'
-                ).length;
-
-                const totalEarned = participatedMissions.reduce((total: number, mission: any) => {
-                    const participant = mission.participants?.find((p: any) => p.id === user.id);
-                    return total + (participant?.honors_earned || 0);
-                }, 0);
-
-                setQuickStats({
-                    missionsCreated,
-                    missionsCompleted,
-                    totalEarned
-                });
-            } catch (error) {
-                console.error('Error fetching quick stats:', error);
-            }
-        };
-
-        fetchQuickStats();
-    }, [user, getMissions]);
+    // Industry Standard: Data is now managed by React Query
+    // No need for manual localStorage or stats calculation
 
     // Scroll detection for mobile full-screen UI
     useEffect(() => {
@@ -92,15 +47,14 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     const handleLogout = async () => {
         try {
             await logout();
-            setUser(null);
-            window.location.href = '/auth/login';
+            // Industry Standard: Use navigation hook instead of window.location
+            navigateTo('/auth/login');
         } catch (err) {
             console.error('Logout failed:', err);
             // Fallback: clear localStorage and redirect
             localStorage.removeItem('user');
             localStorage.removeItem('token');
-            setUser(null);
-            window.location.href = '/auth/login';
+            navigateTo('/auth/login');
         }
     };
 
@@ -126,10 +80,10 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     }
 
     // If user is not authenticated and not on auth pages, redirect to login
-    if (!user && !currentPage?.startsWith('/auth')) {
-        // Use window.location for redirect to avoid hydration issues
+    if (!isAuthenticated && !currentPage?.startsWith('/auth')) {
+        // Industry Standard: Use navigation hook for consistent routing
         if (typeof window !== 'undefined') {
-            window.location.href = '/auth/login';
+            navigateTo('/auth/login');
         }
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
@@ -164,12 +118,12 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
-                        {user ? (
+                        {isAuthenticated ? (
                             <>
                                 {/* Hide honors on very small screens */}
                                 <div className="hidden sm:block text-center">
-                                    <div className="text-base sm:text-lg font-semibold text-green-400">0 Honors</div>
-                                    <div className="text-xs text-gray-400">≈ $0.00 USD</div>
+                                    <div className="text-base sm:text-lg font-semibold text-green-400">{quickStats.totalEarned.toLocaleString()} Honors</div>
+                                    <div className="text-xs text-gray-400">≈ ${(quickStats.totalEarned / 450).toFixed(2)} USD</div>
                                 </div>
                                 <div className="relative">
                                     <button
@@ -178,12 +132,12 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                     >
                                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-blue-500">
                                             <img
-                                                src={user.avatar}
-                                                alt={user.name}
+                                                src={userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail}`}
+                                                alt={userDisplayName}
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
-                                        <span className="hidden sm:block text-white font-medium text-sm sm:text-base">{user.name}</span>
+                                        <span className="hidden sm:block text-white font-medium text-sm sm:text-base">{userDisplayName}</span>
                                         <svg className="hidden sm:block w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                         </svg>
@@ -263,7 +217,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                     </nav>
 
                     {/* Quick Stats */}
-                    {user && (
+                    {isAuthenticated && (
                         <div className="mt-6 p-3 bg-gray-800/30 rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                             <h3 className="text-xs font-semibold text-white mb-2">Quick Stats</h3>
                             <div className="space-y-1 text-xs">
@@ -317,18 +271,18 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                         </div>
 
                         {/* User Info in Mobile Menu */}
-                        {user && (
+                        {isAuthenticated && (
                             <div className="mb-6 p-4 bg-gray-800/30 rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                                 <div className="flex items-center space-x-3 mb-3">
                                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-blue-500">
                                         <img
-                                            src={user.avatar}
-                                            alt={user.name}
+                                            src={userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail}`}
+                                            alt={userDisplayName}
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
                                     <div>
-                                        <div className="text-white font-medium text-sm">{user.name}</div>
+                                        <div className="text-white font-medium text-sm">{userDisplayName}</div>
                                         <div className="text-green-400 text-xs">{quickStats.totalEarned.toLocaleString()} Honors</div>
                                     </div>
                                 </div>
@@ -358,7 +312,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                         </nav>
 
                         {/* Quick Actions in Mobile Menu */}
-                        {user && (
+                        {isAuthenticated && (
                             <div className="mt-6 pt-6 border-t border-gray-700">
                                 <div className="space-y-2">
                                     <Link

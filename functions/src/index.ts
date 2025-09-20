@@ -453,6 +453,27 @@ app.post('/v1/missions', verifyFirebaseToken, async (req: any, res) => {
 
     const missionRef = await db.collection('missions').add(newMission);
 
+    // Industry Standard: Update user stats when mission is created
+    try {
+      const userRef = db.collection('users').doc(userId);
+      const userDoc = await userRef.get();
+      
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const currentMissionsCreated = userData?.stats?.missions_created || 0;
+        
+        await userRef.update({
+          'stats.missions_created': currentMissionsCreated + 1,
+          updated_at: new Date().toISOString()
+        });
+        
+        console.log(`Updated user ${userId} missions_created from ${currentMissionsCreated} to ${currentMissionsCreated + 1}`);
+      }
+    } catch (statsError) {
+      console.error('Error updating user stats:', statsError);
+      // Don't fail the mission creation if stats update fails
+    }
+
     const createdMission = {
       id: missionRef.id,
       ...newMission
@@ -1879,6 +1900,29 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
       total_honors_earned: totalHonors,
       updated_at: new Date().toISOString()
     });
+
+    // Industry Standard: Update user stats when task is completed
+    try {
+      const userRef = db.collection('users').doc(userId);
+      const userDoc = await userRef.get();
+      
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const currentMissionsCompleted = userData?.stats?.missions_completed || 0;
+        const currentTotalEarned = userData?.stats?.total_honors_earned || 0;
+        
+        await userRef.update({
+          'stats.missions_completed': currentMissionsCompleted + 1,
+          'stats.total_honors_earned': currentTotalEarned + taskHonors,
+          updated_at: new Date().toISOString()
+        });
+        
+        console.log(`Updated user ${userId} stats: missions_completed ${currentMissionsCompleted} -> ${currentMissionsCompleted + 1}, total_honors_earned ${currentTotalEarned} -> ${currentTotalEarned + taskHonors}`);
+      }
+    } catch (statsError) {
+      console.error('Error updating user stats:', statsError);
+      // Don't fail the task completion if stats update fails
+    }
 
     return res.json({
       success: true,

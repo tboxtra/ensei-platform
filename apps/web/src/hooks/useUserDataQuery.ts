@@ -93,7 +93,7 @@ export const useCombinedUserData = (): {
     const error = profileQuery.error || ratingsQuery.error;
 
     // Combine data when at least profile data is available
-    const combinedData: CombinedUserData | undefined = 
+    const combinedData: CombinedUserData | undefined =
         profileQuery.data
             ? {
                 profile: profileQuery.data,
