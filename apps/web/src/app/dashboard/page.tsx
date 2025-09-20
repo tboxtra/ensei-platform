@@ -29,7 +29,7 @@ export default function DashboardPage() {
 
         // Use global userStats for missions created
         const missionsCreated = userStats.missionsCreated;
-        
+
         // Load all missions for additional calculations
         const allMissions = await getMissions();
         const userData = localStorage.getItem('user');
@@ -58,8 +58,7 @@ export default function DashboardPage() {
           totalMissions: allMissions?.length || 0,
           userMissions: missionsCreated,
           usdSpent,
-          honorsEarned,
-          participatedMissions: participatedMissions.length
+          honorsEarned
         });
 
         // Load wallet balance
