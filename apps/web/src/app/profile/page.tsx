@@ -166,7 +166,7 @@ export default function ProfilePage() {
     // Twitter username management functions
     const handleAddTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         setTwitterLoading(true);
         setSyncStatus('syncing');
         try {
@@ -179,11 +179,11 @@ export default function ProfilePage() {
             }
 
             const formattedUsername = formatTwitterUsername(formData.twitter);
-            
+
             // Get current user data from localStorage to ensure we have complete data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -212,6 +212,12 @@ export default function ProfilePage() {
             setFormData(prev => ({ ...prev, twitter: '' }));
             setSyncStatus('synced');
         } catch (err: any) {
+            console.error('Error saving Twitter username:', err);
+            console.error('Error details:', {
+                message: err.message,
+                status: err.status,
+                response: err.response
+            });
             setError(err.message || 'Failed to save Twitter username');
             setSyncStatus('offline');
         } finally {
@@ -239,11 +245,11 @@ export default function ProfilePage() {
             }
 
             const formattedUsername = formatTwitterUsername(formData.twitter);
-            
+
             // Get current user data from localStorage to ensure we have complete data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -286,7 +292,7 @@ export default function ProfilePage() {
             // Get current user data from localStorage to ensure we have complete data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
