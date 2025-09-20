@@ -219,20 +219,20 @@ export default function ProfilePage() {
     // Background sync queue for failed saves
     const backgroundSyncQueue = {
         queue: [] as Array<{ id: string; data: any; timestamp: number }>,
-
-        add: (id: string, data: any) => {
+        
+        add: function(id: string, data: any) {
             const item = { id, data, timestamp: Date.now() };
             this.queue.push(item);
             console.log('Added to background sync queue:', item);
             this.process();
         },
-
-        process: async () => {
+        
+        process: async function() {
             if (this.queue.length === 0) return;
-
+            
             const item = this.queue.shift();
             if (!item) return;
-
+            
             try {
                 await saveWithRetry(item.data);
                 console.log('Background sync successful for:', item.id);
