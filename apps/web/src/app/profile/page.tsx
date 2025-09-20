@@ -31,6 +31,7 @@ export default function ProfilePage() {
     const [twitterStatus, setTwitterStatus] = useState<'empty' | 'saved' | 'editing'>('empty');
     const [twitterLoading, setTwitterLoading] = useState<boolean>(false);
     const [syncStatus, setSyncStatus] = useState<'loading' | 'synced' | 'offline' | 'syncing'>('loading');
+    const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
     useEffect(() => {
         loadUserData();
@@ -40,13 +41,6 @@ export default function ProfilePage() {
     useEffect(() => {
         if (user && !twitterUsername) {
             const twitterHandle = user.twitter_handle || user.twitter || '';
-            console.log('Additional useEffect - setting Twitter username:', {
-                user: user,
-                twitterUsername: twitterUsername,
-                twitter_handle: user.twitter_handle,
-                twitter: user.twitter,
-                finalHandle: twitterHandle
-            });
             if (twitterHandle) {
                 setTwitterUsername(twitterHandle);
                 setTwitterStatus('saved');
@@ -76,15 +70,10 @@ export default function ProfilePage() {
 
             // Set Twitter username state from localStorage (fast initial render)
             const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
-            console.log('Loading Twitter username from localStorage:', {
-                twitter_handle: userObj.twitter_handle,
-                twitter: userObj.twitter,
-                finalHandle: twitterHandle,
-                userObj: userObj
-            });
             setTwitterUsername(twitterHandle);
             setTwitterStatus(twitterHandle ? 'saved' : 'empty');
-
+            setIsInitialized(true);
+            
             // Set sync status to syncing while we fetch from Firebase
             setSyncStatus('syncing');
         } else {
@@ -542,8 +531,14 @@ export default function ProfilePage() {
                                                 </div>
                                             </div>
 
-                                            {console.log('Twitter section render:', { twitterStatus, twitterUsername, user: user?.twitter_handle || user?.twitter })}
-                                            {twitterStatus === 'empty' && (
+                                            {!isInitialized ? (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <div className="flex items-center gap-2 text-gray-400">
+                                                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                        <span className="text-sm">Loading Twitter settings...</span>
+                                                    </div>
+                                                </div>
+                                            ) : twitterStatus === 'empty' ? (
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-gray-400 text-sm">@</span>
@@ -576,9 +571,7 @@ export default function ProfilePage() {
                                                         This will be used to verify your Twitter activity for missions
                                                     </p>
                                                 </div>
-                                            )}
-
-                                            {twitterStatus === 'saved' && (
+                                            ) : twitterStatus === 'saved' ? (
                                                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
@@ -608,9 +601,7 @@ export default function ProfilePage() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                            )}
-
-                                            {twitterStatus === 'editing' && (
+                                            ) : twitterStatus === 'editing' ? (
                                                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
                                                     <div className="flex items-center gap-2 mb-3">
                                                         <span className="text-yellow-400 text-lg">⚠️</span>
@@ -651,7 +642,7 @@ export default function ProfilePage() {
                                                         </p>
                                                     )}
                                                 </div>
-                                            )}
+                                            ) : null}
                                         </div>
 
                                         <ModernButton
