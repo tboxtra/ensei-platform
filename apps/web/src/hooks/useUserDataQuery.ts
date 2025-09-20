@@ -99,14 +99,15 @@ export const useCombinedUserData = (): {
                 profile: profileQuery.data,
                 ratings: ratingsQuery.data || null,
                 stats: {
-                    missionsCreated: profileQuery.data.stats?.missions_created || profileQuery.data.missionsCreated || 0,
-                    missionsCompleted: profileQuery.data.stats?.missions_completed || profileQuery.data.missionsCompleted || 0,
-                    totalEarned: profileQuery.data.stats?.total_honors_earned || profileQuery.data.totalEarned || 0,
-                    totalSubmissions: ratingsQuery.data?.totalSubmissions || profileQuery.data.totalSubmissions || 0,
+                    // Industry Standard: Unified camelCase schema
+                    missionsCreated: profileQuery.data.stats?.missionsCreated || 0,
+                    missionsCompleted: profileQuery.data.stats?.missionsCompleted || 0,
+                    totalEarned: profileQuery.data.stats?.totalHonorsEarned || 0,
+                    totalSubmissions: ratingsQuery.data?.totalSubmissions || 0,
                     approvedSubmissions: profileQuery.data.approvedSubmissions || 0,
                     reputation: profileQuery.data.reputation || 0,
-                    userRating: ratingsQuery.data?.totalRating || profileQuery.data.userRating || 0,
-                    totalReviews: ratingsQuery.data?.totalReviews || profileQuery.data.totalReviews || 0,
+                    userRating: ratingsQuery.data?.totalRating || 0,
+                    totalReviews: ratingsQuery.data?.totalReviews || 0,
                 }
             }
             : undefined;
@@ -166,9 +167,54 @@ export const useUpdateUserProfile = () => {
             }
         },
         onSettled: () => {
-            // Always refetch after error or success
+            // Industry Standard: Always refetch after error or success
+            queryClient.invalidateQueries({ queryKey: userDataKeys.profile() });
+            queryClient.invalidateQueries({ queryKey: userDataKeys.ratings() });
+            queryClient.invalidateQueries({ queryKey: userDataKeys.combined() });
+        },
+    });
+};
+
+/**
+ * Industry Standard: Mission creation mutation with proper cache invalidation
+ * Ensures user stats update immediately after mission creation
+ */
+export const useCreateMission = () => {
+    const { createMission } = useApi();
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: createMission,
+        onSuccess: () => {
+            // Industry Standard: Invalidate user data cache after mission creation
             queryClient.invalidateQueries({ queryKey: userDataKeys.profile() });
             queryClient.invalidateQueries({ queryKey: userDataKeys.combined() });
+            console.log('🎯 Mission created - cache invalidated for user stats update');
+        },
+        onError: (error) => {
+            console.error('Mission creation failed:', error);
+        },
+    });
+};
+
+/**
+ * Industry Standard: Task completion mutation with proper cache invalidation
+ * Ensures user stats update immediately after task completion
+ */
+export const useCompleteTask = () => {
+    const { completeTask } = useApi();
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: completeTask,
+        onSuccess: () => {
+            // Industry Standard: Invalidate user data cache after task completion
+            queryClient.invalidateQueries({ queryKey: userDataKeys.profile() });
+            queryClient.invalidateQueries({ queryKey: userDataKeys.combined() });
+            console.log('🎯 Task completed - cache invalidated for user stats update');
+        },
+        onError: (error) => {
+            console.error('Task completion failed:', error);
         },
     });
 };

@@ -14,7 +14,7 @@ interface ModernLayoutProps {
 export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
-    
+
     // Industry Standard: Use centralized React Query data
     const { user, quickStats, isLoading, isAuthenticated, userDisplayName, userAvatar, userEmail, refetch } = useLayoutData();
     const { logout } = useApi();

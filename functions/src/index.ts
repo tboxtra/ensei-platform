@@ -457,16 +457,16 @@ app.post('/v1/missions', verifyFirebaseToken, async (req: any, res) => {
     try {
       const userRef = db.collection('users').doc(userId);
       const userDoc = await userRef.get();
-      
+
       if (userDoc.exists) {
         const userData = userDoc.data();
-        const currentMissionsCreated = userData?.stats?.missions_created || 0;
-        
+        const currentMissionsCreated = userData?.stats?.missionsCreated || 0;
+
         await userRef.update({
-          'stats.missions_created': currentMissionsCreated + 1,
+          'stats.missionsCreated': currentMissionsCreated + 1,
           updated_at: new Date().toISOString()
         });
-        
+
         console.log(`Updated user ${userId} missions_created from ${currentMissionsCreated} to ${currentMissionsCreated + 1}`);
       }
     } catch (statsError) {
@@ -700,10 +700,10 @@ app.get('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         stats: {
-          missions_created: 0,
-          missions_completed: 0,
-          total_honors_earned: 0,
-          total_usd_earned: 0
+          missionsCreated: 0,
+          missionsCompleted: 0,
+          totalHonorsEarned: 0,
+          totalUsdEarned: 0
         }
       };
 
@@ -755,10 +755,10 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         stats: {
-          missions_created: 0,
-          missions_completed: 0,
-          total_honors_earned: 0,
-          total_usd_earned: 0
+          missionsCreated: 0,
+          missionsCompleted: 0,
+          totalHonorsEarned: 0,
+          totalUsdEarned: 0
         }
       };
 
@@ -1905,18 +1905,18 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
     try {
       const userRef = db.collection('users').doc(userId);
       const userDoc = await userRef.get();
-      
+
       if (userDoc.exists) {
         const userData = userDoc.data();
-        const currentMissionsCompleted = userData?.stats?.missions_completed || 0;
-        const currentTotalEarned = userData?.stats?.total_honors_earned || 0;
+        const currentMissionsCompleted = userData?.stats?.missionsCompleted || 0;
+        const currentTotalEarned = userData?.stats?.totalHonorsEarned || 0;
         
         await userRef.update({
-          'stats.missions_completed': currentMissionsCompleted + 1,
-          'stats.total_honors_earned': currentTotalEarned + taskHonors,
+          'stats.missionsCompleted': currentMissionsCompleted + 1,
+          'stats.totalHonorsEarned': currentTotalEarned + taskHonors,
           updated_at: new Date().toISOString()
         });
-        
+
         console.log(`Updated user ${userId} stats: missions_completed ${currentMissionsCompleted} -> ${currentMissionsCompleted + 1}, total_honors_earned ${currentTotalEarned} -> ${currentTotalEarned + taskHonors}`);
       }
     } catch (statsError) {

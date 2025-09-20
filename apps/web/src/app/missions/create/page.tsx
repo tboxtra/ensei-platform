@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useApi } from '../../../hooks/useApi';
+import { useLayoutData } from '../../../hooks/useLayoutData';
+import { useCreateMission } from '../../../hooks/useUserDataQuery';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
 import { ModernInput } from '../../../components/ui/ModernInput';
@@ -334,21 +336,10 @@ const PLATFORM_CONTENT_PLACEHOLDERS = {
 
 export default function CreateMissionPage() {
   const { createMission, loading, error } = useApi();
+  const createMissionMutation = useCreateMission();
 
-  // Check if user is authenticated
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
-
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('firebaseToken');
-      const user = localStorage.getItem('user');
-      setIsAuthenticated(!!(token && user));
-      setAuthLoading(false);
-    };
-
-    checkAuth();
-  }, []);
+  // Industry Standard: Use centralized auth state
+  const { isAuthenticated, isLoading: authLoading } = useLayoutData();
 
   const [selectedPlatform, setSelectedPlatform] = useState('twitter');
   const [selectedType, setSelectedType] = useState('engage');
@@ -1037,7 +1028,8 @@ export default function CreateMissionPage() {
                 })
               };
 
-              const createdMission = await createMission(missionData);
+              // Industry Standard: Use mutation with automatic cache invalidation
+              const createdMission = await createMissionMutation.mutateAsync(missionData);
               console.log('Mission created successfully:', createdMission);
 
               // Show success message
