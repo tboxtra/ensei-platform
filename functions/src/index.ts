@@ -703,7 +703,7 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
   try {
     const userId = req.user.uid;
     const updateData = req.body;
-    
+
     console.log('Profile update request:', {
       userId,
       updateData,
@@ -760,7 +760,7 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
     // Get updated user document
     const updatedUserDoc = await db.collection('users').doc(userId).get();
     const user = updatedUserDoc.data();
-    
+
     console.log('Profile update completed:', {
       userId,
       savedUser: user,
@@ -772,6 +772,35 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
   } catch (error: any) {
     console.error('Error updating user profile:', error);
     console.error('Error details:', error.message);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// Get user ratings endpoint
+app.get('/v1/user/ratings', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+
+    // Get user ratings from userRatings collection
+    const userRatingDoc = await db.collection('userRatings').doc(userId).get();
+
+    if (!userRatingDoc.exists) {
+      // Return default values if no ratings exist
+      res.json({
+        userId,
+        totalRating: 0,
+        totalSubmissions: 0,
+        totalReviews: 0,
+        lastUpdated: null,
+        ratingHistory: []
+      });
+      return;
+    }
+
+    const userRating = userRatingDoc.data();
+    res.json(userRating);
+  } catch (error: any) {
+    console.error('Error fetching user ratings:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });

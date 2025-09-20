@@ -10,7 +10,7 @@ import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function ProfilePage() {
     const router = useRouter();
-    const { getCurrentUser, getUserProfile, logout, updateProfile, loading: apiLoading, error: apiError } = useApi();
+    const { getCurrentUser, getUserProfile, getUserRatings, logout, updateProfile, loading: apiLoading, error: apiError } = useApi();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -74,7 +74,9 @@ export default function ProfilePage() {
         totalEarned: 0,
         totalSubmissions: 0,
         approvedSubmissions: 0,
-        reputation: 0
+        reputation: 0,
+        userRating: 0,
+        totalReviews: 0
     });
 
     useEffect(() => {
@@ -89,14 +91,14 @@ export default function ProfilePage() {
 
         try {
             // Load from localStorage first for fast initial render
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                const userObj = JSON.parse(userData);
-                setUser(userObj);
-                setFormData({
-                    firstName: userObj.firstName || userObj.name?.split(' ')[0] || '',
-                    lastName: userObj.lastName || userObj.name?.split(' ')[1] || '',
-                    email: userObj.email || '',
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            const userObj = JSON.parse(userData);
+            setUser(userObj);
+            setFormData({
+                firstName: userObj.firstName || userObj.name?.split(' ')[0] || '',
+                lastName: userObj.lastName || userObj.name?.split(' ')[1] || '',
+                email: userObj.email || '',
                     twitter: userObj.twitter || ''
                 });
             }
@@ -120,14 +122,14 @@ export default function ProfilePage() {
             // Use proper conflict resolution to merge local and server data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
-            
+
             const mergedUserData = mergeUserData(currentUser, freshUserData);
             console.log('loadUserData: Merged user data:', mergedUserData);
-            
+
             // Update Twitter username state from merged data
             const mergedTwitterHandle = mergedUserData.twitter_handle || mergedUserData.twitter || '';
             console.log('loadUserData: Twitter handle from merged data:', mergedTwitterHandle);
-            
+
             setTwitterUsername(mergedTwitterHandle);
             setTwitterStatus(mergedTwitterHandle ? 'saved' : 'empty');
 
@@ -150,15 +152,59 @@ export default function ProfilePage() {
             const userData = localStorage.getItem('user');
             if (userData) {
                 const userObj = JSON.parse(userData);
-                // Map Firebase stats to our state
+                console.log('Loading user stats from localStorage:', userObj);
+                
+                // Map Firebase stats to our state - using correct field names
                 setUserStats({
-                    missionsCreated: userObj.stats?.missions_created || 0,
-                    missionsCompleted: userObj.stats?.missions_completed || 0,
-                    totalEarned: userObj.stats?.total_honors_earned || 0,
+                    missionsCreated: userObj.stats?.missions_created || userObj.missionsCreated || 0,
+                    missionsCompleted: userObj.stats?.missions_completed || userObj.missionsCompleted || 0,
+                    totalEarned: userObj.stats?.total_honors_earned || userObj.totalEarned || 0,
                     totalSubmissions: userObj.totalSubmissions || 0,
                     approvedSubmissions: userObj.approvedSubmissions || 0,
-                    reputation: userObj.reputation || 0
+                    reputation: userObj.reputation || 0,
+                    userRating: userObj.userRating || 0,
+                    totalReviews: userObj.totalReviews || 0
                 });
+            }
+
+            // Also fetch fresh data from Firebase to ensure accuracy
+            try {
+                const [freshUserData, userRatingsData] = await Promise.all([
+                    getUserProfile(),
+                    getUserRatings()
+                ]);
+                
+                console.log('Fresh user data from Firebase:', freshUserData);
+                console.log('User ratings data from Firebase:', userRatingsData);
+                
+                if (freshUserData) {
+                    // Update stats with fresh data including ratings
+                    setUserStats({
+                        missionsCreated: freshUserData.stats?.missions_created || freshUserData.missionsCreated || 0,
+                        missionsCompleted: freshUserData.stats?.missions_completed || freshUserData.missionsCompleted || 0,
+                        totalEarned: freshUserData.stats?.total_honors_earned || freshUserData.totalEarned || 0,
+                        totalSubmissions: userRatingsData?.totalSubmissions || freshUserData.totalSubmissions || 0,
+                        approvedSubmissions: freshUserData.approvedSubmissions || 0,
+                        reputation: freshUserData.reputation || 0,
+                        userRating: userRatingsData?.totalRating || freshUserData.userRating || 0,
+                        totalReviews: userRatingsData?.totalReviews || freshUserData.totalReviews || 0
+                    });
+
+                    // Update localStorage with fresh data including ratings
+                    const currentUserData = localStorage.getItem('user');
+                    const currentUser = currentUserData ? JSON.parse(currentUserData) : {};
+                    const updatedUser = { 
+                        ...currentUser, 
+                        ...freshUserData,
+                        userRating: userRatingsData?.totalRating || 0,
+                        totalReviews: userRatingsData?.totalReviews || 0,
+                        totalSubmissions: userRatingsData?.totalSubmissions || 0
+                    };
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    setUser(updatedUser);
+                }
+            } catch (err) {
+                console.warn('Failed to fetch fresh user stats:', err);
             }
         } catch (err) {
             console.warn('Failed to load user stats:', err);
@@ -203,7 +249,7 @@ export default function ProfilePage() {
             console.log('Saving profile to Firebase:', profileData);
             const updatedUser = await updateProfile(profileData);
             console.log('Profile saved successfully:', updatedUser);
-            
+
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
             setSyncStatus('synced');
@@ -257,7 +303,7 @@ export default function ProfilePage() {
     // Industry standard conflict resolution - merge user data intelligently
     const mergeUserData = (localData: any, serverData: any) => {
         console.log('Merging user data:', { localData, serverData });
-        
+
         const merged = {
             ...serverData, // Start with server data as base
             // Preserve local changes that server doesn't have or has empty
@@ -266,7 +312,7 @@ export default function ProfilePage() {
             // Use server timestamp for other fields
             updated_at: serverData?.updated_at || new Date().toISOString()
         };
-        
+
         console.log('Merged user data:', merged);
         return merged;
     };
@@ -291,30 +337,30 @@ export default function ProfilePage() {
             // Note: This would require Firebase Auth SDK integration
             // For now, we'll simulate the API call
             console.log('Changing password via Firebase Auth...');
-            
+
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             // Update security settings
             const updatedSettings = {
                 ...securitySettings,
                 lastPasswordChange: new Date().toISOString()
             };
-            
+
             setSecuritySettings(updatedSettings);
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
             setShowPasswordForm(false);
-            
+
             // Save to Firebase
             const profileData = {
                 ...formData,
                 securitySettings: updatedSettings,
                 updated_at: new Date().toISOString()
             };
-            
+
             await updateProfile(profileData);
             console.log('Password changed successfully');
-            
+
         } catch (err: any) {
             console.error('Failed to change password:', err);
             setError(err.message || 'Failed to change password');
@@ -331,19 +377,19 @@ export default function ProfilePage() {
                 ...securitySettings,
                 twoFactorEnabled: !securitySettings.twoFactorEnabled
             };
-            
+
             setSecuritySettings(updatedSettings);
-            
+
             // Save to Firebase
             const profileData = {
                 ...formData,
                 securitySettings: updatedSettings,
                 updated_at: new Date().toISOString()
             };
-            
+
             await updateProfile(profileData);
             console.log('2FA setting updated successfully');
-            
+
         } catch (err: any) {
             console.error('Failed to update 2FA setting:', err);
             setError(err.message || 'Failed to update 2FA setting');
@@ -355,7 +401,7 @@ export default function ProfilePage() {
     // Twitter username management functions with optimistic updates
     const handleAddTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         const validation = validateTwitterUsername(formData.twitter);
         if (!validation.isValid) {
             setError(validation.message || 'Invalid Twitter username');
@@ -363,22 +409,22 @@ export default function ProfilePage() {
         }
 
         const formattedUsername = formatTwitterUsername(formData.twitter);
-        
+
         // 1. OPTIMISTIC UPDATE - Update UI immediately
         const previousUsername = twitterUsername;
         const previousStatus = twitterStatus;
-        
+
         setTwitterUsername(formattedUsername);
         setTwitterStatus('saved');
         setTwitterLoading(true);
         setSyncStatus('syncing');
         setFormData(prev => ({ ...prev, twitter: '' }));
-        
+
         try {
             // 2. Get current user data from localStorage to ensure we have complete data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -393,31 +439,31 @@ export default function ProfilePage() {
             // 3. Save to Firebase with industry standard approach
             const updatedUser = await updateProfile(profileData);
             console.log('Firebase response:', updatedUser);
-            
+
             if (!updatedUser) {
                 throw new Error('Firebase returned empty response');
             }
-            
+
             // 4. SUCCESS - Update state with server response
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
             setSyncStatus('synced');
             setSyncMessage('');
             setError(null);
-            
+
         } catch (err: any) {
             console.error('Error saving Twitter username:', err);
-            
+
             // 5. ROLLBACK - Revert optimistic update
             setTwitterUsername(previousUsername);
             setTwitterStatus(previousStatus);
             setFormData(prev => ({ ...prev, twitter: formattedUsername }));
             setSyncStatus('offline');
-            
+
             // 6. Show user-friendly error
             setError('Failed to save Twitter username. Please try again.');
             setSyncMessage('Save failed - please retry');
-            
+
         } finally {
             setTwitterLoading(false);
         }
@@ -430,7 +476,7 @@ export default function ProfilePage() {
 
     const handleSaveTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         const validation = validateTwitterUsername(formData.twitter);
         if (!validation.isValid) {
             setError(validation.message || 'Invalid Twitter username');
@@ -440,11 +486,11 @@ export default function ProfilePage() {
         const formattedUsername = formatTwitterUsername(formData.twitter);
         setTwitterLoading(true);
         setSyncStatus('syncing');
-        
+
         try {
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -480,11 +526,11 @@ export default function ProfilePage() {
     const handleRemoveTwitterUsername = async () => {
         setTwitterLoading(true);
         setSyncStatus('syncing');
-        
+
         try {
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -539,14 +585,14 @@ export default function ProfilePage() {
                                     <img
                                         src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`}
                                         alt={user?.name || 'User'}
-                                        className="w-full h-full object-cover"
-                                    />
+                                            className="w-full h-full object-cover"
+                                        />
                                 </div>
                                 <h3 className="text-white font-semibold mb-1">{user?.name || 'User'}</h3>
                                 <p className="text-gray-400 text-sm">{user?.email}</p>
                                 <p className="text-xs text-gray-500 mt-2">Profile picture managed by Google</p>
-                            </div>
-                        </ModernCard>
+                                </div>
+                            </ModernCard>
 
                         {/* Basic Info Card */}
                         <ModernCard className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] lg:col-span-2">
@@ -555,46 +601,46 @@ export default function ProfilePage() {
                                 Basic Information
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                                            <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                        First Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.firstName}
-                                        onChange={(e) => handleInputChange('firstName', e.target.value)}
+                                                    First Name
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.firstName}
+                                                    onChange={(e) => handleInputChange('firstName', e.target.value)}
                                         className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                                         placeholder="Enter your first name"
-                                    />
-                                </div>
-                                <div>
+                                                />
+                                            </div>
+                                            <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                        Last Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.lastName}
-                                        onChange={(e) => handleInputChange('lastName', e.target.value)}
+                                                    Last Name
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.lastName}
+                                                    onChange={(e) => handleInputChange('lastName', e.target.value)}
                                         className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                                         placeholder="Enter your last name"
-                                    />
-                                </div>
-                            </div>
+                                                />
+                                            </div>
+                                        </div>
                             <div className="mt-4">
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    Email Address
-                                </label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => handleInputChange('email', e.target.value)}
+                                                Email Address
+                                            </label>
+                                            <input
+                                                type="email"
+                                                value={formData.email}
+                                                onChange={(e) => handleInputChange('email', e.target.value)}
                                     className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                                     placeholder="Enter your email address"
-                                />
+                                            />
                                 <p className="text-xs text-gray-500 mt-1">Managed by your authentication provider</p>
                             </div>
                         </ModernCard>
-                    </div>
+                                        </div>
 
                     {/* Twitter Username Card */}
                     <ModernCard className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] mb-8">
@@ -632,8 +678,8 @@ export default function ProfilePage() {
                                     </span>
                                 )}
                             </div>
-                        </div>
-                        
+                                        </div>
+
                         <p className="text-gray-400 text-sm mb-4">
                             Link your Twitter account for mission verification
                         </p>
@@ -645,20 +691,19 @@ export default function ProfilePage() {
                         ) : (
                             <>
                                 {twitterStatus === 'empty' && (
-                                    <div>
+                                        <div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-gray-400 text-sm">@</span>
                                             <input
                                                 type="text"
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
-                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${
-                                                    formData.twitter ?
+                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
                                                         validateTwitterUsername(formData.twitter).isValid ?
                                                             'border-green-500/50 focus:ring-green-500' :
                                                             'border-red-500/50 focus:ring-red-500'
                                                         : 'border-gray-700/50 focus:ring-green-500'
-                                                }`}
+                                                    }`}
                                                 placeholder="yourusername"
                                             />
                                             <button
@@ -689,7 +734,7 @@ export default function ProfilePage() {
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-gray-400 text-sm">@</span>
                                                         <span className="text-white font-medium">{twitterUsername}</span>
-                                                    </div>
+                                                </div>
                                                     <p className="text-xs text-green-400 mt-1">Connected for verification</p>
                                                 </div>
                                             </div>
@@ -717,20 +762,19 @@ export default function ProfilePage() {
                                         <div className="flex items-center gap-2 mb-3">
                                             <span className="text-yellow-400 text-lg">⚠️</span>
                                             <span className="text-yellow-400 text-sm font-medium">Editing Twitter Username</span>
-                                        </div>
+                                                </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-gray-400 text-sm">@</span>
                                             <input
                                                 type="text"
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
-                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${
-                                                    formData.twitter ?
+                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
                                                         validateTwitterUsername(formData.twitter).isValid ?
                                                             'border-green-500/50 focus:ring-green-500' :
                                                             'border-red-500/50 focus:ring-red-500'
                                                         : 'border-gray-700/50 focus:ring-green-500'
-                                                }`}
+                                                    }`}
                                                 placeholder="yourusername"
                                             />
                                             <button
@@ -763,14 +807,14 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                         <ModernCard className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
                             <div className="flex items-center justify-between">
-                                <div>
+                                        <div>
                                     <p className="text-gray-400 text-xs">Missions Created</p>
                                     <p className="text-lg font-bold text-green-400">
                                         {userStats.missionsCreated}
                                     </p>
-                                </div>
+                                                        </div>
                                 <div className="text-xl">🚀</div>
-                            </div>
+                                                        </div>
                         </ModernCard>
 
                         <ModernCard className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
@@ -780,23 +824,74 @@ export default function ProfilePage() {
                                     <p className="text-lg font-bold text-blue-400">
                                         {userStats.missionsCompleted}
                                     </p>
-                                </div>
+                                                        </div>
                                 <div className="text-xl">✅</div>
-                            </div>
+                                                    </div>
                         </ModernCard>
 
                         <ModernCard className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
                             <div className="flex items-center justify-between">
-                                <div>
+                                        <div>
                                     <p className="text-gray-400 text-xs">Total Earned</p>
                                     <p className="text-lg font-bold text-yellow-400">
                                         {userStats.totalEarned.toLocaleString()} Honors
                                     </p>
-                                </div>
+                                                </div>
                                 <div className="text-xl">💰</div>
-                            </div>
+                                            </div>
                         </ModernCard>
-                    </div>
+                                        </div>
+
+                    {/* Additional Stats Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <ModernCard className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                        <div>
+                                    <p className="text-gray-400 text-xs">Total Submissions</p>
+                                    <p className="text-lg font-bold text-purple-400">
+                                        {userStats.totalSubmissions}
+                                    </p>
+                                                </div>
+                                <div className="text-xl">📝</div>
+                                                </div>
+                        </ModernCard>
+
+                        <ModernCard className="bg-gradient-to-br from-emerald-600/20 to-teal-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-400 text-xs">Approved</p>
+                                    <p className="text-lg font-bold text-emerald-400">
+                                        {userStats.approvedSubmissions}
+                                    </p>
+                                                </div>
+                                <div className="text-xl">🎯</div>
+                                    </div>
+                                </ModernCard>
+
+                        <ModernCard className="bg-gradient-to-br from-indigo-600/20 to-blue-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                        <div>
+                                    <p className="text-gray-400 text-xs">User Rating</p>
+                                    <p className="text-lg font-bold text-indigo-400">
+                                        {userStats.userRating.toFixed(1)}/5.0
+                                    </p>
+                                </div>
+                                <div className="text-xl">⭐</div>
+                                        </div>
+                        </ModernCard>
+
+                        <ModernCard className="bg-gradient-to-br from-amber-600/20 to-orange-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                            <div className="flex items-center justify-between">
+                                                <div>
+                                    <p className="text-gray-400 text-xs">Reviews Given</p>
+                                    <p className="text-lg font-bold text-amber-400">
+                                        {userStats.totalReviews}
+                                    </p>
+                                                </div>
+                                <div className="text-xl">📊</div>
+                                            </div>
+                        </ModernCard>
+                                        </div>
 
                     {/* Security Section */}
                     <ModernCard className="bg-gradient-to-br from-red-600/20 to-rose-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] mb-8">
@@ -804,15 +899,15 @@ export default function ProfilePage() {
                             <span>🔒</span>
                             Security Settings
                         </h3>
-                        
+
                         <div className="space-y-6">
                             {/* Password Change */}
                             <div className="p-4 bg-gray-800/30 rounded-lg">
                                 <div className="flex items-center justify-between mb-4">
-                                    <div>
+                                                    <div>
                                         <h4 className="text-white font-medium">Password</h4>
                                         <p className="text-gray-400 text-sm">
-                                            {securitySettings.lastPasswordChange 
+                                            {securitySettings.lastPasswordChange
                                                 ? `Last changed: ${new Date(securitySettings.lastPasswordChange).toLocaleDateString()}`
                                                 : 'Password has not been changed'
                                             }
@@ -832,31 +927,31 @@ export default function ProfilePage() {
                                             <label className="block text-sm font-medium text-gray-300 mb-2">
                                                 Current Password
                                             </label>
-                                            <input
+                                                    <input
                                                 type="password"
                                                 value={passwordForm.currentPassword}
                                                 onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                                                 className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                                 placeholder="Enter current password"
-                                            />
-                                        </div>
-                                        <div>
+                                                    />
+                                                </div>
+                                                    <div>
                                             <label className="block text-sm font-medium text-gray-300 mb-2">
                                                 New Password
                                             </label>
-                                            <input
+                                                    <input
                                                 type="password"
                                                 value={passwordForm.newPassword}
                                                 onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                                                 className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                                 placeholder="Enter new password"
-                                            />
-                                        </div>
-                                        <div>
+                                                    />
+                                                </div>
+                                                    <div>
                                             <label className="block text-sm font-medium text-gray-300 mb-2">
                                                 Confirm New Password
                                             </label>
-                                            <input
+                                                    <input
                                                 type="password"
                                                 value={passwordForm.confirmPassword}
                                                 onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
@@ -888,19 +983,18 @@ export default function ProfilePage() {
                                 <div>
                                     <h4 className="text-white font-medium">Two-Factor Authentication</h4>
                                     <p className="text-gray-400 text-sm">Add an extra layer of security to your account</p>
-                                </div>
+                                            </div>
                                 <button
                                     onClick={handleToggle2FA}
                                     disabled={loading}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                        securitySettings.twoFactorEnabled
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${securitySettings.twoFactorEnabled
                                             ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                             : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                                    }`}
+                                        }`}
                                 >
                                     {loading ? 'Updating...' : (securitySettings.twoFactorEnabled ? 'Enabled' : 'Enable')}
                                 </button>
-                            </div>
+                                            </div>
 
                             {/* Active Sessions */}
                             <div className="p-4 bg-gray-800/30 rounded-lg">
@@ -925,7 +1019,7 @@ export default function ProfilePage() {
                                                     <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
                                                         <span className="text-blue-400 text-sm">📱</span>
                                                     </div>
-                                                    <div>
+                                        <div>
                                                         <p className="text-white text-sm font-medium">{session.device || 'Unknown Device'}</p>
                                                         <p className="text-gray-400 text-xs">{session.location || 'Unknown Location'} • {session.lastActive || 'Recently'}</p>
                                                     </div>
@@ -936,8 +1030,8 @@ export default function ProfilePage() {
                                             </div>
                                         ))
                                     )}
-                                </div>
-                            </div>
+                                        </div>
+                                    </div>
                         </div>
                     </ModernCard>
 
