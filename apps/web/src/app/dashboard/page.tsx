@@ -52,11 +52,11 @@ export default function DashboardPage() {
           return total;
         }, 0);
 
-        // Use global userStats for honors earned
-        const honorsEarned = userStats.totalEarned;
+        // Use React Query data for honors earned
+        const honorsEarned = userData?.stats.totalEarned || 0;
 
-        // Use global userStats for reviews done
-        const reviewsDone = userStats.totalReviews;
+        // Use React Query data for reviews done
+        const reviewsDone = userData?.stats.totalReviews || 0;
 
         console.log('Dashboard: User missions found:', {
           userId,

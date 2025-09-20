@@ -9,11 +9,11 @@ import { MissionListItem } from '../../../components/ui/MissionListItem';
 import { FilterBar } from '../../../components/ui/FilterBar';
 import { StatsCard } from '../../../components/ui/StatsCard';
 import { ProtectedRoute } from '../../../components/auth/ProtectedRoute';
-import { useUserData } from '../../../contexts/UserDataContext';
+import { useCombinedUserData } from '../../../hooks/useUserDataQuery';
 
 export default function MyMissionsPage() {
     const { getMyMissions, loading, error } = useApi();
-    const { forceRefresh } = useUserData();
+    const { refetch } = useCombinedUserData();
     const [missions, setMissions] = useState<any[]>([]);
     const [filteredMissions, setFilteredMissions] = useState<any[]>([]);
     // Filter state
@@ -32,7 +32,7 @@ export default function MyMissionsPage() {
 
     // Force refresh user data when MyMissions page mounts
     useEffect(() => {
-        forceRefresh();
+        refetch();
     }, []);
 
     useEffect(() => {

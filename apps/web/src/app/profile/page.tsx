@@ -39,9 +39,9 @@ export default function ProfilePage() {
     // Initialize Twitter username state from localStorage immediately
     const getInitialTwitterState = () => {
         if (typeof window !== 'undefined') {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            const userObj = JSON.parse(userData);
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const userObj = JSON.parse(userData);
                 const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
                 return {
                     username: twitterHandle,
@@ -115,7 +115,7 @@ export default function ProfilePage() {
             console.log('Saving profile to Firebase:', profileData);
             await updateProfileMutation.mutateAsync(profileData);
             console.log('Profile saved successfully');
-            
+
             // React Query automatically handles cache invalidation and refetching
         } catch (err: any) {
             console.error('Failed to save profile:', err);
@@ -423,8 +423,8 @@ export default function ProfilePage() {
                                 <h3 className="text-white font-semibold mb-1">{userData?.profile.name || 'User'}</h3>
                                 <p className="text-gray-400 text-sm">{userData?.profile.email}</p>
                                 <p className="text-xs text-gray-500 mt-2">Profile picture managed by Google</p>
-                                </div>
-                            </ModernCard>
+                            </div>
+                        </ModernCard>
 
                         {/* Basic Info Card */}
                         <ModernCard className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] lg:col-span-2">
@@ -433,46 +433,46 @@ export default function ProfilePage() {
                                 Basic Information
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
+                                <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                    First Name
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={formData.firstName}
-                                                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                                        First Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.firstName}
+                                        onChange={(e) => handleInputChange('firstName', e.target.value)}
                                         className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                                         placeholder="Enter your first name"
-                                                />
-                                            </div>
-                                            <div>
+                                    />
+                                </div>
+                                <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                    Last Name
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={formData.lastName}
-                                                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                                        Last Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.lastName}
+                                        onChange={(e) => handleInputChange('lastName', e.target.value)}
                                         className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                                         placeholder="Enter your last name"
-                                                />
-                                            </div>
-                                        </div>
+                                    />
+                                </div>
+                            </div>
                             <div className="mt-4">
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                Email Address
-                                            </label>
-                                            <input
-                                                type="email"
-                                                value={formData.email}
-                                                onChange={(e) => handleInputChange('email', e.target.value)}
+                                    Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => handleInputChange('email', e.target.value)}
                                     className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                                     placeholder="Enter your email address"
-                                            />
+                                />
                                 <p className="text-xs text-gray-500 mt-1">Managed by your authentication provider</p>
                             </div>
                         </ModernCard>
-                                        </div>
+                    </div>
 
                     {/* Twitter Username Card */}
                     <ModernCard className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] mb-8">
@@ -510,7 +510,7 @@ export default function ProfilePage() {
                                     </span>
                                 )}
                             </div>
-                                        </div>
+                        </div>
 
                         <p className="text-gray-400 text-sm mb-4">
                             Link your Twitter account for mission verification
@@ -523,7 +523,7 @@ export default function ProfilePage() {
                         ) : (
                             <>
                                 {twitterStatus === 'empty' && (
-                                        <div>
+                                    <div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-gray-400 text-sm">@</span>
                                             <input
@@ -566,7 +566,7 @@ export default function ProfilePage() {
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-gray-400 text-sm">@</span>
                                                         <span className="text-white font-medium">{twitterUsername}</span>
-                                                </div>
+                                                    </div>
                                                     <p className="text-xs text-green-400 mt-1">Connected for verification</p>
                                                 </div>
                                             </div>
@@ -594,7 +594,7 @@ export default function ProfilePage() {
                                         <div className="flex items-center gap-2 mb-3">
                                             <span className="text-yellow-400 text-lg">⚠️</span>
                                             <span className="text-yellow-400 text-sm font-medium">Editing Twitter Username</span>
-                                                </div>
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-gray-400 text-sm">@</span>
                                             <input
@@ -639,14 +639,14 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                         <ModernCard className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
                             <div className="flex items-center justify-between">
-                                        <div>
+                                <div>
                                     <p className="text-gray-400 text-xs">Missions Created</p>
                                     <p className="text-lg font-bold text-green-400">
                                         {userData?.stats.missionsCreated || 0}
                                     </p>
-                                                        </div>
+                                </div>
                                 <div className="text-xl">🚀</div>
-                                                        </div>
+                            </div>
                         </ModernCard>
 
                         <ModernCard className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
@@ -656,36 +656,36 @@ export default function ProfilePage() {
                                     <p className="text-lg font-bold text-blue-400">
                                         {userData?.stats.missionsCompleted || 0}
                                     </p>
-                                                        </div>
+                                </div>
                                 <div className="text-xl">✅</div>
-                                                    </div>
+                            </div>
                         </ModernCard>
 
                         <ModernCard className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
                             <div className="flex items-center justify-between">
-                                        <div>
+                                <div>
                                     <p className="text-gray-400 text-xs">Total Earned</p>
                                     <p className="text-lg font-bold text-yellow-400">
                                         {(userData?.stats.totalEarned || 0).toLocaleString()} Honors
                                     </p>
-                                                </div>
+                                </div>
                                 <div className="text-xl">💰</div>
-                                            </div>
+                            </div>
                         </ModernCard>
-                                        </div>
+                    </div>
 
                     {/* Additional Stats Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <ModernCard className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
                             <div className="flex items-center justify-between">
-                                        <div>
+                                <div>
                                     <p className="text-gray-400 text-xs">Total Submissions</p>
                                     <p className="text-lg font-bold text-purple-400">
                                         {userData?.stats.totalSubmissions || 0}
                                     </p>
-                                                </div>
+                                </div>
                                 <div className="text-xl">📝</div>
-                                                </div>
+                            </div>
                         </ModernCard>
 
                         <ModernCard className="bg-gradient-to-br from-emerald-600/20 to-teal-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
@@ -695,35 +695,35 @@ export default function ProfilePage() {
                                     <p className="text-lg font-bold text-emerald-400">
                                         {userData?.stats.approvedSubmissions || 0}
                                     </p>
-                                                </div>
+                                </div>
                                 <div className="text-xl">🎯</div>
-                                    </div>
-                                </ModernCard>
+                            </div>
+                        </ModernCard>
 
                         <ModernCard className="bg-gradient-to-br from-indigo-600/20 to-blue-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
                             <div className="flex items-center justify-between">
-                                        <div>
+                                <div>
                                     <p className="text-gray-400 text-xs">User Rating</p>
                                     <p className="text-lg font-bold text-indigo-400">
                                         {(userData?.stats.userRating || 0).toFixed(1)}/5.0
                                     </p>
                                 </div>
                                 <div className="text-xl">⭐</div>
-                                        </div>
+                            </div>
                         </ModernCard>
 
                         <ModernCard className="bg-gradient-to-br from-amber-600/20 to-orange-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
                             <div className="flex items-center justify-between">
-                                                <div>
+                                <div>
                                     <p className="text-gray-400 text-xs">Reviews Given</p>
                                     <p className="text-lg font-bold text-amber-400">
                                         {userData?.stats.totalReviews || 0}
                                     </p>
-                                                </div>
+                                </div>
                                 <div className="text-xl">📊</div>
-                                            </div>
+                            </div>
                         </ModernCard>
-                                        </div>
+                    </div>
 
                     {/* Security Section */}
                     <ModernCard className="bg-gradient-to-br from-red-600/20 to-rose-600/20 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] mb-8">
@@ -736,7 +736,7 @@ export default function ProfilePage() {
                             {/* Password Change */}
                             <div className="p-4 bg-gray-800/30 rounded-lg">
                                 <div className="flex items-center justify-between mb-4">
-                                                    <div>
+                                    <div>
                                         <h4 className="text-white font-medium">Password</h4>
                                         <p className="text-gray-400 text-sm">
                                             {securitySettings.lastPasswordChange
@@ -759,31 +759,31 @@ export default function ProfilePage() {
                                             <label className="block text-sm font-medium text-gray-300 mb-2">
                                                 Current Password
                                             </label>
-                                                    <input
+                                            <input
                                                 type="password"
                                                 value={passwordForm.currentPassword}
                                                 onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                                                 className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                                 placeholder="Enter current password"
-                                                    />
-                                                </div>
-                                                    <div>
+                                            />
+                                        </div>
+                                        <div>
                                             <label className="block text-sm font-medium text-gray-300 mb-2">
                                                 New Password
                                             </label>
-                                                    <input
+                                            <input
                                                 type="password"
                                                 value={passwordForm.newPassword}
                                                 onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                                                 className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                                 placeholder="Enter new password"
-                                                    />
-                                                </div>
-                                                    <div>
+                                            />
+                                        </div>
+                                        <div>
                                             <label className="block text-sm font-medium text-gray-300 mb-2">
                                                 Confirm New Password
                                             </label>
-                                                    <input
+                                            <input
                                                 type="password"
                                                 value={passwordForm.confirmPassword}
                                                 onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
@@ -815,7 +815,7 @@ export default function ProfilePage() {
                                 <div>
                                     <h4 className="text-white font-medium">Two-Factor Authentication</h4>
                                     <p className="text-gray-400 text-sm">Add an extra layer of security to your account</p>
-                                            </div>
+                                </div>
                                 <button
                                     onClick={handleToggle2FA}
                                     disabled={isLoading}
@@ -826,7 +826,7 @@ export default function ProfilePage() {
                                 >
                                     {isLoading ? 'Updating...' : (securitySettings.twoFactorEnabled ? 'Enabled' : 'Enable')}
                                 </button>
-                                            </div>
+                            </div>
 
                             {/* Active Sessions */}
                             <div className="p-4 bg-gray-800/30 rounded-lg">
@@ -851,7 +851,7 @@ export default function ProfilePage() {
                                                     <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
                                                         <span className="text-blue-400 text-sm">📱</span>
                                                     </div>
-                                        <div>
+                                                    <div>
                                                         <p className="text-white text-sm font-medium">{session.device || 'Unknown Device'}</p>
                                                         <p className="text-gray-400 text-xs">{session.location || 'Unknown Location'} • {session.lastActive || 'Recently'}</p>
                                                     </div>
@@ -862,8 +862,8 @@ export default function ProfilePage() {
                                             </div>
                                         ))
                                     )}
-                                        </div>
-                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </ModernCard>
 

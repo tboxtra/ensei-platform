@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { useUserData } from '../contexts/UserDataContext';
+import { useCombinedUserData } from './useUserDataQuery';
 
 /**
  * Hook to force refresh user data when navigating between pages
@@ -10,10 +10,10 @@ import { useUserData } from '../contexts/UserDataContext';
  */
 export const useNavigationRefresh = () => {
     const pathname = usePathname();
-    const { forceRefresh } = useUserData();
+    const { refetch } = useCombinedUserData();
 
     useEffect(() => {
         // Force refresh user data when pathname changes
-        forceRefresh();
-    }, [pathname, forceRefresh]);
+        refetch();
+    }, [pathname, refetch]);
 };

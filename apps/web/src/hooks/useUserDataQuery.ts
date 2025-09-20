@@ -14,7 +14,7 @@ export const userDataKeys = {
 // Combined user data interface
 export interface CombinedUserData {
     profile: any;
-    ratings: any;
+    ratings: any | null;
     stats: {
         missionsCreated: number;
         missionsCompleted: number;
@@ -37,10 +37,14 @@ export interface CombinedUserData {
  */
 export const useUserProfile = () => {
     const { getUserProfile } = useApi();
-    
+
     return useQuery({
         queryKey: userDataKeys.profile(),
-        queryFn: getUserProfile,
+        queryFn: async () => {
+            const data = await getUserProfile();
+            console.log('🔍 React Query: Fetched user profile from Firebase:', data);
+            return data;
+        },
         staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
         refetchOnWindowFocus: true,
@@ -55,10 +59,14 @@ export const useUserProfile = () => {
  */
 export const useUserRatings = () => {
     const { getUserRatings } = useApi();
-    
+
     return useQuery({
         queryKey: userDataKeys.ratings(),
-        queryFn: getUserRatings,
+        queryFn: async () => {
+            const data = await getUserRatings();
+            console.log('🔍 React Query: Fetched user ratings from Firebase:', data);
+            return data;
+        },
         staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000, // 10 minutes
         refetchOnWindowFocus: true,
@@ -80,16 +88,16 @@ export const useCombinedUserData = (): {
 } => {
     const profileQuery = useUserProfile();
     const ratingsQuery = useUserRatings();
-    
+
     const isLoading = profileQuery.isLoading || ratingsQuery.isLoading;
     const error = profileQuery.error || ratingsQuery.error;
-    
-    // Combine data when both queries are successful
+
+    // Combine data when at least profile data is available
     const combinedData: CombinedUserData | undefined = 
-        profileQuery.data && ratingsQuery.data
+        profileQuery.data
             ? {
                 profile: profileQuery.data,
-                ratings: ratingsQuery.data,
+                ratings: ratingsQuery.data || null,
                 stats: {
                     missionsCreated: profileQuery.data.stats?.missions_created || profileQuery.data.missionsCreated || 0,
                     missionsCompleted: profileQuery.data.stats?.missions_completed || profileQuery.data.missionsCompleted || 0,
@@ -102,12 +110,21 @@ export const useCombinedUserData = (): {
                 }
             }
             : undefined;
-    
+
+    // Debug logging for statistics calculation
+    if (combinedData) {
+        console.log('🔍 React Query: Combined user data calculated:', {
+            profileStats: profileQuery.data.stats,
+            ratingsData: ratingsQuery.data,
+            calculatedStats: combinedData.stats
+        });
+    }
+
     const refetch = () => {
         profileQuery.refetch();
         ratingsQuery.refetch();
     };
-    
+
     return {
         data: combinedData,
         isLoading,
@@ -123,23 +140,23 @@ export const useCombinedUserData = (): {
 export const useUpdateUserProfile = () => {
     const { updateProfile } = useApi();
     const queryClient = useQueryClient();
-    
+
     return useMutation({
         mutationFn: updateProfile,
         onMutate: async (newData) => {
             // Cancel outgoing refetches
             await queryClient.cancelQueries({ queryKey: userDataKeys.profile() });
-            
+
             // Snapshot previous value
             const previousData = queryClient.getQueryData(userDataKeys.profile());
-            
+
             // Optimistically update cache
             queryClient.setQueryData(userDataKeys.profile(), (old: any) => ({
                 ...old,
                 ...newData,
                 updated_at: new Date().toISOString(),
             }));
-            
+
             return { previousData };
         },
         onError: (err, newData, context) => {
