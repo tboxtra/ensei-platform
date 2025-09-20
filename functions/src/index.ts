@@ -704,20 +704,62 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
     const userId = req.user.uid;
     const updateData = req.body;
 
+    // Get current user document to preserve existing fields
+    const userDoc = await db.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      // Create new user profile if it doesn't exist
+      const newUser = {
+        uid: userId,
+        email: req.user.email,
+        name: updateData.name || req.user.name || '',
+        avatar: updateData.avatar || req.user.picture || '',
+        firstName: updateData.firstName || '',
+        lastName: updateData.lastName || '',
+        bio: updateData.bio || '',
+        location: updateData.location || '',
+        website: updateData.website || '',
+        twitter: updateData.twitter || '',
+        instagram: updateData.instagram || '',
+        linkedin: updateData.linkedin || '',
+        twitter_handle: updateData.twitter_handle || updateData.twitter || '',
+        instagram_handle: updateData.instagram_handle || updateData.instagram || '',
+        linkedin_handle: updateData.linkedin_handle || updateData.linkedin || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        stats: {
+          missions_created: 0,
+          missions_completed: 0,
+          total_honors_earned: 0,
+          total_usd_earned: 0
+        }
+      };
+
+      await db.collection('users').doc(userId).set(newUser);
+      res.json(newUser);
+      return;
+    }
+
+    // Update existing user profile
+    const currentUser = userDoc.data();
     const updatedUser = {
+      ...currentUser,
       ...updateData,
       updated_at: new Date().toISOString()
     };
 
-    await db.collection('users').doc(userId).update(updatedUser);
+    // Use set instead of update to avoid security rule conflicts
+    await db.collection('users').doc(userId).set(updatedUser, { merge: true });
 
-    const userDoc = await db.collection('users').doc(userId).get();
-    const user = userDoc.data();
+    // Get updated user document
+    const updatedUserDoc = await db.collection('users').doc(userId).get();
+    const user = updatedUserDoc.data();
 
     res.json(user);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating user profile:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', error.message);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
