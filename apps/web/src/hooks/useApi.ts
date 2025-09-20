@@ -339,6 +339,15 @@ export function useApi() {
         }
     }, [makeRequest]);
 
+    const getUserProfile = useCallback(async (): Promise<any> => {
+        try {
+            return await makeRequest('/v1/user/profile');
+        } catch (err) {
+            console.error('Failed to fetch user profile:', err);
+            throw err;
+        }
+    }, [makeRequest]);
+
     // Mission APIs
     const createMission = useCallback(async (missionData: CreateMissionRequest): Promise<Mission> => {
         return makeRequest<Mission>('/v1/missions', {
@@ -533,6 +542,7 @@ export function useApi() {
         register,
         logout,
         getCurrentUser,
+        getUserProfile,
         // Profile methods
         updateProfile,
         // Mission methods
