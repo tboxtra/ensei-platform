@@ -115,11 +115,16 @@ export default function ProfilePage() {
                 twitter: freshUserData.twitter || ''
             });
 
-            // Update Twitter username state from fresh data
+            // Update Twitter username state from fresh data (only if Firebase has it)
             const freshTwitterHandle = freshUserData.twitter_handle || freshUserData.twitter || '';
             console.log('loadUserData: Twitter handle from Firebase:', freshTwitterHandle);
-            setTwitterUsername(freshTwitterHandle);
-            setTwitterStatus(freshTwitterHandle ? 'saved' : 'empty');
+            
+            // Only update Twitter username if Firebase has it, otherwise keep the one from localStorage
+            if (freshTwitterHandle) {
+                setTwitterUsername(freshTwitterHandle);
+                setTwitterStatus('saved');
+            }
+            // If Firebase doesn't have Twitter username, keep the one from localStorage
 
             // Update localStorage with fresh data
             localStorage.setItem('user', JSON.stringify(freshUserData));
