@@ -516,6 +516,14 @@ export function useApi() {
         return makeRequest<any>('/v1/tasks');
     }, [makeRequest]);
 
+    // Profile methods
+    const updateProfile = useCallback(async (profileData: any): Promise<any> => {
+        return makeRequest('/v1/user/profile', {
+            method: 'PUT',
+            body: JSON.stringify(profileData),
+        });
+    }, [makeRequest]);
+
     return {
         loading,
         error,
@@ -525,6 +533,8 @@ export function useApi() {
         register,
         logout,
         getCurrentUser,
+        // Profile methods
+        updateProfile,
         // Mission methods
         createMission,
         getMissions,
