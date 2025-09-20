@@ -61,14 +61,17 @@ export default function ProfilePage() {
     }, []);
 
     const loadUserData = async () => {
+        console.log('loadUserData: Starting to load user data');
         setLoading(true);
         setError(null);
         setSyncStatus('loading');
 
         // First, try to load from localStorage (this should always work if user is logged in)
         const userData = localStorage.getItem('user');
+        console.log('loadUserData: localStorage userData:', userData ? 'found' : 'not found');
         if (userData) {
             const userObj = JSON.parse(userData);
+            console.log('loadUserData: localStorage userObj:', userObj);
             setUser(userObj);
             setFormData({
                 firstName: userObj.firstName || userObj.name?.split(' ')[0] || '',
@@ -80,25 +83,27 @@ export default function ProfilePage() {
                 twitter: userObj.twitter || ''
             });
 
-            // Update Twitter username state from localStorage (only if not already initialized)
+            // Set Twitter username state from localStorage (fast initial render)
             const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
-            if (!isInitialized) {
-                setTwitterUsername(twitterHandle);
-                setTwitterStatus(twitterHandle ? 'saved' : 'empty');
-                setIsInitialized(true);
-            }
+            console.log('loadUserData: Twitter handle from localStorage:', twitterHandle);
+            setTwitterUsername(twitterHandle);
+            setTwitterStatus(twitterHandle ? 'saved' : 'empty');
+            setIsInitialized(true);
 
             // Set sync status to syncing while we fetch from Firebase
             setSyncStatus('syncing');
         } else {
             // No user data in localStorage, redirect to login
+            console.log('loadUserData: No user data in localStorage, redirecting to login');
             router.push('/auth/login');
             return;
         }
 
         // Then try to refresh from API in background (ensure data is current)
         try {
+            console.log('loadUserData: Fetching fresh data from Firebase...');
             const freshUserData = await getCurrentUser();
+            console.log('loadUserData: Fresh data from Firebase:', freshUserData);
             setUser(freshUserData);
             setFormData({
                 firstName: freshUserData.firstName || freshUserData.name?.split(' ')[0] || '',
@@ -112,6 +117,7 @@ export default function ProfilePage() {
 
             // Update Twitter username state from fresh data
             const freshTwitterHandle = freshUserData.twitter_handle || freshUserData.twitter || '';
+            console.log('loadUserData: Twitter handle from Firebase:', freshTwitterHandle);
             setTwitterUsername(freshTwitterHandle);
             setTwitterStatus(freshTwitterHandle ? 'saved' : 'empty');
 
