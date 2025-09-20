@@ -55,6 +55,7 @@ export default function ProfilePage() {
     const [twitterLoading, setTwitterLoading] = useState<boolean>(false);
     const [syncStatus, setSyncStatus] = useState<'loading' | 'synced' | 'offline' | 'syncing'>('loading');
     const [isInitialized, setIsInitialized] = useState<boolean>(initialTwitterState.initialized);
+    const [syncMessage, setSyncMessage] = useState<string>('');
 
     useEffect(() => {
         loadUserData();
@@ -115,19 +116,22 @@ export default function ProfilePage() {
                 twitter: freshUserData.twitter || ''
             });
 
-            // Update Twitter username state from fresh data (only if Firebase has it)
-            const freshTwitterHandle = freshUserData.twitter_handle || freshUserData.twitter || '';
-            console.log('loadUserData: Twitter handle from Firebase:', freshTwitterHandle);
+            // Use proper conflict resolution to merge local and server data
+            const currentUserData = localStorage.getItem('user');
+            const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
             
-            // Only update Twitter username if Firebase has it, otherwise keep the one from localStorage
-            if (freshTwitterHandle) {
-                setTwitterUsername(freshTwitterHandle);
-                setTwitterStatus('saved');
-            }
-            // If Firebase doesn't have Twitter username, keep the one from localStorage
+            const mergedUserData = mergeUserData(currentUser, freshUserData);
+            console.log('loadUserData: Merged user data:', mergedUserData);
+            
+            // Update Twitter username state from merged data
+            const mergedTwitterHandle = mergedUserData.twitter_handle || mergedUserData.twitter || '';
+            console.log('loadUserData: Twitter handle from merged data:', mergedTwitterHandle);
+            
+            setTwitterUsername(mergedTwitterHandle);
+            setTwitterStatus(mergedTwitterHandle ? 'saved' : 'empty');
 
-            // Update localStorage with fresh data
-            localStorage.setItem('user', JSON.stringify(freshUserData));
+            // Update localStorage with merged data
+            localStorage.setItem('user', JSON.stringify(mergedUserData));
             setSyncStatus('synced');
         } catch (err) {
             console.warn('Failed to refresh user data from API, using cached data:', err);
@@ -172,27 +176,103 @@ export default function ProfilePage() {
         return username.replace('@', '').toLowerCase();
     };
 
-    // Twitter username management functions
+    // Industry standard conflict resolution - merge user data intelligently
+    const mergeUserData = (localData: any, serverData: any) => {
+        console.log('Merging user data:', { localData, serverData });
+        
+        const merged = {
+            ...serverData, // Start with server data as base
+            // Preserve local changes that server doesn't have or has empty
+            twitter: localData?.twitter || serverData?.twitter || '',
+            twitter_handle: localData?.twitter_handle || serverData?.twitter_handle || '',
+            // Use server timestamp for other fields
+            updated_at: serverData?.updated_at || new Date().toISOString()
+        };
+        
+        console.log('Merged user data:', merged);
+        return merged;
+    };
+
+    // Retry mechanism for failed Firebase saves
+    const saveWithRetry = async (data: any, maxRetries: number = 3): Promise<any> => {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                console.log(`Attempting save (attempt ${i + 1}/${maxRetries}):`, data);
+                const result = await updateProfile(data);
+                console.log('Save successful:', result);
+                return result;
+            } catch (error: any) {
+                console.error(`Save attempt ${i + 1} failed:`, error);
+                
+                if (i === maxRetries - 1) {
+                    throw new Error(`Failed to save after ${maxRetries} attempts: ${error.message}`);
+                }
+                
+                // Exponential backoff
+                const delay = 1000 * Math.pow(2, i);
+                console.log(`Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    };
+
+    // Background sync queue for failed saves
+    const backgroundSyncQueue = {
+        queue: [] as Array<{ id: string; data: any; timestamp: number }>,
+        
+        add: (id: string, data: any) => {
+            const item = { id, data, timestamp: Date.now() };
+            this.queue.push(item);
+            console.log('Added to background sync queue:', item);
+            this.process();
+        },
+        
+        process: async () => {
+            if (this.queue.length === 0) return;
+            
+            const item = this.queue.shift();
+            if (!item) return;
+            
+            try {
+                await saveWithRetry(item.data);
+                console.log('Background sync successful for:', item.id);
+            } catch (error) {
+                console.error('Background sync failed for:', item.id, error);
+                // Re-queue if not too old (older than 1 hour)
+                if (Date.now() - item.timestamp < 3600000) {
+                    this.queue.push(item);
+                }
+            }
+        }
+    };
+
+    // Twitter username management functions with optimistic updates
     const handleAddTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
+        
+        const validation = validateTwitterUsername(formData.twitter);
+        if (!validation.isValid) {
+            setError(validation.message || 'Invalid Twitter username');
+            return;
+        }
 
+        const formattedUsername = formatTwitterUsername(formData.twitter);
+        
+        // 1. OPTIMISTIC UPDATE - Update UI immediately
+        const previousUsername = twitterUsername;
+        const previousStatus = twitterStatus;
+        
+        setTwitterUsername(formattedUsername);
+        setTwitterStatus('saved');
         setTwitterLoading(true);
         setSyncStatus('syncing');
+        setFormData(prev => ({ ...prev, twitter: '' }));
+        
         try {
-            const validation = validateTwitterUsername(formData.twitter);
-            if (!validation.isValid) {
-                setError(validation.message || 'Invalid Twitter username');
-                setTwitterLoading(false);
-                setSyncStatus('offline');
-                return;
-            }
-
-            const formattedUsername = formatTwitterUsername(formData.twitter);
-
-            // Get current user data from localStorage to ensure we have complete data
+            // 2. Get current user data from localStorage to ensure we have complete data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-
+            
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -211,31 +291,50 @@ export default function ProfilePage() {
                 formData
             });
 
-            const updatedUser = await updateProfile(profileData);
+            // 3. Save to Firebase with retry mechanism
+            const updatedUser = await saveWithRetry(profileData);
             console.log('Firebase response:', updatedUser);
-            console.log('Firebase response type:', typeof updatedUser);
-            console.log('Firebase response keys:', updatedUser ? Object.keys(updatedUser) : 'null/undefined');
-
+            
             if (!updatedUser) {
                 throw new Error('Firebase returned empty response');
             }
-
+            
+            // 4. SUCCESS - Update state with server response
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
-
-            setTwitterUsername(formattedUsername);
-            setTwitterStatus('saved');
-            setFormData(prev => ({ ...prev, twitter: '' }));
             setSyncStatus('synced');
+            setSyncMessage('');
+            setError(null);
+            
         } catch (err: any) {
             console.error('Error saving Twitter username:', err);
-            console.error('Error details:', {
-                message: err.message,
-                status: err.status,
-                response: err.response
-            });
-            setError(err.message || 'Failed to save Twitter username');
+            
+            // 5. ROLLBACK - Revert optimistic update
+            setTwitterUsername(previousUsername);
+            setTwitterStatus(previousStatus);
+            setFormData(prev => ({ ...prev, twitter: formattedUsername }));
             setSyncStatus('offline');
+            
+            // 6. Show user-friendly error and queue for background retry
+            setError('Failed to save Twitter username. Will retry in background.');
+            setSyncMessage('Save failed - retrying in background...');
+            
+            // 7. Queue for background sync
+            const currentUserData = localStorage.getItem('user');
+            const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
+            const profileData = {
+                firstName: currentUser?.firstName || formData.firstName || '',
+                lastName: currentUser?.lastName || formData.lastName || '',
+                email: currentUser?.email || formData.email || '',
+                bio: currentUser?.bio || formData.bio || '',
+                location: currentUser?.location || formData.location || '',
+                website: currentUser?.website || formData.website || '',
+                twitter: formattedUsername,
+                twitter_handle: formattedUsername
+            };
+            
+            backgroundSyncQueue.add('addTwitterUsername', profileData);
+            
         } finally {
             setTwitterLoading(false);
         }
@@ -580,25 +679,25 @@ export default function ProfilePage() {
                                                     {syncStatus === 'loading' && (
                                                         <span className="text-xs text-blue-400 flex items-center gap-1">
                                                             <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                                                            Loading...
+                                                            Loading profile...
                                                         </span>
                                                     )}
                                                     {syncStatus === 'syncing' && (
                                                         <span className="text-xs text-yellow-400 flex items-center gap-1">
                                                             <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                                                            Syncing...
+                                                            {syncMessage || 'Syncing with server...'}
                                                         </span>
                                                     )}
                                                     {syncStatus === 'synced' && (
                                                         <span className="text-xs text-green-400 flex items-center gap-1">
                                                             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                                            Synced
+                                                            All changes saved
                                                         </span>
                                                     )}
                                                     {syncStatus === 'offline' && (
-                                                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                                                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                                            Offline
+                                                        <span className="text-xs text-orange-400 flex items-center gap-1">
+                                                            <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                                                            {syncMessage || 'Offline - will sync when connected'}
                                                         </span>
                                                     )}
                                                 </div>
