@@ -22,10 +22,14 @@ export default function ProfilePage() {
         bio: '',
         location: '',
         website: '',
-        twitter: '',
-        instagram: '',
-        linkedin: ''
+        twitter: ''
     });
+    
+    // Twitter username state management
+    const [twitterUsername, setTwitterUsername] = useState<string>('');
+    const [isEditingTwitter, setIsEditingTwitter] = useState<boolean>(false);
+    const [twitterStatus, setTwitterStatus] = useState<'empty' | 'saved' | 'editing'>('empty');
+    const [twitterLoading, setTwitterLoading] = useState<boolean>(false);
 
     useEffect(() => {
         loadUserData();
@@ -46,10 +50,13 @@ export default function ProfilePage() {
                 bio: userObj.bio || '',
                 location: userObj.location || '',
                 website: userObj.website || '',
-                twitter: userObj.twitter || '',
-                instagram: userObj.instagram || '',
-                linkedin: userObj.linkedin || ''
+                twitter: userObj.twitter || ''
             });
+            
+            // Set Twitter username state
+            const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
+            setTwitterUsername(twitterHandle);
+            setTwitterStatus(twitterHandle ? 'saved' : 'empty');
         } else {
             // No user data in localStorage, redirect to login
             router.push('/auth/login');
@@ -67,10 +74,13 @@ export default function ProfilePage() {
                 bio: freshUserData.bio || '',
                 location: freshUserData.location || '',
                 website: freshUserData.website || '',
-                twitter: freshUserData.twitter || '',
-                instagram: freshUserData.instagram || '',
-                linkedin: freshUserData.linkedin || ''
+                twitter: freshUserData.twitter || ''
             });
+            
+            // Update Twitter username state from fresh data
+            const twitterHandle = freshUserData.twitter_handle || freshUserData.twitter || '';
+            setTwitterUsername(twitterHandle);
+            setTwitterStatus(twitterHandle ? 'saved' : 'empty');
         } catch (err) {
             console.warn('Failed to refresh user data from API, using cached data:', err);
             // Don't show error or redirect - just use the localStorage data we already loaded
@@ -87,23 +97,23 @@ export default function ProfilePage() {
     // Twitter username validation
     const validateTwitterUsername = (username: string): { isValid: boolean; message?: string } => {
         if (!username) return { isValid: true }; // Optional field
-        
+
         // Remove @ if present
         const cleanUsername = username.replace('@', '');
-        
+
         // Twitter username rules: 1-15 characters, alphanumeric and underscore only
         if (cleanUsername.length < 1 || cleanUsername.length > 15) {
             return { isValid: false, message: 'Twitter username must be 1-15 characters long' };
         }
-        
+
         if (!/^[a-zA-Z0-9_]+$/.test(cleanUsername)) {
             return { isValid: false, message: 'Twitter username can only contain letters, numbers, and underscores' };
         }
-        
+
         if (cleanUsername.startsWith('_') || cleanUsername.endsWith('_')) {
             return { isValid: false, message: 'Twitter username cannot start or end with underscore' };
         }
-        
+
         return { isValid: true };
     };
 
@@ -111,23 +121,115 @@ export default function ProfilePage() {
         return username.replace('@', '').toLowerCase();
     };
 
-    const handleSaveProfile = async () => {
-        setLoading(true);
-        setError(null);
+    // Twitter username management functions
+    const handleAddTwitterUsername = async () => {
+        if (!formData.twitter.trim()) return;
         
+        setTwitterLoading(true);
         try {
-            // Validate Twitter username
-            const twitterValidation = validateTwitterUsername(formData.twitter);
-            if (!twitterValidation.isValid) {
-                setError(twitterValidation.message || 'Invalid Twitter username');
-                setLoading(false);
+            const validation = validateTwitterUsername(formData.twitter);
+            if (!validation.isValid) {
+                setError(validation.message || 'Invalid Twitter username');
+                setTwitterLoading(false);
                 return;
             }
 
-            // Format usernames
-            const formattedTwitter = formatTwitterUsername(formData.twitter);
-            const formattedInstagram = formData.instagram.replace('@', '').toLowerCase();
-            const formattedLinkedin = formData.linkedin.toLowerCase();
+            const formattedUsername = formatTwitterUsername(formData.twitter);
+            const profileData = {
+                ...formData,
+                twitter: formattedUsername,
+                twitter_handle: formattedUsername
+            };
+
+            const updatedUser = await updateProfile(profileData);
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            
+            setTwitterUsername(formattedUsername);
+            setTwitterStatus('saved');
+            setFormData(prev => ({ ...prev, twitter: '' }));
+        } catch (err: any) {
+            setError(err.message || 'Failed to save Twitter username');
+        } finally {
+            setTwitterLoading(false);
+        }
+    };
+
+    const handleEditTwitterUsername = () => {
+        setFormData(prev => ({ ...prev, twitter: twitterUsername }));
+        setTwitterStatus('editing');
+    };
+
+    const handleSaveTwitterUsername = async () => {
+        if (!formData.twitter.trim()) return;
+        
+        setTwitterLoading(true);
+        try {
+            const validation = validateTwitterUsername(formData.twitter);
+            if (!validation.isValid) {
+                setError(validation.message || 'Invalid Twitter username');
+                setTwitterLoading(false);
+                return;
+            }
+
+            const formattedUsername = formatTwitterUsername(formData.twitter);
+            const profileData = {
+                ...formData,
+                twitter: formattedUsername,
+                twitter_handle: formattedUsername
+            };
+
+            const updatedUser = await updateProfile(profileData);
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            
+            setTwitterUsername(formattedUsername);
+            setTwitterStatus('saved');
+        } catch (err: any) {
+            setError(err.message || 'Failed to update Twitter username');
+        } finally {
+            setTwitterLoading(false);
+        }
+    };
+
+    const handleCancelTwitterEdit = () => {
+        setFormData(prev => ({ ...prev, twitter: '' }));
+        setTwitterStatus('saved');
+    };
+
+    const handleRemoveTwitterUsername = async () => {
+        if (!confirm('Are you sure you want to remove your Twitter username? This will affect mission verification.')) {
+            return;
+        }
+        
+        setTwitterLoading(true);
+        try {
+            const profileData = {
+                ...formData,
+                twitter: '',
+                twitter_handle: ''
+            };
+
+            const updatedUser = await updateProfile(profileData);
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            
+            setTwitterUsername('');
+            setTwitterStatus('empty');
+            setFormData(prev => ({ ...prev, twitter: '' }));
+        } catch (err: any) {
+            setError(err.message || 'Failed to remove Twitter username');
+        } finally {
+            setTwitterLoading(false);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            // No validation needed for basic profile fields
 
             // Prepare profile data for API
             const profileData = {
@@ -137,14 +239,7 @@ export default function ProfilePage() {
                 bio: formData.bio,
                 location: formData.location,
                 website: formData.website,
-                twitter: formattedTwitter,
-                instagram: formattedInstagram,
-                linkedin: formattedLinkedin,
-                name: `${formData.firstName} ${formData.lastName}`.trim(),
-                // Store usernames for verification purposes
-                twitter_handle: formattedTwitter,
-                instagram_handle: formattedInstagram,
-                linkedin_handle: formattedLinkedin
+                name: `${formData.firstName} ${formData.lastName}`.trim()
             };
 
             // Call the API to update profile
@@ -152,12 +247,12 @@ export default function ProfilePage() {
 
             // Update local state
             setUser(updatedUser);
-            
+
             // Update localStorage for consistency
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
             // Show success message
-            alert('Profile updated successfully! Your Twitter username has been saved for verification.');
+            alert('Profile updated successfully!');
         } catch (err: any) {
             console.error('Profile update error:', err);
             setError(err.message || 'Failed to update profile. Please try again.');
@@ -356,25 +451,21 @@ export default function ProfilePage() {
                                             />
                                         </div>
 
-                                        {/* Social Media Section */}
+                                        {/* Twitter Username Section */}
                                         <div className="border-t border-gray-700 pt-6">
                                             <h3 className="text-base sm:text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                                <span>🔗</span>
-                                                Social Media Links
+                                                <span>🐦</span>
+                                                Twitter Username
+                                                <span className="text-xs text-yellow-400 bg-yellow-500/20 px-2 py-1 rounded">
+                                                    Required for verification
+                                                </span>
                                             </h3>
                                             <p className="text-gray-400 text-sm mb-4">
-                                                Link your social media accounts for verification and enhanced features
+                                                Link your Twitter account for mission verification
                                             </p>
                                             
-                                            <div className="space-y-4">
+                                            {twitterStatus === 'empty' && (
                                                 <div>
-                                                    <label className="block text-sm font-medium text-white mb-2 flex items-center gap-2">
-                                                        <span>🐦</span>
-                                                        Twitter Username
-                                                        <span className="text-xs text-yellow-400 bg-yellow-500/20 px-2 py-1 rounded">
-                                                            Required for verification
-                                                        </span>
-                                                    </label>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-gray-400 text-sm">@</span>
                                                         <input
@@ -390,6 +481,13 @@ export default function ProfilePage() {
                                                             }`}
                                                             placeholder="yourusername"
                                                         />
+                                                        <button
+                                                            onClick={handleAddTwitterUsername}
+                                                            disabled={!formData.twitter.trim() || twitterLoading}
+                                                            className="px-4 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                                                        >
+                                                            {twitterLoading ? 'Adding...' : 'Add'}
+                                                        </button>
                                                     </div>
                                                     {formData.twitter && !validateTwitterUsername(formData.twitter).isValid && (
                                                         <p className="text-xs text-red-400 mt-1">
@@ -400,41 +498,83 @@ export default function ProfilePage() {
                                                         This will be used to verify your Twitter activity for missions
                                                     </p>
                                                 </div>
+                                            )}
 
-                                                <div>
-                                                    <label className="block text-sm font-medium text-white mb-2 flex items-center gap-2">
-                                                        <span>📷</span>
-                                                        Instagram Username
-                                                    </label>
+                                            {twitterStatus === 'saved' && (
+                                                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-green-400 text-lg">✅</span>
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-gray-400 text-sm">@</span>
+                                                                    <span className="text-white font-medium">{twitterUsername}</span>
+                                                                </div>
+                                                                <p className="text-xs text-green-400 mt-1">Connected for verification</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={handleEditTwitterUsername}
+                                                                className="px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-xs hover:bg-blue-500/30"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={handleRemoveTwitterUsername}
+                                                                disabled={twitterLoading}
+                                                                className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded text-xs hover:bg-red-500/30 disabled:opacity-50"
+                                                            >
+                                                                {twitterLoading ? 'Removing...' : 'Remove'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {twitterStatus === 'editing' && (
+                                                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <span className="text-yellow-400 text-lg">⚠️</span>
+                                                        <span className="text-yellow-400 text-sm font-medium">Editing Twitter Username</span>
+                                                    </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-gray-400 text-sm">@</span>
                                                         <input
                                                             type="text"
-                                                            value={formData.instagram}
-                                                            onChange={(e) => handleInputChange('instagram', e.target.value.replace('@', ''))}
-                                                            className="flex-1 p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
+                                                            value={formData.twitter}
+                                                            onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
+                                                            className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm sm:text-base ${
+                                                                formData.twitter ? 
+                                                                    validateTwitterUsername(formData.twitter).isValid ? 
+                                                                        'border-green-500/50 focus:ring-green-500' : 
+                                                                        'border-red-500/50 focus:ring-red-500'
+                                                                    : 'border-gray-700/50 focus:ring-green-500'
+                                                            }`}
                                                             placeholder="yourusername"
                                                         />
+                                                        <button
+                                                            onClick={handleSaveTwitterUsername}
+                                                            disabled={!formData.twitter.trim() || twitterLoading}
+                                                            className="px-3 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                                                        >
+                                                            {twitterLoading ? 'Saving...' : 'Save'}
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelTwitterEdit}
+                                                            disabled={twitterLoading}
+                                                            className="px-3 py-3 bg-gray-500/20 text-gray-400 border border-gray-500/30 rounded-lg hover:bg-gray-500/30 disabled:opacity-50 text-sm font-medium"
+                                                        >
+                                                            Cancel
+                                                        </button>
                                                     </div>
+                                                    {formData.twitter && !validateTwitterUsername(formData.twitter).isValid && (
+                                                        <p className="text-xs text-red-400 mt-2">
+                                                            {validateTwitterUsername(formData.twitter).message}
+                                                        </p>
+                                                    )}
                                                 </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-white mb-2 flex items-center gap-2">
-                                                        <span>💼</span>
-                                                        LinkedIn Username
-                                                    </label>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-gray-400 text-sm">linkedin.com/in/</span>
-                                                        <input
-                                                            type="text"
-                                                            value={formData.linkedin}
-                                                            onChange={(e) => handleInputChange('linkedin', e.target.value)}
-                                                            className="flex-1 p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
-                                                            placeholder="yourusername"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
 
                                         <ModernButton
