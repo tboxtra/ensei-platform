@@ -179,19 +179,25 @@ export default function ProfilePage() {
             }
 
             const formattedUsername = formatTwitterUsername(formData.twitter);
+            
+            // Get current user data from localStorage to ensure we have complete data
+            const currentUserData = localStorage.getItem('user');
+            const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
+            
             const profileData = {
-                firstName: user?.firstName || formData.firstName || '',
-                lastName: user?.lastName || formData.lastName || '',
-                email: user?.email || formData.email || '',
-                bio: user?.bio || formData.bio || '',
-                location: user?.location || formData.location || '',
-                website: user?.website || formData.website || '',
+                firstName: currentUser?.firstName || formData.firstName || '',
+                lastName: currentUser?.lastName || formData.lastName || '',
+                email: currentUser?.email || formData.email || '',
+                bio: currentUser?.bio || formData.bio || '',
+                location: currentUser?.location || formData.location || '',
+                website: currentUser?.website || formData.website || '',
                 twitter: formattedUsername,
                 twitter_handle: formattedUsername
             };
 
             console.log('Saving Twitter username to Firebase:', {
                 profileData,
+                currentUser,
                 user,
                 formData
             });
@@ -233,13 +239,18 @@ export default function ProfilePage() {
             }
 
             const formattedUsername = formatTwitterUsername(formData.twitter);
+            
+            // Get current user data from localStorage to ensure we have complete data
+            const currentUserData = localStorage.getItem('user');
+            const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
+            
             const profileData = {
-                firstName: user?.firstName || formData.firstName || '',
-                lastName: user?.lastName || formData.lastName || '',
-                email: user?.email || formData.email || '',
-                bio: user?.bio || formData.bio || '',
-                location: user?.location || formData.location || '',
-                website: user?.website || formData.website || '',
+                firstName: currentUser?.firstName || formData.firstName || '',
+                lastName: currentUser?.lastName || formData.lastName || '',
+                email: currentUser?.email || formData.email || '',
+                bio: currentUser?.bio || formData.bio || '',
+                location: currentUser?.location || formData.location || '',
+                website: currentUser?.website || formData.website || '',
                 twitter: formattedUsername,
                 twitter_handle: formattedUsername
             };
@@ -272,13 +283,17 @@ export default function ProfilePage() {
         setTwitterLoading(true);
         setSyncStatus('syncing');
         try {
+            // Get current user data from localStorage to ensure we have complete data
+            const currentUserData = localStorage.getItem('user');
+            const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
+            
             const profileData = {
-                firstName: user?.firstName || formData.firstName || '',
-                lastName: user?.lastName || formData.lastName || '',
-                email: user?.email || formData.email || '',
-                bio: user?.bio || formData.bio || '',
-                location: user?.location || formData.location || '',
-                website: user?.website || formData.website || '',
+                firstName: currentUser?.firstName || formData.firstName || '',
+                lastName: currentUser?.lastName || formData.lastName || '',
+                email: currentUser?.email || formData.email || '',
+                bio: currentUser?.bio || formData.bio || '',
+                location: currentUser?.location || formData.location || '',
+                website: currentUser?.website || formData.website || '',
                 twitter: '',
                 twitter_handle: ''
             };
