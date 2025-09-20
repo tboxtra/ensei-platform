@@ -24,19 +24,22 @@ export default function ProfilePage() {
         website: '',
         twitter: ''
     });
-    
+
     // Twitter username state management
     const [twitterUsername, setTwitterUsername] = useState<string>('');
     const [isEditingTwitter, setIsEditingTwitter] = useState<boolean>(false);
     const [twitterStatus, setTwitterStatus] = useState<'empty' | 'saved' | 'editing'>('empty');
     const [twitterLoading, setTwitterLoading] = useState<boolean>(false);
+    const [syncStatus, setSyncStatus] = useState<'loading' | 'synced' | 'offline' | 'syncing'>('loading');
 
     useEffect(() => {
         loadUserData();
     }, []);
 
     const loadUserData = async () => {
+        setLoading(true);
         setError(null);
+        setSyncStatus('loading');
 
         // First, try to load from localStorage (this should always work if user is logged in)
         const userData = localStorage.getItem('user');
@@ -52,18 +55,21 @@ export default function ProfilePage() {
                 website: userObj.website || '',
                 twitter: userObj.twitter || ''
             });
-            
-            // Set Twitter username state
+
+            // Set Twitter username state from localStorage (fast initial render)
             const twitterHandle = userObj.twitter_handle || userObj.twitter || '';
             setTwitterUsername(twitterHandle);
             setTwitterStatus(twitterHandle ? 'saved' : 'empty');
+            
+            // Set sync status to syncing while we fetch from Firebase
+            setSyncStatus('syncing');
         } else {
             // No user data in localStorage, redirect to login
             router.push('/auth/login');
             return;
         }
 
-        // Then try to refresh from API (optional, don't fail if this doesn't work)
+        // Then try to refresh from API in background (ensure data is current)
         try {
             const freshUserData = await getCurrentUser();
             setUser(freshUserData);
@@ -76,14 +82,23 @@ export default function ProfilePage() {
                 website: freshUserData.website || '',
                 twitter: freshUserData.twitter || ''
             });
+
+            // Update Twitter username state from fresh data (only if different)
+            const freshTwitterHandle = freshUserData.twitter_handle || freshUserData.twitter || '';
+            if (freshTwitterHandle !== twitterUsername) {
+                setTwitterUsername(freshTwitterHandle);
+                setTwitterStatus(freshTwitterHandle ? 'saved' : 'empty');
+            }
             
-            // Update Twitter username state from fresh data
-            const twitterHandle = freshUserData.twitter_handle || freshUserData.twitter || '';
-            setTwitterUsername(twitterHandle);
-            setTwitterStatus(twitterHandle ? 'saved' : 'empty');
+            // Update localStorage with fresh data
+            localStorage.setItem('user', JSON.stringify(freshUserData));
+            setSyncStatus('synced');
         } catch (err) {
             console.warn('Failed to refresh user data from API, using cached data:', err);
+            setSyncStatus('offline');
             // Don't show error or redirect - just use the localStorage data we already loaded
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -126,11 +141,13 @@ export default function ProfilePage() {
         if (!formData.twitter.trim()) return;
         
         setTwitterLoading(true);
+        setSyncStatus('syncing');
         try {
             const validation = validateTwitterUsername(formData.twitter);
             if (!validation.isValid) {
                 setError(validation.message || 'Invalid Twitter username');
                 setTwitterLoading(false);
+                setSyncStatus('offline');
                 return;
             }
 
@@ -148,8 +165,10 @@ export default function ProfilePage() {
             setTwitterUsername(formattedUsername);
             setTwitterStatus('saved');
             setFormData(prev => ({ ...prev, twitter: '' }));
+            setSyncStatus('synced');
         } catch (err: any) {
             setError(err.message || 'Failed to save Twitter username');
+            setSyncStatus('offline');
         } finally {
             setTwitterLoading(false);
         }
@@ -164,11 +183,13 @@ export default function ProfilePage() {
         if (!formData.twitter.trim()) return;
         
         setTwitterLoading(true);
+        setSyncStatus('syncing');
         try {
             const validation = validateTwitterUsername(formData.twitter);
             if (!validation.isValid) {
                 setError(validation.message || 'Invalid Twitter username');
                 setTwitterLoading(false);
+                setSyncStatus('offline');
                 return;
             }
 
@@ -185,8 +206,10 @@ export default function ProfilePage() {
             
             setTwitterUsername(formattedUsername);
             setTwitterStatus('saved');
+            setSyncStatus('synced');
         } catch (err: any) {
             setError(err.message || 'Failed to update Twitter username');
+            setSyncStatus('offline');
         } finally {
             setTwitterLoading(false);
         }
@@ -203,6 +226,7 @@ export default function ProfilePage() {
         }
         
         setTwitterLoading(true);
+        setSyncStatus('syncing');
         try {
             const profileData = {
                 ...formData,
@@ -217,8 +241,10 @@ export default function ProfilePage() {
             setTwitterUsername('');
             setTwitterStatus('empty');
             setFormData(prev => ({ ...prev, twitter: '' }));
+            setSyncStatus('synced');
         } catch (err: any) {
             setError(err.message || 'Failed to remove Twitter username');
+            setSyncStatus('offline');
         } finally {
             setTwitterLoading(false);
         }
@@ -460,10 +486,38 @@ export default function ProfilePage() {
                                                     Required for verification
                                                 </span>
                                             </h3>
-                                            <p className="text-gray-400 text-sm mb-4">
-                                                Link your Twitter account for mission verification
-                                            </p>
-                                            
+                                            <div className="flex items-center justify-between mb-4">
+                                                <p className="text-gray-400 text-sm">
+                                                    Link your Twitter account for mission verification
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    {syncStatus === 'loading' && (
+                                                        <span className="text-xs text-blue-400 flex items-center gap-1">
+                                                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                                                            Loading...
+                                                        </span>
+                                                    )}
+                                                    {syncStatus === 'syncing' && (
+                                                        <span className="text-xs text-yellow-400 flex items-center gap-1">
+                                                            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                                                            Syncing...
+                                                        </span>
+                                                    )}
+                                                    {syncStatus === 'synced' && (
+                                                        <span className="text-xs text-green-400 flex items-center gap-1">
+                                                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                                            Synced
+                                                        </span>
+                                                    )}
+                                                    {syncStatus === 'offline' && (
+                                                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                                                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                                            Offline
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
                                             {twitterStatus === 'empty' && (
                                                 <div>
                                                     <div className="flex items-center gap-2">
@@ -472,13 +526,12 @@ export default function ProfilePage() {
                                                             type="text"
                                                             value={formData.twitter}
                                                             onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
-                                                            className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm sm:text-base ${
-                                                                formData.twitter ? 
-                                                                    validateTwitterUsername(formData.twitter).isValid ? 
-                                                                        'border-green-500/50 focus:ring-green-500' : 
+                                                            className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm sm:text-base ${formData.twitter ?
+                                                                    validateTwitterUsername(formData.twitter).isValid ?
+                                                                        'border-green-500/50 focus:ring-green-500' :
                                                                         'border-red-500/50 focus:ring-red-500'
                                                                     : 'border-gray-700/50 focus:ring-green-500'
-                                                            }`}
+                                                                }`}
                                                             placeholder="yourusername"
                                                         />
                                                         <button
@@ -544,13 +597,12 @@ export default function ProfilePage() {
                                                             type="text"
                                                             value={formData.twitter}
                                                             onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
-                                                            className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm sm:text-base ${
-                                                                formData.twitter ? 
-                                                                    validateTwitterUsername(formData.twitter).isValid ? 
-                                                                        'border-green-500/50 focus:ring-green-500' : 
+                                                            className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm sm:text-base ${formData.twitter ?
+                                                                    validateTwitterUsername(formData.twitter).isValid ?
+                                                                        'border-green-500/50 focus:ring-green-500' :
                                                                         'border-red-500/50 focus:ring-red-500'
                                                                     : 'border-gray-700/50 focus:ring-green-500'
-                                                            }`}
+                                                                }`}
                                                             placeholder="yourusername"
                                                         />
                                                         <button
