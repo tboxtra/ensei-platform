@@ -1,49 +1,49 @@
-import { 
-    getFirebaseAuth, 
-    getFirebaseFirestore, 
-    getFirebaseStorage, 
-    getFirebaseAnalytics, 
-    getFirebaseMessaging 
+import {
+    getFirebaseAuth,
+    getFirebaseFirestore,
+    getFirebaseStorage,
+    getFirebaseAnalytics,
+    getFirebaseMessaging
 } from './firebase';
 
 // Firebase Services Configuration
 export class FirebaseServices {
     private static instance: FirebaseServices;
-    
-    private constructor() {}
-    
+
+    private constructor() { }
+
     public static getInstance(): FirebaseServices {
         if (!FirebaseServices.instance) {
             FirebaseServices.instance = new FirebaseServices();
         }
         return FirebaseServices.instance;
     }
-    
+
     // Authentication Service
     public getAuth() {
         return getFirebaseAuth();
     }
-    
+
     // Firestore Database Service
     public getFirestore() {
         return getFirebaseFirestore();
     }
-    
+
     // Storage Service
     public getStorage() {
         return getFirebaseStorage();
     }
-    
+
     // Analytics Service
     public async getAnalytics() {
         return await getFirebaseAnalytics();
     }
-    
+
     // Messaging Service
     public async getMessaging() {
         return await getFirebaseMessaging();
     }
-    
+
     // Initialize all services
     public async initializeServices() {
         try {
@@ -52,7 +52,7 @@ export class FirebaseServices {
             const storage = this.getStorage();
             const analytics = await this.getAnalytics();
             const messaging = await this.getMessaging();
-            
+
             console.log('Firebase services initialized:', {
                 auth: !!auth,
                 firestore: !!firestore,
@@ -60,7 +60,7 @@ export class FirebaseServices {
                 analytics: !!analytics,
                 messaging: !!messaging
             });
-            
+
             return {
                 auth,
                 firestore,
@@ -81,7 +81,7 @@ export const firebaseServices = FirebaseServices.getInstance();
 // Service Worker for Firebase Messaging
 export const registerServiceWorker = async () => {
     if (typeof window === 'undefined') return null;
-    
+
     if ('serviceWorker' in navigator) {
         try {
             const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');

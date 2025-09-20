@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { EmbeddedContent } from './EmbeddedContent';
 import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
-import { useAuth } from '../../contexts/UserAuthContext';
+import { useAuth, type User } from '../../contexts/UserAuthContext';
 import {
     useUserMissionTaskCompletions,
     useCompleteTask,
-    useRedoTaskCompletion,
-    useTaskStatusInfo
-} from '../../hooks/useTaskStatusSystem';
+    useRedoTaskCompletion
+} from '../../hooks/useTaskCompletions';
 // Removed getTaskStatusInfo import - using React Query hooks instead
 import { Flag, AlertTriangle } from 'lucide-react';
+import { InlineVerification } from '../verification/InlineVerification';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -283,7 +283,7 @@ export function CompactMissionCard({
         return [];
     };
 
-    const taskTypes = getTaskTypes(mission);
+    const taskTypes = useMemo(() => getTaskTypes(mission), [mission.tasks]);
 
     const getTaskIcon = (taskId: string) => {
         const icons: { [key: string]: string } = {
@@ -308,12 +308,11 @@ export function CompactMissionCard({
 
     // Get task completion status with flagged information
     // Standard practice: Return the most recent completion status
-    const getTaskCompletionStatus = (taskId: string) => {
+    const getTaskCompletionStatus = useCallback((taskId: string) => {
         // Get all completions for this task, sorted by creation date (newest first)
         const taskCompletionsForTask = taskCompletions
             .filter(c => c.taskId === taskId)
             .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-
 
         if (taskCompletionsForTask.length === 0) {
             return { status: 'not_completed', flaggedReason: null };
@@ -326,13 +325,34 @@ export function CompactMissionCard({
             flaggedReason: latestCompletion.flaggedReason || null,
             flaggedAt: latestCompletion.flaggedAt?.toDate() || null
         };
-    };
+    }, [taskCompletions]);
 
     const extractUsernameFromLink = (link: string) => {
         if (!link) return null;
         const match = link.match(/twitter\.com\/([^\/]+)/);
         return match ? match[1] : null;
     };
+
+    // Memoized user X account object
+    const userXAccount = useMemo(() => {
+        if (!user?.twitterUsername) return undefined;
+        return {
+            id: user.id,
+            userId: user.id,
+            username: user.twitterUsername,
+            displayName: user.name || user.email || 'User',
+            isVerified: false,
+            linkedAt: new Date(),
+            isImmutable: true
+        };
+    }, [user?.id, user?.twitterUsername, user?.name, user?.email]);
+
+    // Memoized verification submission handler
+    const handleVerificationSubmitted = useCallback((submission: any) => {
+        console.log('Verification submitted:', submission);
+        // Handle verification submission
+        // This will be integrated with the real API in the next step
+    }, []);
 
     return (
         <div
@@ -502,7 +522,7 @@ export function CompactMissionCard({
                                     </div>
 
 
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap">
                                         {task.actions.map((action) => (
                                             <button
                                                 key={action.id}
@@ -542,24 +562,20 @@ export function CompactMissionCard({
 
                                                             // Get current task status from local state
                                                             const completionStatus = getTaskCompletionStatus(task.id);
-                                                            
+
                                                             try {
                                                                 if (completionStatus.status === 'flagged') {
-                                                                    // Redo flagged task
-                                                                    await redoTaskMutation.mutateAsync({
-                                                                        missionId: mission.id,
-                                                                        taskId: task.id,
-                                                                        userId: user.id,
-                                                                        userName: user.name,
-                                                                        userEmail: user.email,
-                                                                        userSocialHandle: mission.username || null,
-                                                                        metadata: {
-                                                                            taskType: task.id,
-                                                                            platform: 'twitter',
-                                                                            twitterHandle: mission.username || null,
-                                                                            tweetUrl: mission.tweetLink || mission.contentLink
-                                                                        }
-                                                                    });
+                                                                    // Redo flagged task - find the completion ID first
+                                                                    const latestCompletion = taskCompletions
+                                                                        .filter(c => c.taskId === task.id)
+                                                                        .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())[0];
+
+                                                                    if (latestCompletion) {
+                                                                        await redoTaskMutation.mutateAsync({
+                                                                            completionId: latestCompletion.id,
+                                                                            reviewedBy: user.id
+                                                                        });
+                                                                    }
                                                                 } else {
                                                                     // Complete new task
                                                                     await completeTaskMutation.mutateAsync({
@@ -684,6 +700,19 @@ export function CompactMissionCard({
                                             </button>
                                         ))}
                                     </div>
+
+                                    {/* Inline Verification for Comment and Quote Tasks */}
+                                    {(task.id === 'comment' || task.id === 'quote') && (
+                                        <div className="mt-3 pt-3 border-t border-gray-700/30">
+                                            <InlineVerification
+                                                taskId={task.id}
+                                                missionId={mission.id}
+                                                missionTitle={mission.title || mission.description}
+                                                userXAccount={userXAccount}
+                                                onVerificationSubmitted={handleVerificationSubmitted}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })()}

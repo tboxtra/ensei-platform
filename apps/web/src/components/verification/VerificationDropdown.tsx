@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { VerificationDropdownProps, VerificationSubmission } from '@/types/verification';
 import { ModernButton } from '@/components/ui/ModernButton';
 import { ModernInput } from '@/components/ui/ModernInput';
+import { validateTaskSubmissionLink } from '../../lib/validation';
 
 export const VerificationDropdown: React.FC<VerificationDropdownProps> = ({
     taskId,
@@ -22,73 +23,18 @@ export const VerificationDropdown: React.FC<VerificationDropdownProps> = ({
     const taskType = taskId === 'comment' ? 'Comment' : 'Quote';
 
     const validateSubmissionLink = async (link: string): Promise<boolean> => {
-        if (!link.trim()) {
-            setError('Please enter your submission link');
+        // Use unified validation system
+        const validationResult = validateTaskSubmissionLink(link, taskId, userXAccount);
+
+        if (!validationResult.isValid) {
+            setError(validationResult.error || 'Invalid submission link');
             return false;
         }
 
-        // Basic URL validation
-        try {
-            new URL(link);
-        } catch {
-            setError('Please enter a valid URL');
-            return false;
-        }
-
-        // Check if it's an X (Twitter) link
-        if (!link.includes('twitter.com') && !link.includes('x.com')) {
-            setError('Please enter a valid X (Twitter) link');
-            return false;
-        }
-
-        // Check if username matches (if X account is linked)
-        if (userXAccount) {
-            const linkUsername = extractUsernameFromXLink(link);
-            if (linkUsername && linkUsername.toLowerCase() !== userXAccount.username.toLowerCase()) {
-                setError(`This link doesn't match your linked X account (@${userXAccount.username})`);
-                return false;
-            }
-        }
-
-        setIsValidating(true);
-
-        try {
-            // Simulate link validation
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Mock validation - in production, check if link is accessible
-            const isValid = link.length > 20; // Simple mock validation
-
-            if (!isValid) {
-                setError('Unable to access this link. Please check if it\'s correct and public.');
-                return false;
-            }
-
-            setError('');
-            return true;
-        } catch (err) {
-            setError('Failed to validate link. Please try again.');
-            return false;
-        } finally {
-            setIsValidating(false);
-        }
+        setError('');
+        return true;
     };
 
-    const extractUsernameFromXLink = (link: string): string | null => {
-        try {
-            const url = new URL(link);
-            const pathParts = url.pathname.split('/');
-
-            // X link format: https://x.com/username/status/1234567890
-            if (pathParts.length >= 2 && pathParts[1]) {
-                return pathParts[1];
-            }
-
-            return null;
-        } catch {
-            return null;
-        }
-    };
 
     const handleSubmission = async () => {
         if (!submissionLink.trim()) {
@@ -225,9 +171,9 @@ export const VerificationDropdown: React.FC<VerificationDropdownProps> = ({
                         onClick={handleSubmission}
                         disabled={validationStatus === 'validating' || !submissionLink.trim() || !userXAccount}
                         className={`flex-1 ${validationStatus === 'valid' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                                validationStatus === 'invalid' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                                    validationStatus === 'validating' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                                        'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                            validationStatus === 'invalid' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                                validationStatus === 'validating' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                                    'bg-blue-500/20 text-blue-400 border-blue-500/30'
                             }`}
                     >
                         {validationStatus === 'validating' ? 'Validating...' :

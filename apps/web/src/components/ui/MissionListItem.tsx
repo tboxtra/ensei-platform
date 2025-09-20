@@ -41,9 +41,8 @@ export function MissionListItem({
         try {
             await flagTaskCompletionMutation.mutateAsync({
                 completionId: completion.id,
-                reason,
-                reviewerId: 'creator-1',
-                reviewerName: 'Mission Creator'
+                flaggedReason: reason,
+                reviewedBy: 'creator-1'
             });
             // React Query will automatically refetch and update the UI
             setShowFlagModal({ completion: null, show: false });
@@ -58,8 +57,7 @@ export function MissionListItem({
         try {
             await verifyTaskCompletionMutation.mutateAsync({
                 completionId: completion.id,
-                reviewerId: 'creator-1',
-                reviewerName: 'Mission Creator'
+                reviewedBy: 'creator-1'
             });
             // React Query will automatically refetch and update the UI
             // Silent success - user can see status change

@@ -60,6 +60,9 @@ export const getFirebaseFirestore = () => {
     return firestore;
 };
 
+// Export db as alias for Firestore instance
+export const db = getFirebaseFirestore();
+
 export const getFirebaseStorage = () => {
     const storage = getStorage(getFirebaseApp());
 

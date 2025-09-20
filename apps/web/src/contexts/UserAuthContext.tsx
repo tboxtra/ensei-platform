@@ -5,7 +5,7 @@ import { getFirebaseAuth, sendVerificationEmail } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { getAuthState, clearAuthState, validateAuthState } from '../lib/auth-utils';
 
-interface User {
+export interface User {
     id: string;
     email: string;
     name: string;
@@ -14,6 +14,7 @@ interface User {
     avatar: string;
     joinedAt: string;
     emailVerified?: boolean;
+    twitterUsername?: string;
 }
 
 interface AuthContextType {

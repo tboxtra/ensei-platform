@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { XAccount, XAccountLinkerProps } from '@/types/verification';
 import { ModernButton } from '@/components/ui/ModernButton';
 import { ModernInput } from '@/components/ui/ModernInput';
+import { validateUsername } from '../../lib/validation';
 
 export const XAccountLinker: React.FC<XAccountLinkerProps> = ({
     onAccountLinked,
@@ -22,45 +23,18 @@ export const XAccountLinker: React.FC<XAccountLinkerProps> = ({
     }, [existingAccount]);
 
     const validateXUsername = async (username: string): Promise<boolean> => {
-        // Remove @ symbol if present
-        const cleanUsername = username.replace('@', '');
+        // Use unified validation system
+        const validationResult = validateUsername(username, 'twitter');
 
-        // Basic validation
-        if (!cleanUsername || cleanUsername.length < 1 || cleanUsername.length > 15) {
-            setError('Username must be 1-15 characters long');
-            return false;
-        }
-
-        // Check for valid characters (alphanumeric and underscore)
-        if (!/^[a-zA-Z0-9_]+$/.test(cleanUsername)) {
-            setError('Username can only contain letters, numbers, and underscores');
+        if (!validationResult.isValid) {
+            setError(validationResult.error || 'Invalid username');
             return false;
         }
 
         // TODO: In production, validate against X API
-        // For demo, we'll simulate validation
-        setIsValidating(true);
-
-        try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Mock validation - in production, check X API
-            const isValid = cleanUsername.length >= 3;
-
-            if (!isValid) {
-                setError('Username not found on X (Twitter)');
-                return false;
-            }
-
-            setError('');
-            return true;
-        } catch (err) {
-            setError('Failed to validate username. Please try again.');
-            return false;
-        } finally {
-            setIsValidating(false);
-        }
+        // For now, accept valid format usernames
+        setError('');
+        return true;
     };
 
     const handleLinkAccount = async () => {

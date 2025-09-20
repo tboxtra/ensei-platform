@@ -1,192 +1,299 @@
 /**
- * Custom hooks for task completion management
- * Following standard practices for server state management
+ * Unified Task Completion Hooks
+ * Industry Standard: React Query hooks for task completion operations
+ * Single source of truth for all task completion state management
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+    createTaskCompletion,
+    updateTaskCompletion,
+    getUserMissionTaskCompletions,
     getMissionTaskCompletions,
-    completeTask,
-    flagTaskCompletion,
     verifyTaskCompletion,
-    type TaskCompletion
-} from '@/lib/task-verification';
+    flagTaskCompletion,
+    unflagTaskCompletion,
+    getMissionCompletionStats,
+    getUserCompletionStats
+} from '../lib/task-completion';
+import { handleError, handleFirebaseError } from '../lib/error-handling';
+import type {
+    TaskCompletionInput,
+    TaskCompletionUpdate,
+    TaskCompletion,
+    TaskCompletionStatus
+} from '../types/task-completion';
 
 // Query keys for consistent caching
 export const taskCompletionKeys = {
     all: ['taskCompletions'] as const,
-    mission: (missionId: string) => [...taskCompletionKeys.all, 'mission', missionId] as const,
-    user: (userId: string) => [...taskCompletionKeys.all, 'user', userId] as const,
-    missionUser: (missionId: string, userId: string) => [...taskCompletionKeys.all, 'mission', missionId, 'user', userId] as const,
+    userMission: (missionId: string, userId: string) =>
+        [...taskCompletionKeys.all, 'userMission', missionId, userId] as const,
+    mission: (missionId: string) =>
+        [...taskCompletionKeys.all, 'mission', missionId] as const,
+    user: (userId: string) =>
+        [...taskCompletionKeys.all, 'user', userId] as const,
+    stats: (missionId: string) =>
+        [...taskCompletionKeys.all, 'stats', missionId] as const,
+    userStats: (userId: string) =>
+        [...taskCompletionKeys.all, 'userStats', userId] as const,
 };
 
 /**
- * Hook to fetch task completions for a mission
- * Standard practice: Automatic caching, background refetching, error handling
+ * Hook to get task completions for a specific mission and user
+ */
+export function useUserMissionTaskCompletions(missionId: string, userId: string) {
+    return useQuery({
+        queryKey: taskCompletionKeys.userMission(missionId, userId),
+        queryFn: () => getUserMissionTaskCompletions(missionId, userId),
+        enabled: !!missionId && !!userId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 30, // 30 minutes
+    });
+}
+
+/**
+ * Hook to get task completions for a specific mission (all users)
  */
 export function useMissionTaskCompletions(missionId: string) {
     return useQuery({
         queryKey: taskCompletionKeys.mission(missionId),
         queryFn: () => getMissionTaskCompletions(missionId),
         enabled: !!missionId,
-        staleTime: 2 * 60 * 1000, // 2 minutes for task completions
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 30, // 30 minutes
     });
 }
 
 /**
- * Hook to fetch user's task completions for a specific mission
- * Standard practice: Filtered data with user context
+ * Hook to get mission completion statistics
  */
-export function useUserMissionTaskCompletions(missionId: string, userId: string) {
-    const { data: allCompletions, ...rest } = useMissionTaskCompletions(missionId);
-
-    const userCompletions = allCompletions?.filter(c => c.userId === userId) || [];
-
-
-    return {
-        data: userCompletions,
-        ...rest,
-    };
+export function useMissionCompletionStats(missionId: string) {
+    return useQuery({
+        queryKey: taskCompletionKeys.stats(missionId),
+        queryFn: () => getMissionCompletionStats(missionId),
+        enabled: !!missionId,
+        staleTime: 1000 * 60 * 10, // 10 minutes
+        gcTime: 1000 * 60 * 60, // 1 hour
+    });
 }
 
 /**
- * Hook to complete a task with optimistic updates
- * Standard practice: Optimistic updates, cache invalidation, error handling
+ * Hook to get user completion statistics
  */
-export function useCompleteTask() {
+export function useUserCompletionStats(userId: string) {
+    return useQuery({
+        queryKey: taskCompletionKeys.userStats(userId),
+        queryFn: () => getUserCompletionStats(userId),
+        enabled: !!userId,
+        staleTime: 1000 * 60 * 10, // 10 minutes
+        gcTime: 1000 * 60 * 60, // 1 hour
+    });
+}
+
+/**
+ * Hook to create a new task completion
+ */
+export function useCreateTaskCompletion() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({
-            missionId,
-            taskId,
-            userId,
-            userName,
-            userEmail,
-            userSocialHandle,
-            metadata,
-        }: {
-            missionId: string;
-            taskId: string;
-            userId: string;
-            userName: string;
-            userEmail?: string;
-            userSocialHandle?: string;
-            metadata?: any;
-        }) => {
-            return completeTask(missionId, taskId, userId, userName, userEmail, userSocialHandle, metadata);
-        },
-
-        // Optimistic update - update UI immediately
-        onMutate: async ({ missionId, taskId, userId }) => {
-            // Cancel outgoing refetches
-            await queryClient.cancelQueries({ queryKey: taskCompletionKeys.mission(missionId) });
-
-            // Snapshot previous value
-            const previousCompletions = queryClient.getQueryData(taskCompletionKeys.mission(missionId));
-
-            // Optimistically update cache
-            queryClient.setQueryData(taskCompletionKeys.mission(missionId), (old: TaskCompletion[] = []) => {
-                const optimisticCompletion: TaskCompletion = {
-                    id: `temp-${Date.now()}`,
-                    missionId,
-                    taskId,
-                    userId,
-                    userName: 'Loading...',
-                    status: 'verified',
-                    completedAt: new Date(),
-                    verifiedAt: new Date(),
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                    metadata: { taskType: taskId, platform: 'twitter' },
-                };
-                return [...old, optimisticCompletion];
+        mutationFn: createTaskCompletion,
+        onSuccess: (data) => {
+            // Invalidate related queries
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.userMission(data.missionId, data.userId)
             });
-
-            return { previousCompletions };
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.mission(data.missionId)
+            });
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.user(data.userId)
+            });
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.stats(data.missionId)
+            });
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.userStats(data.userId)
+            });
         },
-
-        // On error, rollback optimistic update
-        onError: (err, variables, context) => {
-            if (context?.previousCompletions) {
-                queryClient.setQueryData(
-                    taskCompletionKeys.mission(variables.missionId),
-                    context.previousCompletions
-                );
-            }
-        },
-
-        // On success, invalidate and refetch
-        onSettled: (data, error, variables) => {
-            queryClient.invalidateQueries({ queryKey: taskCompletionKeys.mission(variables.missionId) });
-        },
+        onError: (error) => {
+            handleFirebaseError(error, 'createTaskCompletion');
+        }
     });
 }
 
 /**
- * Hook to flag a task completion
- * Standard practice: Cache invalidation after mutation
+ * Hook to update a task completion
  */
-export function useFlagTaskCompletion() {
+export function useUpdateTaskCompletion() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({
-            completionId,
-            reason,
-            reviewerId,
-            reviewerName,
-        }: {
-            completionId: string;
-            reason: string;
-            reviewerId: string;
-            reviewerName: string;
-        }) => {
-            return flagTaskCompletion(completionId, reason, reviewerId, reviewerName);
+        mutationFn: ({ completionId, update }: { completionId: string; update: TaskCompletionUpdate }) =>
+            updateTaskCompletion(completionId, update),
+        onSuccess: (_, variables) => {
+            // Invalidate all related queries
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.all
+            });
         },
-
-        onSuccess: (data, variables) => {
-            // Invalidate and refetch ALL queries to ensure UI updates
-            queryClient.invalidateQueries();
-            queryClient.refetchQueries();
-        },
+        onError: (error) => {
+            handleFirebaseError(error, 'updateTaskCompletion');
+        }
     });
 }
 
 /**
- * Hook to verify a flagged task completion
- * Standard practice: Cache invalidation after mutation
+ * Hook to verify a task completion
  */
 export function useVerifyTaskCompletion() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({
-            completionId,
-            reviewerId,
-            reviewerName,
-        }: {
-            completionId: string;
-            reviewerId: string;
-            reviewerName: string;
-        }) => {
-            return verifyTaskCompletion(completionId, reviewerId, reviewerName);
+        mutationFn: ({ completionId, reviewedBy }: { completionId: string; reviewedBy: string }) =>
+            verifyTaskCompletion(completionId, reviewedBy),
+        onSuccess: (_, variables) => {
+            // Invalidate all related queries
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.all
+            });
         },
-
-        onSuccess: (data, variables) => {
-            // Invalidate and refetch ALL queries to ensure UI updates
-            queryClient.invalidateQueries();
-            queryClient.refetchQueries();
-        },
+        onError: (error) => {
+            handleFirebaseError(error, 'verifyTaskCompletion');
+        }
     });
 }
 
 /**
- * Hook to check if a specific task is completed by user
- * Standard practice: Derived state from cached data
+ * Hook to flag a task completion
  */
-export function useIsTaskCompleted(missionId: string, taskId: string, userId: string) {
-    const { data: userCompletions } = useUserMissionTaskCompletions(missionId, userId);
+export function useFlagTaskCompletion() {
+    const queryClient = useQueryClient();
 
-    return userCompletions?.some(c => c.taskId === taskId && c.status === 'verified') || false;
+    return useMutation({
+        mutationFn: ({
+            completionId,
+            flaggedReason,
+            reviewedBy
+        }: {
+            completionId: string;
+            flaggedReason: string;
+            reviewedBy: string;
+        }) => flagTaskCompletion(completionId, flaggedReason, reviewedBy),
+        onSuccess: (_, variables) => {
+            // Invalidate all related queries
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.all
+            });
+        },
+        onError: (error) => {
+            handleFirebaseError(error, 'flagTaskCompletion');
+        }
+    });
+}
+
+/**
+ * Hook to unflag a task completion
+ */
+export function useUnflagTaskCompletion() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ completionId, reviewedBy }: { completionId: string; reviewedBy: string }) =>
+            unflagTaskCompletion(completionId, reviewedBy),
+        onSuccess: (_, variables) => {
+            // Invalidate all related queries
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.all
+            });
+        },
+        onError: (error) => {
+            handleFirebaseError(error, 'unflagTaskCompletion');
+        }
+    });
+}
+
+/**
+ * Hook to complete a task (create completion)
+ */
+export function useCompleteTask() {
+    const createTaskCompletionMutation = useCreateTaskCompletion();
+
+    return useMutation({
+        mutationFn: (input: TaskCompletionInput) => createTaskCompletionMutation.mutateAsync(input),
+        onSuccess: (data) => {
+            // Additional success handling if needed
+            console.log('Task completed successfully:', data);
+        },
+        onError: (error) => {
+            handleFirebaseError(error, 'completeTask');
+        }
+    });
+}
+
+/**
+ * Hook to redo a task completion (unflag and allow retry)
+ */
+export function useRedoTaskCompletion() {
+    const unflagMutation = useUnflagTaskCompletion();
+
+    return useMutation({
+        mutationFn: ({ completionId, reviewedBy }: { completionId: string; reviewedBy: string }) =>
+            unflagMutation.mutateAsync({ completionId, reviewedBy }),
+        onSuccess: (_, variables) => {
+            console.log('Task completion unflagged, user can retry');
+        },
+        onError: (error) => {
+            handleFirebaseError(error, 'redoTaskCompletion');
+        }
+    });
+}
+
+/**
+ * Hook to get task completion status for a specific task
+ */
+export function useTaskCompletionStatus(
+    taskId: string,
+    missionId: string,
+    userId: string
+): { data: TaskCompletionStatus | null; isLoading: boolean; error: Error | null } {
+    const { data: taskCompletions, isLoading, error } = useUserMissionTaskCompletions(missionId, userId);
+
+    const status = taskCompletions ?
+        getTaskCompletionStatus(taskId, taskCompletions) :
+        null;
+
+    return {
+        data: status,
+        isLoading,
+        error: error as Error | null
+    };
+}
+
+/**
+ * Helper function to get task completion status
+ */
+function getTaskCompletionStatus(
+    taskId: string,
+    taskCompletions: TaskCompletion[]
+): TaskCompletionStatus {
+    // Get all completions for this task, sorted by creation date (newest first)
+    const taskCompletionsForTask = taskCompletions
+        .filter(c => c.taskId === taskId)
+        .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
+    if (taskCompletionsForTask.length === 0) {
+        return { status: 'not_completed' };
+    }
+
+    // Return the most recent completion
+    const latestCompletion = taskCompletionsForTask[0];
+    return {
+        status: latestCompletion.status,
+        flaggedReason: latestCompletion.flaggedReason || undefined,
+        flaggedAt: latestCompletion.flaggedAt?.toDate() || undefined,
+        completedAt: latestCompletion.completedAt?.toDate() || undefined,
+        verifiedAt: latestCompletion.verifiedAt?.toDate() || undefined
+    };
 }

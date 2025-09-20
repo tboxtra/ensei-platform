@@ -105,3 +105,186 @@
 - Use **error boundaries** for component errors
 
 Remember: **Every feature must be scalable, secure, and maintainable**.
+
+## MANDATORY VERIFICATION SYSTEM IMPLEMENTATION PLAN
+
+### CRITICAL IMPLEMENTATION REQUIREMENTS - NO DEVIATION ALLOWED
+
+#### PHASE 1: CRITICAL FIXES (MUST COMPLETE FIRST)
+1. **SYSTEM INTEGRATION - MANDATORY**
+   - **MUST** integrate `InlineVerification` component into `CompactMissionCard`
+   - **MUST** remove `VerificationMissionCard` (duplicate component)
+   - **MUST** use single unified mission card component
+   - **MUST** integrate with existing mission pages (`/missions`, `/missions/my`)
+   - **FORBIDDEN**: Creating separate verification pages or components
+
+2. **CODE CONSOLIDATION - MANDATORY**
+   - **MUST** consolidate `task-verification.ts` and `firebase-task-completions.ts`
+   - **MUST** create single `TaskCompletion` interface in `types/task-completion.ts`
+   - **MUST** remove duplicate validation functions
+   - **MUST** use single `InlineVerification` component (remove `VerificationDropdown`)
+   - **FORBIDDEN**: Creating duplicate interfaces or functions
+
+3. **API INTEGRATION - MANDATORY**
+   - **MUST** replace all mock data with real API calls
+   - **MUST** use `useAuth()` hook for real user context
+   - **MUST** integrate with Firebase Firestore for data persistence
+   - **MUST** remove hardcoded `userId: 'current_user'`
+   - **FORBIDDEN**: Using mock data, hardcoded values, or fake validation
+
+4. **USER CONTEXT INTEGRATION - MANDATORY**
+   - **MUST** import and use `useAuth` in all verification components
+   - **MUST** use real `user.id` instead of hardcoded values
+   - **MUST** implement authentication checks
+   - **MUST** add user permission validation
+   - **FORBIDDEN**: Hardcoded user IDs or missing authentication
+
+#### PHASE 2: OPTIMIZATION (MUST COMPLETE SECOND)
+5. **UNIFIED VALIDATION SYSTEM - MANDATORY**
+   - **MUST** create single validation function in `lib/validation.ts`
+   - **MUST** use consistent timeout values (no 5-second delays)
+   - **MUST** implement real API validation calls
+   - **MUST** use consistent error messages
+   - **FORBIDDEN**: Multiple validation functions or inconsistent behavior
+
+6. **ERROR HANDLING STANDARDIZATION - MANDATORY**
+   - **MUST** implement consistent error handling patterns
+   - **MUST** add network error handling and retry mechanisms
+   - **MUST** implement proper loading states
+   - **MUST** add error boundaries for all components
+   - **FORBIDDEN**: Inconsistent error handling or missing error recovery
+
+7. **PERFORMANCE OPTIMIZATION - MANDATORY**
+   - **MUST** remove unnecessary setTimeout delays
+   - **MUST** implement proper memoization
+   - **MUST** optimize API calls and caching
+   - **MUST** add proper loading states
+   - **FORBIDDEN**: Artificial delays or inefficient code patterns
+
+8. **DEMO CODE CLEANUP - MANDATORY**
+   - **MUST** remove or clearly separate demo components
+   - **MUST** clean up `/demo/` pages
+   - **MUST** remove mock data and test components
+   - **MUST** separate demo from production code
+   - **FORBIDDEN**: Demo code in production components
+
+#### PHASE 3: TESTING (MUST COMPLETE THIRD)
+9. **INTEGRATION TESTING - MANDATORY**
+   - **MUST** test complete user flow from task click to verification
+   - **MUST** test creator view of submissions
+   - **MUST** test real-time updates
+   - **MUST** test error scenarios
+   - **FORBIDDEN**: Deploying without full integration testing
+
+### IMPLEMENTATION ARCHITECTURE - MANDATORY STRUCTURE
+
+#### FRONTEND LAYER (MUST IMPLEMENT)
+```
+src/
+├── components/
+│   ├── ui/
+│   │   └── CompactMissionCard.tsx (UNIFIED - NO DUPLICATES)
+│   └── verification/
+│       └── InlineVerification.tsx (SINGLE COMPONENT)
+├── types/
+│   └── task-completion.ts (SINGLE SOURCE OF TRUTH)
+├── lib/
+│   ├── validation.ts (UNIFIED VALIDATION)
+│   └── task-completion.ts (CONSOLIDATED LOGIC)
+└── hooks/
+    └── useTaskCompletions.ts (UNIFIED HOOKS)
+```
+
+#### DATA FLOW - MANDATORY SEQUENCE
+1. User clicks task button → `CompactMissionCard`
+2. Task opens Twitter intent → `InlineVerification`
+3. User completes action → Returns to platform
+4. User clicks verify → Real validation API call
+5. Data saved to Firebase → Real persistence
+6. Creator sees submission → Real-time update
+
+### STRICT PROHIBITIONS - NEVER ALLOWED
+
+#### FORBIDDEN PATTERNS
+- **NEVER** create duplicate mission card components
+- **NEVER** use mock data or hardcoded values
+- **NEVER** create separate verification pages
+- **NEVER** use multiple validation functions
+- **NEVER** implement artificial delays (setTimeout > 1 second)
+- **NEVER** skip authentication checks
+- **NEVER** use localStorage for verification data
+- **NEVER** create demo components in production
+
+#### FORBIDDEN IMPORTS
+- **NEVER** import `VerificationMissionCard` (use `CompactMissionCard`)
+- **NEVER** import `VerificationDropdown` (use `InlineVerification`)
+- **NEVER** import duplicate type definitions
+- **NEVER** import mock data or test utilities
+
+### MANDATORY VALIDATION CHECKS
+
+#### BEFORE ANY COMMIT
+1. **MUST** verify no duplicate components exist
+2. **MUST** verify all mock data is removed
+3. **MUST** verify real user context is used
+4. **MUST** verify single validation function exists
+5. **MUST** verify Firebase integration works
+6. **MUST** verify authentication is properly implemented
+
+#### BEFORE ANY DEPLOYMENT
+1. **MUST** complete all Phase 1 critical fixes
+2. **MUST** complete all Phase 2 optimizations
+3. **MUST** pass all integration tests
+4. **MUST** verify no demo code in production
+5. **MUST** verify consistent error handling
+6. **MUST** verify performance optimization
+
+### ENFORCEMENT MECHANISM
+
+#### CURSOR RULE VIOLATIONS
+- **IMMEDIATE STOP** if any forbidden pattern is detected
+- **REQUIRE EXPLANATION** for any deviation from plan
+- **MANDATE REVERT** if critical requirements are not met
+- **ENFORCE COMPLETION** of each phase before proceeding
+
+#### IMPLEMENTATION ORDER - NO EXCEPTIONS
+1. **FIRST**: Complete Phase 1 (Critical Fixes)
+2. **SECOND**: Complete Phase 2 (Optimization)
+3. **THIRD**: Complete Phase 3 (Testing)
+4. **FOURTH**: Deploy only after all phases complete
+
+### SUCCESS CRITERIA - MANDATORY ACHIEVEMENT
+
+#### PHASE 1 SUCCESS CRITERIA
+- ✅ Single unified mission card component
+- ✅ No duplicate code or interfaces
+- ✅ Real API integration (no mock data)
+- ✅ Proper user authentication context
+- ✅ Integrated verification flow
+
+#### PHASE 2 SUCCESS CRITERIA
+- ✅ Unified validation system
+- ✅ Consistent error handling
+- ✅ Optimized performance
+- ✅ Clean codebase (no demo code)
+
+#### PHASE 3 SUCCESS CRITERIA
+- ✅ Full integration testing passed
+- ✅ User acceptance testing passed
+- ✅ Performance testing passed
+- ✅ Security testing passed
+
+### FINAL VALIDATION - MANDATORY BEFORE DEPLOYMENT
+
+#### PRODUCTION READINESS CHECKLIST
+- [ ] All critical fixes implemented
+- [ ] All optimizations completed
+- [ ] All tests passing
+- [ ] No demo code in production
+- [ ] Real data persistence working
+- [ ] User authentication working
+- [ ] Error handling consistent
+- [ ] Performance optimized
+- [ ] Security validated
+
+**CRITICAL WARNING**: Any deviation from this plan will result in implementation failure. Follow this plan strictly and completely before any deployment.
