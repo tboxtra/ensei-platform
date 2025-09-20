@@ -47,7 +47,7 @@ export default function ProfilePage() {
     };
 
     const initialTwitterState = getInitialTwitterState();
-    
+
     // Twitter username state management
     const [twitterUsername, setTwitterUsername] = useState<string>(initialTwitterState.username);
     const [isEditingTwitter, setIsEditingTwitter] = useState<boolean>(false);
@@ -180,7 +180,12 @@ export default function ProfilePage() {
 
             const formattedUsername = formatTwitterUsername(formData.twitter);
             const profileData = {
-                ...formData,
+                firstName: user?.firstName || formData.firstName || '',
+                lastName: user?.lastName || formData.lastName || '',
+                email: user?.email || formData.email || '',
+                bio: user?.bio || formData.bio || '',
+                location: user?.location || formData.location || '',
+                website: user?.website || formData.website || '',
                 twitter: formattedUsername,
                 twitter_handle: formattedUsername
             };
@@ -222,7 +227,12 @@ export default function ProfilePage() {
 
             const formattedUsername = formatTwitterUsername(formData.twitter);
             const profileData = {
-                ...formData,
+                firstName: user?.firstName || formData.firstName || '',
+                lastName: user?.lastName || formData.lastName || '',
+                email: user?.email || formData.email || '',
+                bio: user?.bio || formData.bio || '',
+                location: user?.location || formData.location || '',
+                website: user?.website || formData.website || '',
                 twitter: formattedUsername,
                 twitter_handle: formattedUsername
             };
@@ -256,7 +266,12 @@ export default function ProfilePage() {
         setSyncStatus('syncing');
         try {
             const profileData = {
-                ...formData,
+                firstName: user?.firstName || formData.firstName || '',
+                lastName: user?.lastName || formData.lastName || '',
+                email: user?.email || formData.email || '',
+                bio: user?.bio || formData.bio || '',
+                location: user?.location || formData.location || '',
+                website: user?.website || formData.website || '',
                 twitter: '',
                 twitter_handle: ''
             };
