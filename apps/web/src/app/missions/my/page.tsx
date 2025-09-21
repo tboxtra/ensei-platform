@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApi } from '../../../hooks/useApi';
+import { useMyMissions } from '../../../hooks/useMyMissions';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
@@ -13,9 +13,9 @@ import { ProtectedRoute } from '../../../components/auth/ProtectedRoute';
 
 export default function MyMissionsPage() {
     const router = useRouter();
-    const { getMyMissions, loading, error } = useApi();
-    const [missions, setMissions] = useState<any[]>([]);
+    const { data: missions = [], isLoading, error, refetch, authReady } = useMyMissions();
     const [filteredMissions, setFilteredMissions] = useState<any[]>([]);
+    
     // Filter state
     const [filters, setFilters] = useState({
         type: 'all',
@@ -30,23 +30,17 @@ export default function MyMissionsPage() {
         setFilters(prev => ({ ...prev, [filter]: value }));
     };
 
+    // Defensive: refetch after navigation completes from profile
     useEffect(() => {
-        loadMyMissions();
-    }, []);
+        // Refetch once authReady flips to true ensures fresh data after any route
+        if (authReady) {
+            refetch();
+        }
+    }, [authReady, refetch]);
 
     useEffect(() => {
         filterAndSortMissions();
     }, [missions, filters]);
-
-    const loadMyMissions = async () => {
-        try {
-            const data = await getMyMissions();
-            setMissions(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error('Error loading my missions:', err);
-            setMissions([]);
-        }
-    };
 
     const filterAndSortMissions = () => {
         let filtered = missions.filter(mission => {
@@ -136,7 +130,7 @@ export default function MyMissionsPage() {
     const totalRewards = missions.reduce((sum, mission) => sum + (mission.total_cost_honors || 0), 0);
     const totalParticipants = missions.reduce((sum, mission) => sum + (mission.participants_count || 0), 0);
 
-    if (loading) {
+    if (!authReady || isLoading) {
         return (
             <ModernLayout currentPage="/missions/my">
                 <div className="flex items-center justify-center min-h-[400px]">

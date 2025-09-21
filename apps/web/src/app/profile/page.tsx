@@ -7,12 +7,14 @@ import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
+import { useUpdateProfile } from '../../hooks/useUpdateProfile';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function ProfilePage() {
     const router = useRouter();
-    const { getCurrentUser, getUserProfile, logout, updateProfile, loading: apiLoading, error: apiError } = useApi();
+    const { getCurrentUser, getUserProfile, logout, loading: apiLoading, error: apiError } = useApi();
     const { user: storeUser, setUser: setStoreUser } = useAuthStore();
+    const updateProfileMutation = useUpdateProfile();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -125,19 +127,19 @@ export default function ProfilePage() {
     };
 
     const handleSaveProfile = async () => {
-        setLoading(true);
         setError(null);
-        try {
-            // Only send profile fields, not stats
-            const profileData = {
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                twitter: formData.twitter,
-                twitter_handle: formData.twitter,
-            };
+        
+        // Only send profile fields, not stats
+        const profileData = {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            twitter: formData.twitter,
+            twitter_handle: formData.twitter,
+        };
 
-            const updatedUser = await updateProfile(profileData);
+        try {
+            const updatedUser = await updateProfileMutation.mutateAsync(profileData);
 
             // Update store with only profile fields (merge pattern) - preserves uid and other fields
             setStoreUser({
@@ -163,8 +165,6 @@ export default function ProfilePage() {
             }
         } catch (err: any) {
             setError(err.message || 'Failed to save profile');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -228,7 +228,7 @@ export default function ProfilePage() {
         for (let i = 0; i < maxRetries; i++) {
             try {
                 console.log(`Attempting save (attempt ${i + 1}/${maxRetries}):`, data);
-                const result = await updateProfile(data);
+                const result = await updateProfileMutation.mutateAsync(data);
                 console.log('Save successful:', result);
                 return result;
             } catch (error: any) {
@@ -700,10 +700,10 @@ export default function ProfilePage() {
                     <div className="flex flex-col sm:flex-row gap-4 justify-between">
                         <ModernButton
                             onClick={handleSaveProfile}
-                            disabled={loading}
+                            disabled={updateProfileMutation.isPending}
                             className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-green-500/25"
                         >
-                            {loading ? 'Saving...' : 'Save Changes'}
+                            {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                         </ModernButton>
 
                         <ModernButton
