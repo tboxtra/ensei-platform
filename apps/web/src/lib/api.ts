@@ -4,72 +4,72 @@
  */
 
 export async function apiGet<T>(url: string, token?: string): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers,
-    cache: 'no-store', // Critical: never cache API responses
-    next: { revalidate: 0 }, // For Next.js app router
-  });
+    const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        cache: 'no-store', // Critical: never cache API responses
+        next: { revalidate: 0 }, // For Next.js app router
+    });
 
-  if (!response.ok) {
-    throw new Error(`GET ${url} failed ${response.status}`);
-  }
+    if (!response.ok) {
+        throw new Error(`GET ${url} failed ${response.status}`);
+    }
 
-  return response.json();
+    return response.json();
 }
 
 export async function apiPost<T>(url: string, data: any, token?: string): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(data),
-    cache: 'no-store',
-    next: { revalidate: 0 },
-  });
+    const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+        cache: 'no-store',
+        next: { revalidate: 0 },
+    });
 
-  if (!response.ok) {
-    throw new Error(`POST ${url} failed ${response.status}`);
-  }
+    if (!response.ok) {
+        throw new Error(`POST ${url} failed ${response.status}`);
+    }
 
-  return response.json();
+    return response.json();
 }
 
 export async function apiPut<T>(url: string, data: any, token?: string): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
 
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(data),
-    cache: 'no-store',
-    next: { revalidate: 0 },
-  });
+    const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(data),
+        cache: 'no-store',
+        next: { revalidate: 0 },
+    });
 
-  if (!response.ok) {
-    throw new Error(`PUT ${url} failed ${response.status}`);
-  }
+    if (!response.ok) {
+        throw new Error(`PUT ${url} failed ${response.status}`);
+    }
 
-  return response.json();
+    return response.json();
 }

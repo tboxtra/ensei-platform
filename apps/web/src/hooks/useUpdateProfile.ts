@@ -50,7 +50,7 @@ export function useUpdateProfile() {
                     invalidatedQueries: [
                         'profile',
                         'missions',
-                        'dashboard', 
+                        'dashboard',
                         'quickStats',
                         'user-stats'
                     ]

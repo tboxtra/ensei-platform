@@ -70,7 +70,7 @@ export function useMyMissions(): UseMyMissionsReturn {
             }
 
             console.log('useMyMissions: Fetching missions for user:', authUser.uid);
-            
+
             try {
                 // Get all missions and filter by created_by
                 const allMissions = await api.getMissions();

@@ -128,7 +128,7 @@ export default function ProfilePage() {
 
     const handleSaveProfile = async () => {
         setError(null);
-        
+
         // Only send profile fields, not stats
         const profileData = {
             firstName: formData.firstName,
