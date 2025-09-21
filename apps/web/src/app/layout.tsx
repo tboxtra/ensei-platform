@@ -27,7 +27,7 @@ export default function RootLayout({
               {children}
             </ConditionalProviders>
           </QueryProvider>
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,

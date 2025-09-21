@@ -31,12 +31,13 @@ export default function MissionSubmissionsPage() {
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
     const [showFlagModal, setShowFlagModal] = useState<{ completion: TaskCompletion | null, show: boolean }>({ completion: null, show: false });
 
-    // Get real missions data using the useMyMissions hook
+    // Get missions the user created (to see all submissions for these missions)
     const { data: missions = [], isLoading: loadingMissions, error: missionsError } = useMyMissions();
 
     // Use React Query hooks for real-time updates
     const flagTaskCompletionMutation = useFlagTaskCompletion();
     const verifyTaskCompletionMutation = useVerifyTaskCompletion();
+
 
     // Get submissions for selected mission using React Query
     const { data: submissions = [], isLoading: loadingSubmissions } = useMissionTaskCompletions(

@@ -296,7 +296,8 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
         // Query mission_participations collection
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
-            where('mission_id', '==', missionId)
+            where('mission_id', '==', missionId),
+            orderBy('created_at', 'desc')
         );
 
         const querySnapshot = await getDocs(q);
