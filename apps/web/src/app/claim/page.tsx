@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useApi } from '../../hooks/useApi';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
@@ -8,6 +9,7 @@ import { ModernButton } from '../../components/ui/ModernButton';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function ClaimPage() {
+    const router = useRouter();
     const { getWalletBalance, getClaimableRewards, claimReward, loading, error: apiError } = useApi();
     const [walletBalance, setWalletBalance] = useState<any>(null);
     const [claimableRewards, setClaimableRewards] = useState<any[]>([]);
@@ -209,7 +211,7 @@ export default function ClaimPage() {
                                     }
                                 </p>
                                 <ModernButton
-                                    onClick={() => window.location.href = '/missions'}
+                                    onClick={() => router.push('/missions')}
                                     variant="primary"
                                 >
                                     Browse Missions
@@ -275,7 +277,7 @@ export default function ClaimPage() {
                                                         </ModernButton>
                                                     )}
                                                     <ModernButton
-                                                        onClick={() => window.location.href = `/missions/${reward.mission_id}`}
+                                                        onClick={() => router.push(`/missions/${reward.mission_id}`)}
                                                         variant="secondary"
                                                         size="sm"
                                                     >

@@ -4,6 +4,17 @@ import { useApi } from './useApi';
 import { useUserStore, UserStats } from '../store/userStore';
 import { useAuthStore } from '../store/authStore';
 
+/**
+ * USER STATS HOOK - EXAMPLE OF PROPER UID-SCOPED QUERIES
+ * 
+ * This hook demonstrates the correct pattern for user-scoped React Query usage:
+ * - Query key includes authUser.uid for stable caching
+ * - Enabled only when uid is available
+ * - Invalidation uses the same uid-scoped key
+ * 
+ * All user-scoped queries must follow this pattern to prevent stats reset issues.
+ */
+
 interface UseUserStatsReturn {
     data: UserStats | null;
     isLoading: boolean;
@@ -17,7 +28,7 @@ export function useUserStats(): UseUserStatsReturn {
     const queryClient = useQueryClient();
     const { user } = useUserStore();
     const { user: authUser } = useAuthStore();
-    
+
     const enabled = !!authUser?.uid;
 
     const query = useQuery<UserStats | null>({

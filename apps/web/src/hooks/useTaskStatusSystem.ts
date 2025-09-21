@@ -16,16 +16,18 @@ import {
     type TaskCompletionRecord,
     type TaskStatusInfo
 } from '@/lib/task-status-system';
+import { useAuthStore } from '../store/authStore';
 
 // ============================================================================
 // QUERY KEYS
 // ============================================================================
 
+// All user-scoped queries must be keyed by authUser.uid
 export const taskStatusKeys = {
     all: ['taskStatus'] as const,
     mission: (missionId: string) => [...taskStatusKeys.all, 'mission', missionId] as const,
-    userTask: (missionId: string, taskId: string, userId: string) =>
-        [...taskStatusKeys.all, 'userTask', missionId, taskId, userId] as const,
+    userTask: (missionId: string, taskId: string, uid: string) =>
+        [...taskStatusKeys.all, 'userTask', missionId, taskId, uid] as const,
 };
 
 // ============================================================================
@@ -48,11 +50,14 @@ export function useMissionTaskCompletions(missionId: string) {
 /**
  * Get task status info for a specific user and task
  */
-export function useTaskStatusInfo(missionId: string, taskId: string, userId: string) {
+export function useTaskStatusInfo(missionId: string, taskId: string, userId?: string) {
+    const { user: authUser } = useAuthStore();
+    const uid = userId || authUser?.uid;
+    
     return useQuery({
-        queryKey: taskStatusKeys.userTask(missionId, taskId, userId),
-        queryFn: () => getTaskStatusInfo(missionId, taskId, userId),
-        enabled: !!(missionId && taskId && userId),
+        queryKey: taskStatusKeys.userTask(missionId, taskId, uid!),
+        queryFn: () => getTaskStatusInfo(missionId, taskId, uid!),
+        enabled: !!(missionId && taskId && uid),
         staleTime: 30 * 1000,
         refetchInterval: 10 * 1000,
     });
@@ -197,10 +202,12 @@ export function useVerifyTaskCompletion() {
 /**
  * Get user's task completions for a specific mission
  */
-export function useUserMissionTaskCompletions(missionId: string, userId: string) {
+export function useUserMissionTaskCompletions(missionId: string, userId?: string) {
+    const { user: authUser } = useAuthStore();
+    const uid = userId || authUser?.uid;
     const { data: allCompletions, ...rest } = useMissionTaskCompletions(missionId);
 
-    const userCompletions = allCompletions?.filter(c => c.userId === userId) || [];
+    const userCompletions = allCompletions?.filter(c => c.userId === uid) || [];
 
     return {
         data: userCompletions,
@@ -211,7 +218,7 @@ export function useUserMissionTaskCompletions(missionId: string, userId: string)
 /**
  * Check if a specific task is completed by user
  */
-export function useIsTaskCompleted(missionId: string, taskId: string, userId: string) {
+export function useIsTaskCompleted(missionId: string, taskId: string, userId?: string) {
     const { data: taskStatusInfo } = useTaskStatusInfo(missionId, taskId, userId);
 
     return taskStatusInfo?.status === 'completed' || taskStatusInfo?.status === 'verified' || false;

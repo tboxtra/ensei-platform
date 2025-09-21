@@ -136,9 +136,9 @@ export default function ProfilePage() {
                 twitter: formData.twitter,
                 twitter_handle: formData.twitter,
             };
-            
+
             const updatedUser = await updateProfile(profileData);
-            
+
             // Update store with only profile fields (merge pattern) - preserves uid and other fields
             setStoreUser({
                 firstName: updatedUser.firstName || formData.firstName,
@@ -148,10 +148,10 @@ export default function ProfilePage() {
                 twitter_handle: updatedUser.twitter_handle || formData.twitter,
                 displayName: updatedUser.displayName || `${formData.firstName} ${formData.lastName}`.trim(),
             });
-            
+
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
-            
+
             // Debug: log profile update for regression tracking
             if (process.env.NODE_ENV === 'development') {
                 console.debug('[Profile] Profile updated (merge pattern):', {
@@ -592,10 +592,10 @@ export default function ProfilePage() {
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
                                                 className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
-                                                        validateTwitterUsername(formData.twitter).isValid ?
-                                                            'border-green-500/50 focus:ring-green-500' :
-                                                            'border-red-500/50 focus:ring-red-500'
-                                                        : 'border-gray-700/50 focus:ring-green-500'
+                                                    validateTwitterUsername(formData.twitter).isValid ?
+                                                        'border-green-500/50 focus:ring-green-500' :
+                                                        'border-red-500/50 focus:ring-red-500'
+                                                    : 'border-gray-700/50 focus:ring-green-500'
                                                     }`}
                                                 placeholder="yourusername"
                                             />
@@ -663,10 +663,10 @@ export default function ProfilePage() {
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
                                                 className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
-                                                        validateTwitterUsername(formData.twitter).isValid ?
-                                                            'border-green-500/50 focus:ring-green-500' :
-                                                            'border-red-500/50 focus:ring-red-500'
-                                                        : 'border-gray-700/50 focus:ring-green-500'
+                                                    validateTwitterUsername(formData.twitter).isValid ?
+                                                        'border-green-500/50 focus:ring-green-500' :
+                                                        'border-red-500/50 focus:ring-red-500'
+                                                    : 'border-gray-700/50 focus:ring-green-500'
                                                     }`}
                                                 placeholder="yourusername"
                                             />

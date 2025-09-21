@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useApi } from '../../hooks/useApi';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
@@ -11,6 +12,7 @@ import { StatsCard } from '../../components/ui/StatsCard';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function MissionsPage() {
+  const router = useRouter();
   const { getMissions, participateInMission, completeTask, loading, error } = useApi();
   const [missions, setMissions] = useState<any[]>([]);
 
@@ -234,7 +236,7 @@ export default function MissionsPage() {
                 🔄 Refresh
               </ModernButton>
               <ModernButton
-                onClick={() => window.location.href = '/dashboard'}
+                onClick={() => router.push('/dashboard')}
                 variant="secondary"
               >
                 📊 Go to Dashboard
@@ -305,7 +307,7 @@ export default function MissionsPage() {
                 <p className="text-gray-400 mb-6">There are currently no missions available. Check back later or create your own mission!</p>
                 <div className="flex gap-4 justify-center">
                   <ModernButton onClick={() => window.location.reload()} variant="secondary">Refresh</ModernButton>
-                  <ModernButton onClick={() => window.location.href = '/missions/create'} variant="primary">Create Mission</ModernButton>
+                  <ModernButton onClick={() => router.push('/missions/create')} variant="primary">Create Mission</ModernButton>
                 </div>
               </ModernCard>
             </div>

@@ -49,7 +49,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Get store actions from the new auth store
     const { user: storeUser, setUser: setStoreUser, clearUser, isInitialized, setInitialized } = useAuthStore();
     const { setStats } = useUserStore();
@@ -177,10 +177,10 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                         lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
                     });
                     setUser(userData);
-                    
+
                     // Store user data in localStorage for backward compatibility
                     localStorage.setItem('user', JSON.stringify(userData));
-                    
+
                     // Debug: log auth state for regression tracking
                     if (process.env.NODE_ENV === 'development') {
                         console.debug('[Auth] User authenticated:', {

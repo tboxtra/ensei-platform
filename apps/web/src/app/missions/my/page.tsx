@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useApi } from '../../../hooks/useApi';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
@@ -11,6 +12,7 @@ import { StatsCard } from '../../../components/ui/StatsCard';
 import { ProtectedRoute } from '../../../components/auth/ProtectedRoute';
 
 export default function MyMissionsPage() {
+    const router = useRouter();
     const { getMyMissions, loading, error } = useApi();
     const [missions, setMissions] = useState<any[]>([]);
     const [filteredMissions, setFilteredMissions] = useState<any[]>([]);
@@ -221,7 +223,7 @@ export default function MyMissionsPage() {
                                         Show Ended Missions
                                     </label>
                                     <ModernButton
-                                        onClick={() => window.location.href = '/missions/create'}
+                                        onClick={() => router.push('/missions/create')}
                                         variant="primary"
                                     >
                                         Create New Mission
@@ -270,7 +272,7 @@ export default function MyMissionsPage() {
                                 <p className="text-gray-400 mb-6">You haven't created any missions yet. Start by creating your first mission to engage with the community!</p>
                                 <div className="flex gap-4 justify-center">
                                     <ModernButton onClick={() => loadMyMissions()} variant="secondary">Refresh</ModernButton>
-                                    <ModernButton onClick={() => window.location.href = '/missions/create'} variant="primary">Create Your First Mission</ModernButton>
+                                    <ModernButton onClick={() => router.push('/missions/create')} variant="primary">Create Your First Mission</ModernButton>
                                 </div>
                             </ModernCard>
                         </div>

@@ -17,6 +17,7 @@ import {
     getUserCompletionStats
 } from '../lib/task-completion';
 import { handleError, handleFirebaseError } from '../lib/error-handling';
+import { useAuthStore } from '../store/authStore';
 import type {
     TaskCompletionInput,
     TaskCompletionUpdate,
@@ -24,29 +25,32 @@ import type {
     TaskCompletionStatus
 } from '../types/task-completion';
 
-// Query keys for consistent caching
+// Query keys for consistent caching - All user-scoped queries must be keyed by authUser.uid
 export const taskCompletionKeys = {
     all: ['taskCompletions'] as const,
-    userMission: (missionId: string, userId: string) =>
-        [...taskCompletionKeys.all, 'userMission', missionId, userId] as const,
+    userMission: (missionId: string, uid: string) =>
+        [...taskCompletionKeys.all, 'userMission', missionId, uid] as const,
     mission: (missionId: string) =>
         [...taskCompletionKeys.all, 'mission', missionId] as const,
-    user: (userId: string) =>
-        [...taskCompletionKeys.all, 'user', userId] as const,
+    user: (uid: string) =>
+        [...taskCompletionKeys.all, 'user', uid] as const,
     stats: (missionId: string) =>
         [...taskCompletionKeys.all, 'stats', missionId] as const,
-    userStats: (userId: string) =>
-        [...taskCompletionKeys.all, 'userStats', userId] as const,
+    userStats: (uid: string) =>
+        [...taskCompletionKeys.all, 'userStats', uid] as const,
 };
 
 /**
  * Hook to get task completions for a specific mission and user
  */
-export function useUserMissionTaskCompletions(missionId: string, userId: string) {
+export function useUserMissionTaskCompletions(missionId: string, userId?: string) {
+    const { user: authUser } = useAuthStore();
+    const uid = userId || authUser?.uid;
+    
     return useQuery({
-        queryKey: taskCompletionKeys.userMission(missionId, userId),
-        queryFn: () => getUserMissionTaskCompletions(missionId, userId),
-        enabled: !!missionId && !!userId,
+        queryKey: taskCompletionKeys.userMission(missionId, uid!),
+        queryFn: () => getUserMissionTaskCompletions(missionId, uid!),
+        enabled: !!missionId && !!uid,
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 30, // 30 minutes
     });
@@ -81,11 +85,14 @@ export function useMissionCompletionStats(missionId: string) {
 /**
  * Hook to get user completion statistics
  */
-export function useUserCompletionStats(userId: string) {
+export function useUserCompletionStats(userId?: string) {
+    const { user: authUser } = useAuthStore();
+    const uid = userId || authUser?.uid;
+    
     return useQuery({
-        queryKey: taskCompletionKeys.userStats(userId),
-        queryFn: () => getUserCompletionStats(userId),
-        enabled: !!userId,
+        queryKey: taskCompletionKeys.userStats(uid!),
+        queryFn: () => getUserCompletionStats(uid!),
+        enabled: !!uid,
         staleTime: 1000 * 60 * 10, // 10 minutes
         gcTime: 1000 * 60 * 60, // 1 hour
     });
@@ -96,25 +103,29 @@ export function useUserCompletionStats(userId: string) {
  */
 export function useCreateTaskCompletion() {
     const queryClient = useQueryClient();
+    const { user: authUser } = useAuthStore();
 
     return useMutation({
         mutationFn: createTaskCompletion,
         onSuccess: (data) => {
-            // Invalidate related queries
+            const uid = authUser?.uid;
+            if (!uid) return;
+            
+            // Invalidate related queries using stable uid
             queryClient.invalidateQueries({
-                queryKey: taskCompletionKeys.userMission(data.missionId, data.userId)
+                queryKey: taskCompletionKeys.userMission(data.missionId, uid)
             });
             queryClient.invalidateQueries({
                 queryKey: taskCompletionKeys.mission(data.missionId)
             });
             queryClient.invalidateQueries({
-                queryKey: taskCompletionKeys.user(data.userId)
+                queryKey: taskCompletionKeys.user(uid)
             });
             queryClient.invalidateQueries({
                 queryKey: taskCompletionKeys.stats(data.missionId)
             });
             queryClient.invalidateQueries({
-                queryKey: taskCompletionKeys.userStats(data.userId)
+                queryKey: taskCompletionKeys.userStats(uid)
             });
         },
         onError: (error) => {
