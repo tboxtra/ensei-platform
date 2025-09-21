@@ -1,5 +1,12 @@
 import * as functions from 'firebase-functions';
 import * as firebaseAdmin from 'firebase-admin';
+import {
+  updateUserProfileSafely,
+  createMissionWithUidReferences,
+  createSubmissionWithUidReferences,
+  verifyDataIntegrityAfterDisplayNameChange
+} from './utils/user-data-integrity';
+import { runMigration } from './migration/uid-migration';
 
 // Initialize Firebase Admin
 firebaseAdmin.initializeApp();
@@ -441,24 +448,16 @@ app.post('/v1/missions', verifyFirebaseToken, async (req: any, res) => {
       return;
     }
 
-    const newMission = {
-      ...missionData,
-      created_by: userId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      status: 'active',
-      participants_count: 0,
-      submissions_count: 0
-    };
+    // Use the safe mission creation function that ensures UID-based references
+    const result = await createMissionWithUidReferences(userId, missionData);
 
-    const missionRef = await db.collection('missions').add(newMission);
+    if (!result.success) {
+      console.error('Mission creation failed:', result.error);
+      res.status(400).json({ error: result.error });
+      return;
+    }
 
-    const createdMission = {
-      id: missionRef.id,
-      ...newMission
-    };
-
-    res.status(201).json(createdMission);
+    res.status(201).json(result.mission);
   } catch (error) {
     console.error('Error creating mission:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -703,76 +702,84 @@ app.put('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
   try {
     const userId = req.user.uid;
     const updateData = req.body;
-    
+
     console.log('Profile update request:', {
       userId,
       updateData,
       body: req.body
     });
 
-    // Get current user document to preserve existing fields
-    const userDoc = await db.collection('users').doc(userId).get();
+    // Use the safe profile update function that ensures data integrity
+    const result = await updateUserProfileSafely(userId, {
+      ...updateData,
+      email: req.user.email, // Always use email from Firebase Auth
+      displayName: updateData.displayName || updateData.name || req.user.displayName || '',
+      avatar: updateData.avatar || req.user.picture || ''
+    });
 
-    if (!userDoc.exists) {
-      // Create new user profile if it doesn't exist
-      const newUser = {
-        uid: userId,
-        email: req.user.email,
-        name: updateData.name || req.user.name || '',
-        avatar: updateData.avatar || req.user.picture || '',
-        firstName: updateData.firstName || '',
-        lastName: updateData.lastName || '',
-        bio: updateData.bio || '',
-        location: updateData.location || '',
-        website: updateData.website || '',
-        twitter: updateData.twitter || '',
-        instagram: updateData.instagram || '',
-        linkedin: updateData.linkedin || '',
-        twitter_handle: updateData.twitter_handle || updateData.twitter || '',
-        instagram_handle: updateData.instagram_handle || updateData.instagram || '',
-        linkedin_handle: updateData.linkedin_handle || updateData.linkedin || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        stats: {
-          missions_created: 0,
-          missions_completed: 0,
-          total_honors_earned: 0,
-          total_usd_earned: 0
-        }
-      };
-
-      await db.collection('users').doc(userId).set(newUser);
-      res.json(newUser);
+    if (!result.success) {
+      console.error('Profile update failed:', result.error);
+      res.status(400).json({ error: result.error });
       return;
     }
 
-    // Update existing user profile
-    const currentUser = userDoc.data();
-    const updatedUser = {
-      ...currentUser,
-      ...updateData,
-      updated_at: new Date().toISOString()
-    };
-
-    // Use set instead of update to avoid security rule conflicts
-    await db.collection('users').doc(userId).set(updatedUser, { merge: true });
-
-    // Get updated user document
-    const updatedUserDoc = await db.collection('users').doc(userId).get();
-    const user = updatedUserDoc.data();
-    
     console.log('Profile update completed:', {
       userId,
-      savedUser: user,
-      twitter: user?.twitter,
-      twitter_handle: user?.twitter_handle
+      savedUser: result.updatedUser,
+      twitter: result.updatedUser?.twitter,
+      twitter_handle: result.updatedUser?.twitter_handle
     });
 
-    res.json(user);
+    res.json(result.updatedUser);
   } catch (error: any) {
     console.error('Error updating user profile:', error);
     console.error('Error details:', error.message);
     res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// Data integrity verification endpoint
+app.post('/v1/user/verify-data-integrity', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    const { oldDisplayName, newDisplayName } = req.body;
+
+    console.log('Data integrity verification request:', {
+      userId,
+      oldDisplayName,
+      newDisplayName
+    });
+
+    const result = await verifyDataIntegrityAfterDisplayNameChange(
+      userId,
+      oldDisplayName || '',
+      newDisplayName || ''
+    );
+
+    if (!result.success) {
+      console.error('Data integrity verification failed:', result.issues);
+      res.status(400).json({
+        error: 'Data integrity verification failed',
+        issues: result.issues
+      });
+      return;
+    }
+
+    console.log('Data integrity verification completed:', {
+      userId,
+      verified: result.verified,
+      dataCounts: result.dataCounts,
+      issues: result.issues
+    });
+
+    res.json({
+      verified: result.verified,
+      issues: result.issues,
+      dataCounts: result.dataCounts
+    });
+  } catch (error) {
+    console.error('Error verifying data integrity:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1929,6 +1936,22 @@ const calculateTaskHonors = (platform: string, missionType: string, taskId: stri
 
 // Export the Express app as a Firebase Function
 export const api = functions.https.onRequest(app);
+
+// Export migration function (admin only)
+export const migrateToUidBasedKeys = functions.https.onCall(async (data, context) => {
+  // Only allow admin users to run migration
+  if (!context.auth || !context.auth.token.admin) {
+    throw new functions.https.HttpsError('permission-denied', 'Only admin users can run migration');
+  }
+
+  try {
+    await runMigration();
+    return { success: true, message: 'Migration completed successfully' };
+  } catch (error) {
+    console.error('Migration failed:', error);
+    throw new functions.https.HttpsError('internal', 'Migration failed', error);
+  }
+});
 
 // Export individual functions for better performance
 export const auth = functions.https.onCall(async (data: any, context: any) => {

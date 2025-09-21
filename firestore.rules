@@ -1,11 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to validate Firebase UID format
+    function isValidUid(uid) {
+      return uid is string && uid.size() == 28 && uid.matches('[a-zA-Z0-9]{28}');
+    }
     // Users can read/write their own data
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && 
+        request.auth.uid == userId && 
+        isValidUid(userId);
       allow read: if request.auth != null && 
         (request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
+      allow create: if request.auth != null && 
+        request.auth.uid == userId && 
+        isValidUid(userId) &&
+        request.resource.data.uid == userId;
     }
     
     // Missions are readable by authenticated users, writable by admins
@@ -15,7 +25,8 @@ service cloud.firestore {
         (request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
       allow create: if request.auth != null && 
         (request.auth.token.role == 'admin' || request.auth.token.role == 'moderator' || 
-         request.auth.uid == resource.data.created_by);
+         (request.auth.uid == request.resource.data.created_by && 
+          isValidUid(request.resource.data.created_by)));
     }
     
     // Mission participations - users can join missions
