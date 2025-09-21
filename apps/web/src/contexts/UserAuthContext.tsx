@@ -48,7 +48,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Get store actions
     const { setUser: setStoreUser, setStats, resetAll } = useUserStore();
 
@@ -56,7 +56,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const fetchUserProfileAndStats = async (uid: string, token: string) => {
         try {
             const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
-            
+
             // Fetch profile and stats in parallel
             const [profileResponse, missionsResponse] = await Promise.all([
                 fetch(`${API_BASE_URL}/v1/user/profile`, {
@@ -85,7 +85,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
 
             if (missionsResponse.ok) {
                 const allMissions = await missionsResponse.json();
-                
+
                 // Calculate stats
                 const userMissions = Array.isArray(allMissions)
                     ? allMissions.filter(mission => mission.created_by === uid)
@@ -168,15 +168,15 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                     // Update store with user data (merge pattern)
                     setStoreUser(userData);
                     setUser(userData);
-                    
+
                     // Store user data in localStorage for backward compatibility
                     localStorage.setItem('user', JSON.stringify(userData));
-                    
+
                     // Fetch profile and stats in parallel (don't block auth)
                     fetchUserProfileAndStats(firebaseUser.uid, token).catch(err => {
                         console.warn('Failed to fetch profile/stats, will retry later:', err);
                     });
-                    
+
                     log('User authenticated via Firebase:', userData.email);
                 } catch (err) {
                     console.error('Error getting Firebase token:', err);

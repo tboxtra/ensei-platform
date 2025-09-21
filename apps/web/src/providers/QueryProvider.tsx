@@ -7,7 +7,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60 * 1000, // 1 minute
-      cacheTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
       refetchOnWindowFocus: false,
       retry: 1,
     },
@@ -15,13 +15,13 @@ const queryClient = new QueryClient({
 });
 
 interface QueryProviderProps {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }
 
 export function QueryProvider({ children }: QueryProviderProps) {
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
+    return (
+        <QueryClientProvider client={queryClient}>
+            {children}
+        </QueryClientProvider>
+    );
 }

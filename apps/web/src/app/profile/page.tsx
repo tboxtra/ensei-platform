@@ -96,14 +96,14 @@ export default function ProfilePage() {
             // Use proper conflict resolution to merge local and server data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
-            
+
             const mergedUserData = mergeUserData(currentUser, freshUserData);
             console.log('loadUserData: Merged user data:', mergedUserData);
-            
+
             // Update Twitter username state from merged data
             const mergedTwitterHandle = mergedUserData.twitter_handle || mergedUserData.twitter || '';
             console.log('loadUserData: Twitter handle from merged data:', mergedTwitterHandle);
-            
+
             setTwitterUsername(mergedTwitterHandle);
             setTwitterStatus(mergedTwitterHandle ? 'saved' : 'empty');
 
@@ -136,9 +136,9 @@ export default function ProfilePage() {
                 twitter: formData.twitter,
                 twitter_handle: formData.twitter,
             };
-            
+
             const updatedUser = await updateProfile(profileData);
-            
+
             // Update store with only profile fields (merge pattern)
             setStoreUser({
                 firstName: updatedUser.firstName || formData.firstName,
@@ -148,7 +148,7 @@ export default function ProfilePage() {
                 twitter_handle: updatedUser.twitter_handle || formData.twitter,
                 updated_at: updatedUser.updated_at || new Date().toISOString(),
             });
-            
+
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
         } catch (err: any) {
@@ -199,7 +199,7 @@ export default function ProfilePage() {
     // Industry standard conflict resolution - merge user data intelligently
     const mergeUserData = (localData: any, serverData: any) => {
         console.log('Merging user data:', { localData, serverData });
-        
+
         const merged = {
             ...serverData, // Start with server data as base
             // Preserve local changes that server doesn't have or has empty
@@ -208,7 +208,7 @@ export default function ProfilePage() {
             // Use server timestamp for other fields
             updated_at: serverData?.updated_at || new Date().toISOString()
         };
-        
+
         console.log('Merged user data:', merged);
         return merged;
     };
@@ -223,11 +223,11 @@ export default function ProfilePage() {
                 return result;
             } catch (error: any) {
                 console.error(`Save attempt ${i + 1} failed:`, error);
-                
+
                 if (i === maxRetries - 1) {
                     throw new Error(`Failed to save after ${maxRetries} attempts: ${error.message}`);
                 }
-                
+
                 // Exponential backoff
                 const delay = 1000 * Math.pow(2, i);
                 console.log(`Retrying in ${delay}ms...`);
@@ -239,20 +239,20 @@ export default function ProfilePage() {
     // Background sync queue for failed saves
     const backgroundSyncQueue = {
         queue: [] as Array<{ id: string; data: any; timestamp: number }>,
-        
-        add: function(id: string, data: any) {
+
+        add: function (id: string, data: any) {
             const item = { id, data, timestamp: Date.now() };
             this.queue.push(item);
             console.log('Added to background sync queue:', item);
             this.process();
         },
-        
-        process: async function() {
+
+        process: async function () {
             if (this.queue.length === 0) return;
-            
+
             const item = this.queue.shift();
             if (!item) return;
-            
+
             try {
                 await saveWithRetry(item.data);
                 console.log('Background sync successful for:', item.id);
@@ -269,7 +269,7 @@ export default function ProfilePage() {
     // Twitter username management functions with optimistic updates
     const handleAddTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         const validation = validateTwitterUsername(formData.twitter);
         if (!validation.isValid) {
             setError(validation.message || 'Invalid Twitter username');
@@ -277,22 +277,22 @@ export default function ProfilePage() {
         }
 
         const formattedUsername = formatTwitterUsername(formData.twitter);
-        
+
         // 1. OPTIMISTIC UPDATE - Update UI immediately
         const previousUsername = twitterUsername;
         const previousStatus = twitterStatus;
-        
+
         setTwitterUsername(formattedUsername);
         setTwitterStatus('saved');
         setTwitterLoading(true);
         setSyncStatus('syncing');
         setFormData(prev => ({ ...prev, twitter: '' }));
-        
+
         try {
             // 2. Get current user data from localStorage to ensure we have complete data
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -311,31 +311,31 @@ export default function ProfilePage() {
             // 3. Save to Firebase with retry mechanism
             const updatedUser = await saveWithRetry(profileData);
             console.log('Firebase response:', updatedUser);
-            
+
             if (!updatedUser) {
                 throw new Error('Firebase returned empty response');
             }
-            
+
             // 4. SUCCESS - Update state with server response
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
             setSyncStatus('synced');
             setSyncMessage('');
             setError(null);
-            
+
         } catch (err: any) {
             console.error('Error saving Twitter username:', err);
-            
+
             // 5. ROLLBACK - Revert optimistic update
             setTwitterUsername(previousUsername);
             setTwitterStatus(previousStatus);
             setFormData(prev => ({ ...prev, twitter: formattedUsername }));
             setSyncStatus('offline');
-            
+
             // 6. Show user-friendly error and queue for background retry
             setError('Failed to save Twitter username. Will retry in background.');
             setSyncMessage('Save failed - retrying in background...');
-            
+
             // 7. Queue for background sync
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
@@ -346,9 +346,9 @@ export default function ProfilePage() {
                 twitter: formattedUsername,
                 twitter_handle: formattedUsername
             };
-            
+
             backgroundSyncQueue.add('addTwitterUsername', profileData);
-            
+
         } finally {
             setTwitterLoading(false);
         }
@@ -361,7 +361,7 @@ export default function ProfilePage() {
 
     const handleSaveTwitterUsername = async () => {
         if (!formData.twitter.trim()) return;
-        
+
         const validation = validateTwitterUsername(formData.twitter);
         if (!validation.isValid) {
             setError(validation.message || 'Invalid Twitter username');
@@ -371,11 +371,11 @@ export default function ProfilePage() {
         const formattedUsername = formatTwitterUsername(formData.twitter);
         setTwitterLoading(true);
         setSyncStatus('syncing');
-        
+
         try {
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -410,11 +410,11 @@ export default function ProfilePage() {
     const handleRemoveTwitterUsername = async () => {
         setTwitterLoading(true);
         setSyncStatus('syncing');
-        
+
         try {
             const currentUserData = localStorage.getItem('user');
             const currentUser = currentUserData ? JSON.parse(currentUserData) : user;
-            
+
             const profileData = {
                 firstName: currentUser?.firstName || formData.firstName || '',
                 lastName: currentUser?.lastName || formData.lastName || '',
@@ -562,7 +562,7 @@ export default function ProfilePage() {
                                 )}
                             </div>
                         </div>
-                        
+
                         <p className="text-gray-400 text-sm mb-4">
                             Link your Twitter account for mission verification
                         </p>
@@ -581,13 +581,12 @@ export default function ProfilePage() {
                                                 type="text"
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
-                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${
-                                                    formData.twitter ?
+                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
                                                         validateTwitterUsername(formData.twitter).isValid ?
                                                             'border-green-500/50 focus:ring-green-500' :
                                                             'border-red-500/50 focus:ring-red-500'
                                                         : 'border-gray-700/50 focus:ring-green-500'
-                                                }`}
+                                                    }`}
                                                 placeholder="yourusername"
                                             />
                                             <button
@@ -653,13 +652,12 @@ export default function ProfilePage() {
                                                 type="text"
                                                 value={formData.twitter}
                                                 onChange={(e) => handleInputChange('twitter', e.target.value.replace('@', ''))}
-                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${
-                                                    formData.twitter ?
+                                                className={`flex-1 p-3 bg-gray-800/50 border rounded-lg text-white focus:ring-2 focus:border-transparent text-sm ${formData.twitter ?
                                                         validateTwitterUsername(formData.twitter).isValid ?
                                                             'border-green-500/50 focus:ring-green-500' :
                                                             'border-red-500/50 focus:ring-red-500'
                                                         : 'border-gray-700/50 focus:ring-green-500'
-                                                }`}
+                                                    }`}
                                                 placeholder="yourusername"
                                             />
                                             <button
@@ -697,7 +695,7 @@ export default function ProfilePage() {
                         >
                             {loading ? 'Saving...' : 'Save Changes'}
                         </ModernButton>
-                        
+
                         <ModernButton
                             onClick={handleLogout}
                             className="bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 hover:text-red-300 px-6 py-3 rounded-lg font-medium transition-all duration-200"
