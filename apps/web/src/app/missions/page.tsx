@@ -6,7 +6,7 @@ import { useApi } from '../../hooks/useApi';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
-import { CompactMissionCard } from '../../components/ui/CompactMissionCard';
+import { CompactMissionCard } from '../../features/missions';
 import { FilterBar } from '../../components/ui/FilterBar';
 import { StatsCard } from '../../components/ui/StatsCard';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';

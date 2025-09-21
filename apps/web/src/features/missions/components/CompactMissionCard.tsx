@@ -2,16 +2,22 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { EmbeddedContent } from './EmbeddedContent';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { getTasksForMission } from '@/lib/taskTypes';
-import { useAuth } from '../../contexts/UserAuthContext';
+import { useAuth } from '../../../contexts/UserAuthContext';
 import {
     useUserMissionTaskCompletions,
     useCompleteTask,
     useRedoTaskCompletion,
     useSubmitTaskLink,
     toneFor
-} from '../../hooks/useTaskCompletions';
+} from '../../../hooks/useTaskCompletions';
+import {
+    logIntentAction,
+    logVerifyAction,
+    logLinkSubmitAction,
+    logRedoAction
+} from '../../../shared/lib/user-activity-logger';
 import { Flag, AlertTriangle } from 'lucide-react';
-import type { TaskStatus, VerifyMode } from '../../types/task-completion';
+import type { TaskStatus, VerifyMode } from '../../../types/task-completion';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -25,6 +31,7 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
     const [taskStates, setTaskStates] = useState<Record<string, TaskStatus>>({});
     const [showLinkPanel, setShowLinkPanel] = useState<Record<string, boolean>>({});
     const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
+    const [linkErrors, setLinkErrors] = useState<Record<string, string>>({});
     const cardRef = useRef<HTMLDivElement>(null);
 
     const { data: taskCompletions = [] } = useUserMissionTaskCompletions(
@@ -272,12 +279,24 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
     }, [mission.tasks]);
 
     // Events
-    const handleIntentClick = useCallback((taskId: string) => {
+    const handleIntentClick = useCallback(async (taskId: string) => {
         const intentUrl = MissionTwitterIntents.generateIntentUrl(taskId, mission);
-        if (!intentUrl) return;
+        if (!intentUrl || !user?.id) return;
+
         TwitterIntents.openIntent(intentUrl, taskId);
         setTaskStates(prev => ({ ...prev, [taskId]: 'intentDone' }));
-    }, [mission]);
+
+        // Log intent action to Firebase
+        try {
+            await logIntentAction(user.id, mission.id, taskId, {
+                intentUrl,
+                taskType: taskId,
+                platform: mission.platform
+            });
+        } catch (error) {
+            console.error('Failed to log intent action:', error);
+        }
+    }, [mission, user]);
 
     const handleDirectVerify = useCallback(async (taskId: string) => {
         if (!user?.id) return;
@@ -299,10 +318,19 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                 }
             });
 
-            // Set verified state and close panel
+            // Set verified state but DO NOT collapse the panel
             setTaskStates(p => ({ ...p, [taskId]: 'verified' }));
-            setSelectedTask(null);
-            setShowLinkPanel(p => ({ ...p, [taskId]: false }));
+
+            // Log verify action to Firebase
+            try {
+                await logVerifyAction(user.id, mission.id, taskId, {
+                    taskType: taskId,
+                    platform: mission.platform,
+                    verificationMethod: 'direct'
+                });
+            } catch (error) {
+                console.error('Failed to log verify action:', error);
+            }
         } catch (e) {
             setTaskStates(p => ({ ...p, [taskId]: 'intentDone' }));
             console.error('Failed to complete task:', e);
@@ -312,13 +340,40 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
     const isLikelyUrl = (s: string) =>
         /^https?:\/\//i.test(s) && /twitter\.com|x\.com/i.test(s);
 
+    // Helper function to extract Twitter handle from URL
+    const extractHandleFromUrl = (url: string): string => {
+        const match = url.match(/(?:twitter\.com|x\.com)\/([^\/\?]+)/i);
+        return match ? match[1].toLowerCase() : '';
+    };
+
     const handleLinkSubmit = useCallback(async (taskId: string) => {
         const link = linkInputs[taskId];
         if (!link || !user?.id) return;
+
+        // Clear any previous errors
+        setLinkErrors(p => ({ ...p, [taskId]: '' }));
+
         if (!isLikelyUrl(link)) {
-            // light client-side guard; server still validates
+            setLinkErrors(p => ({ ...p, [taskId]: 'Please enter a valid Twitter/X URL' }));
             return;
         }
+
+        // Client-side username validation
+        const extractedHandle = extractHandleFromUrl(link);
+        if (!extractedHandle) {
+            setLinkErrors(p => ({ ...p, [taskId]: 'Could not extract username from URL' }));
+            return;
+        }
+
+        // Check if user has Twitter username and if it matches
+        if (user.twitterUsername) {
+            const userHandle = user.twitterUsername.toLowerCase().replace('@', '');
+            if (extractedHandle !== userHandle) {
+                setLinkErrors(p => ({ ...p, [taskId]: `Link must be your own reply/quote from @${userHandle}` }));
+                return;
+            }
+        }
+
         try {
             setTaskStates(p => ({ ...p, [taskId]: 'pendingVerify' }));
 
@@ -328,13 +383,25 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                 missionId: mission.id
             });
 
-            // Set verified state and close panel
+            // Set verified state but DO NOT collapse the panel
             setTaskStates(p => ({ ...p, [taskId]: 'verified' }));
-            setSelectedTask(null);
-            setShowLinkPanel(p => ({ ...p, [taskId]: false }));
             setLinkInputs(p => ({ ...p, [taskId]: '' }));
+            setLinkErrors(p => ({ ...p, [taskId]: '' }));
+
+            // Log link submit action to Firebase
+            try {
+                await logLinkSubmitAction(user.id, mission.id, taskId, link, {
+                    taskType: taskId,
+                    platform: mission.platform,
+                    verificationMethod: 'link',
+                    extractedHandle: extractHandleFromUrl(link)
+                });
+            } catch (error) {
+                console.error('Failed to log link submit action:', error);
+            }
         } catch (e) {
             setTaskStates(p => ({ ...p, [taskId]: 'intentDone' }));
+            setLinkErrors(p => ({ ...p, [taskId]: 'Failed to submit link. Please try again.' }));
             console.error('Failed to submit task link:', e);
         }
     }, [linkInputs, user, mission.id, submitTaskLinkMutation]);
@@ -353,10 +420,21 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
             setSelectedTask(null);
             setShowLinkPanel(p => ({ ...p, [taskId]: false }));
             setLinkInputs(p => ({ ...p, [taskId]: '' }));
+
+            // Log redo action to Firebase
+            try {
+                await logRedoAction(user.id, mission.id, taskId, {
+                    taskType: taskId,
+                    platform: mission.platform,
+                    completionId: tc?.id
+                });
+            } catch (error) {
+                console.error('Failed to log redo action:', error);
+            }
         } catch (e) {
             console.error('Failed to redo task:', e);
         }
-    }, [user, taskCompletions, redoTaskMutation]);
+    }, [user, taskCompletions, redoTaskMutation, mission.id]);
 
     // UI helpers
     const getModelColor = (model: string) => {
@@ -492,19 +570,21 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                         <div className="bg-gray-800/90 border border-gray-700/50 rounded-lg p-3 space-y-2">
                             {/* Instructions written when the task was created */}
                             {(() => {
-                                const fromMission = mission?.instructions?.[selectedTask!] ?? mission?.instructions;
-                                const fromCatalog = getTasksForMission?.(mission.platform, mission.type)
-                                    ?.find(t => t.id === selectedTask)?.description;
-                                const instructions = fromMission || fromCatalog || '';
+                                // Priority: 1) mission.taskInstructions?.[taskId], 2) taskMetaById[taskId]?.instructions, 3) mission.instructions
+                                const fromTaskInstructions = mission?.taskInstructions?.[selectedTask!];
+                                const fromTaskMeta = taskMetaById[selectedTask!]?.instructions;
+                                const fromMission = mission?.instructions;
+                                const instructions = fromTaskInstructions || fromTaskMeta || fromMission || '';
 
                                 return instructions ? (
-                                    <div className="text-xs text-gray-300 leading-relaxed">
+                                    <div className="bg-gray-700/30 border border-gray-600/30 rounded-lg p-3 text-sm text-gray-300 leading-relaxed">
                                         {instructions}
                                     </div>
                                 ) : null;
                             })()}
 
 
+                            {/* Two buttons always side by side */}
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => handleIntentClick(selectedTask)}
@@ -520,34 +600,6 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                                                             : 'Open Twitter'}
                                 </button>
 
-                                {/* Link panel for link-mode tasks */}
-                                {getVerifyMode(selectedTask) === 'link' && (
-                                    <div className="space-y-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Paste your comment/quote link…"
-                                            value={linkInputs[selectedTask] || ''}
-                                            onChange={(e) => setLinkInputs(prev => ({ ...prev, [selectedTask]: e.target.value }))}
-                                            className="w-full px-3 py-1 rounded-full text-xs bg-gray-800/50 text-white placeholder-gray-400 border border-gray-600/50 focus:border-blue-500/50 focus:outline-none"
-                                        />
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleLinkSubmit(selectedTask)}
-                                                disabled={!linkInputs[selectedTask] || submitTaskLinkMutation.isPending}
-                                                className="flex-1 px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50 transition-colors duration-200"
-                                            >
-                                                {submitTaskLinkMutation.isPending ? 'Submitting...' : 'Submit Link'}
-                                            </button>
-                                            <button
-                                                onClick={() => setLinkInputs(prev => ({ ...prev, [selectedTask]: '' }))}
-                                                className="px-3 py-1 rounded-full text-xs bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30 transition-colors duration-200"
-                                            >
-                                                Clear
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
                                 <button
                                     onClick={() => { if (getVerifyMode(selectedTask) === 'direct') handleDirectVerify(selectedTask); }}
                                     disabled={
@@ -555,7 +607,7 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                                         getVerifyMode(selectedTask) === 'link' ||
                                         !(getTaskStatus(selectedTask) === 'intentDone' || getTaskStatus(selectedTask) === 'pendingVerify')
                                     }
-                                    className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${(getVerifyMode(selectedTask) === 'link' || !(getTaskStatus(selectedTask) === 'intentDone' || getTaskStatus(selectedTask) === 'pendingVerify')) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${(getTaskStatus(selectedTask) === 'verified' || getVerifyMode(selectedTask) === 'link' || !(getTaskStatus(selectedTask) === 'intentDone' || getTaskStatus(selectedTask) === 'pendingVerify')) ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
                                     {getTaskStatus(selectedTask) === 'verified' ? 'Verified'
                                         : selectedTask === 'like' ? 'Verify Like'
@@ -566,6 +618,57 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                                                             : 'Verify'}
                                 </button>
                             </div>
+
+                            {/* Link panel for link-mode tasks - below the two buttons */}
+                            {getVerifyMode(selectedTask) === 'link' && (
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Paste your comment/quote link…"
+                                        value={linkInputs[selectedTask] || ''}
+                                        onChange={(e) => {
+                                            setLinkInputs(prev => ({ ...prev, [selectedTask]: e.target.value }));
+                                            // Clear error when user starts typing
+                                            if (linkErrors[selectedTask]) {
+                                                setLinkErrors(prev => ({ ...prev, [selectedTask]: '' }));
+                                            }
+                                        }}
+                                        className="w-full px-3 py-1 rounded-full text-xs bg-gray-800/50 text-white placeholder-gray-400 border border-gray-600/50 focus:border-blue-500/50 focus:outline-none"
+                                    />
+
+                                    {/* Error message */}
+                                    {linkErrors[selectedTask] && (
+                                        <div className="text-red-400 text-xs px-2">
+                                            {linkErrors[selectedTask]}
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleLinkSubmit(selectedTask)}
+                                            disabled={
+                                                Boolean(!linkInputs[selectedTask] ||
+                                                    linkInputs[selectedTask] === '' ||
+                                                    submitTaskLinkMutation.isPending ||
+                                                    !isLikelyUrl(linkInputs[selectedTask] || '') ||
+                                                    (user?.twitterUsername && extractHandleFromUrl(linkInputs[selectedTask] || '') !== user.twitterUsername.toLowerCase().replace('@', '')))
+                                            }
+                                            className="flex-1 px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50 transition-colors duration-200"
+                                        >
+                                            {submitTaskLinkMutation.isPending ? 'Submitting...' : 'Submit Link'}
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setLinkInputs(prev => ({ ...prev, [selectedTask]: '' }));
+                                                setLinkErrors(prev => ({ ...prev, [selectedTask]: '' }));
+                                            }}
+                                            className="px-3 py-1 rounded-full text-xs bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30 transition-colors duration-200"
+                                        >
+                                            Clear
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
