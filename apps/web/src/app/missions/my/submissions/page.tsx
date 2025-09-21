@@ -134,7 +134,7 @@ export default function MissionSubmissionsPage() {
     }
 
     // Show empty state if no missions
-    if (missions.length === 0) {
+    if (!missions || missions.length === 0) {
         return (
             <div className="min-h-screen bg-gray-50 p-6">
                 <div className="max-w-6xl mx-auto">
@@ -182,8 +182,7 @@ export default function MissionSubmissionsPage() {
                                         <div className="flex items-center justify-between">
                                             <Badge className="bg-green-100 text-green-800">{mission.status}</Badge>
                                             <span className="text-xs text-gray-500">
-                                                {mission.created_at ? new Date(mission.created_at).toLocaleDateString() :
-                                                    mission.createdAt ? mission.createdAt.toLocaleDateString() : 'Unknown date'}
+                                                {mission.created_at ? new Date(mission.created_at).toLocaleDateString() : 'Unknown date'}
                                             </span>
                                         </div>
                                     </div>
