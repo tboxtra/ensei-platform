@@ -109,6 +109,20 @@ service cloud.firestore {
          request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
       allow create: if request.auth != null && 
         (request.auth.uid == request.resource.data.userId || 
+         request.auth.token.role == 'admin' || request.auth.token.role == 'moderator') &&
+        // Ensure required fields are present
+        request.resource.data.keys().hasAll(['missionId', 'userId', 'taskId', 'status', 'createdAt', 'updatedAt']) &&
+        // Ensure user can only create completions for themselves
+        request.resource.data.userId == request.auth.uid;
+    }
+    
+    // User mission completion summaries - for fast Discover page lookups
+    match /users/{userId}/missions/{missionId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || 
+         request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
+      allow write: if request.auth != null && 
+        (request.auth.uid == userId || 
          request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
     }
   }

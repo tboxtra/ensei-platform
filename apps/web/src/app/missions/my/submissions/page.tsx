@@ -6,24 +6,33 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Flag, AlertCircle, Clock, User, Calendar } from 'lucide-react';
 import { getFlaggingReasons } from '@/lib/task-verification';
-import { type TaskCompletionRecord } from '@/lib/task-status-system';
-import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskStatusSystem';
+import { type TaskCompletion } from '@/types/task-completion';
+import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
+import { useMyMissions } from '@/hooks/useMyMissions';
 
 interface Mission {
     id: string;
     title: string;
     description: string;
-    tweetUrl: string;
-    username: string;
-    creator: string;
-    createdAt: Date;
+    tweetUrl?: string;
+    contentLink?: string;
+    username?: string;
+    creator?: string;
+    created_by?: string;
+    created_at?: string;
+    createdAt?: Date;
     status: string;
+    platform?: string;
+    type?: string;
+    model?: string;
 }
 
 export default function MissionSubmissionsPage() {
-    const [missions, setMissions] = useState<Mission[]>([]);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    const [showFlagModal, setShowFlagModal] = useState<{ completion: TaskCompletionRecord | null, show: boolean }>({ completion: null, show: false });
+    const [showFlagModal, setShowFlagModal] = useState<{ completion: TaskCompletion | null, show: boolean }>({ completion: null, show: false });
+
+    // Get real missions data using the useMyMissions hook
+    const { data: missions = [], isLoading: loadingMissions, error: missionsError } = useMyMissions();
 
     // Use React Query hooks for real-time updates
     const flagTaskCompletionMutation = useFlagTaskCompletion();
@@ -34,40 +43,12 @@ export default function MissionSubmissionsPage() {
         selectedMission?.id || ''
     );
 
-
-    // Mock missions data
-    useEffect(() => {
-        setMissions([
-            {
-                id: 'mission-1',
-                title: 'Like Our Latest Tweet',
-                description: 'Help us grow by liking our latest tweet about Web3 innovation',
-                tweetUrl: 'https://twitter.com/ensei_platform/status/1234567890',
-                username: 'ensei_platform',
-                creator: 'Current User',
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-                status: 'active'
-            },
-            {
-                id: 'mission-2',
-                title: 'Retweet & Comment',
-                description: 'Retweet our announcement and leave a thoughtful comment',
-                tweetUrl: 'https://twitter.com/ensei_platform/status/1234567891',
-                username: 'ensei_platform',
-                creator: 'Current User',
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12),
-                status: 'active'
-            }
-        ]);
-    }, []);
-
-    const handleFlagSubmission = async (completion: TaskCompletionRecord, reason: string) => {
+    const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
         try {
             await flagTaskCompletionMutation.mutateAsync({
                 completionId: completion.id,
-                reason,
-                reviewerId: 'creator-1',
-                reviewerName: 'Mission Creator'
+                flaggedReason: reason,
+                reviewedBy: 'creator-1'
             });
             // React Query will automatically refetch and update the UI
             setShowFlagModal({ completion: null, show: false });
@@ -78,12 +59,11 @@ export default function MissionSubmissionsPage() {
         }
     };
 
-    const handleVerifySubmission = async (completion: TaskCompletionRecord) => {
+    const handleVerifySubmission = async (completion: TaskCompletion) => {
         try {
             await verifyTaskCompletionMutation.mutateAsync({
                 completionId: completion.id,
-                reviewerId: 'creator-1',
-                reviewerName: 'Mission Creator'
+                reviewedBy: 'creator-1'
             });
             // React Query will automatically refetch and update the UI
             console.log('Submission verified successfully!');
@@ -113,8 +93,64 @@ export default function MissionSubmissionsPage() {
 
     // Check if there are any flagged submissions that need attention
     const hasFlaggedSubmissions = missions.some(mission =>
-        (mission as any).completions?.some((completion: TaskCompletionRecord) => completion.status === 'flagged')
+        (mission as any).completions?.some((completion: TaskCompletion) => completion.status === 'flagged')
     );
+
+    // Show loading state
+    if (loadingMissions) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6">
+                <div className="max-w-6xl mx-auto">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Mission Submissions</h1>
+                        <p className="text-gray-600">Review and manage submissions for your missions</p>
+                    </div>
+                    <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading your missions...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state
+    if (missionsError) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6">
+                <div className="max-w-6xl mx-auto">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Mission Submissions</h1>
+                        <p className="text-gray-600">Review and manage submissions for your missions</p>
+                    </div>
+                    <div className="text-center py-8">
+                        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                        <p className="text-red-600 mb-4">Failed to load your missions</p>
+                        <Button onClick={() => window.location.reload()}>Try Again</Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show empty state if no missions
+    if (missions.length === 0) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6">
+                <div className="max-w-6xl mx-auto">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Mission Submissions</h1>
+                        <p className="text-gray-600">Review and manage submissions for your missions</p>
+                    </div>
+                    <div className="text-center py-8">
+                        <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 mb-4">You haven't created any missions yet</p>
+                        <Button onClick={() => window.location.href = '/missions/create'}>Create Your First Mission</Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -146,7 +182,8 @@ export default function MissionSubmissionsPage() {
                                         <div className="flex items-center justify-between">
                                             <Badge className="bg-green-100 text-green-800">{mission.status}</Badge>
                                             <span className="text-xs text-gray-500">
-                                                {mission.createdAt.toLocaleDateString()}
+                                                {mission.created_at ? new Date(mission.created_at).toLocaleDateString() :
+                                                    mission.createdAt ? mission.createdAt.toLocaleDateString() : 'Unknown date'}
                                             </span>
                                         </div>
                                     </div>
@@ -193,6 +230,9 @@ export default function MissionSubmissionsPage() {
                                                         <div>
                                                             <h3 className="font-medium text-gray-900">{submission.userName}</h3>
                                                             <p className="text-sm text-gray-600">Task: {submission.taskId}</p>
+                                                            {submission.userSocialHandle && (
+                                                                <p className="text-xs text-gray-500">@{submission.userSocialHandle}</p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     {getStatusBadge(submission.status)}
@@ -202,14 +242,14 @@ export default function MissionSubmissionsPage() {
                                                     <div>
                                                         <span className="text-gray-500">Completed:</span>
                                                         <span className="ml-2 text-gray-900">
-                                                            {submission.completedAt.toLocaleString()}
+                                                            {submission.completedAt?.toDate?.()?.toLocaleString() || 'Unknown'}
                                                         </span>
                                                     </div>
                                                     {submission.verifiedAt && (
                                                         <div>
                                                             <span className="text-gray-500">Verified:</span>
                                                             <span className="ml-2 text-gray-900">
-                                                                {submission.verifiedAt.toLocaleString()}
+                                                                {submission.verifiedAt?.toDate?.()?.toLocaleString() || 'Unknown'}
                                                             </span>
                                                         </div>
                                                     )}
@@ -217,11 +257,22 @@ export default function MissionSubmissionsPage() {
                                                         <div>
                                                             <span className="text-gray-500">Flagged:</span>
                                                             <span className="ml-2 text-gray-900">
-                                                                {submission.flaggedAt.toLocaleString()}
+                                                                {submission.flaggedAt?.toDate?.()?.toLocaleString() || 'Unknown'}
                                                             </span>
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {submission.url && (
+                                                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                        <p className="text-sm text-blue-800">
+                                                            <strong>Submitted URL:</strong>
+                                                            <a href={submission.url} target="_blank" rel="noopener noreferrer" className="ml-1 underline hover:text-blue-600">
+                                                                {submission.url}
+                                                            </a>
+                                                        </p>
+                                                    </div>
+                                                )}
 
                                                 {submission.flaggedReason && (
                                                     <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">

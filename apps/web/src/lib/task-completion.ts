@@ -30,31 +30,158 @@ import type {
     TaskCompletionPagination
 } from '../types/task-completion';
 
-const TASK_COMPLETIONS_COLLECTION = 'taskCompletions';
+const TASK_COMPLETIONS_COLLECTION = 'mission_participations';
+
+/**
+ * Validate Twitter URL and ensure it belongs to the user
+ */
+export async function validateTwitterUrl(url: string, userTwitterHandle: string): Promise<{
+    isValid: boolean;
+    error?: string;
+    extractedHandle?: string;
+    tweetId?: string;
+}> {
+    try {
+        // Check if URL is a valid Twitter/X URL
+        const twitterUrlRegex = /^https?:\/\/(twitter\.com|x\.com)\/([^\/\?]+)\/status\/(\d+)/i;
+        const match = url.match(twitterUrlRegex);
+
+        if (!match) {
+            return {
+                isValid: false,
+                error: 'URL must be a valid Twitter/X post URL (e.g., https://twitter.com/username/status/1234567890)'
+            };
+        }
+
+        const [, domain, extractedHandle, tweetId] = match;
+
+        // Normalize handles for comparison
+        const normalizedUserHandle = userTwitterHandle.toLowerCase().replace('@', '');
+        const normalizedExtractedHandle = extractedHandle.toLowerCase();
+
+        if (normalizedExtractedHandle !== normalizedUserHandle) {
+            return {
+                isValid: false,
+                error: `URL must be from your own Twitter account (@${userTwitterHandle}). Found: @${extractedHandle}`,
+                extractedHandle
+            };
+        }
+
+        // Additional validation: Check if it's a reply, quote, or comment
+        // For now, we'll accept any post from the user's account
+        // In the future, we could add more specific validation for replies/quotes
+
+        return {
+            isValid: true,
+            extractedHandle,
+            tweetId
+        };
+    } catch (error) {
+        return {
+            isValid: false,
+            error: 'Failed to validate Twitter URL'
+        };
+    }
+}
 
 /**
  * Create a new task completion
+ * Writes to mission_participations collection (old system)
  */
 export async function createTaskCompletion(input: TaskCompletionInput): Promise<TaskCompletion> {
     try {
-        const now = serverTimestamp();
+        // Check if user is already participating in this mission
+        const participationQuery = await getDocs(
+            query(
+                collection(db, TASK_COMPLETIONS_COLLECTION),
+                where('mission_id', '==', input.missionId),
+                where('user_id', '==', input.userId)
+            )
+        );
 
-        const taskCompletionData = {
-            ...input,
-            status: 'pending' as const,
-            completedAt: now,
-            createdAt: now,
-            updatedAt: now
+        let participationId;
+        let participationData;
+
+        if (participationQuery.empty) {
+            // Create new participation
+            const newParticipation = {
+                mission_id: input.missionId,
+                user_id: input.userId,
+                user_name: input.userName,
+                user_email: input.userEmail || null,
+                user_social_handle: input.userSocialHandle || null,
+                platform: input.metadata?.platform || 'twitter',
+                status: 'active',
+                joined_at: new Date().toISOString(),
+                tasks_completed: [],
+                total_honors_earned: 0
+            };
+
+            const participationRef = await addDoc(collection(db, TASK_COMPLETIONS_COLLECTION), newParticipation);
+            participationId = participationRef.id;
+            participationData = newParticipation;
+        } else {
+            // Use existing participation
+            const doc = participationQuery.docs[0];
+            participationId = doc.id;
+            participationData = doc.data();
+        }
+
+        // Create task completion in the old format
+        const taskCompletion = {
+            task_id: input.taskId,
+            action_id: input.metadata?.verificationMethod || 'direct',
+            completed_at: new Date().toISOString(),
+            verification_data: {
+                url: input.metadata?.tweetUrl || null,
+                userAgent: input.metadata?.userAgent || null,
+                ipAddress: input.metadata?.ipAddress || null,
+                sessionId: input.metadata?.sessionId || null,
+                urlValidation: input.metadata?.urlValidation || null
+            },
+            api_result: null,
+            status: 'completed'
         };
 
-        const docRef = await addDoc(collection(db, TASK_COMPLETIONS_COLLECTION), taskCompletionData);
+        // Update participation with new task completion
+        const tasksCompleted = participationData.tasks_completed || [];
 
+        // Check if task is already completed
+        const existingTask = tasksCompleted.find((t: any) => t.task_id === input.taskId);
+        if (existingTask) {
+            throw new Error('Task already completed');
+        }
+
+        tasksCompleted.push(taskCompletion);
+
+        // Update the participation document
+        await updateDoc(doc(db, TASK_COMPLETIONS_COLLECTION, participationId), {
+            tasks_completed: tasksCompleted,
+            updated_at: new Date().toISOString()
+        });
+
+        // Return in the new format for compatibility
+        const completionDate = new Date(taskCompletion.completed_at);
         return {
-            id: docRef.id,
-            ...taskCompletionData,
-            completedAt: now as Timestamp,
-            createdAt: now as Timestamp,
-            updatedAt: now as Timestamp
+            id: `${participationId}_${input.taskId}`,
+            missionId: input.missionId,
+            taskId: input.taskId,
+            userId: input.userId,
+            userName: input.userName,
+            userEmail: input.userEmail,
+            userSocialHandle: input.userSocialHandle,
+            status: 'verified', // All completions are verified in the old system
+            completedAt: Timestamp.fromDate(completionDate),
+            verifiedAt: Timestamp.fromDate(completionDate),
+            flaggedAt: undefined,
+            flaggedReason: undefined,
+            url: taskCompletion.verification_data.url,
+            platform: participationData.platform || 'twitter',
+            twitterHandle: input.userSocialHandle,
+            reviewerId: undefined,
+            metadata: input.metadata,
+            createdAt: Timestamp.fromDate(completionDate),
+            updatedAt: Timestamp.fromDate(completionDate)
         } as TaskCompletion;
     } catch (error) {
         throw handleFirebaseError(error, 'createTaskCompletion');
@@ -84,24 +211,67 @@ export async function updateTaskCompletion(
 
 /**
  * Get task completions for a specific mission and user
+ * Reads from mission_participations collection (old system)
  */
 export async function getUserMissionTaskCompletions(
     missionId: string,
     userId: string
 ): Promise<TaskCompletion[]> {
     try {
+        // Query mission_participations collection
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
-            where('missionId', '==', missionId),
-            where('userId', '==', userId),
-            orderBy('createdAt', 'desc')
+            where('mission_id', '==', missionId),
+            where('user_id', '==', userId)
         );
 
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as TaskCompletion[];
+        const completions: TaskCompletion[] = [];
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const tasksCompleted = data.tasks_completed || [];
+
+            // Convert each task completion to the new format
+            tasksCompleted.forEach((task: any) => {
+                const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
+                completions.push({
+                    id: `${doc.id}_${task.task_id}`, // Create unique ID
+                    missionId: missionId,
+                    taskId: task.task_id,
+                    userId: userId,
+                    userName: data.user_name || 'Unknown User',
+                    userEmail: data.user_email || null,
+                    userSocialHandle: data.user_social_handle || null,
+                    status: task.status === 'completed' ? 'verified' : 'pending',
+                    completedAt: Timestamp.fromDate(taskDate),
+                    verifiedAt: task.status === 'completed' ? Timestamp.fromDate(taskDate) : undefined,
+                    flaggedAt: undefined,
+                    flaggedReason: undefined,
+                    url: task.verification_data?.url || null,
+                    platform: data.platform || 'twitter',
+                    twitterHandle: data.user_social_handle || null,
+                    reviewerId: undefined,
+                    metadata: {
+                        taskType: task.task_id,
+                        platform: data.platform || 'twitter',
+                        twitterHandle: data.user_social_handle || null,
+                        tweetUrl: task.verification_data?.url || null,
+                        userAgent: task.verification_data?.userAgent || null,
+                        ipAddress: task.verification_data?.ipAddress || null,
+                        sessionId: task.verification_data?.sessionId || null,
+                        verificationMethod: 'api',
+                        urlValidation: task.verification_data?.urlValidation || null,
+                        actionId: task.action_id,
+                        apiResult: task.api_result
+                    },
+                    createdAt: Timestamp.fromDate(taskDate),
+                    updatedAt: Timestamp.fromDate(taskDate)
+                } as TaskCompletion);
+            });
+        });
+
+        return completions;
     } catch (error) {
         throw handleFirebaseError(error, 'getUserMissionTaskCompletions');
     }
@@ -109,22 +279,130 @@ export async function getUserMissionTaskCompletions(
 
 /**
  * Get task completions for a specific mission (all users)
+ * Reads from mission_participations collection (old system)
  */
 export async function getMissionTaskCompletions(missionId: string): Promise<TaskCompletion[]> {
     try {
+        // Query mission_participations collection
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
-            where('missionId', '==', missionId),
-            orderBy('createdAt', 'desc')
+            where('mission_id', '==', missionId)
         );
 
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as TaskCompletion[];
+        const completions: TaskCompletion[] = [];
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const tasksCompleted = data.tasks_completed || [];
+
+            // Convert each task completion to the new format
+            tasksCompleted.forEach((task: any) => {
+                const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
+                completions.push({
+                    id: `${doc.id}_${task.task_id}`, // Create unique ID
+                    missionId: missionId,
+                    taskId: task.task_id,
+                    userId: data.user_id,
+                    userName: data.user_name || 'Unknown User',
+                    userEmail: data.user_email || null,
+                    userSocialHandle: data.user_social_handle || null,
+                    status: task.status === 'completed' ? 'verified' : 'pending',
+                    completedAt: Timestamp.fromDate(taskDate),
+                    verifiedAt: task.status === 'completed' ? Timestamp.fromDate(taskDate) : undefined,
+                    flaggedAt: undefined,
+                    flaggedReason: undefined,
+                    url: task.verification_data?.url || null,
+                    platform: data.platform || 'twitter',
+                    twitterHandle: data.user_social_handle || null,
+                    reviewerId: undefined,
+                    metadata: {
+                        taskType: task.task_id,
+                        platform: data.platform || 'twitter',
+                        twitterHandle: data.user_social_handle || null,
+                        tweetUrl: task.verification_data?.url || null,
+                        userAgent: task.verification_data?.userAgent || null,
+                        ipAddress: task.verification_data?.ipAddress || null,
+                        sessionId: task.verification_data?.sessionId || null,
+                        verificationMethod: 'api',
+                        urlValidation: task.verification_data?.urlValidation || null,
+                        actionId: task.action_id,
+                        apiResult: task.api_result
+                    },
+                    createdAt: Timestamp.fromDate(taskDate),
+                    updatedAt: Timestamp.fromDate(taskDate)
+                } as TaskCompletion);
+            });
+        });
+
+        return completions;
     } catch (error) {
         throw handleFirebaseError(error, 'getMissionTaskCompletions');
+    }
+}
+
+/**
+ * Get all task completions for a user across all missions
+ * Used by Discover page to show completion status
+ * Reads from mission_participations collection (old system)
+ */
+export async function getAllUserTaskCompletions(userId: string): Promise<TaskCompletion[]> {
+    try {
+        // Query mission_participations collection
+        const q = query(
+            collection(db, TASK_COMPLETIONS_COLLECTION),
+            where('user_id', '==', userId)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const completions: TaskCompletion[] = [];
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const tasksCompleted = data.tasks_completed || [];
+
+            // Convert each task completion to the new format
+            tasksCompleted.forEach((task: any) => {
+                const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
+                completions.push({
+                    id: `${doc.id}_${task.task_id}`, // Create unique ID
+                    missionId: data.mission_id,
+                    taskId: task.task_id,
+                    userId: userId,
+                    userName: data.user_name || 'Unknown User',
+                    userEmail: data.user_email || null,
+                    userSocialHandle: data.user_social_handle || null,
+                    status: task.status === 'completed' ? 'verified' : 'pending',
+                    completedAt: Timestamp.fromDate(taskDate),
+                    verifiedAt: task.status === 'completed' ? Timestamp.fromDate(taskDate) : undefined,
+                    flaggedAt: undefined,
+                    flaggedReason: undefined,
+                    url: task.verification_data?.url || null,
+                    platform: data.platform || 'twitter',
+                    twitterHandle: data.user_social_handle || null,
+                    reviewerId: undefined,
+                    metadata: {
+                        taskType: task.task_id,
+                        platform: data.platform || 'twitter',
+                        twitterHandle: data.user_social_handle || null,
+                        tweetUrl: task.verification_data?.url || null,
+                        userAgent: task.verification_data?.userAgent || null,
+                        ipAddress: task.verification_data?.ipAddress || null,
+                        sessionId: task.verification_data?.sessionId || null,
+                        verificationMethod: 'api',
+                        urlValidation: task.verification_data?.urlValidation || null,
+                        actionId: task.action_id,
+                        apiResult: task.api_result
+                    },
+                    createdAt: Timestamp.fromDate(taskDate),
+                    updatedAt: Timestamp.fromDate(taskDate)
+                } as TaskCompletion);
+            });
+        });
+
+        return completions;
+    } catch (error) {
+        throw handleFirebaseError(error, 'getAllUserTaskCompletions');
     }
 }
 
@@ -164,8 +442,8 @@ export async function verifyTaskCompletion(
 ): Promise<void> {
     await updateTaskCompletion(completionId, {
         status: 'verified',
-        reviewedBy,
-        reviewedAt: serverTimestamp() as Timestamp,
+        reviewerId: reviewedBy,
+        verifiedAt: serverTimestamp() as Timestamp,
         updatedAt: serverTimestamp() as Timestamp
     });
 }
@@ -181,8 +459,8 @@ export async function flagTaskCompletion(
     await updateTaskCompletion(completionId, {
         status: 'flagged',
         flaggedReason,
-        reviewedBy,
-        reviewedAt: serverTimestamp() as Timestamp,
+        reviewerId: reviewedBy,
+        flaggedAt: serverTimestamp() as Timestamp,
         updatedAt: serverTimestamp() as Timestamp
     });
 }
@@ -197,8 +475,8 @@ export async function unflagTaskCompletion(
     await updateTaskCompletion(completionId, {
         status: 'pending',
         flaggedReason: undefined,
-        reviewedBy,
-        reviewedAt: serverTimestamp() as Timestamp,
+        reviewerId: reviewedBy,
+        flaggedAt: undefined,
         updatedAt: serverTimestamp() as Timestamp
     });
 }

@@ -10,11 +10,13 @@ import {
     updateTaskCompletion,
     getUserMissionTaskCompletions,
     getMissionTaskCompletions,
+    getAllUserTaskCompletions,
     verifyTaskCompletion,
     flagTaskCompletion,
     unflagTaskCompletion,
     getMissionCompletionStats,
-    getUserCompletionStats
+    getUserCompletionStats,
+    validateTwitterUrl
 } from '../lib/task-completion';
 import { handleError, handleFirebaseError } from '../lib/error-handling';
 import { useAuthStore } from '../store/authStore';
@@ -36,6 +38,8 @@ export const taskCompletionKeys = {
         [...taskCompletionKeys.all, 'mission', missionId] as const,
     user: (uid: string) =>
         [...taskCompletionKeys.all, 'user', uid] as const,
+    userCompletions: (uid: string) =>
+        [...taskCompletionKeys.all, 'userCompletions', uid] as const,
     stats: (missionId: string) =>
         [...taskCompletionKeys.all, 'stats', missionId] as const,
     userStats: (uid: string) =>
@@ -61,6 +65,7 @@ export function toneFor(status: TaskStatus): string {
 
 /**
  * Hook to get task completions for a specific mission and user
+ * Real-time updates with proper query keying
  */
 export function useUserMissionTaskCompletions(missionId: string, userId?: string) {
     const { user: authUser } = useAuthStore();
@@ -70,8 +75,10 @@ export function useUserMissionTaskCompletions(missionId: string, userId?: string
         queryKey: taskCompletionKeys.userMission(missionId, uid!),
         queryFn: () => getUserMissionTaskCompletions(missionId, uid!),
         enabled: !!missionId && !!uid,
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 0, // Always refetch for real-time updates
         gcTime: 1000 * 60 * 30, // 30 minutes
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: true,
     });
 }
 
@@ -118,6 +125,25 @@ export function useUserCompletionStats(userId?: string) {
 }
 
 /**
+ * Hook to get all task completions for a user across all missions
+ * Used by Discover page to show completion status
+ */
+export function useAllUserCompletions(userId?: string) {
+    const { user: authUser } = useAuthStore();
+    const uid = userId || authUser?.uid;
+
+    return useQuery({
+        queryKey: taskCompletionKeys.userCompletions(uid!),
+        queryFn: () => getAllUserTaskCompletions(uid!),
+        enabled: !!uid,
+        staleTime: 0, // Always refetch for real-time updates
+        gcTime: 1000 * 60 * 30, // 30 minutes
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: true,
+    });
+}
+
+/**
  * Hook to create a new task completion
  */
 export function useCreateTaskCompletion() {
@@ -139,6 +165,9 @@ export function useCreateTaskCompletion() {
             });
             queryClient.invalidateQueries({
                 queryKey: taskCompletionKeys.user(uid)
+            });
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.userCompletions(uid)
             });
             queryClient.invalidateQueries({
                 queryKey: taskCompletionKeys.stats(data.missionId)
@@ -323,6 +352,12 @@ export function useSubmitTaskLink() {
                 throw new Error('Twitter username not found in profile. Please update your profile with your Twitter handle.');
             }
 
+            // Server-side validation of the URL
+            const validationResult = await validateTwitterUrl(url, twitterUsername);
+            if (!validationResult.isValid) {
+                throw new Error(validationResult.error || 'Invalid Twitter URL');
+            }
+
             // Create task completion with the submitted link
             const taskCompletionInput: TaskCompletionInput = {
                 missionId,
@@ -337,16 +372,24 @@ export function useSubmitTaskLink() {
                     twitterHandle: twitterUsername,
                     tweetUrl: url,
                     userAgent: navigator.userAgent,
-                    sessionId: Date.now().toString()
+                    sessionId: Date.now().toString(),
+                    verificationMethod: 'link',
+                    urlValidation: validationResult
                 }
             };
 
             return await createTaskCompletion(taskCompletionInput);
         },
         onSuccess: (data, variables) => {
+            const uid = authUser?.uid;
+            if (!uid) return;
+
             // Invalidate and refetch task completions
             queryClient.invalidateQueries({
-                queryKey: taskCompletionKeys.userMission(variables.missionId, authUser?.uid || '')
+                queryKey: taskCompletionKeys.userMission(variables.missionId, uid)
+            });
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.userCompletions(uid)
             });
         },
         onError: (error) => {

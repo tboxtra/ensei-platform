@@ -1759,7 +1759,7 @@ app.post('/v1/admin/system-config', async (req, res) => {
   }
 });
 
-// Task submission endpoints
+// Task submission endpoints - Updated to use unified taskCompletions collection
 app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (req: any, res) => {
   try {
     const missionId = req.params.id;
@@ -1778,7 +1778,73 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
       return res.status(404).json({ error: 'Mission data not found' });
     }
 
-    // Check if user is already participating
+    // Check if task is already completed in the new system
+    const existingCompletionQuery = await db.collection('taskCompletions')
+      .where('missionId', '==', missionId)
+      .where('taskId', '==', taskId)
+      .where('userId', '==', userId)
+      .get();
+
+    if (!existingCompletionQuery.empty) {
+      return res.status(400).json({ error: 'Task already completed' });
+    }
+
+    // Handle task completion based on action type
+    let taskResult = null;
+    if (actionId.includes('auto_')) {
+      // Handle automatic actions (like, retweet, follow)
+      const action = actionId.replace('auto_', '');
+      if (platform === 'twitter') {
+        const tweetId = extractTweetIdFromUrl(mission.tweetLink || mission.contentLink);
+        if (tweetId) {
+          taskResult = await handleTwitterAction(action, tweetId, userId);
+        }
+      } else if (platform === 'instagram') {
+        const postId = extractPostIdFromUrl(mission.contentLink);
+        if (postId) {
+          taskResult = await handleInstagramAction(action, postId, userId);
+        }
+      }
+    }
+
+    // Create task completion record in the unified taskCompletions collection
+    const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+    const taskCompletionData = {
+      missionId,
+      taskId,
+      userId,
+      userName: req.user.name || 'Unknown User',
+      userEmail: req.user.email || null,
+      userSocialHandle: req.user.twitterUsername || null,
+      status: 'verified', // Direct verification for API completions
+      createdAt: now,
+      updatedAt: now,
+      completedAt: now,
+      verifiedAt: now, // Auto-verified for API completions
+      reviewerId: userId, // Self-verified
+      url: verificationData?.url || null,
+      platform: platform || 'twitter',
+      twitterHandle: req.user.twitterUsername || null,
+      flaggedReason: null,
+      metadata: {
+        taskType: taskId,
+        platform: platform || 'twitter',
+        twitterHandle: req.user.twitterUsername || null,
+        tweetUrl: verificationData?.url || null,
+        userAgent: req.headers['user-agent'] || null,
+        ipAddress: req.ip || null,
+        sessionId: req.headers['x-session-id'] || null,
+        verificationMethod: 'api',
+        urlValidation: verificationData?.urlValidation || null,
+        actionId,
+        apiResult: taskResult
+      }
+    };
+
+    // Write to the unified taskCompletions collection
+    const completionRef = await db.collection('taskCompletions').add(taskCompletionData);
+
+    // Also maintain legacy participation for backward compatibility
     const participationQuery = await db.collection('mission_participations')
       .where('mission_id', '==', missionId)
       .where('user_id', '==', userId)
@@ -1807,26 +1873,12 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
       participationId = participationQuery.docs[0].id;
     }
 
-    // Handle task completion based on action type
-    let taskResult = null;
-    if (actionId.includes('auto_')) {
-      // Handle automatic actions (like, retweet, follow)
-      const action = actionId.replace('auto_', '');
-      if (platform === 'twitter') {
-        const tweetId = extractTweetIdFromUrl(mission.tweetLink || mission.contentLink);
-        if (tweetId) {
-          taskResult = await handleTwitterAction(action, tweetId, userId);
-        }
-      } else if (platform === 'instagram') {
-        const postId = extractPostIdFromUrl(mission.contentLink);
-        if (postId) {
-          taskResult = await handleInstagramAction(action, postId, userId);
-        }
-      }
-    }
+    // Update legacy participation with completed task for backward compatibility
+    const participationDoc = await db.collection('mission_participations').doc(participationId).get();
+    const currentData = participationDoc.data();
+    const tasksCompleted = currentData?.tasks_completed || [];
 
-    // Create task completion record
-    const taskCompletion = {
+    const legacyTaskCompletion = {
       task_id: taskId,
       action_id: actionId,
       completed_at: new Date().toISOString(),
@@ -1835,18 +1887,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
       status: 'completed'
     };
 
-    // Update participation with completed task
-    const participationDoc = await db.collection('mission_participations').doc(participationId).get();
-    const currentData = participationDoc.data();
-    const tasksCompleted = currentData?.tasks_completed || [];
-
-    // Check if task is already completed
-    const existingTask = tasksCompleted.find((t: any) => t.task_id === taskId);
-    if (existingTask) {
-      return res.status(400).json({ error: 'Task already completed' });
-    }
-
-    tasksCompleted.push(taskCompletion);
+    tasksCompleted.push(legacyTaskCompletion);
 
     // Calculate honors earned for this task
     const taskHonors = calculateTaskHonors(platform, missionType, taskId);
@@ -1860,7 +1901,10 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
 
     return res.json({
       success: true,
-      task_completion: taskCompletion,
+      task_completion: {
+        id: completionRef.id,
+        ...taskCompletionData
+      },
       honors_earned: taskHonors,
       total_honors: totalHonors
     });

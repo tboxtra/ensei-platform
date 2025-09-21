@@ -20,6 +20,10 @@ export interface TaskCompletion {
     flaggedAt?: Timestamp;
     flaggedReason?: string;
     proof?: string; // Screenshot URL, transaction hash, etc.
+    url?: string; // For link submissions
+    platform?: string; // Platform where task was completed
+    twitterHandle?: string; // User's Twitter handle
+    reviewerId?: string; // ID of reviewer (admin/moderator)
     metadata: {
         taskType: string;
         platform: string;
@@ -28,9 +32,11 @@ export interface TaskCompletion {
         userAgent?: string;
         ipAddress?: string;
         sessionId?: string;
+        verificationMethod?: string; // 'direct' or 'link'
+        urlValidation?: any; // Validation result for link submissions
     };
-    reviewedBy?: string;
-    reviewedAt?: Timestamp;
+    reviewedBy?: string; // Legacy field, use reviewerId instead
+    reviewedAt?: Timestamp; // Legacy field, use verifiedAt/flaggedAt instead
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
@@ -50,14 +56,19 @@ export interface TaskCompletionInput {
         userAgent?: string;
         ipAddress?: string;
         sessionId?: string;
+        verificationMethod?: string; // 'direct' or 'link'
+        urlValidation?: any; // Validation result for link submissions
     };
 }
 
 export interface TaskCompletionUpdate {
     status?: 'pending' | 'verified' | 'flagged' | 'rejected';
     flaggedReason?: string;
-    reviewedBy?: string;
-    reviewedAt?: Timestamp;
+    reviewerId?: string; // ID of reviewer (admin/moderator)
+    verifiedAt?: Timestamp;
+    flaggedAt?: Timestamp;
+    reviewedBy?: string; // Legacy field
+    reviewedAt?: Timestamp; // Legacy field
     updatedAt: Timestamp;
 }
 

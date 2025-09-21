@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi } from '../../hooks/useApi';
+import { useAllUserCompletions } from '../../hooks/useTaskCompletions';
+import { useAuth } from '../../contexts/UserAuthContext';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
@@ -10,11 +12,50 @@ import { CompactMissionCard } from '../../features/missions';
 import { FilterBar } from '../../components/ui/FilterBar';
 import { StatsCard } from '../../components/ui/StatsCard';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
+import { Spinner } from '../../components/ui/Feedback';
 
 export default function MissionsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { getMissions, participateInMission, completeTask, loading, error } = useApi();
   const [missions, setMissions] = useState<any[]>([]);
+
+  // Get all user completions for real-time status updates
+  const { data: userCompletions = [], isLoading: loadingCompletions } = useAllUserCompletions(user?.id);
+
+  // Build completion status map for quick lookup
+  const userCompletionsByMission = useMemo(() => {
+    const map: Record<string, { status: 'verified' | 'pending' | 'flagged' | 'none', byTaskId: Record<string, string> }> = {};
+
+    userCompletions.forEach(completion => {
+      const missionId = completion.missionId;
+      const taskId = completion.taskId;
+
+      if (!map[missionId]) {
+        map[missionId] = { status: 'none', byTaskId: {} };
+      }
+
+      // Keep the latest status for each task
+      const existing = map[missionId].byTaskId[taskId];
+      if (!existing || completion.createdAt.toMillis() > (existing as any)?.createdAtMillis) {
+        map[missionId].byTaskId[taskId] = completion.status;
+      }
+    });
+
+    // Determine overall mission status
+    Object.keys(map).forEach(missionId => {
+      const taskStatuses = Object.values(map[missionId].byTaskId);
+      if (taskStatuses.includes('flagged')) {
+        map[missionId].status = 'flagged';
+      } else if (taskStatuses.includes('verified')) {
+        map[missionId].status = 'verified';
+      } else if (taskStatuses.includes('pending')) {
+        map[missionId].status = 'pending';
+      }
+    });
+
+    return map;
+  }, [userCompletions]);
 
   useEffect(() => {
     const loadMissions = async () => {
@@ -158,7 +199,8 @@ export default function MissionsPage() {
 
 
 
-  if (loading) {
+  // Wait for both missions and user completions to load
+  if (loading || (user && loadingCompletions)) {
     return (
       <ModernLayout currentPage="/missions">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -290,13 +332,17 @@ export default function MissionsPage() {
           {/* Missions Grid */}
           {sortedMissions.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sortedMissions.map((mission) => (
-                <CompactMissionCard
-                  key={mission.id}
-                  mission={mission}
-                  onViewDetails={handleViewDetails}
-                />
-              ))}
+              {sortedMissions.map((mission) => {
+                const userCompletion = userCompletionsByMission[mission.id];
+                return (
+                  <CompactMissionCard
+                    key={mission.id}
+                    mission={mission}
+                    userCompletion={userCompletion}
+                    onViewDetails={handleViewDetails}
+                  />
+                );
+              })}
             </div>
           ) : missionsArray.length === 0 ? (
             /* Empty state when no missions exist */

@@ -21,11 +21,12 @@ import type { TaskStatus, VerifyMode } from '../../../types/task-completion';
 
 interface CompactMissionCardProps {
     mission: any;
+    userCompletion?: { status: 'verified' | 'pending' | 'flagged' | 'none', byTaskId: Record<string, string> };
     onParticipate?: (missionId: string, taskType?: string) => void;
     onViewDetails?: (missionId: string) => void;
 }
 
-export function CompactMissionCard({ mission }: CompactMissionCardProps) {
+export function CompactMissionCard({ mission, userCompletion }: CompactMissionCardProps) {
     const { user } = useAuth();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
     const [taskStates, setTaskStates] = useState<Record<string, TaskStatus>>({});
@@ -303,6 +304,7 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
         try {
             setTaskStates(p => ({ ...p, [taskId]: 'pendingVerify' }));
 
+            // Create task completion with verified status for direct verification
             await completeTaskMutation.mutateAsync({
                 missionId: mission.id,
                 taskId,
@@ -314,7 +316,8 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                     taskType: taskId,
                     platform: 'twitter',
                     twitterHandle: user.twitterUsername,
-                    tweetUrl: mission.postUrl || mission.url
+                    tweetUrl: mission.postUrl || mission.url,
+                    verificationMethod: 'direct'
                 }
             });
 
@@ -463,9 +466,21 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                             {getPlatformName(mission.platform)} {mission.type} mission
                         </div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs ${getModelColor(mission.model)} shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]`}>
-                        {mission.model}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getModelColor(mission.model)} shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]`}>
+                            {mission.model}
+                        </span>
+                        {userCompletion && userCompletion.status === 'verified' && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]">
+                                ✓ Completed
+                            </span>
+                        )}
+                        {userCompletion && userCompletion.status === 'flagged' && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]">
+                                ⚠ Flagged
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
 
