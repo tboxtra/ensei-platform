@@ -7,7 +7,7 @@ import {
     collection,
     addDoc,
     serverTimestamp,
-    Timestamp
+    FieldValue
 } from 'firebase/firestore';
 import { getFirebaseFirestore } from '../../lib/firebase';
 
@@ -17,7 +17,7 @@ export interface UserActivityLog {
     missionId: string;
     taskId: string;
     actionType: 'intent' | 'verify' | 'link_submit' | 'redo';
-    timestamp: Timestamp;
+    timestamp: FieldValue;
     metadata?: {
         userAgent?: string;
         sessionId?: string;
