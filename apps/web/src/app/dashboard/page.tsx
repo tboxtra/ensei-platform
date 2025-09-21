@@ -5,102 +5,14 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
+import { useUserStats } from '../../hooks/useUserStats';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function DashboardPage() {
   const { getMissions, getWalletBalance, loading } = useApi();
-  const [stats, setStats] = useState({
-    missionsCreated: 0,
-    usdSpent: 0,
-    honorsEarned: 0,
-    reviewsDone: 0,
-    totalHonors: 0,
-    pendingReviews: 0,
-    usdValue: 0
-  });
-  const [loadingStats, setLoadingStats] = useState(true);
+  const { data: stats, isLoading: loadingStats, error: statsError } = useUserStats();
 
-  useEffect(() => {
-    const loadDashboardStats = async () => {
-      try {
-        setLoadingStats(true);
-
-        // Load all missions and filter for user's missions
-        const allMissions = await getMissions();
-        const userData = localStorage.getItem('user');
-        const userId = userData ? JSON.parse(userData).id : null;
-
-        const userMissions = Array.isArray(allMissions)
-          ? allMissions.filter(mission => mission.created_by === userId)
-          : [];
-        const missionsCreated = userMissions.length; // This includes both active and inactive missions
-
-        // Calculate USD spent on created missions
-        const usdSpent = userMissions.reduce((total, mission: any) => {
-          if (mission.rewards?.usd) return total + mission.rewards.usd;
-          if (mission.total_cost_usd) return total + mission.total_cost_usd;
-          if (mission.total_cost_honors) return total + (mission.total_cost_honors / 450);
-          return total;
-        }, 0);
-
-        // Calculate honors earned from participated missions (missions where user is a participant)
-        const participatedMissions = Array.isArray(allMissions)
-          ? allMissions.filter(mission =>
-            mission.participants &&
-            Array.isArray(mission.participants) &&
-            mission.participants.some((p: any) => p.user_id === userId)
-          )
-          : [];
-
-        const honorsEarned = participatedMissions.reduce((total, mission: any) => {
-          const participant = mission.participants?.find((p: any) => p.user_id === userId);
-          return total + (participant?.honors_earned || 0);
-        }, 0);
-
-        // TODO: Calculate reviews done (this would need a separate API call)
-        const reviewsDone = 0; // Placeholder
-
-        console.log('Dashboard: User missions found:', {
-          userId,
-          totalMissions: allMissions?.length || 0,
-          userMissions: missionsCreated,
-          usdSpent,
-          honorsEarned,
-          participatedMissions: participatedMissions.length
-        });
-
-        // Load wallet balance
-        let walletBalance = { honors: 0, usd: 0 };
-        try {
-          walletBalance = await getWalletBalance();
-        } catch (err) {
-          console.log('Could not load wallet balance:', err);
-        }
-
-        setStats({
-          missionsCreated,
-          usdSpent,
-          honorsEarned,
-          reviewsDone,
-          totalHonors: walletBalance.honors || 0,
-          pendingReviews: 0, // TODO: Implement pending reviews count
-          usdValue: walletBalance.usd || 0
-        });
-
-        console.log('Dashboard stats loaded:', {
-          missionsCreated,
-          totalHonors: walletBalance.honors,
-          usdValue: walletBalance.usd
-        });
-      } catch (err) {
-        console.error('Error loading dashboard stats:', err);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-
-    loadDashboardStats();
-  }, [getMissions, getWalletBalance]);
+  // Stats are now handled by useUserStats hook
   return (
     <ProtectedRoute>
       <ModernLayout currentPage="/dashboard">
@@ -120,7 +32,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-400 text-xs">Missions Created</p>
                   <p className="text-lg font-bold text-green-400">
-                    {loadingStats ? '...' : stats.missionsCreated}
+                    {loadingStats ? '...' : (stats?.missionsCreated ?? 0)}
                   </p>
                 </div>
                 <div className="text-xl">📊</div>
@@ -132,7 +44,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-400 text-xs">Honors Earned</p>
                   <p className="text-lg font-bold text-blue-400">
-                    {loadingStats ? '...' : stats.honorsEarned.toLocaleString()}
+                    {loadingStats ? '...' : (stats?.honorsEarned ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <div className="text-xl">🏆</div>
@@ -144,7 +56,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-400 text-xs">Reviews Done</p>
                   <p className="text-lg font-bold text-orange-400">
-                    {loadingStats ? '...' : stats.reviewsDone}
+                    {loadingStats ? '...' : (stats?.reviewsDone ?? 0)}
                   </p>
                 </div>
                 <div className="text-xl">⚖️</div>
@@ -156,10 +68,10 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-400 text-xs">USD Spent & Balance</p>
                   <p className="text-lg font-bold text-purple-400">
-                    {loadingStats ? '...' : `$${stats.usdSpent.toFixed(2)}`}
+                    {loadingStats ? '...' : `$${(stats?.usdSpent ?? 0).toFixed(2)}`}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {loadingStats ? '...' : `Balance: $${stats.usdValue.toFixed(2)}`}
+                    {loadingStats ? '...' : `Balance: $${(stats?.usdBalance ?? 0).toFixed(2)}`}
                   </p>
                 </div>
                 <div className="text-xl">👛</div>

@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useApi } from '../../hooks/useApi';
+import { useUserStore } from '../../store/userStore';
 
 interface ModernLayoutProps {
     children: React.ReactNode;
@@ -10,6 +12,7 @@ interface ModernLayoutProps {
 }
 
 export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
+    const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +23,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
         totalEarned: 0
     });
     const { logout, getMissions } = useApi();
+    const { user: storeUser, stats } = useUserStore();
 
     useEffect(() => {
         const userData = localStorage.getItem('user');
@@ -29,44 +33,16 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
         setIsLoading(false);
     }, []);
 
-    // Fetch quick stats data
+    // Use stats from store instead of fetching
     useEffect(() => {
-        const fetchQuickStats = async () => {
-            if (!user) return;
-
-            try {
-                const allMissions = await getMissions();
-
-                const userMissions = allMissions?.filter((mission: any) =>
-                    mission.created_by === user.id
-                ) || [];
-
-                const participatedMissions = allMissions?.filter((mission: any) =>
-                    mission.participants?.some((participant: any) => participant.id === user.id)
-                ) || [];
-
-                const missionsCreated = userMissions.length;
-                const missionsCompleted = participatedMissions.filter((mission: any) =>
-                    mission.status === 'completed' || mission.status === 'ended'
-                ).length;
-
-                const totalEarned = participatedMissions.reduce((total: number, mission: any) => {
-                    const participant = mission.participants?.find((p: any) => p.id === user.id);
-                    return total + (participant?.honors_earned || 0);
-                }, 0);
-
-                setQuickStats({
-                    missionsCreated,
-                    missionsCompleted,
-                    totalEarned
-                });
-            } catch (error) {
-                console.error('Error fetching quick stats:', error);
-            }
-        };
-
-        fetchQuickStats();
-    }, [user, getMissions]);
+        if (stats) {
+            setQuickStats({
+                missionsCreated: stats.missionsCreated,
+                missionsCompleted: stats.missionsCompleted,
+                totalEarned: stats.honorsEarned
+            });
+        }
+    }, [stats]);
 
     // Scroll detection for mobile full-screen UI
     useEffect(() => {
@@ -93,14 +69,14 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
         try {
             await logout();
             setUser(null);
-            window.location.href = '/auth/login';
+            router.push('/auth/login');
         } catch (err) {
             console.error('Logout failed:', err);
             // Fallback: clear localStorage and redirect
             localStorage.removeItem('user');
             localStorage.removeItem('token');
             setUser(null);
-            window.location.href = '/auth/login';
+            router.push('/auth/login');
         }
     };
 

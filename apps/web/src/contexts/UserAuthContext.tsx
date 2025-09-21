@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getFirebaseAuth, sendVerificationEmail } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { getAuthState, clearAuthState, validateAuthState } from '../lib/auth-utils';
+import { useUserStore } from '../store/userStore';
 
 export interface User {
     id: string;
@@ -47,6 +48,83 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    
+    // Get store actions
+    const { setUser: setStoreUser, setStats, resetAll } = useUserStore();
+
+    // Fetch user profile and stats in parallel
+    const fetchUserProfileAndStats = async (uid: string, token: string) => {
+        try {
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
+            
+            // Fetch profile and stats in parallel
+            const [profileResponse, missionsResponse] = await Promise.all([
+                fetch(`${API_BASE_URL}/v1/user/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }),
+                fetch(`${API_BASE_URL}/v1/missions`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                })
+            ]);
+
+            if (profileResponse.ok) {
+                const profileData = await profileResponse.json();
+                // Merge profile data into store (preserve existing user data)
+                setStoreUser({
+                    twitter: profileData.twitter || '',
+                    twitter_handle: profileData.twitter_handle || '',
+                    updated_at: profileData.updated_at || new Date().toISOString(),
+                });
+            }
+
+            if (missionsResponse.ok) {
+                const allMissions = await missionsResponse.json();
+                
+                // Calculate stats
+                const userMissions = Array.isArray(allMissions)
+                    ? allMissions.filter(mission => mission.created_by === uid)
+                    : [];
+                const missionsCreated = userMissions.length;
+
+                const participatedMissions = Array.isArray(allMissions)
+                    ? allMissions.filter(mission =>
+                        mission.participants &&
+                        Array.isArray(mission.participants) &&
+                        mission.participants.some((p: any) => p.user_id === uid)
+                    )
+                    : [];
+
+                const honorsEarned = participatedMissions.reduce((total, mission: any) => {
+                    const participant = mission.participants?.find((p: any) => p.user_id === uid);
+                    return total + (participant?.honors_earned || 0);
+                }, 0);
+
+                const missionsCompleted = participatedMissions.filter((mission: any) =>
+                    mission.status === 'completed' || mission.status === 'ended'
+                ).length;
+
+                // Update stats in store
+                setStats({
+                    missionsCreated,
+                    missionsCompleted,
+                    honorsEarned,
+                    usdSpent: 0, // Will be calculated by useUserStats hook
+                    usdBalance: 0, // Will be fetched by useUserStats hook
+                    totalHonors: 0, // Will be fetched by useUserStats hook
+                    pendingReviews: 0,
+                    reviewsDone: 0,
+                });
+            }
+        } catch (error) {
+            console.warn('Failed to fetch user profile/stats:', error);
+        }
+    };
 
     // Production logging control
     const isDevelopment = process.env.NODE_ENV === 'development';
@@ -87,9 +165,18 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                         emailVerified: firebaseUser.emailVerified,
                     };
 
-                    // Store user data
-                    localStorage.setItem('user', JSON.stringify(userData));
+                    // Update store with user data (merge pattern)
+                    setStoreUser(userData);
                     setUser(userData);
+                    
+                    // Store user data in localStorage for backward compatibility
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    
+                    // Fetch profile and stats in parallel (don't block auth)
+                    fetchUserProfileAndStats(firebaseUser.uid, token).catch(err => {
+                        console.warn('Failed to fetch profile/stats, will retry later:', err);
+                    });
+                    
                     log('User authenticated via Firebase:', userData.email);
                 } catch (err) {
                     console.error('Error getting Firebase token:', err);
@@ -99,6 +186,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                 // User is signed out - clear everything
                 log('🧹 Firebase confirmed user signed out, clearing state...');
                 clearAuthState();
+                resetAll(); // Clear store
                 setUser(null);
                 log('✅ User signed out and state cleared');
             }

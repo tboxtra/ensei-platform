@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ConditionalProviders } from '../components/ConditionalProviders';
+import { QueryProvider } from '../providers/QueryProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,9 +21,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} bg-black text-white`}>
         <ErrorBoundary>
-          <ConditionalProviders>
-            {children}
-          </ConditionalProviders>
+          <QueryProvider>
+            <ConditionalProviders>
+              {children}
+            </ConditionalProviders>
+          </QueryProvider>
         </ErrorBoundary>
       </body>
     </html>

@@ -6,11 +6,13 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
+import { useUserStore } from '../../store/userStore';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function ProfilePage() {
     const router = useRouter();
     const { getCurrentUser, getUserProfile, logout, updateProfile, loading: apiLoading, error: apiError } = useApi();
+    const { user: storeUser, setUser: setStoreUser } = useUserStore();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -126,7 +128,27 @@ export default function ProfilePage() {
         setLoading(true);
         setError(null);
         try {
-            const updatedUser = await updateProfile(formData);
+            // Only send profile fields, not stats
+            const profileData = {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                twitter: formData.twitter,
+                twitter_handle: formData.twitter,
+            };
+            
+            const updatedUser = await updateProfile(profileData);
+            
+            // Update store with only profile fields (merge pattern)
+            setStoreUser({
+                firstName: updatedUser.firstName || formData.firstName,
+                lastName: updatedUser.lastName || formData.lastName,
+                email: updatedUser.email || formData.email,
+                twitter: updatedUser.twitter || formData.twitter,
+                twitter_handle: updatedUser.twitter_handle || formData.twitter,
+                updated_at: updatedUser.updated_at || new Date().toISOString(),
+            });
+            
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
         } catch (err: any) {
