@@ -294,7 +294,7 @@ export async function getUserMissionTaskCompletions(
 export async function getMissionTaskCompletions(missionId: string): Promise<TaskCompletion[]> {
     try {
         console.log('getMissionTaskCompletions: Querying for missionId:', missionId);
-        
+
         // Query mission_participations collection
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
@@ -304,7 +304,7 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
 
         const querySnapshot = await getDocs(q);
         console.log('getMissionTaskCompletions: Found', querySnapshot.docs.length, 'participation documents');
-        
+
         const completions: TaskCompletion[] = [];
 
         querySnapshot.forEach((doc) => {

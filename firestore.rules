@@ -33,7 +33,11 @@ service cloud.firestore {
     match /mission_participations/{participationId} {
       allow read: if request.auth != null && 
         (resource.data.user_id == request.auth.uid || 
-         request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
+         request.auth.token.role == 'admin' || request.auth.token.role == 'moderator' ||
+         // Allow mission creators to read all submissions for their missions
+         (resource.data.mission_id != null && 
+          exists(/databases/$(database)/documents/missions/$(resource.data.mission_id)) &&
+          get(/databases/$(database)/documents/missions/$(resource.data.mission_id)).data.created_by == request.auth.uid));
       
       // Create: allow users to create their own participation records
       allow create: if request.auth != null && 
