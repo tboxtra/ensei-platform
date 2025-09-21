@@ -10,6 +10,7 @@ import {
     addDoc,
     updateDoc,
     getDocs,
+    getDoc,
     query,
     where,
     orderBy,
@@ -200,20 +201,50 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
 
 /**
  * Update task completion status
+ * Works with mission_participations collection structure
  */
 export async function updateTaskCompletion(
     completionId: string,
     update: TaskCompletionUpdate
 ): Promise<void> {
     try {
-        const docRef = doc(db, TASK_COMPLETIONS_COLLECTION, completionId);
+        // Parse the composite completionId: ${participationId}_${taskId}
+        const [participationId, taskId] = completionId.split('_');
 
-        const updateData = {
+        if (!participationId || !taskId) {
+            throw new Error('Invalid completionId format');
+        }
+
+        // Get the current participation document
+        const participationRef = doc(db, TASK_COMPLETIONS_COLLECTION, participationId);
+        const participationDoc = await getDoc(participationRef);
+
+        if (!participationDoc.exists()) {
+            throw new Error('Participation document not found');
+        }
+
+        const participationData = participationDoc.data();
+        const tasksCompleted = participationData.tasks_completed || [];
+
+        // Find and update the specific task completion
+        const taskIndex = tasksCompleted.findIndex((task: any) => task.task_id === taskId);
+
+        if (taskIndex === -1) {
+            throw new Error('Task completion not found');
+        }
+
+        // Update the task completion
+        tasksCompleted[taskIndex] = {
+            ...tasksCompleted[taskIndex],
             ...update,
-            updatedAt: serverTimestamp()
+            updated_at: new Date().toISOString()
         };
 
-        await updateDoc(docRef, updateData);
+        // Update the participation document
+        await updateDoc(participationRef, {
+            tasks_completed: tasksCompleted,
+            updated_at: serverTimestamp()
+        });
     } catch (error) {
         throw handleFirebaseError(error, 'updateTaskCompletion');
     }

@@ -104,17 +104,17 @@ export default function MissionSubmissionsPage() {
     // Helper function to safely format date fields
     const formatDate = (dateField: any) => {
         if (!dateField) return 'Unknown';
-        
+
         // If it's a Firestore Timestamp, use toDate()
         if (dateField && typeof dateField.toDate === 'function') {
             return dateField.toDate().toLocaleString();
         }
-        
+
         // If it's already a Date object
         if (dateField instanceof Date) {
             return dateField.toLocaleString();
         }
-        
+
         // If it's a string, try to parse it
         if (typeof dateField === 'string') {
             try {
@@ -123,7 +123,7 @@ export default function MissionSubmissionsPage() {
                 return 'Invalid Date';
             }
         }
-        
+
         return 'Unknown';
     };
 
