@@ -70,7 +70,7 @@ export function useMyMissions(): UseMyMissionsReturn {
             }
 
             console.log('useMyMissions: Fetching missions for user:', authUser.uid);
-            
+
             try {
                 // Get fresh token for API call
                 const token = await getCurrentToken();

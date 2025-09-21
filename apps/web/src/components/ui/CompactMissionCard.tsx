@@ -12,6 +12,45 @@ import {
 // Removed getTaskStatusInfo import - using React Query hooks instead
 import { Flag, AlertTriangle } from 'lucide-react';
 import { InlineVerification } from '../verification/InlineVerification';
+// Inline intent generation functions
+const generateLikeIntent = (missionPostUrl: string) => {
+    if (!missionPostUrl) return { url: 'https://twitter.com' };
+    if (missionPostUrl.includes('twitter.com') || missionPostUrl.includes('x.com')) {
+        return { url: missionPostUrl };
+    }
+    return { url: 'https://twitter.com' };
+};
+
+const generateCommentIntent = (missionPostUrl: string) => {
+    const baseUrl = 'https://twitter.com/intent/tweet';
+    const params = new URLSearchParams();
+    params.append('url', missionPostUrl);
+    return { url: `${baseUrl}?${params.toString()}` };
+};
+
+const generateQuoteIntent = (missionPostUrl: string, quoteText: string) => {
+    const baseUrl = 'https://twitter.com/intent/tweet';
+    const params = new URLSearchParams();
+    params.append('url', missionPostUrl);
+    if (quoteText) params.append('text', quoteText);
+    return { url: `${baseUrl}?${params.toString()}` };
+};
+
+// Task verification state machine types
+type VerificationState = 'idle' | 'intent-clicked' | 'awaiting-proof' | 'verifying' | 'verified' | 'error';
+
+interface TaskUIState {
+    state: VerificationState;
+    proofUrl?: string;
+}
+
+interface UIMissionTask {
+    id: string;
+    kind: 'like' | 'retweet' | 'follow' | 'comment' | 'quote' | string;
+    intentUrl?: string;
+    requiresLink?: boolean;
+    ui?: TaskUIState;
+}
 
 interface CompactMissionCardProps {
     mission: any;
@@ -27,6 +66,8 @@ export function CompactMissionCard({
     const { user, isAuthenticated } = useAuth();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
     const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
+    const [taskUIStates, setTaskUIStates] = useState<{ [taskId: string]: TaskUIState }>({});
+    const [proofInputs, setProofInputs] = useState<{ [taskId: string]: string }>({});
     const cardRef = useRef<HTMLDivElement>(null);
 
     // Unified Task Status System - single source of truth
@@ -36,6 +77,125 @@ export function CompactMissionCard({
     );
     const completeTaskMutation = useCompleteTask();
     const redoTaskMutation = useRedoTaskCompletion();
+
+    // Helper functions for task UI state management
+    const getTaskUIState = useCallback((taskId: string): TaskUIState => {
+        return taskUIStates[taskId] || { state: 'idle' };
+    }, [taskUIStates]);
+
+    const setTaskUIState = useCallback((taskId: string, updates: Partial<TaskUIState>) => {
+        setTaskUIStates(prev => ({
+            ...prev,
+            [taskId]: { ...prev[taskId], state: 'idle', ...updates }
+        }));
+    }, []);
+
+    const getTaskRequiresLink = useCallback((taskId: string): boolean => {
+        return taskId === 'comment' || taskId === 'quote';
+    }, []);
+
+    const validateProofUrl = useCallback((url: string): boolean => {
+        try {
+            new URL(url);
+            return url.startsWith('http://') || url.startsWith('https://');
+        } catch {
+            return false;
+        }
+    }, []);
+
+    // Intent button handler
+    const handleIntentClick = useCallback(async (taskId: string) => {
+        if (!user?.id) return;
+
+        try {
+            // Generate intent URL based on task type
+            let intentUrl = '';
+            if (taskId === 'like') {
+                const intent = generateLikeIntent(mission.postUrl || mission.url);
+                intentUrl = intent.url;
+            } else if (taskId === 'comment') {
+                const intent = generateCommentIntent(mission.postUrl || mission.url);
+                intentUrl = intent.url;
+            } else if (taskId === 'quote') {
+                const intent = generateQuoteIntent(mission.postUrl || mission.url, '');
+                intentUrl = intent.url;
+            }
+
+            if (intentUrl) {
+                // Open intent in new tab
+                window.open(intentUrl, '_blank', 'noopener,noreferrer');
+
+                // Update UI state
+                setTaskUIState(taskId, { state: 'intent-clicked' });
+                setIntentCompleted(prev => ({ ...prev, [taskId]: true }));
+            }
+        } catch (error) {
+            console.error('Error opening intent:', error);
+            setTaskUIState(taskId, { state: 'error' });
+        }
+    }, [user, mission, setTaskUIState]);
+
+    // Verify button handler
+    const handleVerifyClick = useCallback(async (taskId: string) => {
+        if (!user?.id) return;
+
+        const uiState = getTaskUIState(taskId);
+        const requiresLink = getTaskRequiresLink(taskId);
+
+        try {
+            if (requiresLink && !uiState.proofUrl) {
+                // Switch to awaiting-proof state for link-required tasks
+                setTaskUIState(taskId, { state: 'awaiting-proof' });
+                return;
+            }
+
+            // Set verifying state
+            setTaskUIState(taskId, { state: 'verifying' });
+
+            // Call existing verify API
+            await completeTaskMutation.mutateAsync({
+                missionId: mission.id,
+                taskId: taskId,
+                userId: user.id,
+                userName: user.name,
+                userEmail: user.email,
+                userSocialHandle: user.twitterUsername,
+                metadata: {
+                    taskType: taskId,
+                    platform: 'twitter',
+                    twitterHandle: user.twitterUsername,
+                    tweetUrl: mission.postUrl || mission.url
+                }
+            });
+
+            // Success - set verified state
+            setTaskUIState(taskId, { state: 'verified' });
+        } catch (error) {
+            console.error('Error verifying task:', error);
+            setTaskUIState(taskId, { state: 'error' });
+        }
+    }, [user, mission, getTaskUIState, setTaskUIState, getTaskRequiresLink, completeTaskMutation]);
+
+    // Proof submission handler
+    const handleProofSubmit = useCallback((taskId: string) => {
+        const proofUrl = proofInputs[taskId];
+
+        if (!proofUrl || !validateProofUrl(proofUrl)) {
+            return; // Invalid URL
+        }
+
+        // Set proof URL and continue to verification
+        setTaskUIState(taskId, {
+            state: 'verifying',
+            proofUrl: proofUrl
+        });
+
+        // Clear input
+        setProofInputs(prev => ({ ...prev, [taskId]: '' }));
+
+        // Auto-trigger verification
+        setTimeout(() => handleVerifyClick(taskId), 100);
+    }, [proofInputs, validateProofUrl, setTaskUIState, handleVerifyClick]);
 
 
 
@@ -439,11 +599,19 @@ export function CompactMissionCard({
                                 }
                             };
 
+                            const uiState = getTaskUIState(taskId);
+                            const isVerified = completionStatus.status === 'verified' || uiState.state === 'verified';
+                            const isIntentClicked = uiState.state === 'intent-clicked' || uiState.state === 'awaiting-proof' || uiState.state === 'verifying';
+
                             return (
                                 <div key={index} className="relative">
                                     <button
                                         onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
-                                        className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${getButtonStyling()}`}
+                                        className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${isVerified ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                                                isIntentClicked ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                                                    completionStatus.status === 'flagged' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                                                        'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                            }`}
                                         onMouseEnter={(e) => {
                                             // Only show tooltip for flagged tasks
                                             if (completionStatus.status === 'flagged' && completionStatus.flaggedReason) {
@@ -460,7 +628,7 @@ export function CompactMissionCard({
                                             {completionStatus.status === 'flagged' && (
                                                 <Flag className="w-3 h-3" />
                                             )}
-                                            {taskType}
+                                            {isVerified ? `✓ ${taskType}` : taskType}
                                         </div>
                                     </button>
 
@@ -522,6 +690,69 @@ export function CompactMissionCard({
                                     </div>
 
 
+                                    {/* Two-button flow: Intent + Verify */}
+                                    {(() => {
+                                        const uiState = getTaskUIState(task.id);
+                                        const requiresLink = getTaskRequiresLink(task.id);
+                                        const completionStatus = getTaskCompletionStatus(task.id);
+                                        const isVerified = completionStatus.status === 'verified' || uiState.state === 'verified';
+                                        const isVerifying = uiState.state === 'verifying';
+                                        const isIntentClicked = uiState.state === 'intent-clicked';
+                                        const isAwaitingProof = uiState.state === 'awaiting-proof';
+
+                                        return (
+                                            <div className="flex gap-2 items-center">
+                                                {/* Intent Button */}
+                                                <button
+                                                    onClick={() => handleIntentClick(task.id)}
+                                                    disabled={isVerified || isVerifying}
+                                                    className={`px-3 py-1 rounded text-xs transition-colors duration-200 ${isVerified ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                                                            isIntentClicked ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                                                                'bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30'
+                                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                >
+                                                    {isIntentClicked ? 'Intent Done' : `Open ${task.id === 'like' ? 'Twitter' : task.id === 'comment' ? 'Twitter' : task.id === 'quote' ? 'Twitter' : 'Twitter'}`}
+                                                </button>
+
+                                                {/* Inline Proof Input (only for link-required tasks) */}
+                                                {isAwaitingProof && requiresLink && (
+                                                    <div className="flex gap-2 items-center">
+                                                        <input
+                                                            type="text"
+                                                            placeholder={`Paste your ${task.id} link`}
+                                                            value={proofInputs[task.id] || ''}
+                                                            onChange={(e) => setProofInputs(prev => ({ ...prev, [task.id]: e.target.value }))}
+                                                            className="px-2 py-1 rounded text-xs bg-gray-800/40 text-white placeholder-gray-400 border border-gray-700/50 focus:border-blue-500/50 focus:outline-none w-64"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleProofSubmit(task.id)}
+                                                            disabled={!proofInputs[task.id] || !validateProofUrl(proofInputs[task.id])}
+                                                            className="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            Submit
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* Verify Button */}
+                                                <button
+                                                    onClick={() => handleVerifyClick(task.id)}
+                                                    disabled={!isIntentClicked || isVerified || isVerifying}
+                                                    className={`px-3 py-1 rounded text-xs transition-colors duration-200 ${isVerified ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                                                            isVerifying ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' :
+                                                                isIntentClicked ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30' :
+                                                                    'bg-gray-500/20 text-gray-400 border border-gray-500/30 cursor-not-allowed'
+                                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                >
+                                                    {isVerifying ? 'Verifying...' :
+                                                        isVerified ? 'Verified' :
+                                                            `Verify ${task.id.charAt(0).toUpperCase() + task.id.slice(1)}`}
+                                                </button>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Legacy action buttons (fallback) */}
                                     <div className="flex gap-2 flex-wrap">
                                         {task.actions.map((action) => (
                                             <button

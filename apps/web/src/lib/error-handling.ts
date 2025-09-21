@@ -369,3 +369,4 @@ export const handleAuthError = (error: any) =>
 
 export const handleFirebaseError = (error: any, operation: string) =>
     errorHandler.handleFirebaseError(error, operation);
+

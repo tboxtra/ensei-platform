@@ -18,10 +18,10 @@ export function useAuthUser() {
 
     useEffect(() => {
         const auth = getAuth();
-        
+
         // Set ready to false initially
         setReady(false);
-        
+
         const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 // User is authenticated - merge Firebase data into store
@@ -35,7 +35,7 @@ export function useAuthUser() {
                 // User is not authenticated - clear user data
                 setUser(null);
             }
-            
+
             // IMPORTANT: Set ready to true after first auth check
             // This prevents queries from running before auth state is determined
             setReady(true);
@@ -44,9 +44,9 @@ export function useAuthUser() {
         return () => unsub();
     }, [setUser, setReady]);
 
-    return { 
-        user, 
+    return {
+        user,
         ready,
-        isAuthenticated: !!user?.uid 
+        isAuthenticated: !!user?.uid
     };
 }

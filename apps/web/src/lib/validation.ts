@@ -650,3 +650,4 @@ export function validateText(text: string, options: {
         data: { text: text?.trim() || '' }
     };
 }
+

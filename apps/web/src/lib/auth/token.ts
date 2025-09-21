@@ -32,11 +32,11 @@ export function listenForTokenRefresh(cb: (token: string | null) => void) {
 export async function getCurrentToken(): Promise<string | null> {
     const auth = getAuth();
     const user = auth.currentUser;
-    
+
     if (!user) {
         return null;
     }
-    
+
     try {
         return await user.getIdToken();
     } catch (error) {

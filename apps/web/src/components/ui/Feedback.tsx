@@ -26,12 +26,12 @@ interface ErrorBoxProps {
     className?: string;
 }
 
-export function ErrorBox({ 
-    title, 
-    details, 
-    actionLabel = 'Retry', 
+export function ErrorBox({
+    title,
+    details,
+    actionLabel = 'Retry',
     onAction,
-    className = '' 
+    className = ''
 }: ErrorBoxProps) {
     return (
         <div className={`flex items-center justify-center min-h-[200px] ${className}`}>
