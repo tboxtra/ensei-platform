@@ -15,7 +15,7 @@ export default function MyMissionsPage() {
     const router = useRouter();
     const { data: missions = [], isLoading, error, refetch, authReady } = useMyMissions();
     const [filteredMissions, setFilteredMissions] = useState<any[]>([]);
-    
+
     // Filter state
     const [filters, setFilters] = useState({
         type: 'all',
@@ -43,7 +43,7 @@ export default function MyMissionsPage() {
     }, [missions, filters]);
 
     const filterAndSortMissions = () => {
-        let filtered = missions.filter(mission => {
+        let filtered = (missions || []).filter(mission => {
             // Apply regular filters
             if (filters.status !== 'all' && mission.status !== filters.status) return false;
             if (filters.platform !== 'all' && mission.platform !== filters.platform) return false;
@@ -124,11 +124,11 @@ export default function MyMissionsPage() {
     };
 
     // Calculate stats
-    const totalMissions = missions.length;
-    const activeMissions = missions.filter(m => m.status === 'active').length;
-    const completedMissions = missions.filter(m => m.status === 'completed').length;
-    const totalRewards = missions.reduce((sum, mission) => sum + (mission.total_cost_honors || 0), 0);
-    const totalParticipants = missions.reduce((sum, mission) => sum + (mission.participants_count || 0), 0);
+    const totalMissions = (missions || []).length;
+    const activeMissions = (missions || []).filter(m => m.status === 'active').length;
+    const completedMissions = (missions || []).filter(m => m.status === 'completed').length;
+    const totalRewards = (missions || []).reduce((sum, mission) => sum + (mission.total_cost_honors || 0), 0);
+    const totalParticipants = (missions || []).reduce((sum, mission) => sum + (mission.participants_count || 0), 0);
 
     if (!authReady || isLoading) {
         return (
