@@ -103,7 +103,7 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
         let participationData;
 
         if (participationQuery.empty) {
-            // Create new participation
+            // Create new participation with required fields
             const newParticipation = {
                 mission_id: input.missionId,
                 user_id: input.userId,
@@ -114,7 +114,10 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
                 status: 'active',
                 joined_at: new Date().toISOString(),
                 tasks_completed: [],
-                total_honors_earned: 0
+                total_honors_earned: 0,
+                // Required fields for standardized structure
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             };
 
             const participationRef = await addDoc(collection(db, TASK_COMPLETIONS_COLLECTION), newParticipation);
@@ -127,7 +130,7 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
             participationData = doc.data();
         }
 
-        // Create task completion in the old format
+        // Create task completion with required fields
         const taskCompletion = {
             task_id: input.taskId,
             action_id: input.metadata?.verificationMethod || 'direct',
@@ -140,7 +143,14 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
                 urlValidation: input.metadata?.urlValidation || null
             },
             api_result: null,
-            status: 'completed'
+            status: 'completed',
+            // Required fields for standardized structure
+            mission_id: input.missionId,
+            user_id: input.userId,
+            verificationMethod: input.metadata?.verificationMethod || 'direct',
+            url: input.metadata?.tweetUrl || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         };
 
         // Update participation with new task completion
@@ -157,7 +167,7 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
         // Update the participation document
         await updateDoc(doc(db, TASK_COMPLETIONS_COLLECTION, participationId), {
             tasks_completed: tasksCompleted,
-            updated_at: new Date().toISOString()
+            updated_at: serverTimestamp()
         });
 
         // Return in the new format for compatibility
