@@ -22,7 +22,8 @@ import type {
     TaskCompletionInput,
     TaskCompletionUpdate,
     TaskCompletion,
-    TaskCompletionStatus
+    TaskCompletionStatus,
+    TaskStatus
 } from '../types/task-completion';
 
 // Query keys for consistent caching - All user-scoped queries must be keyed by authUser.uid
@@ -39,6 +40,23 @@ export const taskCompletionKeys = {
     userStats: (uid: string) =>
         [...taskCompletionKeys.all, 'userStats', uid] as const,
 };
+
+/**
+ * Helper function to get color classes for task status
+ */
+export function toneFor(status: TaskStatus): string {
+    switch (status) {
+        case 'verified':
+            return 'bg-green-500/20 text-green-400 border border-green-500/30';
+        case 'pendingVerify':
+        case 'intentDone':
+            return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
+        case 'flagged':
+            return 'bg-red-500/20 text-red-400 border border-red-500/30';
+        default: // 'idle'
+            return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
+    }
+}
 
 /**
  * Hook to get task completions for a specific mission and user
@@ -280,6 +298,51 @@ export function useTaskCompletionStatus(
         isLoading,
         error: error as Error | null
     };
+}
+
+/**
+ * Hook to submit task link for link-mode tasks
+ */
+export function useSubmitTaskLink() {
+    const queryClient = useQueryClient();
+    const { user: authUser } = useAuthStore();
+
+    return useMutation({
+        mutationFn: async ({ taskId, url, missionId }: { taskId: string; url: string; missionId: string }) => {
+            if (!authUser) {
+                throw new Error('User not authenticated');
+            }
+
+            // Create task completion with the submitted link
+            const taskCompletionInput: TaskCompletionInput = {
+                missionId,
+                taskId,
+                userId: authUser.uid,
+                userName: authUser.displayName || authUser.email || 'User',
+                userEmail: authUser.email || undefined,
+                userSocialHandle: authUser.displayName || authUser.email || undefined,
+                metadata: {
+                    taskType: taskId,
+                    platform: 'twitter',
+                    twitterHandle: authUser.displayName || authUser.email || undefined,
+                    tweetUrl: url,
+                    userAgent: navigator.userAgent,
+                    sessionId: Date.now().toString()
+                }
+            };
+
+            return await createTaskCompletion(taskCompletionInput);
+        },
+        onSuccess: (data, variables) => {
+            // Invalidate and refetch task completions
+            queryClient.invalidateQueries({
+                queryKey: taskCompletionKeys.userMission(variables.missionId, authUser?.uid || '')
+            });
+        },
+        onError: (error) => {
+            handleFirebaseError(error, 'submitTaskLink');
+        }
+    });
 }
 
 /**

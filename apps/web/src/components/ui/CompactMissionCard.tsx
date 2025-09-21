@@ -1,56 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { EmbeddedContent } from './EmbeddedContent';
-import { getTasksForMission } from '@/lib/taskTypes';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
-import { getUserDisplayName } from '@/lib/firebase-task-completions';
 import { useAuth, type User } from '../../contexts/UserAuthContext';
 import {
     useUserMissionTaskCompletions,
     useCompleteTask,
-    useRedoTaskCompletion
+    useRedoTaskCompletion,
+    useSubmitTaskLink,
+    toneFor
 } from '../../hooks/useTaskCompletions';
-// Removed getTaskStatusInfo import - using React Query hooks instead
 import { Flag, AlertTriangle } from 'lucide-react';
-import { InlineVerification } from '../verification/InlineVerification';
-// Inline intent generation functions
-const generateLikeIntent = (missionPostUrl: string) => {
-    if (!missionPostUrl) return { url: 'https://twitter.com' };
-    if (missionPostUrl.includes('twitter.com') || missionPostUrl.includes('x.com')) {
-        return { url: missionPostUrl };
-    }
-    return { url: 'https://twitter.com' };
-};
-
-const generateCommentIntent = (missionPostUrl: string) => {
-    const baseUrl = 'https://twitter.com/intent/tweet';
-    const params = new URLSearchParams();
-    params.append('url', missionPostUrl);
-    return { url: `${baseUrl}?${params.toString()}` };
-};
-
-const generateQuoteIntent = (missionPostUrl: string, quoteText: string) => {
-    const baseUrl = 'https://twitter.com/intent/tweet';
-    const params = new URLSearchParams();
-    params.append('url', missionPostUrl);
-    if (quoteText) params.append('text', quoteText);
-    return { url: `${baseUrl}?${params.toString()}` };
-};
-
-// Task verification state machine types
-type VerificationState = 'idle' | 'intent-clicked' | 'awaiting-proof' | 'verifying' | 'verified' | 'error';
-
-interface TaskUIState {
-    state: VerificationState;
-    proofUrl?: string;
-}
-
-interface UIMissionTask {
-    id: string;
-    kind: 'like' | 'retweet' | 'follow' | 'comment' | 'quote' | string;
-    intentUrl?: string;
-    requiresLink?: boolean;
-    ui?: TaskUIState;
-}
+import type { TaskStatus, VerifyMode } from '../../types/task-completion';
 
 interface CompactMissionCardProps {
     mission: any;
@@ -65,9 +25,10 @@ export function CompactMissionCard({
 }: CompactMissionCardProps) {
     const { user, isAuthenticated } = useAuth();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
-    const [intentCompleted, setIntentCompleted] = useState<{ [taskId: string]: boolean }>({});
-    const [taskUIStates, setTaskUIStates] = useState<{ [taskId: string]: TaskUIState }>({});
-    const [proofInputs, setProofInputs] = useState<{ [taskId: string]: string }>({});
+    const [showTaskDropdown, setShowTaskDropdown] = useState<{ [taskId: string]: boolean }>({});
+    const [taskStates, setTaskStates] = useState<{ [taskId: string]: TaskStatus }>({});
+    const [showLinkPanel, setShowLinkPanel] = useState<{ [taskId: string]: boolean }>({});
+    const [linkInputs, setLinkInputs] = useState<{ [taskId: string]: string }>({});
     const cardRef = useRef<HTMLDivElement>(null);
 
     // Unified Task Status System - single source of truth
@@ -77,154 +38,65 @@ export function CompactMissionCard({
     );
     const completeTaskMutation = useCompleteTask();
     const redoTaskMutation = useRedoTaskCompletion();
-
-    // Helper functions for task UI state management
-    const getTaskUIState = useCallback((taskId: string): TaskUIState => {
-        return taskUIStates[taskId] || { state: 'idle' };
-    }, [taskUIStates]);
-
-    const setTaskUIState = useCallback((taskId: string, updates: Partial<TaskUIState>) => {
-        setTaskUIStates(prev => ({
-            ...prev,
-            [taskId]: { ...prev[taskId], state: 'idle', ...updates }
-        }));
-    }, []);
-
-    const getTaskRequiresLink = useCallback((taskId: string): boolean => {
-        return taskId === 'comment' || taskId === 'quote';
-    }, []);
-
-    const validateProofUrl = useCallback((url: string): boolean => {
-        try {
-            new URL(url);
-            return url.startsWith('http://') || url.startsWith('https://');
-        } catch {
-            return false;
-        }
-    }, []);
-
-    // Intent button handler
-    const handleIntentClick = useCallback(async (taskId: string) => {
-        if (!user?.id) return;
-
-        try {
-            // Generate intent URL based on task type
-            let intentUrl = '';
-            if (taskId === 'like') {
-                const intent = generateLikeIntent(mission.postUrl || mission.url);
-                intentUrl = intent.url;
-            } else if (taskId === 'comment') {
-                const intent = generateCommentIntent(mission.postUrl || mission.url);
-                intentUrl = intent.url;
-            } else if (taskId === 'quote') {
-                const intent = generateQuoteIntent(mission.postUrl || mission.url, '');
-                intentUrl = intent.url;
-            }
-
-            if (intentUrl) {
-                // Open intent in new tab
-                window.open(intentUrl, '_blank', 'noopener,noreferrer');
-
-                // Update UI state
-                setTaskUIState(taskId, { state: 'intent-clicked' });
-                setIntentCompleted(prev => ({ ...prev, [taskId]: true }));
-            }
-        } catch (error) {
-            console.error('Error opening intent:', error);
-            setTaskUIState(taskId, { state: 'error' });
-        }
-    }, [user, mission, setTaskUIState]);
-
-    // Verify button handler
-    const handleVerifyClick = useCallback(async (taskId: string) => {
-        if (!user?.id) return;
-
-        const uiState = getTaskUIState(taskId);
-        const requiresLink = getTaskRequiresLink(taskId);
-
-        try {
-            if (requiresLink && !uiState.proofUrl) {
-                // Switch to awaiting-proof state for link-required tasks
-                setTaskUIState(taskId, { state: 'awaiting-proof' });
-                return;
-            }
-
-            // Set verifying state
-            setTaskUIState(taskId, { state: 'verifying' });
-
-            // Call existing verify API
-            await completeTaskMutation.mutateAsync({
-                missionId: mission.id,
-                taskId: taskId,
-                userId: user.id,
-                userName: user.name,
-                userEmail: user.email,
-                userSocialHandle: user.twitterUsername,
-                metadata: {
-                    taskType: taskId,
-                    platform: 'twitter',
-                    twitterHandle: user.twitterUsername,
-                    tweetUrl: mission.postUrl || mission.url
-                }
-            });
-
-            // Success - set verified state
-            setTaskUIState(taskId, { state: 'verified' });
-        } catch (error) {
-            console.error('Error verifying task:', error);
-            setTaskUIState(taskId, { state: 'error' });
-        }
-    }, [user, mission, getTaskUIState, setTaskUIState, getTaskRequiresLink, completeTaskMutation]);
-
-    // Proof submission handler
-    const handleProofSubmit = useCallback((taskId: string) => {
-        const proofUrl = proofInputs[taskId];
-
-        if (!proofUrl || !validateProofUrl(proofUrl)) {
-            return; // Invalid URL
-        }
-
-        // Set proof URL and continue to verification
-        setTaskUIState(taskId, {
-            state: 'verifying',
-            proofUrl: proofUrl
-        });
-
-        // Clear input
-        setProofInputs(prev => ({ ...prev, [taskId]: '' }));
-
-        // Auto-trigger verification
-        setTimeout(() => handleVerifyClick(taskId), 100);
-    }, [proofInputs, validateProofUrl, setTaskUIState, handleVerifyClick]);
+    const submitTaskLinkMutation = useSubmitTaskLink();
 
 
 
 
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
+        const anyOpen =
+            Object.values(showTaskDropdown).some(Boolean) ||
+            Object.values(showLinkPanel).some(Boolean);
+
+        if (!anyOpen) return;
+
+        const handleClickOutside = (e: MouseEvent) => {
+            if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+                setShowTaskDropdown({}); // close all
+                setShowLinkPanel({});    // close all sliders
                 setSelectedTask(null);
             }
         };
 
-        if (selectedTask) {
-            document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showTaskDropdown, showLinkPanel]);
+
+    // Helper function to determine verify mode for a task
+    const getVerifyMode = useCallback((taskId: string): VerifyMode => {
+        return ['comment', 'quote'].includes(taskId) ? 'link' : 'direct';
+    }, []);
+
+    // Helper function to get current task status
+    const getTaskStatus = useCallback((taskId: string): TaskStatus => {
+        // Check if we have a local state override
+        if (taskStates[taskId]) {
+            return taskStates[taskId];
         }
 
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [selectedTask]);
-    const getStatusColor = (status: string) => {
-        switch (status?.toLowerCase()) {
-            case 'active': return 'bg-green-500/20 text-green-400 border-green-500/30';
-            case 'completed': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-            case 'paused': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-            case 'cancelled': return 'bg-red-500/20 text-red-400 border-red-500/30';
-            default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+        // Get from task completions
+        const taskCompletionsForTask = taskCompletions
+            .filter(c => c.taskId === taskId)
+            .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
+        if (taskCompletionsForTask.length === 0) {
+            return 'idle';
         }
-    };
+
+        const latestCompletion = taskCompletionsForTask[0];
+        switch (latestCompletion.status) {
+            case 'verified':
+                return 'verified';
+            case 'flagged':
+                return 'flagged';
+            case 'pending':
+                return 'pendingVerify';
+            default:
+                return 'idle';
+        }
+    }, [taskStates, taskCompletions]);
+
 
     const getModelColor = (model: string) => {
         switch (model?.toLowerCase()) {
@@ -514,6 +386,89 @@ export function CompactMissionCard({
         // This will be integrated with the real API in the next step
     }, []);
 
+    // Event handlers for two-mode verification system
+    const handleIntentClick = useCallback((taskId: string) => {
+        const intentUrl = MissionTwitterIntents.generateIntentUrl(taskId, mission);
+        if (intentUrl) {
+            TwitterIntents.openIntent(intentUrl, taskId);
+            setTaskStates(prev => ({ ...prev, [taskId]: 'intentDone' })); // yellow
+        }
+    }, [mission]);
+
+    const handleDirectVerify = useCallback(async (taskId: string) => {
+        if (!user?.id) return;
+
+        try {
+            setTaskStates(prev => ({ ...prev, [taskId]: 'pendingVerify' })); // yellow
+            setShowLinkPanel(prev => ({ ...prev, [taskId]: false }));
+
+            await completeTaskMutation.mutateAsync({
+                missionId: mission.id,
+                taskId: taskId,
+                userId: user.id,
+                userName: user.name,
+                userEmail: user.email,
+                userSocialHandle: user.twitterUsername,
+                metadata: {
+                    taskType: taskId,
+                    platform: 'twitter',
+                    twitterHandle: user.twitterUsername,
+                    tweetUrl: mission.postUrl || mission.url,
+                }
+            });
+
+            setTaskStates(prev => ({ ...prev, [taskId]: 'verified' })); // green
+            setShowTaskDropdown(prev => ({ ...prev, [taskId]: false }));
+        } catch (error) {
+            setTaskStates(prev => ({ ...prev, [taskId]: 'intentDone' })); // roll back to yellow
+            console.error('Failed to complete task:', error);
+        }
+    }, [user, mission.id, completeTaskMutation]);
+
+    const handleLinkSubmit = useCallback(async (taskId: string) => {
+        const link = linkInputs[taskId];
+        if (!link || !user?.id) return;
+
+        try {
+            setTaskStates(prev => ({ ...prev, [taskId]: 'pendingVerify' })); // yellow
+
+            await submitTaskLinkMutation.mutateAsync({
+                taskId,
+                url: link,
+                missionId: mission.id
+            });
+
+            setTaskStates(prev => ({ ...prev, [taskId]: 'verified' })); // green
+            setShowLinkPanel(prev => ({ ...prev, [taskId]: false }));
+            setShowTaskDropdown(prev => ({ ...prev, [taskId]: false }));
+            setLinkInputs(prev => ({ ...prev, [taskId]: '' }));
+        } catch (error) {
+            setTaskStates(prev => ({ ...prev, [taskId]: 'intentDone' })); // roll back to yellow
+            console.error('Failed to submit task link:', error);
+        }
+    }, [linkInputs, user, mission.id, submitTaskLinkMutation]);
+
+    const handleRedoTask = useCallback(async (taskId: string) => {
+        if (!user?.id) return;
+
+        try {
+            const taskCompletion = taskCompletions.find(tc => tc.taskId === taskId);
+            if (taskCompletion) {
+                await redoTaskMutation.mutateAsync({
+                    completionId: taskCompletion.id,
+                    reviewedBy: user.id
+                });
+            }
+
+            setTaskStates(prev => ({ ...prev, [taskId]: 'idle' }));
+            setShowTaskDropdown(prev => ({ ...prev, [taskId]: false }));
+            setShowLinkPanel(prev => ({ ...prev, [taskId]: false }));
+            setLinkInputs(prev => ({ ...prev, [taskId]: '' }));
+        } catch (error) {
+            console.error('Failed to redo task:', error);
+        }
+    }, [user, taskCompletions, redoTaskMutation]);
+
     return (
         <div
             ref={cardRef}
@@ -583,38 +538,30 @@ export function CompactMissionCard({
                             const originalTask = mission.tasks[index];
                             const mapping = taskNameMapping[originalTask?.toLowerCase()];
                             const taskId = mapping ? mapping.id : originalTask?.toLowerCase();
+                            const taskStatus = getTaskStatus(taskId);
+                            const verifyMode = getVerifyMode(taskId);
                             const completionStatus = getTaskCompletionStatus(taskId);
-
-                            // Determine button styling based on status
-                            const getButtonStyling = () => {
-                                switch (completionStatus.status) {
-                                    case 'flagged':
-                                        return 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30';
-                                    case 'verified':
-                                        return 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30';
-                                    case 'pending':
-                                        return 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30';
-                                    default:
-                                        return 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30';
-                                }
-                            };
-
-                            const uiState = getTaskUIState(taskId);
-                            const isVerified = completionStatus.status === 'verified' || uiState.state === 'verified';
-                            const isIntentClicked = uiState.state === 'intent-clicked' || uiState.state === 'awaiting-proof' || uiState.state === 'verifying';
 
                             return (
                                 <div key={index} className="relative">
                                     <button
-                                        onClick={() => setSelectedTask(selectedTask === taskId ? null : taskId)}
-                                        className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${isVerified ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                                                isIntentClicked ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                                                    completionStatus.status === 'flagged' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                                                        'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                            }`}
+                                        onClick={() => {
+                                            if (taskStatus === 'flagged') {
+                                                handleRedoTask(taskId);
+                                                return;
+                                            }
+                                            setShowTaskDropdown(prev => {
+                                                const next: Record<string, boolean> = {};
+                                                next[taskId] = !prev[taskId];
+                                                return next;
+                                            });
+                                            setShowLinkPanel({}); // close any open link slider
+                                            setSelectedTask(taskId);
+                                        }}
+                                        className={`px-2 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] ${toneFor(taskStatus)}`}
                                         onMouseEnter={(e) => {
                                             // Only show tooltip for flagged tasks
-                                            if (completionStatus.status === 'flagged' && completionStatus.flaggedReason) {
+                                            if (taskStatus === 'flagged' && completionStatus.flaggedReason) {
                                                 const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
                                                 if (tooltip) tooltip.style.opacity = '1';
                                             }
@@ -625,15 +572,15 @@ export function CompactMissionCard({
                                         }}
                                     >
                                         <div className="flex items-center gap-1">
-                                            {completionStatus.status === 'flagged' && (
+                                            {taskStatus === 'flagged' && (
                                                 <Flag className="w-3 h-3" />
                                             )}
-                                            {isVerified ? `✓ ${taskType}` : taskType}
+                                            {taskStatus === 'verified' ? `✓ ${taskType}` : taskType}
                                         </div>
                                     </button>
 
                                     {/* Tooltip for flagged tasks - only shows on button hover */}
-                                    {completionStatus.status === 'flagged' && completionStatus.flaggedReason && (
+                                    {taskStatus === 'flagged' && completionStatus.flaggedReason && (
                                         <div
                                             className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-red-900/95 text-red-100 text-xs rounded-lg shadow-lg transition-opacity duration-200 pointer-events-none z-10 max-w-xs"
                                             style={{ opacity: 0 }}
@@ -653,300 +600,78 @@ export function CompactMissionCard({
                                             <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-red-900/95"></div>
                                         </div>
                                     )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
 
-            {/* Task Actions Dropdown */}
-            {selectedTask && (
-                <div className="px-3 pb-2">
-                    <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/50">
-                        {(() => {
-                            // Try different field names for mission type
-                            const missionType = mission.mission_type || mission.type || 'engage';
-
-                            const tasks = getTasksForMission(mission.platform, missionType);
-                            const task = tasks.find(t => t.id === selectedTask);
-
-                            if (!task) {
-                                return (
-                                    <div className="text-red-400 text-sm space-y-2">
-                                        <div>Task not found: {selectedTask}</div>
-                                        <div>Available tasks: {tasks.map(t => t.id).join(', ')}</div>
-                                        <div>Platform: {mission.platform}, Type: {missionType}</div>
-                                    </div>
-                                );
-                            }
-
-                            return (
-                                <div className="space-y-2">
-                                    <div className="mb-3 px-3 py-2 bg-gray-800/20 rounded-lg border-b border-gray-700/30">
-                                        <p className="text-xs text-gray-500 leading-relaxed">
-                                            {mission.instructions || 'No instructions provided for this task.'}
-                                        </p>
-                                    </div>
-
-
-                                    {/* Two-button flow: Intent + Verify */}
-                                    {(() => {
-                                        const uiState = getTaskUIState(task.id);
-                                        const requiresLink = getTaskRequiresLink(task.id);
-                                        const completionStatus = getTaskCompletionStatus(task.id);
-                                        const isVerified = completionStatus.status === 'verified' || uiState.state === 'verified';
-                                        const isVerifying = uiState.state === 'verifying';
-                                        const isIntentClicked = uiState.state === 'intent-clicked';
-                                        const isAwaitingProof = uiState.state === 'awaiting-proof';
-
-                                        return (
-                                            <div className="flex gap-2 items-center">
+                                    {/* Task Dropdown - Two-mode verification system */}
+                                    {showTaskDropdown[taskId] && (
+                                        <div className="absolute top-full left-0 mt-1 bg-gray-800/95 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-gray-700/50 z-20 min-w-[200px]">
+                                            <div className="space-y-2">
                                                 {/* Intent Button */}
                                                 <button
-                                                    onClick={() => handleIntentClick(task.id)}
-                                                    disabled={isVerified || isVerifying}
-                                                    className={`px-3 py-1 rounded text-xs transition-colors duration-200 ${isVerified ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                                                            isIntentClicked ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                                                                'bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30'
-                                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                    onClick={() => handleIntentClick(taskId)}
+                                                    disabled={taskStatus === 'verified'}
+                                                    className={`w-full px-3 py-1 rounded text-xs transition-colors duration-200 ${toneFor(taskStatus === 'verified' ? 'verified' : taskStatus)}`}
                                                 >
-                                                    {isIntentClicked ? 'Intent Done' : `Open ${task.id === 'like' ? 'Twitter' : task.id === 'comment' ? 'Twitter' : task.id === 'quote' ? 'Twitter' : 'Twitter'}`}
+                                                    {taskStatus === 'verified' ? 'Verified' :
+                                                        taskId === 'like' ? 'Like on Twitter' :
+                                                            taskId === 'retweet' ? 'Retweet on Twitter' :
+                                                                taskId === 'follow' ? 'Follow on Twitter' :
+                                                                    taskId === 'comment' ? 'Comment on Twitter' :
+                                                                        taskId === 'quote' ? 'Quote on Twitter' : 'Open Twitter'}
                                                 </button>
 
-                                                {/* Inline Proof Input (only for link-required tasks) */}
-                                                {isAwaitingProof && requiresLink && (
-                                                    <div className="flex gap-2 items-center">
+                                                {/* Link Panel for link-mode tasks */}
+                                                {verifyMode === 'link' && showLinkPanel[taskId] && (
+                                                    <div className="bg-gray-700/50 rounded p-2 space-y-2">
                                                         <input
                                                             type="text"
-                                                            placeholder={`Paste your ${task.id} link`}
-                                                            value={proofInputs[task.id] || ''}
-                                                            onChange={(e) => setProofInputs(prev => ({ ...prev, [task.id]: e.target.value }))}
-                                                            className="px-2 py-1 rounded text-xs bg-gray-800/40 text-white placeholder-gray-400 border border-gray-700/50 focus:border-blue-500/50 focus:outline-none w-64"
+                                                            placeholder="Paste your comment/quote link…"
+                                                            value={linkInputs[taskId] || ''}
+                                                            onChange={(e) => setLinkInputs(prev => ({ ...prev, [taskId]: e.target.value }))}
+                                                            className="w-full px-2 py-1 rounded text-xs bg-gray-800/50 text-white placeholder-gray-400 border border-gray-600/50 focus:border-blue-500/50 focus:outline-none"
                                                         />
-                                                        <button
-                                                            onClick={() => handleProofSubmit(task.id)}
-                                                            disabled={!proofInputs[task.id] || !validateProofUrl(proofInputs[task.id])}
-                                                            className="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            Submit
-                                                        </button>
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => handleLinkSubmit(taskId)}
+                                                                disabled={!linkInputs[taskId] || submitTaskLinkMutation.isPending}
+                                                                className="flex-1 px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50"
+                                                            >
+                                                                {submitTaskLinkMutation.isPending ? 'Submitting...' : 'Submit'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setShowLinkPanel(prev => ({ ...prev, [taskId]: false }))}
+                                                                className="px-2 py-1 rounded text-xs bg-gray-500/20 text-gray-400 border border-gray-500/30 hover:bg-gray-500/30"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
 
                                                 {/* Verify Button */}
                                                 <button
-                                                    onClick={() => handleVerifyClick(task.id)}
-                                                    disabled={!isIntentClicked || isVerified || isVerifying}
-                                                    className={`px-3 py-1 rounded text-xs transition-colors duration-200 ${isVerified ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                                                            isVerifying ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' :
-                                                                isIntentClicked ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30' :
-                                                                    'bg-gray-500/20 text-gray-400 border border-gray-500/30 cursor-not-allowed'
-                                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                    onClick={() => {
+                                                        if (verifyMode === 'direct') {
+                                                            handleDirectVerify(taskId);
+                                                        } else {
+                                                            setShowLinkPanel(prev => ({ ...prev, [taskId]: true }));
+                                                        }
+                                                    }}
+                                                    disabled={taskStatus === 'verified' || taskStatus === 'idle' || (verifyMode === 'link' && showLinkPanel[taskId])}
+                                                    className={`w-full px-3 py-1 rounded text-xs transition-colors duration-200 ${toneFor(taskStatus === 'verified' ? 'verified' : taskStatus)}`}
                                                 >
-                                                    {isVerifying ? 'Verifying...' :
-                                                        isVerified ? 'Verified' :
-                                                            `Verify ${task.id.charAt(0).toUpperCase() + task.id.slice(1)}`}
+                                                    {taskStatus === 'verified' ? 'Verified' :
+                                                        taskId === 'like' ? 'Verify Like' :
+                                                            taskId === 'retweet' ? 'Verify Retweet' :
+                                                                taskId === 'follow' ? 'Verify Follow' :
+                                                                    taskId === 'comment' ? 'Verify Comment' :
+                                                                        taskId === 'quote' ? 'Verify Quote' : 'Verify'}
                                                 </button>
                                             </div>
-                                        );
-                                    })()}
-
-                                    {/* Legacy action buttons (fallback) */}
-                                    <div className="flex gap-2 flex-wrap">
-                                        {task.actions.map((action) => (
-                                            <button
-                                                key={action.id}
-                                                onClick={async () => {
-                                                    try {
-                                                        if (action.type === 'intent') {
-                                                            // Handle Twitter intent actions
-                                                            const intentUrl = MissionTwitterIntents.generateIntentUrl(task.id, mission);
-
-                                                            if (!intentUrl) {
-                                                                // Silent fail - user can see button state
-                                                                return;
-                                                            }
-
-                                                            // Open Twitter intent in a new window
-                                                            TwitterIntents.openIntent(intentUrl, action.intentAction || task.id);
-
-                                                            // Mark intent as completed
-                                                            setIntentCompleted(prev => ({
-                                                                ...prev,
-                                                                [task.id]: true
-                                                            }));
-
-                                                            // No notification popup - user can see the button state change
-
-                                                        } else if (action.type === 'verify') {
-                                                            // Handle verification actions using unified system
-                                                            // Check if intent was completed first
-                                                            if (!intentCompleted[task.id]) {
-                                                                return; // Silent fail - user can see button state
-                                                            }
-
-                                                            // Check if user is authenticated
-                                                            if (!isAuthenticated || !user) {
-                                                                return; // Silent fail - user should be logged in
-                                                            }
-
-                                                            // Get current task status from local state
-                                                            const completionStatus = getTaskCompletionStatus(task.id);
-
-                                                            try {
-                                                                if (completionStatus.status === 'flagged') {
-                                                                    // Redo flagged task - find the completion ID first
-                                                                    const latestCompletion = taskCompletions
-                                                                        .filter(c => c.taskId === task.id)
-                                                                        .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())[0];
-
-                                                                    if (latestCompletion) {
-                                                                        await redoTaskMutation.mutateAsync({
-                                                                            completionId: latestCompletion.id,
-                                                                            reviewedBy: user.id
-                                                                        });
-                                                                    }
-                                                                } else {
-                                                                    // Complete new task
-                                                                    await completeTaskMutation.mutateAsync({
-                                                                        missionId: mission.id,
-                                                                        taskId: task.id,
-                                                                        userId: user.id,
-                                                                        userName: user.name,
-                                                                        userEmail: user.email,
-                                                                        userSocialHandle: mission.username || null,
-                                                                        metadata: {
-                                                                            taskType: task.id,
-                                                                            platform: 'twitter',
-                                                                            twitterHandle: mission.username || null,
-                                                                            tweetUrl: mission.tweetLink || mission.contentLink
-                                                                        }
-                                                                    });
-                                                                }
-                                                            } catch (error) {
-                                                                console.error('Error completing task:', error);
-                                                                // Silent error - React Query will handle retry
-                                                            }
-
-                                                        } else if (action.type === 'manual' && action.id === 'view_tweet') {
-                                                            window.open(mission.tweetLink || mission.contentLink, '_blank');
-                                                        } else if (action.type === 'manual' && action.id === 'view_post') {
-                                                            window.open(mission.contentLink, '_blank');
-                                                        } else if (action.type === 'manual' && action.id === 'view_profile') {
-                                                            const username = extractUsernameFromLink(mission.tweetLink);
-                                                            if (username) {
-                                                                window.open(`https://twitter.com/${username}`, '_blank');
-                                                            }
-                                                        } else {
-                                                            // Handle auto actions
-                                                            console.log('Action clicked:', action);
-                                                        }
-                                                    } catch (error) {
-                                                        console.error('Error handling action:', error);
-                                                        // Silent error - React Query will handle retry
-                                                    }
-                                                }}
-                                                disabled={completeTaskMutation.isPending}
-                                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_1px_rgba(0,0,0,0.2),inset_1px_1px_1px_rgba(255,255,255,0.15)] disabled:opacity-50 disabled:cursor-not-allowed ${(() => {
-                                                    const taskStatus = getTaskCompletionStatus(task.id);
-
-                                                    // If task is flagged, show red styling
-                                                    if (taskStatus.status === 'flagged') {
-                                                        return 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 animate-pulse';
-                                                    }
-
-                                                    // If task is verified, show green styling
-                                                    if (taskStatus.status === 'verified') {
-                                                        return 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30';
-                                                    }
-
-                                                    // If task is pending, show yellow styling
-                                                    if (taskStatus.status === 'pending') {
-                                                        return 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30';
-                                                    }
-
-                                                    // Default styling based on action type
-                                                    if (action.type === 'intent') {
-                                                        return intentCompleted[task.id]
-                                                            ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
-                                                            : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30';
-                                                    }
-
-                                                    if (action.type === 'auto') {
-                                                        return 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30';
-                                                    }
-
-                                                    if (action.type === 'verify') {
-                                                        return completeTaskMutation.isPending
-                                                            ? 'bg-gray-500/20 text-gray-400 cursor-wait'
-                                                            : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30';
-                                                    }
-
-                                                    return 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30';
-                                                })()}`}
-                                            >
-                                                {(() => {
-                                                    const taskStatus = getTaskCompletionStatus(task.id);
-
-                                                    if (action.type === 'verify' && completeTaskMutation.isPending) {
-                                                        return (
-                                                            <span className="flex items-center gap-1">
-                                                                <span className="animate-spin">⏳</span>
-                                                                Verifying...
-                                                            </span>
-                                                        );
-                                                    }
-
-                                                    // Show special text for flagged tasks
-                                                    if (taskStatus.status === 'flagged') {
-                                                        return (
-                                                            <span className="flex items-center gap-1">
-                                                                <Flag className="w-3 h-3" />
-                                                                Redo Task
-                                                            </span>
-                                                        );
-                                                    }
-
-                                                    // Show special text for verified tasks
-                                                    if (taskStatus.status === 'verified') {
-                                                        return (
-                                                            <span className="flex items-center gap-1">
-                                                                ✓ {action.label}
-                                                            </span>
-                                                        );
-                                                    }
-
-                                                    // Show special text for pending tasks
-                                                    if (taskStatus.status === 'pending') {
-                                                        return (
-                                                            <span className="flex items-center gap-1">
-                                                                ⏳ {action.label}
-                                                            </span>
-                                                        );
-                                                    }
-
-                                                    return action.label;
-                                                })()}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Inline Verification for Comment and Quote Tasks */}
-                                    {(task.id === 'comment' || task.id === 'quote') && (
-                                        <div className="mt-3 pt-3 border-t border-gray-700/30">
-                                            <InlineVerification
-                                                taskId={task.id}
-                                                missionId={mission.id}
-                                                missionTitle={mission.title || mission.description}
-                                                userXAccount={userXAccount}
-                                                onVerificationSubmitted={handleVerificationSubmitted}
-                                            />
                                         </div>
                                     )}
                                 </div>
                             );
-                        })()}
+                        })}
                     </div>
                 </div>
             )}

@@ -61,6 +61,17 @@ export interface TaskCompletionUpdate {
     updatedAt: Timestamp;
 }
 
+export type TaskStatus = 'idle' | 'intentDone' | 'pendingVerify' | 'verified' | 'flagged' | 'error';
+export type VerifyMode = 'direct' | 'link';
+
+export interface TaskItem {
+    id: string;
+    kind: 'like' | 'retweet' | 'follow' | 'comment' | 'quote';
+    verifyMode: VerifyMode;
+    status: TaskStatus;
+    userLink?: string;
+}
+
 export interface TaskCompletionStatus {
     status: 'not_completed' | 'pending' | 'verified' | 'flagged' | 'rejected';
     flaggedReason?: string;
