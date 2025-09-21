@@ -11,6 +11,7 @@ import {
     toneFor
 } from '../../../hooks/useTaskCompletions';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
 import {
     logIntentAction,
     logVerifyAction,
@@ -302,7 +303,12 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
     }, [mission, user]);
 
     const handleDirectVerify = useCallback(async (taskId: string) => {
-        if (!user?.id) return;
+        // Enhanced authentication guard
+        if (!user?.id) {
+            toast.error('Please sign in to complete tasks');
+            return;
+        }
+
         try {
             setTaskStates(p => ({ ...p, [taskId]: 'pendingVerify' }));
 
@@ -323,13 +329,16 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 }
             });
 
-            // Set verified state but DO NOT collapse the panel
+            // Only set verified state after successful mutation
             setTaskStates(p => ({ ...p, [taskId]: 'verified' }));
 
             // Invalidate React Query cache to ensure both Discover & Earn and My Missions reflect Firestore state
             queryClient.invalidateQueries({
                 queryKey: ['taskCompletions', 'mission', mission.id]
             });
+
+            // Show success feedback
+            toast.success('Task completed successfully!');
 
             // Log verify action to Firebase
             try {
@@ -341,9 +350,22 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             } catch (error) {
                 console.error('Failed to log verify action:', error);
             }
-        } catch (e) {
+        } catch (e: any) {
+            // Revert to previous state on error
             setTaskStates(p => ({ ...p, [taskId]: 'intentDone' }));
+
+            // Enhanced error handling with specific messages
             console.error('Failed to complete task:', e);
+
+            if (e?.code === 'permission-denied') {
+                toast.error('Permission denied. Please check your authentication.');
+            } else if (e?.code === 'unavailable') {
+                toast.error('Service temporarily unavailable. Please try again.');
+            } else if (e?.message?.includes('already completed')) {
+                toast.error('This task has already been completed.');
+            } else {
+                toast.error('Failed to complete task. Please try again.');
+            }
         }
     }, [user, mission.id, completeTaskMutation, mission.postUrl, mission.url, queryClient]);
 
@@ -358,7 +380,17 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
     const handleLinkSubmit = useCallback(async (taskId: string) => {
         const link = linkInputs[taskId];
-        if (!link || !user?.id) return;
+
+        // Enhanced authentication guard
+        if (!user?.id) {
+            toast.error('Please sign in to complete tasks');
+            return;
+        }
+
+        if (!link) {
+            setLinkErrors(p => ({ ...p, [taskId]: 'Please enter a Twitter/X URL' }));
+            return;
+        }
 
         // Clear any previous errors
         setLinkErrors(p => ({ ...p, [taskId]: '' }));
@@ -393,7 +425,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 missionId: mission.id
             });
 
-            // Set verified state but DO NOT collapse the panel
+            // Only set verified state after successful mutation
             setTaskStates(p => ({ ...p, [taskId]: 'verified' }));
             setLinkInputs(p => ({ ...p, [taskId]: '' }));
             setLinkErrors(p => ({ ...p, [taskId]: '' }));
@@ -402,6 +434,9 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             queryClient.invalidateQueries({
                 queryKey: ['taskCompletions', 'mission', mission.id]
             });
+
+            // Show success feedback
+            toast.success('Link submitted successfully!');
 
             // Log link submit action to Firebase
             try {
@@ -414,10 +449,29 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             } catch (error) {
                 console.error('Failed to log link submit action:', error);
             }
-        } catch (e) {
+        } catch (e: any) {
+            // Revert to previous state on error
             setTaskStates(p => ({ ...p, [taskId]: 'intentDone' }));
-            setLinkErrors(p => ({ ...p, [taskId]: 'Failed to submit link. Please try again.' }));
+
+            // Enhanced error handling with specific messages
             console.error('Failed to submit task link:', e);
+
+            if (e?.code === 'permission-denied') {
+                toast.error('Permission denied. Please check your authentication.');
+                setLinkErrors(p => ({ ...p, [taskId]: 'Permission denied. Please sign in again.' }));
+            } else if (e?.code === 'unavailable') {
+                toast.error('Service temporarily unavailable. Please try again.');
+                setLinkErrors(p => ({ ...p, [taskId]: 'Service unavailable. Please try again.' }));
+            } else if (e?.message?.includes('Invalid Twitter URL')) {
+                toast.error('Invalid Twitter URL. Please check the link.');
+                setLinkErrors(p => ({ ...p, [taskId]: 'Invalid Twitter URL format.' }));
+            } else if (e?.message?.includes('URL must be from your own Twitter account')) {
+                toast.error('URL must be from your own Twitter account.');
+                setLinkErrors(p => ({ ...p, [taskId]: 'URL must be from your own Twitter account.' }));
+            } else {
+                toast.error('Failed to submit link. Please try again.');
+                setLinkErrors(p => ({ ...p, [taskId]: 'Failed to submit link. Please try again.' }));
+            }
         }
     }, [linkInputs, user, mission.id, submitTaskLinkMutation, queryClient]);
 
