@@ -4,6 +4,7 @@ import './globals.css';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ConditionalProviders } from '../components/ConditionalProviders';
 import { QueryProvider } from '../providers/QueryProvider';
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,6 +27,17 @@ export default function RootLayout({
               {children}
             </ConditionalProviders>
           </QueryProvider>
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#1f2937',
+                color: '#fff',
+                border: '1px solid #374151',
+              },
+            }}
+          />
         </ErrorBoundary>
       </body>
     </html>
