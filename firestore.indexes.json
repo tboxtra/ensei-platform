@@ -101,7 +101,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "created_at",
+          "fieldPath": "updated_at",
           "order": "DESCENDING"
         }
       ]

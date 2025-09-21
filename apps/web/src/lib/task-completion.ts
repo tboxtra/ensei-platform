@@ -105,6 +105,7 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
 
         if (participationQuery.empty) {
             // Create new participation with required fields
+            const now = serverTimestamp();
             const newParticipation = {
                 mission_id: input.missionId,
                 user_id: input.userId,
@@ -113,12 +114,12 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
                 user_social_handle: input.userSocialHandle || null,
                 platform: input.metadata?.platform || 'twitter',
                 status: 'active',
-                joined_at: new Date().toISOString(),
+                joined_at: now,
                 tasks_completed: [],
                 total_honors_earned: 0,
                 // Required fields for standardized structure
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                created_at: now,
+                updated_at: now
             };
 
             const participationRef = await addDoc(collection(db, TASK_COMPLETIONS_COLLECTION), newParticipation);
@@ -126,16 +127,17 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
             participationData = newParticipation;
         } else {
             // Use existing participation
-            const doc = participationQuery.docs[0];
-            participationId = doc.id;
-            participationData = doc.data();
+            const snap = participationQuery.docs[0];
+            participationId = snap.id;
+            participationData = snap.data();
         }
 
         // Create task completion with required fields
+        const now = serverTimestamp();
         const taskCompletion = {
             task_id: input.taskId,
             action_id: input.metadata?.verificationMethod || 'direct',
-            completed_at: new Date().toISOString(),
+            completed_at: now,
             verification_data: {
                 url: input.metadata?.tweetUrl || null,
                 userAgent: input.metadata?.userAgent || null,
@@ -150,8 +152,8 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
             user_id: input.userId,
             verificationMethod: input.metadata?.verificationMethod || 'direct',
             url: input.metadata?.tweetUrl || null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            created_at: now,
+            updated_at: now
         };
 
         // Update participation with new task completion
@@ -172,7 +174,7 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
         });
 
         // Return in the new format for compatibility
-        const completionDate = new Date(taskCompletion.completed_at);
+        const returnDate = new Date();
         return {
             id: `${participationId}_${input.taskId}`,
             missionId: input.missionId,
@@ -182,8 +184,8 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
             userEmail: input.userEmail,
             userSocialHandle: input.userSocialHandle,
             status: 'verified', // All completions are verified in the old system
-            completedAt: Timestamp.fromDate(completionDate),
-            verifiedAt: Timestamp.fromDate(completionDate),
+            completedAt: Timestamp.fromDate(returnDate),
+            verifiedAt: Timestamp.fromDate(returnDate),
             flaggedAt: undefined,
             flaggedReason: undefined,
             url: taskCompletion.verification_data.url,
@@ -191,8 +193,8 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
             twitterHandle: input.userSocialHandle,
             reviewerId: undefined,
             metadata: input.metadata,
-            createdAt: Timestamp.fromDate(completionDate),
-            updatedAt: Timestamp.fromDate(completionDate)
+            createdAt: Timestamp.fromDate(returnDate),
+            updatedAt: Timestamp.fromDate(returnDate)
         } as TaskCompletion;
     } catch (error) {
         throw handleFirebaseError(error, 'createTaskCompletion');
@@ -237,7 +239,7 @@ export async function updateTaskCompletion(
         tasksCompleted[taskIndex] = {
             ...tasksCompleted[taskIndex],
             ...update,
-            updated_at: new Date().toISOString()
+            updated_at: serverTimestamp()
         };
 
         // Update the participation document
@@ -330,7 +332,7 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
             where('mission_id', '==', missionId),
-            orderBy('created_at', 'desc')
+            orderBy('updated_at', 'desc')
         );
 
         const querySnapshot = await getDocs(q);
@@ -338,9 +340,9 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
 
         const completions: TaskCompletion[] = [];
 
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            console.log('getMissionTaskCompletions: Processing participation doc:', doc.id, data);
+        querySnapshot.forEach((snap) => {
+            const data = snap.data();
+            console.log('getMissionTaskCompletions: Processing participation doc:', snap.id, data);
             const tasksCompleted = data.tasks_completed || [];
             console.log('getMissionTaskCompletions: tasks_completed array:', tasksCompleted);
 
@@ -348,7 +350,7 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
             tasksCompleted.forEach((task: any) => {
                 const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
                 completions.push({
-                    id: `${doc.id}_${task.task_id}`, // Create unique ID
+                    id: `${snap.id}_${task.task_id}`, // Create unique ID
                     missionId: missionId,
                     taskId: task.task_id,
                     userId: data.user_id,
@@ -406,15 +408,15 @@ export async function getAllUserTaskCompletions(userId: string): Promise<TaskCom
         const querySnapshot = await getDocs(q);
         const completions: TaskCompletion[] = [];
 
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
+        querySnapshot.forEach((snap) => {
+            const data = snap.data();
             const tasksCompleted = data.tasks_completed || [];
 
             // Convert each task completion to the new format
             tasksCompleted.forEach((task: any) => {
                 const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
                 completions.push({
-                    id: `${doc.id}_${task.task_id}`, // Create unique ID
+                    id: `${snap.id}_${task.task_id}`, // Create unique ID
                     missionId: data.mission_id,
                     taskId: task.task_id,
                     userId: userId,
@@ -575,30 +577,28 @@ export async function getUserCompletionStats(userId: string): Promise<{
     try {
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
-            where('userId', '==', userId),
-            orderBy('createdAt', 'desc')
+            where('user_id', '==', userId),
+            orderBy('updated_at', 'desc')
         );
 
         const querySnapshot = await getDocs(q);
-        const completions = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as TaskCompletion[];
 
-        const totalCompletions = completions.length;
-        const verifiedCompletions = completions.filter(c => c.status === 'verified').length;
-        const flaggedCompletions = completions.filter(c => c.status === 'flagged').length;
-        const pendingCompletions = completions.filter(c => c.status === 'pending').length;
+        // Flatten tasks_completed to compute stats
+        const all = querySnapshot.docs.flatMap((snap) => {
+            const d = snap.data() as any;
+            return (d.tasks_completed ?? []).map((t: any) => ({
+                status: t.status ?? 'pending',
+            }));
+        });
 
-        const completionRate = totalCompletions > 0 ? (verifiedCompletions / totalCompletions) * 100 : 0;
+        const totalCompletions = all.length;
+        const verifiedCompletions = all.filter(c => c.status === 'completed' || c.status === 'verified').length;
+        const flaggedCompletions = all.filter(c => c.status === 'flagged').length;
+        const pendingCompletions = all.filter(c => c.status === 'pending').length;
 
-        return {
-            totalCompletions,
-            verifiedCompletions,
-            flaggedCompletions,
-            pendingCompletions,
-            completionRate
-        };
+        const completionRate = totalCompletions ? (verifiedCompletions / totalCompletions) * 100 : 0;
+
+        return { totalCompletions, verifiedCompletions, flaggedCompletions, pendingCompletions, completionRate };
     } catch (error) {
         throw handleFirebaseError(error, 'getUserCompletionStats');
     }
