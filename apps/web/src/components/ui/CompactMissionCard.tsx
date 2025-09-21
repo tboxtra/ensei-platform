@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { EmbeddedContent } from './EmbeddedContent';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
+import { getTasksForMission } from '@/lib/taskTypes';
 import { useAuth } from '../../contexts/UserAuthContext';
 import {
     useUserMissionTaskCompletions,
@@ -61,6 +62,14 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
         if (mode === 'direct') return status === 'intentDone' || status === 'pendingVerify';
         return false; // link-mode uses the submit panel
     };
+
+    // Mission-created task metadata (includes per-task instructions)
+    const taskMetaById = useMemo(() => {
+        const list = getTasksForMission?.(mission.platform, mission.type) || [];
+        const map: Record<string, any> = {};
+        list.forEach((t: any) => { if (t?.id) map[t.id] = t; });
+        return map;
+    }, [mission]);
 
     // Build a map of the *latest* completion status per taskId once
     const latestStatusByTaskId = useMemo(() => {
@@ -479,93 +488,83 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                 return (
                     <div className="px-3 pb-3">
                         <div className="bg-gray-800/90 border border-gray-700/50 rounded-lg p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                                <div className="text-sm text-gray-200 flex items-center gap-2">
-                                    <span className="opacity-80">Selected task:</span>
-                                    <span className="font-medium capitalize">
-                                        {selectedTask.replace(/_/g, ' ')}
-                                    </span>
-                                </div>
+                            {/* Instructions written when the task was created */}
+                            {(() => {
+                                const i =
+                                    taskMetaById[selectedTask!]?.instructions ||
+                                    taskMetaById[selectedTask!]?.description ||
+                                    mission?.instructions?.[selectedTask!] ||
+                                    mission?.instructions ||
+                                    '';
+                                return i ? (
+                                    <div className="text-sm text-gray-200 leading-relaxed font-medium bg-gray-700/30 rounded-lg p-3 border border-gray-600/30">
+                                        {i}
+                                    </div>
+                                ) : null;
+                            })()}
+
+
+                            <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => { setSelectedTask(null); setShowLinkPanel({}); }}
-                                    className="text-xs px-2 py-1 rounded bg-gray-600/30 border border-gray-600/50 hover:bg-gray-600/40"
+                                    onClick={() => handleIntentClick(selectedTask)}
+                                    disabled={getTaskStatus(selectedTask) === 'verified'}
+                                    className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${getTaskStatus(selectedTask) === 'verified' ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
-                                    Close
+                                    {getTaskStatus(selectedTask) === 'verified' ? 'Verified'
+                                        : selectedTask === 'like' ? 'Like on Twitter'
+                                            : selectedTask === 'retweet' ? 'Retweet on Twitter'
+                                                : selectedTask === 'follow' ? 'Follow on Twitter'
+                                                    : selectedTask === 'comment' ? 'Comment on Twitter'
+                                                        : selectedTask === 'quote' ? 'Quote on Twitter'
+                                                            : 'Open Twitter'}
+                                </button>
+
+                                {/* Link panel for link-mode tasks */}
+                                {getVerifyMode(selectedTask) === 'link' && (
+                                    <div className="bg-gray-700/40 rounded p-2 space-y-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Paste your comment/quote link…"
+                                            value={linkInputs[selectedTask] || ''}
+                                            onChange={(e) => setLinkInputs(prev => ({ ...prev, [selectedTask]: e.target.value }))}
+                                            className="w-full px-2 py-1 rounded text-xs bg-gray-800/50 text-white placeholder-gray-400 border border-gray-600/50 focus:border-blue-500/50 focus:outline-none"
+                                        />
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={() => handleLinkSubmit(selectedTask)}
+                                                disabled={!linkInputs[selectedTask] || submitTaskLinkMutation.isPending}
+                                                className="flex-1 px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50"
+                                            >
+                                                {submitTaskLinkMutation.isPending ? 'Submitting...' : 'Submit'}
+                                            </button>
+                                            <button
+                                                onClick={() => setLinkInputs(prev => ({ ...prev, [selectedTask]: '' }))}
+                                                className="px-2 py-1 rounded text-xs bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30"
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => { if (getVerifyMode(selectedTask) === 'direct') handleDirectVerify(selectedTask); }}
+                                    disabled={
+                                        getTaskStatus(selectedTask) === 'verified' ||
+                                        getVerifyMode(selectedTask) === 'link' ||
+                                        !(getTaskStatus(selectedTask) === 'intentDone' || getTaskStatus(selectedTask) === 'pendingVerify')
+                                    }
+                                    className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${(getVerifyMode(selectedTask) === 'link' || !(getTaskStatus(selectedTask) === 'intentDone' || getTaskStatus(selectedTask) === 'pendingVerify')) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                >
+                                    {getTaskStatus(selectedTask) === 'verified' ? 'Verified'
+                                        : selectedTask === 'like' ? 'Verify Like'
+                                            : selectedTask === 'retweet' ? 'Verify Retweet'
+                                                : selectedTask === 'follow' ? 'Verify Follow'
+                                                    : selectedTask === 'comment' ? 'Verify Comment'
+                                                        : selectedTask === 'quote' ? 'Verify Quote'
+                                                            : 'Verify'}
                                 </button>
                             </div>
-
-                            {/* Intent */}
-                            <button
-                                onClick={() => handleIntentClick(selectedTask)}
-                                disabled={taskStatus === 'verified'}
-                                className={`w-full px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]
-                            ${toneFor(taskStatus === 'verified' ? 'verified' : taskStatus)}
-                            ${taskStatus === 'verified' ? 'opacity-60 cursor-not-allowed' : ''}`}
-                            >
-                                {taskStatus === 'verified' ? 'Verified'
-                                    : selectedTask === 'like' ? 'Like on Twitter'
-                                        : selectedTask === 'retweet' ? 'Retweet on Twitter'
-                                            : selectedTask === 'follow' ? 'Follow on Twitter'
-                                                : selectedTask === 'comment' ? 'Comment on Twitter'
-                                                    : selectedTask === 'quote' ? 'Quote on Twitter'
-                                                        : 'Open Twitter'}
-                            </button>
-
-                            {/* Link panel for link-mode tasks */}
-                            {getVerifyMode(selectedTask) === 'link' && (
-                                <div className="bg-gray-700/40 rounded p-2 space-y-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Paste your comment/quote link…"
-                                        value={linkInputs[selectedTask] || ''}
-                                        onChange={(e) => setLinkInputs(prev => ({ ...prev, [selectedTask]: e.target.value }))}
-                                        className="w-full px-2 py-1 rounded text-xs bg-gray-800/50 text-white placeholder-gray-400 border border-gray-600/50 focus:border-blue-500/50 focus:outline-none"
-                                    />
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => handleLinkSubmit(selectedTask)}
-                                            disabled={!linkInputs[selectedTask] || submitTaskLinkMutation.isPending}
-                                            className="flex-1 px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50"
-                                        >
-                                            {submitTaskLinkMutation.isPending ? 'Submitting...' : 'Submit'}
-                                        </button>
-                                        <button
-                                            onClick={() => setLinkInputs(prev => ({ ...prev, [selectedTask]: '' }))}
-                                            className="px-2 py-1 rounded text-xs bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30"
-                                        >
-                                            Clear
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Verify */}
-                            <button
-                                onClick={() => {
-                                    const mode = getVerifyMode(selectedTask);
-                                    if (mode === 'direct') handleDirectVerify(selectedTask);
-                                    // link-mode is verified by submitting the URL above (kept exactly as before)
-                                }}
-                                disabled={
-                                    taskStatus === 'verified' ||
-                                    (getVerifyMode(selectedTask) === 'direct' && !canDirectVerify(selectedTask)) ||
-                                    getVerifyMode(selectedTask) === 'link'
-                                }
-                                className={`w-full px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]
-                            ${toneFor(taskStatus === 'verified' ? 'verified' : taskStatus)}
-                            ${(getVerifyMode(selectedTask) === 'direct' && !canDirectVerify(selectedTask)) ||
-                                        getVerifyMode(selectedTask) === 'link'
-                                        ? 'opacity-60 cursor-not-allowed' : ''
-                                    }`}
-                            >
-                                {taskStatus === 'verified' ? 'Verified'
-                                    : selectedTask === 'like' ? 'Verify Like'
-                                        : selectedTask === 'retweet' ? 'Verify Retweet'
-                                            : selectedTask === 'follow' ? 'Verify Follow'
-                                                : selectedTask === 'comment' ? 'Verify Comment'
-                                                    : selectedTask === 'quote' ? 'Verify Quote'
-                                                        : 'Verify'}
-                            </button>
                         </div>
                     </div>
                 );
