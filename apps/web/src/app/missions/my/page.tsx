@@ -257,7 +257,7 @@ export default function MyMissionsPage() {
                                 />
                             ))}
                         </div>
-                    ) : missions.length === 0 ? (
+                    ) : (missions || []).length === 0 ? (
                         /* Empty state when no missions exist */
                         <div className="max-w-2xl mx-auto">
                             <ModernCard className="text-center">
