@@ -1,162 +1,88 @@
 # My Missions Submissions Page Fix
 
 ## Problem
-Task completions from the "Discover & Earn" page were not being displayed in the creator's "My Missions" submissions page. Users could complete tasks but creators couldn't see the submissions.
+The My Missions submissions page was not showing submissions for missions the user created. The issue was that:
 
-## Root Cause
-The submissions page (`/missions/my/submissions`) was using:
-1. **Mock mission data** instead of real user missions
-2. **Old task completion hooks** that weren't connected to the new unified system
-3. **Hardcoded mission IDs** that didn't match real mission IDs
+1. **Data Mismatch**: Discover & Earn was writing to `mission_participations` collection, but My Missions was trying to read from a different source
+2. **Wrong Query Logic**: The submissions page was looking for missions the user participated in, instead of missions the user created
+3. **Missing Index**: Firestore was missing the proper index for efficient queries
 
-## Solution Implemented
+## Solution
 
-### 1. Replaced Mock Data with Real Mission Data ✅
-**File:** `apps/web/src/app/missions/my/submissions/page.tsx`
+### 1. Fixed Collection Consistency ✅
+- **Confirmed**: All code now uses `mission_participations` collection consistently
+- **Discover & Earn writes**: `mission_participations` ✅
+- **My Missions reads**: `mission_participations` ✅
+- **No lingering `taskCompletions` collection references** (except in migration scripts)
 
-- **Before:** Used hardcoded mock missions with fake IDs (`'mission-1'`, `'mission-2'`)
-- **After:** Integrated `useMyMissions()` hook to fetch real user missions
-- **Result:** Page now shows actual missions created by the user
+### 2. Updated Submissions Page Logic ✅
+- **Reverted** to using `useMyMissions()` hook (gets missions user created)
+- **Removed** the `useMyParticipatedMissions` approach
+- **Fixed** the page to show all submissions for missions the user created
 
-### 2. Updated to Use Unified Task Completion System ✅
-**File:** `apps/web/src/app/missions/my/submissions/page.tsx`
+### 3. Enhanced Mission Completions Query ✅
+- **Updated** `getMissionTaskCompletions()` to include `orderBy('created_at', 'desc')`
+- **Added** proper Firestore index for `mission_participations`:
+  ```json
+  {
+    "collectionGroup": "mission_participations",
+    "queryScope": "COLLECTION",
+    "fields": [
+      {
+        "fieldPath": "mission_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      }
+    ]
+  }
+  ```
 
-- **Before:** Imported from `@/hooks/useTaskStatusSystem` (old system)
-- **After:** Imported from `@/hooks/useTaskCompletions` (new unified system)
-- **Result:** Submissions now properly read from the `taskCompletions` collection
+### 4. Fixed TypeScript Errors ✅
+- **Fixed** Set spread operator issue in `useMyParticipatedMissions.ts`
+- **Build successful** with no TypeScript errors
 
-### 3. Enhanced Mission Data Structure ✅
-**File:** `apps/web/src/app/missions/my/submissions/page.tsx`
+## How It Works Now
 
-- **Updated Mission interface** to handle real mission data fields
-- **Added proper date handling** for `created_at` vs `createdAt` fields
-- **Added loading and error states** for better UX
+### Data Flow
+1. **User completes task on Discover & Earn** → Writes to `mission_participations` collection
+2. **User goes to My Missions submissions** → Shows missions they created
+3. **Selects a mission** → `useMissionTaskCompletions(missionId)` queries all submissions for that mission
+4. **Shows all submissions** → From all users who participated in that mission
 
-### 4. Improved Submission Display ✅
-**File:** `apps/web/src/app/missions/my/submissions/page.tsx`
-
-- **Added social handle display** (`@username`) for better user identification
-- **Added submitted URL display** for link-based submissions
-- **Fixed timestamp handling** for Firebase Timestamp objects
-- **Updated mutation calls** to match new API structure
-
-### 5. Added Comprehensive Error Handling ✅
-**File:** `apps/web/src/app/missions/my/submissions/page.tsx`
-
-- **Loading states** while fetching missions
-- **Error states** with retry functionality
-- **Empty states** with call-to-action for mission creation
-- **Proper error messages** for failed operations
-
-## Key Changes Made
-
-### Import Updates
+### Query Structure
 ```typescript
-// OLD
-import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskStatusSystem';
-import { type TaskCompletionRecord } from '@/lib/task-status-system';
-
-// NEW
-import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
-import { type TaskCompletion } from '@/types/task-completion';
-import { useMyMissions } from '@/hooks/useMyMissions';
+// My Missions submissions page
+const { data: missions } = useMyMissions(); // Gets missions user created
+const { data: submissions } = useMissionTaskCompletions(selectedMission?.id); // Gets all submissions for that mission
 ```
 
-### Data Source Updates
+### Firestore Query
 ```typescript
-// OLD - Mock data
-useEffect(() => {
-    setMissions([
-        { id: 'mission-1', title: 'Like Our Latest Tweet', ... }
-    ]);
-}, []);
-
-// NEW - Real data
-const { data: missions = [], isLoading: loadingMissions, error: missionsError } = useMyMissions();
+// In getMissionTaskCompletions()
+const q = query(
+    collection(db, 'mission_participations'),
+    where('mission_id', '==', missionId),
+    orderBy('created_at', 'desc')
+);
 ```
-
-### Mutation API Updates
-```typescript
-// OLD
-await flagTaskCompletionMutation.mutateAsync({
-    completionId: completion.id,
-    reason,
-    reviewerId: 'creator-1',
-    reviewerName: 'Mission Creator'
-});
-
-// NEW
-await flagTaskCompletionMutation.mutateAsync({
-    completionId: completion.id,
-    flaggedReason: reason,
-    reviewedBy: 'creator-1'
-});
-```
-
-## Data Flow
-
-### Before Fix
-```
-Discover & Earn → taskCompletions collection
-My Missions Submissions → Mock data (no connection)
-```
-
-### After Fix
-```
-Discover & Earn → taskCompletions collection
-My Missions Submissions → useMyMissions() → useMissionTaskCompletions() → taskCompletions collection
-```
-
-## Testing Checklist
-
-### ✅ Basic Functionality
-- [ ] Create a mission as a user
-- [ ] Complete tasks in Discover & Earn page
-- [ ] Navigate to My Missions → Submissions
-- [ ] Verify submissions appear for the created mission
-
-### ✅ Real-time Updates
-- [ ] Complete a task in one tab
-- [ ] See the submission appear in submissions page in another tab
-- [ ] Flag a submission and see status update immediately
-
-### ✅ Data Display
-- [ ] User names and social handles display correctly
-- [ ] Submitted URLs are clickable and open in new tab
-- [ ] Timestamps show correct completion/verification times
-- [ ] Status badges show correct colors (pending/verified/flagged)
-
-### ✅ Error Handling
-- [ ] Page shows loading state while fetching missions
-- [ ] Page shows error state if missions fail to load
-- [ ] Page shows empty state if user has no missions
-- [ ] Mutation errors show appropriate user feedback
-
-## Benefits
-
-1. **Real Data Connection**: Submissions page now shows actual task completions
-2. **Unified System**: Uses the same data source as Discover & Earn page
-3. **Real-time Updates**: Changes reflect immediately across all components
-4. **Better UX**: Proper loading states, error handling, and empty states
-5. **Enhanced Display**: Shows more relevant information (URLs, social handles)
-6. **Type Safety**: Updated to use proper TypeScript types
 
 ## Files Modified
+- `apps/web/src/app/missions/my/submissions/page.tsx` - Fixed to use correct hook
+- `apps/web/src/lib/task-completion.ts` - Added orderBy to query
+- `firestore.indexes.json` - Added proper index
+- `apps/web/src/hooks/useMyParticipatedMissions.ts` - Fixed TypeScript error
 
-- `apps/web/src/app/missions/my/submissions/page.tsx` - Main submissions page
-- `MISSION_COMPLETION_SYNC_FIXES.md` - Previous comprehensive fixes
-- `MY_MISSIONS_SUBMISSIONS_FIX.md` - This documentation
+## Verification
+- ✅ Build successful
+- ✅ No TypeScript errors
+- ✅ All collection references consistent
+- ✅ Proper Firestore index added
+- ✅ Changes committed and pushed
 
-## Deployment Notes
-
-1. **No Database Changes**: Uses existing `taskCompletions` collection
-2. **No API Changes**: Uses existing unified hooks and functions
-3. **Backward Compatible**: Works with existing mission and completion data
-4. **Type Safe**: All TypeScript errors resolved
-
----
-
-**Status**: ✅ Fixed and tested
-**Last Updated**: $(date)
-**Issue**: Task completions not showing in My Missions submissions page
-**Solution**: Connected submissions page to real mission data and unified task completion system
+## Next Steps
+1. **Deploy Firestore indexes** to production
+2. **Test the flow**: Create mission → Complete tasks → Check My Missions submissions
+3. **Verify**: All submissions show up for missions you created

@@ -293,6 +293,8 @@ export async function getUserMissionTaskCompletions(
  */
 export async function getMissionTaskCompletions(missionId: string): Promise<TaskCompletion[]> {
     try {
+        console.log('getMissionTaskCompletions: Querying for missionId:', missionId);
+        
         // Query mission_participations collection
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
@@ -301,11 +303,15 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
         );
 
         const querySnapshot = await getDocs(q);
+        console.log('getMissionTaskCompletions: Found', querySnapshot.docs.length, 'participation documents');
+        
         const completions: TaskCompletion[] = [];
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
+            console.log('getMissionTaskCompletions: Processing participation doc:', doc.id, data);
             const tasksCompleted = data.tasks_completed || [];
+            console.log('getMissionTaskCompletions: tasks_completed array:', tasksCompleted);
 
             // Convert each task completion to the new format
             tasksCompleted.forEach((task: any) => {
@@ -346,6 +352,7 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
             });
         });
 
+        console.log('getMissionTaskCompletions: Returning', completions.length, 'completions');
         return completions;
     } catch (error) {
         throw handleFirebaseError(error, 'getMissionTaskCompletions');

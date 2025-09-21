@@ -33,6 +33,10 @@ export default function MissionSubmissionsPage() {
 
     // Get missions the user created (to see all submissions for these missions)
     const { data: missions = [], isLoading: loadingMissions, error: missionsError } = useMyMissions();
+    
+    // Debug logging
+    console.log('My Missions Submissions - missions:', missions);
+    console.log('My Missions Submissions - selectedMission:', selectedMission);
 
     // Use React Query hooks for real-time updates
     const flagTaskCompletionMutation = useFlagTaskCompletion();
@@ -40,9 +44,14 @@ export default function MissionSubmissionsPage() {
 
 
     // Get submissions for selected mission using React Query
-    const { data: submissions = [], isLoading: loadingSubmissions } = useMissionTaskCompletions(
+    const { data: submissions = [], isLoading: loadingSubmissions, error: submissionsError } = useMissionTaskCompletions(
         selectedMission?.id || ''
     );
+    
+    // Debug logging
+    console.log('My Missions Submissions - submissions:', submissions);
+    console.log('My Missions Submissions - loadingSubmissions:', loadingSubmissions);
+    console.log('My Missions Submissions - submissionsError:', submissionsError);
 
     const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
         try {
