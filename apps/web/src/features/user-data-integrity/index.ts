@@ -5,7 +5,8 @@
  * when display names change and to handle UID-based data fetching.
  */
 
-import { useApi } from '../hooks/useApi';
+import { useState, useEffect } from 'react';
+import { useApi } from '../../hooks/useApi';
 
 export interface DataIntegrityVerification {
     verified: boolean;
@@ -308,6 +309,3 @@ export function useUidBasedUserData() {
         refetch: fetchUserData
     };
 }
-
-// Import React hooks
-import { useState, useEffect } from 'react';
