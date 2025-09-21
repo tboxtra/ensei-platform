@@ -283,7 +283,6 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
         if (!user?.id) return;
         try {
             setTaskStates(p => ({ ...p, [taskId]: 'pendingVerify' }));
-            setShowLinkPanel(p => ({ ...p, [taskId]: false }));
 
             await completeTaskMutation.mutateAsync({
                 missionId: mission.id,
@@ -300,8 +299,10 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                 }
             });
 
+            // Set verified state and close panel
             setTaskStates(p => ({ ...p, [taskId]: 'verified' }));
             setSelectedTask(null);
+            setShowLinkPanel(p => ({ ...p, [taskId]: false }));
         } catch (e) {
             setTaskStates(p => ({ ...p, [taskId]: 'intentDone' }));
             console.error('Failed to complete task:', e);
@@ -327,9 +328,10 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                 missionId: mission.id
             });
 
+            // Set verified state and close panel
             setTaskStates(p => ({ ...p, [taskId]: 'verified' }));
-            setShowLinkPanel(p => ({ ...p, [taskId]: false }));
             setSelectedTask(null);
+            setShowLinkPanel(p => ({ ...p, [taskId]: false }));
             setLinkInputs(p => ({ ...p, [taskId]: '' }));
         } catch (e) {
             setTaskStates(p => ({ ...p, [taskId]: 'intentDone' }));
@@ -490,15 +492,14 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                         <div className="bg-gray-800/90 border border-gray-700/50 rounded-lg p-3 space-y-2">
                             {/* Instructions written when the task was created */}
                             {(() => {
-                                const i =
-                                    taskMetaById[selectedTask!]?.instructions ||
-                                    taskMetaById[selectedTask!]?.description ||
-                                    mission?.instructions?.[selectedTask!] ||
-                                    mission?.instructions ||
-                                    '';
-                                return i ? (
-                                    <div className="text-sm text-gray-200 leading-relaxed font-medium bg-gray-700/30 rounded-lg p-3 border border-gray-600/30">
-                                        {i}
+                                const fromMission = mission?.instructions?.[selectedTask!] ?? mission?.instructions;
+                                const fromCatalog = getTasksForMission?.(mission.platform, mission.type)
+                                    ?.find(t => t.id === selectedTask)?.description;
+                                const instructions = fromMission || fromCatalog || '';
+
+                                return instructions ? (
+                                    <div className="text-xs text-gray-300 leading-relaxed">
+                                        {instructions}
                                     </div>
                                 ) : null;
                             })()}
@@ -521,25 +522,25 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
 
                                 {/* Link panel for link-mode tasks */}
                                 {getVerifyMode(selectedTask) === 'link' && (
-                                    <div className="bg-gray-700/40 rounded p-2 space-y-2">
+                                    <div className="space-y-2">
                                         <input
                                             type="text"
                                             placeholder="Paste your comment/quote link…"
                                             value={linkInputs[selectedTask] || ''}
                                             onChange={(e) => setLinkInputs(prev => ({ ...prev, [selectedTask]: e.target.value }))}
-                                            className="w-full px-2 py-1 rounded text-xs bg-gray-800/50 text-white placeholder-gray-400 border border-gray-600/50 focus:border-blue-500/50 focus:outline-none"
+                                            className="w-full px-3 py-1 rounded-full text-xs bg-gray-800/50 text-white placeholder-gray-400 border border-gray-600/50 focus:border-blue-500/50 focus:outline-none"
                                         />
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-2">
                                             <button
                                                 onClick={() => handleLinkSubmit(selectedTask)}
                                                 disabled={!linkInputs[selectedTask] || submitTaskLinkMutation.isPending}
-                                                className="flex-1 px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50"
+                                                className="flex-1 px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 disabled:opacity-50 transition-colors duration-200"
                                             >
-                                                {submitTaskLinkMutation.isPending ? 'Submitting...' : 'Submit'}
+                                                {submitTaskLinkMutation.isPending ? 'Submitting...' : 'Submit Link'}
                                             </button>
                                             <button
                                                 onClick={() => setLinkInputs(prev => ({ ...prev, [selectedTask]: '' }))}
-                                                className="px-2 py-1 rounded text-xs bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30"
+                                                className="px-3 py-1 rounded-full text-xs bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30 transition-colors duration-200"
                                             >
                                                 Clear
                                             </button>

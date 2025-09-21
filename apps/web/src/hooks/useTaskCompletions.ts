@@ -18,6 +18,7 @@ import {
 } from '../lib/task-completion';
 import { handleError, handleFirebaseError } from '../lib/error-handling';
 import { useAuthStore } from '../store/authStore';
+import { useApi } from './useApi';
 import type {
     TaskCompletionInput,
     TaskCompletionUpdate,
@@ -306,11 +307,20 @@ export function useTaskCompletionStatus(
 export function useSubmitTaskLink() {
     const queryClient = useQueryClient();
     const { user: authUser } = useAuthStore();
+    const { getUserProfile } = useApi();
 
     return useMutation({
         mutationFn: async ({ taskId, url, missionId }: { taskId: string; url: string; missionId: string }) => {
             if (!authUser) {
                 throw new Error('User not authenticated');
+            }
+
+            // Get user's actual Twitter username from profile
+            const userProfile = await getUserProfile();
+            const twitterUsername = userProfile?.twitter_handle || userProfile?.twitter || '';
+
+            if (!twitterUsername) {
+                throw new Error('Twitter username not found in profile. Please update your profile with your Twitter handle.');
             }
 
             // Create task completion with the submitted link
@@ -320,11 +330,11 @@ export function useSubmitTaskLink() {
                 userId: authUser.uid,
                 userName: authUser.displayName || authUser.email || 'User',
                 userEmail: authUser.email || undefined,
-                userSocialHandle: authUser.displayName || authUser.email || undefined,
+                userSocialHandle: twitterUsername,
                 metadata: {
                     taskType: taskId,
                     platform: 'twitter',
-                    twitterHandle: authUser.displayName || authUser.email || undefined,
+                    twitterHandle: twitterUsername,
                     tweetUrl: url,
                     userAgent: navigator.userAgent,
                     sessionId: Date.now().toString()
