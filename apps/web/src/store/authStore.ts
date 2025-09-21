@@ -46,19 +46,19 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             isInitialized: false,
 
-      // IMPORTANT: always MERGE patches; never replace the user object
-      setUser: (patch) => {
-        if (patch === null) {
-          // Development guard: warn if setUser(null) is called outside explicit sign-out
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('[AuthStore] setUser(null) called - ensure this is intentional sign-out');
-          }
-          set({ user: null });
-          return;
-        }
-        const current = get().user ?? ({} as AuthUser);
-        set({ user: { ...current, ...patch } as AuthUser });
-      },
+            // IMPORTANT: always MERGE patches; never replace the user object
+            setUser: (patch) => {
+                if (patch === null) {
+                    // Development guard: warn if setUser(null) is called outside explicit sign-out
+                    if (process.env.NODE_ENV === 'development') {
+                        console.warn('[AuthStore] setUser(null) called - ensure this is intentional sign-out');
+                    }
+                    set({ user: null });
+                    return;
+                }
+                const current = get().user ?? ({} as AuthUser);
+                set({ user: { ...current, ...patch } as AuthUser });
+            },
 
             clearUser: () => set({ user: null }),
             setInitialized: (initialized) => set({ isInitialized: initialized }),

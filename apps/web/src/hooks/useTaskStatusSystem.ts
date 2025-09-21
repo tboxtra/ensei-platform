@@ -53,7 +53,7 @@ export function useMissionTaskCompletions(missionId: string) {
 export function useTaskStatusInfo(missionId: string, taskId: string, userId?: string) {
     const { user: authUser } = useAuthStore();
     const uid = userId || authUser?.uid;
-    
+
     return useQuery({
         queryKey: taskStatusKeys.userTask(missionId, taskId, uid!),
         queryFn: () => getTaskStatusInfo(missionId, taskId, uid!),

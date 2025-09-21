@@ -46,7 +46,7 @@ export const taskCompletionKeys = {
 export function useUserMissionTaskCompletions(missionId: string, userId?: string) {
     const { user: authUser } = useAuthStore();
     const uid = userId || authUser?.uid;
-    
+
     return useQuery({
         queryKey: taskCompletionKeys.userMission(missionId, uid!),
         queryFn: () => getUserMissionTaskCompletions(missionId, uid!),
@@ -88,7 +88,7 @@ export function useMissionCompletionStats(missionId: string) {
 export function useUserCompletionStats(userId?: string) {
     const { user: authUser } = useAuthStore();
     const uid = userId || authUser?.uid;
-    
+
     return useQuery({
         queryKey: taskCompletionKeys.userStats(uid!),
         queryFn: () => getUserCompletionStats(uid!),
@@ -110,7 +110,7 @@ export function useCreateTaskCompletion() {
         onSuccess: (data) => {
             const uid = authUser?.uid;
             if (!uid) return;
-            
+
             // Invalidate related queries using stable uid
             queryClient.invalidateQueries({
                 queryKey: taskCompletionKeys.userMission(data.missionId, uid)
