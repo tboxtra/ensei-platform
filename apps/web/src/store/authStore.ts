@@ -38,6 +38,8 @@ type AuthState = {
     clearUser: () => void;
     isInitialized: boolean;
     setInitialized: (initialized: boolean) => void;
+    ready: boolean; // New: proper auth readiness flag
+    setReady: (ready: boolean) => void;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -45,6 +47,7 @@ export const useAuthStore = create<AuthState>()(
         (set, get) => ({
             user: null,
             isInitialized: false,
+            ready: false, // New: proper auth readiness flag
 
             // IMPORTANT: always MERGE patches; never replace the user object
             setUser: (patch) => {
@@ -62,6 +65,7 @@ export const useAuthStore = create<AuthState>()(
 
             clearUser: () => set({ user: null }),
             setInitialized: (initialized) => set({ isInitialized: initialized }),
+            setReady: (ready) => set({ ready }), // New: set auth readiness
         }),
         {
             name: 'ensei-auth',

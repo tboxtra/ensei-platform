@@ -40,6 +40,7 @@ export function useUpdateProfile() {
                     queryClient.invalidateQueries({ queryKey: ['dashboard', authUser.uid] }),
                     queryClient.invalidateQueries({ queryKey: ['quickStats', authUser.uid] }),
                     queryClient.invalidateQueries({ queryKey: ['user-stats', authUser.uid] }),
+                    queryClient.invalidateQueries({ queryKey: ['my-missions', authUser.uid] }),
                 ]);
             }
 

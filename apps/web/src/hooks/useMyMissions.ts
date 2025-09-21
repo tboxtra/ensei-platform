@@ -1,8 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useAuthStore } from '../store/authStore';
+import { useAuthUser } from './useAuthUser';
 import { useApi } from './useApi';
+import { getCurrentToken } from '../lib/auth/token';
 
 /**
  * MY MISSIONS HOOK - STABLE UID-BASED QUERIES
@@ -55,11 +56,10 @@ interface UseMyMissionsReturn {
 }
 
 export function useMyMissions(): UseMyMissionsReturn {
-    const { user: authUser, isInitialized } = useAuthStore();
+    const { user: authUser, ready } = useAuthUser();
     const api = useApi();
 
-    const authReady = isInitialized;
-    const enabled = authReady && !!authUser?.uid;
+    const enabled = ready && !!authUser?.uid;
 
     const query = useQuery<Mission[]>({
         enabled,
@@ -70,8 +70,14 @@ export function useMyMissions(): UseMyMissionsReturn {
             }
 
             console.log('useMyMissions: Fetching missions for user:', authUser.uid);
-
+            
             try {
+                // Get fresh token for API call
+                const token = await getCurrentToken();
+                if (!token) {
+                    throw new Error('No authentication token available');
+                }
+
                 // Get all missions and filter by created_by
                 const allMissions = await api.getMissions();
                 console.log('useMyMissions: Got all missions:', allMissions?.length || 0);
@@ -91,7 +97,7 @@ export function useMyMissions(): UseMyMissionsReturn {
         staleTime: 0, // Always consider data stale
         gcTime: 5 * 60 * 1000, // 5 minutes
         refetchOnWindowFocus: false,
-        retry: 1,
+        retry: 1, // Fail fast; don't spin forever
     });
 
     return {
@@ -99,6 +105,6 @@ export function useMyMissions(): UseMyMissionsReturn {
         isLoading: query.isLoading,
         error: query.error,
         refetch: query.refetch,
-        authReady,
+        authReady: ready,
     };
 }

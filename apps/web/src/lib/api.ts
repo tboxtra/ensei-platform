@@ -17,10 +17,13 @@ export async function apiGet<T>(url: string, token?: string): Promise<T> {
         headers,
         cache: 'no-store', // Critical: never cache API responses
         next: { revalidate: 0 }, // For Next.js app router
+        credentials: 'include',
     });
 
     if (!response.ok) {
-        throw new Error(`GET ${url} failed ${response.status}`);
+        // Bubble up errors so UI can leave loading state
+        const text = await response.text().catch(() => '');
+        throw new Error(`GET ${url} ${response.status} ${response.statusText} :: ${text}`);
     }
 
     return response.json();

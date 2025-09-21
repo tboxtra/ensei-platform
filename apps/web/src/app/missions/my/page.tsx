@@ -10,6 +10,7 @@ import { MissionListItem } from '../../../components/ui/MissionListItem';
 import { FilterBar } from '../../../components/ui/FilterBar';
 import { StatsCard } from '../../../components/ui/StatsCard';
 import { ProtectedRoute } from '../../../components/auth/ProtectedRoute';
+import { Spinner, ErrorBox } from '../../../components/ui/Feedback';
 
 export default function MyMissionsPage() {
     const router = useRouter();
@@ -130,15 +131,34 @@ export default function MyMissionsPage() {
     const totalRewards = (missions || []).reduce((sum, mission) => sum + (mission.total_cost_honors || 0), 0);
     const totalParticipants = (missions || []).reduce((sum, mission) => sum + (mission.participants_count || 0), 0);
 
-    if (!authReady || isLoading) {
+    // Handle auth readiness
+    if (!authReady) {
         return (
             <ModernLayout currentPage="/missions/my">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                        <p className="text-gray-400">Loading your missions...</p>
-                    </div>
-                </div>
+                <Spinner label="Checking session…" />
+            </ModernLayout>
+        );
+    }
+
+    // Handle loading state
+    if (isLoading) {
+        return (
+            <ModernLayout currentPage="/missions/my">
+                <Spinner label="Loading your missions…" />
+            </ModernLayout>
+        );
+    }
+
+    // Handle error state
+    if (error) {
+        return (
+            <ModernLayout currentPage="/missions/my">
+                <ErrorBox
+                    title="Couldn't load your missions"
+                    details={(error as Error).message}
+                    actionLabel="Retry"
+                    onAction={() => refetch()}
+                />
             </ModernLayout>
         );
     }
