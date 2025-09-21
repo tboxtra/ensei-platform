@@ -9,7 +9,7 @@ import {
     serverTimestamp,
     Timestamp
 } from 'firebase/firestore';
-import { getFirebaseFirestore } from './firebase';
+import { getFirebaseFirestore } from '../../lib/firebase';
 
 export interface UserActivityLog {
     id?: string;

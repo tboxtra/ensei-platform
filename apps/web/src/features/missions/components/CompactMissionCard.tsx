@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { EmbeddedContent } from './EmbeddedContent';
+import { EmbeddedContent } from '../../../components/ui/EmbeddedContent';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { getTasksForMission } from '@/lib/taskTypes';
 import { useAuth } from '../../../contexts/UserAuthContext';
