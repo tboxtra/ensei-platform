@@ -223,7 +223,7 @@ export default function MyMissionsPage() {
                                         Create New Mission
                                     </ModernButton>
                                     <ModernButton
-                                        onClick={() => loadMyMissions()}
+                                        onClick={() => refetch()}
                                         variant="secondary"
                                     >
                                         Refresh
@@ -265,7 +265,7 @@ export default function MyMissionsPage() {
                                 <h2 className="text-2xl font-bold text-white mb-4">No Missions Created Yet</h2>
                                 <p className="text-gray-400 mb-6">You haven't created any missions yet. Start by creating your first mission to engage with the community!</p>
                                 <div className="flex gap-4 justify-center">
-                                    <ModernButton onClick={() => loadMyMissions()} variant="secondary">Refresh</ModernButton>
+                                    <ModernButton onClick={() => refetch()} variant="secondary">Refresh</ModernButton>
                                     <ModernButton onClick={() => router.push('/missions/create')} variant="primary">Create Your First Mission</ModernButton>
                                 </div>
                             </ModernCard>
