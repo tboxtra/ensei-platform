@@ -101,6 +101,32 @@ export default function MissionSubmissionsPage() {
         }
     };
 
+    // Helper function to safely format date fields
+    const formatDate = (dateField: any) => {
+        if (!dateField) return 'Unknown';
+        
+        // If it's a Firestore Timestamp, use toDate()
+        if (dateField && typeof dateField.toDate === 'function') {
+            return dateField.toDate().toLocaleString();
+        }
+        
+        // If it's already a Date object
+        if (dateField instanceof Date) {
+            return dateField.toLocaleString();
+        }
+        
+        // If it's a string, try to parse it
+        if (typeof dateField === 'string') {
+            try {
+                return new Date(dateField).toLocaleString();
+            } catch (error) {
+                return 'Invalid Date';
+            }
+        }
+        
+        return 'Unknown';
+    };
+
     // Check if there are any flagged submissions that need attention
     const hasFlaggedSubmissions = missions?.some(mission =>
         (mission as any).completions?.some((completion: TaskCompletion) => completion.status === 'flagged')
@@ -251,14 +277,14 @@ export default function MissionSubmissionsPage() {
                                                     <div>
                                                         <span className="text-gray-500">Completed:</span>
                                                         <span className="ml-2 text-gray-900">
-                                                            {submission.completedAt?.toDate?.()?.toLocaleString() || 'Unknown'}
+                                                            {formatDate(submission.completedAt)}
                                                         </span>
                                                     </div>
                                                     {submission.verifiedAt && (
                                                         <div>
                                                             <span className="text-gray-500">Verified:</span>
                                                             <span className="ml-2 text-gray-900">
-                                                                {submission.verifiedAt?.toDate?.()?.toLocaleString() || 'Unknown'}
+                                                                {formatDate(submission.verifiedAt)}
                                                             </span>
                                                         </div>
                                                     )}
@@ -266,7 +292,7 @@ export default function MissionSubmissionsPage() {
                                                         <div>
                                                             <span className="text-gray-500">Flagged:</span>
                                                             <span className="ml-2 text-gray-900">
-                                                                {submission.flaggedAt?.toDate?.()?.toLocaleString() || 'Unknown'}
+                                                                {formatDate(submission.flaggedAt)}
                                                             </span>
                                                         </div>
                                                     )}
