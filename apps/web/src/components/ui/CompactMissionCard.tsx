@@ -54,6 +54,14 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
         []
     );
 
+    const canDirectVerify = (taskId: string) => {
+        const mode = getVerifyMode(taskId);
+        const status = getTaskStatus(taskId);
+        // direct tasks: enable verify only after the user clicked intent (yellow)
+        if (mode === 'direct') return status === 'intentDone' || status === 'pendingVerify';
+        return false; // link-mode uses the submit panel
+    };
+
     // Build a map of the *latest* completion status per taskId once
     const latestStatusByTaskId = useMemo(() => {
         const map = new Map<string, { status: string; flaggedReason?: string | null; flaggedAt?: Date | null }>();
@@ -490,7 +498,9 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                             <button
                                 onClick={() => handleIntentClick(selectedTask)}
                                 disabled={taskStatus === 'verified'}
-                                className={`w-full px-3 py-2 rounded text-xs ${toneFor(taskStatus === 'verified' ? 'verified' : taskStatus)}`}
+                                className={`w-full px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]
+                            ${toneFor(taskStatus === 'verified' ? 'verified' : taskStatus)}
+                            ${taskStatus === 'verified' ? 'opacity-60 cursor-not-allowed' : ''}`}
                             >
                                 {taskStatus === 'verified' ? 'Verified'
                                     : selectedTask === 'like' ? 'Like on Twitter'
@@ -532,10 +542,21 @@ export function CompactMissionCard({ mission }: CompactMissionCardProps) {
                             {/* Verify */}
                             <button
                                 onClick={() => {
-                                    if (verifyMode === 'direct') handleDirectVerify(selectedTask);
+                                    const mode = getVerifyMode(selectedTask);
+                                    if (mode === 'direct') handleDirectVerify(selectedTask);
+                                    // link-mode is verified by submitting the URL above (kept exactly as before)
                                 }}
-                                disabled={taskStatus === 'verified' || (verifyMode === 'link')}
-                                className={`w-full px-3 py-2 rounded text-xs ${toneFor(taskStatus === 'verified' ? 'verified' : taskStatus)}`}
+                                disabled={
+                                    taskStatus === 'verified' ||
+                                    (getVerifyMode(selectedTask) === 'direct' && !canDirectVerify(selectedTask)) ||
+                                    getVerifyMode(selectedTask) === 'link'
+                                }
+                                className={`w-full px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]
+                            ${toneFor(taskStatus === 'verified' ? 'verified' : taskStatus)}
+                            ${(getVerifyMode(selectedTask) === 'direct' && !canDirectVerify(selectedTask)) ||
+                                        getVerifyMode(selectedTask) === 'link'
+                                        ? 'opacity-60 cursor-not-allowed' : ''
+                                    }`}
                             >
                                 {taskStatus === 'verified' ? 'Verified'
                                     : selectedTask === 'like' ? 'Verify Like'
