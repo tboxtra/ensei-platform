@@ -31,6 +31,26 @@ import type {
     TaskCompletionPagination
 } from '../types/task-completion';
 
+/**
+ * Normalize mission ID to ensure we always use the Firestore document ID
+ */
+export function normalizeMissionId(mission: { id?: string; missionId?: string; tweetId?: string; slug?: string }): string {
+    // Prefer canonical doc id
+    if (mission.id) return mission.id;
+    if (mission.missionId) return mission.missionId; // if caller already passes doc id here
+    throw new Error('Missing mission document id');
+}
+
+/**
+ * Guard rails to ensure missionId is a valid Firestore document ID
+ */
+function validateMissionId(missionId: string): void {
+    if (!/^[A-Za-z0-9_-]{10,}$/.test(missionId)) {
+        // crude check that looks like a Firestore doc id (base28-ish)
+        throw new Error('createTaskCompletion: missionId must be the missions doc id');
+    }
+}
+
 const TASK_COMPLETIONS_COLLECTION = 'mission_participations';
 
 /**
@@ -91,6 +111,9 @@ export async function validateTwitterUrl(url: string, userTwitterHandle: string)
  */
 export async function createTaskCompletion(input: TaskCompletionInput): Promise<TaskCompletion> {
     try {
+        // Validate mission ID is a proper Firestore document ID
+        validateMissionId(input.missionId);
+
         // Check if user is already participating in this mission
         const participationQuery = await getDocs(
             query(
@@ -323,15 +346,19 @@ export async function getUserMissionTaskCompletions(
 /**
  * Get task completions for a specific mission (all users)
  * Reads from mission_participations collection (old system)
+ * Supports legacy mission IDs for backward compatibility
  */
-export async function getMissionTaskCompletions(missionId: string): Promise<TaskCompletion[]> {
+export async function getMissionTaskCompletions(missionDocId: string, legacyIds: string[] = []): Promise<TaskCompletion[]> {
     try {
-        console.log('getMissionTaskCompletions: Querying for missionId:', missionId);
+        console.log('getMissionTaskCompletions: Querying for missionDocId:', missionDocId, 'legacyIds:', legacyIds);
+
+        // Support both current doc ID and legacy IDs (tweetId, slug, etc.)
+        const ids = [missionDocId, ...legacyIds].filter(Boolean).slice(0, 10); // Firestore IN limit
 
         // Query mission_participations collection
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
-            where('mission_id', '==', missionId),
+            where('mission_id', 'in', ids),
             orderBy('updated_at', 'desc')
         );
 
@@ -351,7 +378,7 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
                 const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
                 completions.push({
                     id: `${snap.id}_${task.task_id}`, // Create unique ID
-                    missionId: missionId,
+                    missionId: missionDocId,
                     taskId: task.task_id,
                     userId: data.user_id,
                     userName: data.user_name || 'Unknown User',
@@ -402,7 +429,8 @@ export async function getAllUserTaskCompletions(userId: string): Promise<TaskCom
         // Query mission_participations collection
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
-            where('user_id', '==', userId)
+            where('user_id', '==', userId),
+            orderBy('updated_at', 'desc')
         );
 
         const querySnapshot = await getDocs(q);

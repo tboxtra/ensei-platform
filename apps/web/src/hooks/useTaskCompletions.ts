@@ -84,12 +84,13 @@ export function useUserMissionTaskCompletions(missionId: string, userId?: string
 
 /**
  * Hook to get task completions for a specific mission (all users)
+ * Supports legacy mission IDs for backward compatibility
  */
-export function useMissionTaskCompletions(missionId: string) {
+export function useMissionTaskCompletions(missionDocId: string, legacyIds: string[] = []) {
     return useQuery({
-        queryKey: taskCompletionKeys.mission(missionId),
-        queryFn: () => getMissionTaskCompletions(missionId),
-        enabled: !!missionId,
+        queryKey: taskCompletionKeys.mission(missionDocId),
+        queryFn: () => getMissionTaskCompletions(missionDocId, legacyIds),
+        enabled: !!missionDocId,
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 30, // 30 minutes
     });

@@ -10,6 +10,7 @@ import {
     useSubmitTaskLink,
     toneFor
 } from '../../../hooks/useTaskCompletions';
+import { normalizeMissionId } from '../../../lib/task-completion';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -38,8 +39,11 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
     const [linkErrors, setLinkErrors] = useState<Record<string, string>>({});
     const cardRef = useRef<HTMLDivElement>(null);
 
+    // Normalize mission ID to ensure we use the Firestore document ID
+    const normalizedMissionId = normalizeMissionId(mission);
+
     const { data: taskCompletions = [] } = useUserMissionTaskCompletions(
-        mission.id,
+        normalizedMissionId,
         user?.id || ''
     );
     const completeTaskMutation = useCompleteTask();
@@ -292,7 +296,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
         // Log intent action to Firebase
         try {
-            await logIntentAction(user.id, mission.id, taskId, {
+            await logIntentAction(user.id, normalizedMissionId, taskId, {
                 intentUrl,
                 taskType: taskId,
                 platform: mission.platform
@@ -314,7 +318,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
             // Create task completion with verified status for direct verification
             await completeTaskMutation.mutateAsync({
-                missionId: mission.id,
+                missionId: normalizedMissionId,
                 taskId,
                 userId: user.id,
                 userName: user.name,
@@ -334,7 +338,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
             // Invalidate React Query cache to ensure both Discover & Earn and My Missions reflect Firestore state
             queryClient.invalidateQueries({
-                queryKey: ['taskCompletions', 'mission', mission.id]
+                queryKey: ['taskCompletions', 'mission', normalizedMissionId]
             });
 
             // Show success feedback
@@ -342,7 +346,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
             // Log verify action to Firebase
             try {
-                await logVerifyAction(user.id, mission.id, taskId, {
+                await logVerifyAction(user.id, normalizedMissionId, taskId, {
                     taskType: taskId,
                     platform: mission.platform,
                     verificationMethod: 'direct'
@@ -367,7 +371,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 toast.error('Failed to complete task. Please try again.');
             }
         }
-    }, [user, mission.id, completeTaskMutation, mission.postUrl, mission.url, queryClient]);
+    }, [user, normalizedMissionId, completeTaskMutation, mission.postUrl, mission.url, queryClient]);
 
     const isLikelyUrl = (s: string) =>
         /^https?:\/\//i.test(s) && /twitter\.com|x\.com/i.test(s);
@@ -422,7 +426,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             await submitTaskLinkMutation.mutateAsync({
                 taskId,
                 url: link,
-                missionId: mission.id
+                missionId: normalizedMissionId
             });
 
             // Only set verified state after successful mutation
@@ -432,7 +436,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
             // Invalidate React Query cache to ensure both Discover & Earn and My Missions reflect Firestore state
             queryClient.invalidateQueries({
-                queryKey: ['taskCompletions', 'mission', mission.id]
+                queryKey: ['taskCompletions', 'mission', normalizedMissionId]
             });
 
             // Show success feedback
@@ -440,7 +444,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
             // Log link submit action to Firebase
             try {
-                await logLinkSubmitAction(user.id, mission.id, taskId, link, {
+                await logLinkSubmitAction(user.id, normalizedMissionId, taskId, link, {
                     taskType: taskId,
                     platform: mission.platform,
                     verificationMethod: 'link',
@@ -473,7 +477,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 setLinkErrors(p => ({ ...p, [taskId]: 'Failed to submit link. Please try again.' }));
             }
         }
-    }, [linkInputs, user, mission.id, submitTaskLinkMutation, queryClient]);
+    }, [linkInputs, user, normalizedMissionId, submitTaskLinkMutation, queryClient]);
 
     const handleRedoTask = useCallback(async (taskId: string) => {
         if (!user?.id) return;
@@ -492,7 +496,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
             // Log redo action to Firebase
             try {
-                await logRedoAction(user.id, mission.id, taskId, {
+                await logRedoAction(user.id, normalizedMissionId, taskId, {
                     taskType: taskId,
                     platform: mission.platform,
                     completionId: tc?.id
@@ -503,7 +507,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         } catch (e) {
             console.error('Failed to redo task:', e);
         }
-    }, [user, taskCompletions, redoTaskMutation, mission.id]);
+    }, [user, taskCompletions, redoTaskMutation, normalizedMissionId]);
 
     // UI helpers
     const getModelColor = (model: string) => {
