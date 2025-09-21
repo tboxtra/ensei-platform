@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getFirebaseAuth, sendVerificationEmail } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { getAuthState, clearAuthState, validateAuthState } from '../lib/auth-utils';
+import { useAuthStore, AuthUser } from '../store/authStore';
 import { useUserStore } from '../store/userStore';
 
 export interface User {
@@ -48,9 +49,10 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    // Get store actions
-    const { setUser: setStoreUser, setStats, resetAll } = useUserStore();
+    
+    // Get store actions from the new auth store
+    const { user: storeUser, setUser: setStoreUser, clearUser, isInitialized, setInitialized } = useAuthStore();
+    const { setStats } = useUserStore();
 
     // Fetch user profile and stats in parallel
     const fetchUserProfileAndStats = async (uid: string, token: string) => {
@@ -165,12 +167,28 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                         emailVerified: firebaseUser.emailVerified,
                     };
 
-                    // Update store with user data (merge pattern)
-                    setStoreUser(userData);
+                    // Update store with user data (merge pattern) - preserves existing data
+                    setStoreUser({
+                        uid: firebaseUser.uid,
+                        email: firebaseUser.email,
+                        displayName: firebaseUser.displayName,
+                        photoURL: firebaseUser.photoURL,
+                        firstName: firebaseUser.displayName?.split(' ')[0] || '',
+                        lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+                    });
                     setUser(userData);
-
+                    
                     // Store user data in localStorage for backward compatibility
                     localStorage.setItem('user', JSON.stringify(userData));
+                    
+                    // Debug: log auth state for regression tracking
+                    if (process.env.NODE_ENV === 'development') {
+                        console.debug('[Auth] User authenticated:', {
+                            uid: firebaseUser.uid,
+                            email: firebaseUser.email,
+                            displayName: firebaseUser.displayName
+                        });
+                    }
 
                     // Fetch profile and stats in parallel (don't block auth)
                     fetchUserProfileAndStats(firebaseUser.uid, token).catch(err => {
@@ -186,7 +204,7 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                 // User is signed out - clear everything
                 log('🧹 Firebase confirmed user signed out, clearing state...');
                 clearAuthState();
-                resetAll(); // Clear store
+                clearUser(); // Clear auth store
                 setUser(null);
                 log('✅ User signed out and state cleared');
             }

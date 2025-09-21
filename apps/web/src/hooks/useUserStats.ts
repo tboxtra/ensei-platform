@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './useApi';
 import { useUserStore, UserStats } from '../store/userStore';
+import { useAuthStore } from '../store/authStore';
 
 interface UseUserStatsReturn {
     data: UserStats | null;
@@ -15,18 +16,19 @@ export function useUserStats(): UseUserStatsReturn {
     const api = useApi();
     const queryClient = useQueryClient();
     const { user } = useUserStore();
-
-    const enabled = !!user?.id;
+    const { user: authUser } = useAuthStore();
+    
+    const enabled = !!authUser?.uid;
 
     const query = useQuery<UserStats | null>({
-        queryKey: ['user-stats', user?.id],
+        queryKey: ['user-stats', authUser?.uid],
         queryFn: async (): Promise<UserStats | null> => {
-            if (!user?.id) return null;
+            if (!authUser?.uid) return null;
 
             try {
                 // Fetch missions to calculate stats
                 const allMissions = await api.getMissions();
-                const userId = user.id;
+                const userId = authUser.uid;
 
                 // Calculate missions created
                 const userMissions = Array.isArray(allMissions)
@@ -102,7 +104,7 @@ export function useUserStats(): UseUserStatsReturn {
         isLoading: query.isLoading,
         error: query.error,
         refetch: query.refetch,
-        invalidate: () => queryClient.invalidateQueries({ queryKey: ['user-stats', user?.id] }),
+        invalidate: () => queryClient.invalidateQueries({ queryKey: ['user-stats', authUser?.uid] }),
     };
 }
 

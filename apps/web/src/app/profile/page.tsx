@@ -6,13 +6,13 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
-import { useUserStore } from '../../store/userStore';
+import { useAuthStore } from '../../store/authStore';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function ProfilePage() {
     const router = useRouter();
     const { getCurrentUser, getUserProfile, logout, updateProfile, loading: apiLoading, error: apiError } = useApi();
-    const { user: storeUser, setUser: setStoreUser } = useUserStore();
+    const { user: storeUser, setUser: setStoreUser } = useAuthStore();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -136,21 +136,31 @@ export default function ProfilePage() {
                 twitter: formData.twitter,
                 twitter_handle: formData.twitter,
             };
-
+            
             const updatedUser = await updateProfile(profileData);
-
-            // Update store with only profile fields (merge pattern)
+            
+            // Update store with only profile fields (merge pattern) - preserves uid and other fields
             setStoreUser({
                 firstName: updatedUser.firstName || formData.firstName,
                 lastName: updatedUser.lastName || formData.lastName,
                 email: updatedUser.email || formData.email,
                 twitter: updatedUser.twitter || formData.twitter,
                 twitter_handle: updatedUser.twitter_handle || formData.twitter,
-                updated_at: updatedUser.updated_at || new Date().toISOString(),
+                displayName: updatedUser.displayName || `${formData.firstName} ${formData.lastName}`.trim(),
             });
-
+            
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
+            
+            // Debug: log profile update for regression tracking
+            if (process.env.NODE_ENV === 'development') {
+                console.debug('[Profile] Profile updated (merge pattern):', {
+                    uid: storeUser?.uid,
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    twitter: formData.twitter
+                });
+            }
         } catch (err: any) {
             setError(err.message || 'Failed to save profile');
         } finally {

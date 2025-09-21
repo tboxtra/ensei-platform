@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApi } from '../../hooks/useApi';
 import { useUserStore } from '../../store/userStore';
+import { useAuthStore } from '../../store/authStore';
 
 interface ModernLayoutProps {
     children: React.ReactNode;
@@ -24,14 +25,27 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     });
     const { logout, getMissions } = useApi();
     const { user: storeUser, stats } = useUserStore();
+    const { user: authUser } = useAuthStore();
 
     useEffect(() => {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            setUser(JSON.parse(userData));
+        // Use auth store as primary source, fallback to localStorage
+        if (authUser) {
+            setUser({
+                id: authUser.uid,
+                email: authUser.email || '',
+                name: authUser.displayName || authUser.email || '',
+                firstName: authUser.firstName || '',
+                lastName: authUser.lastName || '',
+                avatar: authUser.photoURL || '',
+            });
+        } else {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                setUser(JSON.parse(userData));
+            }
         }
         setIsLoading(false);
-    }, []);
+    }, [authUser]);
 
     // Use stats from store instead of fetching
     useEffect(() => {
