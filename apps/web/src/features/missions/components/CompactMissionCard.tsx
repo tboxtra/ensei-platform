@@ -5,6 +5,7 @@ import { getTasksForMission } from '@/lib/taskTypes';
 import { useAuth } from '../../../contexts/UserAuthContext';
 import {
     useUserMissionTaskCompletions,
+    useMissionTaskCompletions,
     useCompleteTask,
     useRedoTaskCompletion,
     useSubmitTaskLink,
@@ -12,6 +13,7 @@ import {
 } from '../../../hooks/useTaskCompletions';
 import { normalizeMissionId } from '../../../lib/task-completion';
 import { dateFromAny } from '../../../utils/dates';
+import { ProgressBadge } from '../../../components/common/ProgressBadge';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -47,6 +49,24 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         normalizedMissionId,
         user?.id || ''
     );
+
+    // Get all mission task completions for progress calculation
+    const legacyIds = [
+        mission.tweetUrl,
+        mission.contentLink,
+        mission.tweetLink,
+        mission.link,
+        mission.url,
+        mission.postUrl,
+        mission.username,
+        mission.slug,
+    ].filter((id): id is string => Boolean(id));
+
+    const { data: allCompletions = [] } = useMissionTaskCompletions(
+        normalizedMissionId,
+        legacyIds
+    );
+
     const completeTaskMutation = useCompleteTask();
     const redoTaskMutation = useRedoTaskCompletion();
     const submitTaskLinkMutation = useSubmitTaskLink();
@@ -105,6 +125,21 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         }
         return map;
     }, [taskCompletions]);
+
+    // Calculate progress for the progress badge
+    const progressData = useMemo(() => {
+        // Count completed/verified tasks for the current user
+        const userCompletions = allCompletions.filter(c => c.userId === user?.id);
+        const done = userCompletions.filter(c => 
+            c.status === 'verified'
+        ).length;
+
+        // Count total tasks in the mission
+        const total = Array.isArray(mission.tasks) ? mission.tasks.length : 
+                     Array.isArray(mission.requirements) ? mission.requirements.length : 0;
+
+        return { done, total };
+    }, [allCompletions, user?.id, mission.tasks, mission.requirements]);
 
     const getTaskStatus = useCallback(
         (taskId: string): TaskStatus => {
@@ -579,6 +614,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                 ⚠ Flagged
                             </span>
                         )}
+                        <ProgressBadge done={progressData.done} total={progressData.total} />
                     </div>
                 </div>
             </div>
@@ -694,7 +730,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                 const instructions = fromTaskInstructions || fromTaskMeta || fromMission || '';
 
                                 return instructions ? (
-                                    <div className="bg-gray-700/30 border border-gray-600/30 rounded-lg p-3 text-sm text-gray-300 leading-relaxed">
+                                    <div className="rounded-lg p-3 text-sm text-gray-300 leading-relaxed">
                                         {instructions}
                                     </div>
                                 ) : null;
