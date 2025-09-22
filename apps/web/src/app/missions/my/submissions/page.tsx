@@ -45,14 +45,11 @@ export default function MissionSubmissionsPage() {
 
     // Get submissions for selected mission using React Query
     // Support legacy mission IDs (tweetId, slug, etc.) for backward compatibility
-    const legacyIds: string[] = selectedMission ? [
-        selectedMission.tweetUrl,
-        selectedMission.contentLink,
-        selectedMission.username
-    ].filter((id): id is string => Boolean(id)) : [];
-    
+    const { id, tweetUrl, contentLink, username } = selectedMission ?? {};
+    const legacyIds: string[] = [tweetUrl, contentLink, username].filter((id): id is string => Boolean(id));
+
     const { data: submissions = [], isLoading: loadingSubmissions, error: submissionsError } = useMissionTaskCompletions(
-        selectedMission?.id || '',
+        id || '',
         legacyIds
     );
 

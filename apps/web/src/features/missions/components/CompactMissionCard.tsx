@@ -287,14 +287,21 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
     }, [mission.tasks]);
 
     // Events
-    const handleIntentClick = useCallback(async (taskId: string) => {
+    const handleIntentClick = useCallback(async (taskId: string, e?: React.MouseEvent) => {
+        // Hard stop any default navigation
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         const intentUrl = MissionTwitterIntents.generateIntentUrl(taskId, mission);
         if (!intentUrl || !user?.id) return;
 
+        // IMPORTANT: open the new tab synchronously from the click
         TwitterIntents.openIntent(intentUrl, taskId);
         setTaskStates(prev => ({ ...prev, [taskId]: 'intentDone' }));
 
-        // Log intent action to Firebase
+        // Log intent action to Firebase (after window.open)
         try {
             await logIntentAction(user.id, normalizedMissionId, taskId, {
                 intentUrl,
@@ -304,7 +311,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         } catch (error) {
             console.error('Failed to log intent action:', error);
         }
-    }, [mission, user]);
+    }, [mission, user, normalizedMissionId]);
 
     const handleDirectVerify = useCallback(async (taskId: string) => {
         // Enhanced authentication guard
@@ -337,9 +344,13 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             setTaskStates(p => ({ ...p, [taskId]: 'verified' }));
 
             // Invalidate React Query cache to ensure both Discover & Earn and My Missions reflect Firestore state
-            queryClient.invalidateQueries({
-                queryKey: ['taskCompletions', 'mission', normalizedMissionId]
-            });
+            const keys = [
+                ['taskCompletions', 'mission', normalizedMissionId],
+                ['taskCompletions', 'user', user.id],
+                ['missions', 'my'],
+                ['missions', 'submissions', normalizedMissionId],
+            ];
+            keys.forEach(queryKey => queryClient.invalidateQueries({ queryKey }));
 
             // Show success feedback
             toast.success('Task completed successfully!');
@@ -435,9 +446,13 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             setLinkErrors(p => ({ ...p, [taskId]: '' }));
 
             // Invalidate React Query cache to ensure both Discover & Earn and My Missions reflect Firestore state
-            queryClient.invalidateQueries({
-                queryKey: ['taskCompletions', 'mission', normalizedMissionId]
-            });
+            const keys = [
+                ['taskCompletions', 'mission', normalizedMissionId],
+                ['taskCompletions', 'user', user.id],
+                ['missions', 'my'],
+                ['missions', 'submissions', normalizedMissionId],
+            ];
+            keys.forEach(queryKey => queryClient.invalidateQueries({ queryKey }));
 
             // Show success feedback
             toast.success('Link submitted successfully!');
@@ -610,7 +625,10 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                             return (
                                 <div key={taskId || idx} className="relative">
                                     <button
-                                        onClick={() => {
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
                                             if (taskStatus === 'flagged') { handleRedoTask(taskId); return; }
                                             setSelectedTask(prev => (prev === taskId ? null : taskId));
                                             setShowLinkPanel({});
@@ -672,7 +690,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                             {/* Two buttons always side by side */}
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => handleIntentClick(selectedTask)}
+                                    type="button"
+                                    onClick={(e) => handleIntentClick(selectedTask, e)}
                                     disabled={getTaskStatus(selectedTask) === 'verified'}
                                     className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${getTaskStatus(selectedTask) === 'verified' ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
@@ -686,7 +705,12 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                 </button>
 
                                 <button
-                                    onClick={() => { if (getVerifyMode(selectedTask) === 'direct') handleDirectVerify(selectedTask); }}
+                                    type="button"
+                                    onClick={(e) => { 
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (getVerifyMode(selectedTask) === 'direct') handleDirectVerify(selectedTask); 
+                                    }}
                                     disabled={
                                         getTaskStatus(selectedTask) === 'verified' ||
                                         getVerifyMode(selectedTask) === 'link' ||
@@ -730,7 +754,12 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => handleLinkSubmit(selectedTask)}
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleLinkSubmit(selectedTask);
+                                            }}
                                             disabled={
                                                 Boolean(!linkInputs[selectedTask] ||
                                                     linkInputs[selectedTask] === '' ||
@@ -743,7 +772,10 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                             {submitTaskLinkMutation.isPending ? 'Submitting...' : 'Submit Link'}
                                         </button>
                                         <button
-                                            onClick={() => {
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
                                                 setLinkInputs(prev => ({ ...prev, [selectedTask]: '' }));
                                                 setLinkErrors(prev => ({ ...prev, [selectedTask]: '' }));
                                             }}

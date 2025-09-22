@@ -178,27 +178,26 @@ export class TwitterIntents {
 
     /**
      * Open intent URL in a new window with optimal dimensions
+     * Bulletproof implementation that never navigates the current page
      */
-    static openIntent(url: string, action: string): void {
-        const width = 550;
-        const height = 420;
-        const left = (window.screen.width - width) / 2;
-        const top = (window.screen.height - height) / 2;
+    static openIntent(url: string, _taskId?: string): void {
+        // Open a new tab without giving it access to the opener
+        const win = window.open(url, '_blank', 'noopener,noreferrer');
 
-        const windowFeatures = `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`;
-
-        const popup = window.open(url, `twitter_${action}`, windowFeatures);
-
-        if (popup) {
-            popup.focus();
-
-            // Optional: Listen for popup close to trigger callback
-            const checkClosed = setInterval(() => {
-                if (popup.closed) {
-                    clearInterval(checkClosed);
-                    // You can add a callback here if needed
-                }
-            }, 1000);
+        // If popup blocked, fall back to a hidden anchor click (still no reload)
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            // Prevent any default navigation on this page
+            a.onclick = (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+            };
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
         }
     }
 }

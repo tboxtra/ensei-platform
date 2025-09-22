@@ -54,6 +54,15 @@ function validateMissionId(missionId: string): void {
 const TASK_COMPLETIONS_COLLECTION = 'mission_participations';
 
 /**
+ * Helper to safely convert various timestamp formats to Date
+ */
+const tsToDate = (v: any): Date => {
+    if (v?.toDate?.()) return v.toDate(); // Firestore Timestamp
+    if (typeof v === 'string') return new Date(v); // ISO string
+    return new Date(); // fallback
+};
+
+/**
  * Validate Twitter URL and ensure it belongs to the user
  */
 export async function validateTwitterUrl(url: string, userTwitterHandle: string): Promise<{
@@ -300,7 +309,7 @@ export async function getUserMissionTaskCompletions(
 
             // Convert each task completion to the new format
             tasksCompleted.forEach((task: any) => {
-                const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
+                const taskDate = tsToDate(task.completed_at);
                 completions.push({
                     id: `${doc.id}_${task.task_id}`, // Create unique ID
                     missionId: missionId,
@@ -375,7 +384,7 @@ export async function getMissionTaskCompletions(missionDocId: string, legacyIds:
 
             // Convert each task completion to the new format
             tasksCompleted.forEach((task: any) => {
-                const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
+                const taskDate = tsToDate(task.completed_at);
                 completions.push({
                     id: `${snap.id}_${task.task_id}`, // Create unique ID
                     missionId: missionDocId,
@@ -442,7 +451,7 @@ export async function getAllUserTaskCompletions(userId: string): Promise<TaskCom
 
             // Convert each task completion to the new format
             tasksCompleted.forEach((task: any) => {
-                const taskDate = task.completed_at ? new Date(task.completed_at) : new Date();
+                const taskDate = tsToDate(task.completed_at);
                 completions.push({
                     id: `${snap.id}_${task.task_id}`, // Create unique ID
                     missionId: data.mission_id,
