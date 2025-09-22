@@ -88,7 +88,7 @@ export function useUserMissionTaskCompletions(missionId: string, userId?: string
  * Supports legacy mission IDs for backward compatibility
  */
 export function useMissionTaskCompletions(
-    missionDocId: string, 
+    missionDocId: string,
     legacyIds: string[] = [],
     currentUserId?: string,
     missionOwnerUid?: string

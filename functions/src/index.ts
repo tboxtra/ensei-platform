@@ -2038,6 +2038,72 @@ export const sendCustomVerificationEmail = functions.https.onCall(async (data: a
  * Sync mission progress summary when task completions are updated
  * This creates/updates a lightweight summary document for efficient queries
  */
+// Mission aggregates maintenance
+export const updateMissionAggregates = functions.firestore
+  .document('missions/{missionId}/completions/{completionId}')
+  .onWrite(async (change, context) => {
+    try {
+      const { missionId } = context.params;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+      
+      // Only process verified completions
+      if (after && after.status !== 'verified') return null;
+      if (before && before.status !== 'verified') return null;
+      
+      const taskId = after?.taskId || before?.taskId;
+      if (!taskId) return null;
+      
+      const missionRef = db.collection('missions').doc(missionId);
+      const aggRef = missionRef.collection('aggregates').doc('counters');
+      
+      // Get mission data for winners cap
+      const missionDoc = await missionRef.get();
+      if (!missionDoc.exists) return null;
+      
+      const missionData = missionDoc.data();
+      if (!missionData) {
+        console.log(`Mission ${missionId} has no data, skipping aggregate update`);
+        return null;
+      }
+      const winnersPerTask = missionData.winnersPerTask || null;
+      const taskCount = Array.isArray(missionData.tasks) ? missionData.tasks.length : 0;
+      
+      // Calculate delta
+      const delta = (after && !before) ? 1 : (!after && before) ? -1 : 0;
+      
+      await db.runTransaction(async (tx) => {
+        const aggDoc = await tx.get(aggRef);
+        const agg = aggDoc.exists ? aggDoc.data() : { 
+          taskCounts: {}, 
+          totalCompletions: 0, 
+          winnersPerTask, 
+          taskCount 
+        };
+        
+        if (!agg) {
+          console.error('Failed to get aggregate data');
+          return;
+        }
+        
+        // Update task count
+        agg.taskCounts[taskId] = Math.max(0, (agg.taskCounts[taskId] || 0) + delta);
+        agg.totalCompletions = Math.max(0, agg.totalCompletions + delta);
+        agg.winnersPerTask = winnersPerTask;
+        agg.taskCount = taskCount;
+        agg.updatedAt = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+        
+        tx.set(aggRef, agg, { merge: true });
+      });
+      
+      console.log(`Updated aggregates for mission ${missionId}, task ${taskId}, delta: ${delta}`);
+      return null;
+    } catch (error) {
+      console.error('Error updating mission aggregates:', error);
+      return null;
+    }
+  });
+
 export const syncMissionProgress = functions.firestore
   .document('mission_participations/{participationId}')
   .onWrite(async (change, context) => {

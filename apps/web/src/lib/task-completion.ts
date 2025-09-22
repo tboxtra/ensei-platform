@@ -368,7 +368,7 @@ export async function getUserMissionTaskCompletions(
  * Supports legacy mission IDs for backward compatibility
  */
 export async function getMissionTaskCompletions(
-    missionDocId: string, 
+    missionDocId: string,
     legacyIds: string[] = [],
     currentUserId?: string,
     missionOwnerUid?: string
@@ -381,14 +381,14 @@ export async function getMissionTaskCompletions(
 
         // Build query based on permissions
         const baseFilters = [where('mission_id', 'in', ids)];
-        
+
         // Check if current user is mission owner or admin
         const isMissionOwner = currentUserId && missionOwnerUid && currentUserId === missionOwnerUid;
         const isPrivileged = isMissionOwner; // Add admin check if needed
-        
+
         // 🔐 IMPORTANT: Non-owners must include user_id == currentUserId to satisfy rules
-        const filters = isPrivileged 
-            ? baseFilters 
+        const filters = isPrivileged
+            ? baseFilters
             : [...baseFilters, where('user_id', '==', currentUserId || '__nope__')];
 
         // Query mission_participations collection

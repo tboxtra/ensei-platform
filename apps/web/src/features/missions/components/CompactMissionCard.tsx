@@ -15,6 +15,9 @@ import { normalizeMissionId } from '../../../lib/task-completion';
 import { dateFromAny } from '../utils/dates';
 import { ProgressBadge } from '../../../components/common/ProgressBadge';
 import { getTaskIdFromCompletion, isVerified } from '../utils/tasks';
+import { useMissionAggregates } from '../hooks/useMissionAggregates';
+import { getMissionStatus, getStatusChipProps, isTaskFull } from '../utils/mission-status';
+import type { MissionType } from '../types/mission-aggregates';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -69,6 +72,9 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         user?.id,
         mission.created_by
     );
+
+    // Get mission aggregates for public progress counts
+    const { data: aggregates, isLoading: isLoadingAggregates } = useMissionAggregates(normalizedMissionId);
 
     const completeTaskMutation = useCompleteTask();
     const redoTaskMutation = useRedoTaskCompletion();
@@ -174,8 +180,33 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             });
         }
 
-        return { done: verified.size, total: taskIds.length };
-    }, [allCompletions, user?.id, mission?.id, taskIds]);
+        return { 
+            done: verified.size, 
+            total: taskIds.length,
+            // Add aggregate data for status calculation
+            aggregates: aggregates
+        };
+    }, [allCompletions, user?.id, mission?.id, taskIds, aggregates]);
+
+    // Calculate mission status for status chips
+    const missionStatus = useMemo(() => {
+        if (!aggregates || isLoadingAggregates) return 'in-progress';
+        
+        const missionData: MissionType = {
+            id: mission.id,
+            type: mission.type === 'fixed' ? 'fixed' : 'degen',
+            startAt: new Date(mission.startAt || mission.createdAt),
+            endAt: mission.endAt ? new Date(mission.endAt) : null,
+            maxDurationHours: mission.maxDurationHours,
+            winnersPerTask: mission.winnersPerTask,
+            tasks: taskIds.map(id => ({ id, label: 'Like' as const })),
+            created_by: mission.created_by
+        };
+        
+        return getMissionStatus(new Date(), missionData, aggregates);
+    }, [aggregates, isLoadingAggregates, mission, taskIds]);
+
+    const statusChipProps = getStatusChipProps(missionStatus);
 
     const getTaskStatus = useCallback(
         (taskId: string): TaskStatus => {
@@ -187,6 +218,23 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             return 'idle';
         },
         [taskStates, latestStatusByTaskId]
+    );
+
+    // Check if task is disabled due to winners cap (fixed missions only)
+    const isTaskDisabled = useCallback(
+        (taskId: string): boolean => {
+            if (!aggregates || mission.type !== 'fixed') return false;
+            return isTaskFull(taskId, {
+                id: mission.id,
+                type: 'fixed',
+                startAt: new Date(mission.startAt || mission.createdAt),
+                endAt: mission.endAt ? new Date(mission.endAt) : null,
+                winnersPerTask: mission.winnersPerTask,
+                tasks: taskIds.map(id => ({ id, label: 'Like' as const })),
+                created_by: mission.created_by
+            }, aggregates);
+        },
+        [aggregates, mission, taskIds]
     );
 
     const getCompletionMeta = useCallback(
@@ -637,9 +685,9 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                         </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                        {!isLoadingCompletions && (
+                        {!isLoadingCompletions && !isLoadingAggregates && (
                             <>
-                                {progressData.total > 0 && progressData.done === progressData.total ? (
+                                {missionStatus === 'completed' ? (
                                     <span className="inline-flex items-center rounded-full bg-emerald-600/15 text-emerald-400 px-2 py-0.5 text-xs font-semibold">
                                         ✓ Completed
                                     </span>
@@ -796,16 +844,17 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                         e.nativeEvent?.stopImmediatePropagation?.();
                                         handleIntentClick(selectedTask!);
                                     }}
-                                    disabled={getTaskStatus(selectedTask) === 'verified'}
-                                    className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${getTaskStatus(selectedTask) === 'verified' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    disabled={getTaskStatus(selectedTask) === 'verified' || isTaskDisabled(selectedTask!)}
+                                    className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${(getTaskStatus(selectedTask) === 'verified' || isTaskDisabled(selectedTask!)) ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
                                     {getTaskStatus(selectedTask) === 'verified' ? 'Verified'
-                                        : selectedTask === 'like' ? 'Like on Twitter'
-                                            : selectedTask === 'retweet' ? 'Retweet on Twitter'
-                                                : selectedTask === 'follow' ? 'Follow on Twitter'
-                                                    : selectedTask === 'comment' ? 'Comment on Twitter'
-                                                        : selectedTask === 'quote' ? 'Quote on Twitter'
-                                                            : 'Open Twitter'}
+                                        : isTaskDisabled(selectedTask!) ? 'Task Full'
+                                            : selectedTask === 'like' ? 'Like on Twitter'
+                                                : selectedTask === 'retweet' ? 'Retweet on Twitter'
+                                                    : selectedTask === 'follow' ? 'Follow on Twitter'
+                                                        : selectedTask === 'comment' ? 'Comment on Twitter'
+                                                            : selectedTask === 'quote' ? 'Quote on Twitter'
+                                                                : 'Open Twitter'}
                                 </button>
 
                                 <button
@@ -907,28 +956,25 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             {/* Footer / progress */}
             <div className="px-3 pb-3">
                 <div className="flex items-center space-x-2">
-                    {!isLoadingCompletions && progressData.total > 0 && progressData.done === progressData.total ? (
+                    {!isLoadingCompletions && !isLoadingAggregates ? (
                         <>
-                            <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                            <span className="text-sm text-emerald-400">Completed</span>
+                            <div className={`w-2 h-2 rounded-full ${
+                                missionStatus === 'completed' ? 'bg-emerald-400' :
+                                missionStatus === 'almost-ending' ? 'bg-amber-400 animate-pulse' :
+                                'bg-gray-400 animate-pulse'
+                            }`}></div>
+                            <span className={`text-sm ${
+                                missionStatus === 'completed' ? 'text-emerald-400' :
+                                missionStatus === 'almost-ending' ? 'text-amber-400' :
+                                'text-gray-400'
+                            }`}>
+                                {statusChipProps.label}
+                            </span>
                         </>
                     ) : (
                         <>
                             <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                            <span className="text-sm text-gray-400">
-                                {(() => {
-                                    const current = mission.participants_count || mission.participants || 0;
-                                    const max =
-                                        mission.max_participants ||
-                                        mission.cap ||
-                                        mission.winnersCap ||
-                                        mission.participants_needed ||
-                                        mission.target_participants ||
-                                        1;
-                                    const pct = (current / max) * 100;
-                                    return pct >= 80 ? 'Almost Ending' : 'In Progress';
-                                })()}
-                            </span>
+                            <span className="text-sm text-gray-400">Loading...</span>
                         </>
                     )}
                 </div>

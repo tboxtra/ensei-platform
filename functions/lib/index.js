@@ -26,7 +26,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.syncMissionProgress = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.api = void 0;
+exports.syncMissionProgress = exports.updateMissionAggregates = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.api = void 0;
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
 // User data integrity utilities
@@ -1744,6 +1744,65 @@ exports.sendCustomVerificationEmail = functions.https.onCall(async (data, contex
  * Sync mission progress summary when task completions are updated
  * This creates/updates a lightweight summary document for efficient queries
  */
+// Mission aggregates maintenance
+exports.updateMissionAggregates = functions.firestore
+    .document('missions/{missionId}/completions/{completionId}')
+    .onWrite(async (change, context) => {
+    try {
+        const { missionId } = context.params;
+        const before = change.before.exists ? change.before.data() : null;
+        const after = change.after.exists ? change.after.data() : null;
+        // Only process verified completions
+        if (after && after.status !== 'verified')
+            return null;
+        if (before && before.status !== 'verified')
+            return null;
+        const taskId = (after === null || after === void 0 ? void 0 : after.taskId) || (before === null || before === void 0 ? void 0 : before.taskId);
+        if (!taskId)
+            return null;
+        const missionRef = db.collection('missions').doc(missionId);
+        const aggRef = missionRef.collection('aggregates').doc('counters');
+        // Get mission data for winners cap
+        const missionDoc = await missionRef.get();
+        if (!missionDoc.exists)
+            return null;
+        const missionData = missionDoc.data();
+        if (!missionData) {
+            console.log(`Mission ${missionId} has no data, skipping aggregate update`);
+            return null;
+        }
+        const winnersPerTask = missionData.winnersPerTask || null;
+        const taskCount = Array.isArray(missionData.tasks) ? missionData.tasks.length : 0;
+        // Calculate delta
+        const delta = (after && !before) ? 1 : (!after && before) ? -1 : 0;
+        await db.runTransaction(async (tx) => {
+            const aggDoc = await tx.get(aggRef);
+            const agg = aggDoc.exists ? aggDoc.data() : {
+                taskCounts: {},
+                totalCompletions: 0,
+                winnersPerTask,
+                taskCount
+            };
+            if (!agg) {
+                console.error('Failed to get aggregate data');
+                return;
+            }
+            // Update task count
+            agg.taskCounts[taskId] = Math.max(0, (agg.taskCounts[taskId] || 0) + delta);
+            agg.totalCompletions = Math.max(0, agg.totalCompletions + delta);
+            agg.winnersPerTask = winnersPerTask;
+            agg.taskCount = taskCount;
+            agg.updatedAt = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+            tx.set(aggRef, agg, { merge: true });
+        });
+        console.log(`Updated aggregates for mission ${missionId}, task ${taskId}, delta: ${delta}`);
+        return null;
+    }
+    catch (error) {
+        console.error('Error updating mission aggregates:', error);
+        return null;
+    }
+});
 exports.syncMissionProgress = functions.firestore
     .document('mission_participations/{participationId}')
     .onWrite(async (change, context) => {
