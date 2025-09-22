@@ -65,7 +65,9 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
     const { data: allCompletions = [], isLoading: isLoadingCompletions } = useMissionTaskCompletions(
         normalizedMissionId,
-        legacyIds
+        legacyIds,
+        user?.id,
+        mission.created_by
     );
 
     const completeTaskMutation = useCompleteTask();
@@ -152,10 +154,10 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         for (const c of allCompletions) {
             // must be this user + this mission
             if (c.userId !== user.id || c.missionId !== mission.id) continue;
-            
+
             // must be verified
             if ((c.status ?? '').toLowerCase() !== 'verified') continue;
-            
+
             // normalize task id and ensure it belongs to this mission's tasks
             const tid = norm(getTaskIdFromCompletion(c));
             if (tid && whitelist.has(tid)) verified.add(tid);
@@ -636,16 +638,19 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                     </div>
                     <div className="flex items-center space-x-1">
                         {!isLoadingCompletions && (
-                            <ProgressBadge done={progressData.done} total={progressData.total} />
+                            <>
+                                {progressData.total > 0 && progressData.done === progressData.total ? (
+                                    <span className="inline-flex items-center rounded-full bg-emerald-600/15 text-emerald-400 px-2 py-0.5 text-xs font-semibold">
+                                        ✓ Completed
+                                    </span>
+                                ) : (
+                                    <ProgressBadge done={progressData.done} total={progressData.total} />
+                                )}
+                            </>
                         )}
                         <span className={`px-2 py-1 rounded-full text-xs ${getModelColor(mission.model)} shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]`}>
                             {mission.model}
                         </span>
-                        {userCompletion && userCompletion.status === 'verified' && (
-                            <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]">
-                                ✓ Completed
-                            </span>
-                        )}
                         {userCompletion && userCompletion.status === 'flagged' && (
                             <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]">
                                 ⚠ Flagged
@@ -756,7 +761,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
                 return (
                     <div className="px-3 pb-3">
-                        <div className="bg-gray-800/90 border border-gray-700/50 rounded-lg p-3 space-y-2">
+                        <div className="p-3 space-y-2">
                             {/* Instructions written when the task was created */}
                             {(() => {
                                 // Priority: 1) mission.taskInstructions?.[taskId], 2) taskMetaById[taskId]?.instructions, 3) mission.instructions
@@ -902,21 +907,30 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             {/* Footer / progress */}
             <div className="px-3 pb-3">
                 <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm text-gray-400">
-                        {(() => {
-                            const current = mission.participants_count || mission.participants || 0;
-                            const max =
-                                mission.max_participants ||
-                                mission.cap ||
-                                mission.winnersCap ||
-                                mission.participants_needed ||
-                                mission.target_participants ||
-                                1;
-                            const pct = (current / max) * 100;
-                            return pct >= 80 ? 'Almost Ending' : 'In Progress';
-                        })()}
-                    </span>
+                    {!isLoadingCompletions && progressData.total > 0 && progressData.done === progressData.total ? (
+                        <>
+                            <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                            <span className="text-sm text-emerald-400">Completed</span>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                            <span className="text-sm text-gray-400">
+                                {(() => {
+                                    const current = mission.participants_count || mission.participants || 0;
+                                    const max =
+                                        mission.max_participants ||
+                                        mission.cap ||
+                                        mission.winnersCap ||
+                                        mission.participants_needed ||
+                                        mission.target_participants ||
+                                        1;
+                                    const pct = (current / max) * 100;
+                                    return pct >= 80 ? 'Almost Ending' : 'In Progress';
+                                })()}
+                            </span>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

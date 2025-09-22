@@ -367,17 +367,34 @@ export async function getUserMissionTaskCompletions(
  * Reads from mission_participations collection (old system)
  * Supports legacy mission IDs for backward compatibility
  */
-export async function getMissionTaskCompletions(missionDocId: string, legacyIds: string[] = []): Promise<TaskCompletion[]> {
+export async function getMissionTaskCompletions(
+    missionDocId: string, 
+    legacyIds: string[] = [],
+    currentUserId?: string,
+    missionOwnerUid?: string
+): Promise<TaskCompletion[]> {
     try {
         console.log('getMissionTaskCompletions: Querying for missionDocId:', missionDocId, 'legacyIds:', legacyIds);
 
         // Support both current doc ID and legacy IDs (tweetId, slug, etc.)
         const ids = [missionDocId, ...legacyIds].filter(Boolean).slice(0, 10); // Firestore IN limit
 
+        // Build query based on permissions
+        const baseFilters = [where('mission_id', 'in', ids)];
+        
+        // Check if current user is mission owner or admin
+        const isMissionOwner = currentUserId && missionOwnerUid && currentUserId === missionOwnerUid;
+        const isPrivileged = isMissionOwner; // Add admin check if needed
+        
+        // 🔐 IMPORTANT: Non-owners must include user_id == currentUserId to satisfy rules
+        const filters = isPrivileged 
+            ? baseFilters 
+            : [...baseFilters, where('user_id', '==', currentUserId || '__nope__')];
+
         // Query mission_participations collection
         const q = query(
             collection(db, TASK_COMPLETIONS_COLLECTION),
-            where('mission_id', 'in', ids),
+            ...filters,
             orderBy('updated_at', 'desc')
         );
 
