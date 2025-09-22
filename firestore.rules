@@ -5,6 +5,16 @@ service cloud.firestore {
     function isValidUid(uid) {
       return uid is string && uid.size() == 28 && uid.matches('[a-zA-Z0-9]{28}');
     }
+    
+    // Helper: read a user's role
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Helper: mission owner check
+    function isMissionOwner(missionId) {
+      return get(/databases/$(database)/documents/missions/$(missionId)).data.created_by == request.auth.uid;
+    }
     // Users can read/write their own data
     match /users/{userId} {
       allow read, write: if request.auth != null && 
@@ -31,25 +41,26 @@ service cloud.firestore {
     
     // Mission participations - users can join missions and update their own records
     match /mission_participations/{participationId} {
-      allow read: if request.auth != null && 
-        (resource.data.user_id == request.auth.uid || 
-         request.auth.token.role == 'admin' || request.auth.token.role == 'moderator' ||
-         // Allow mission creators to read all submissions for their missions
-         (resource.data.mission_id != null && 
-          exists(/databases/$(database)/documents/missions/$(resource.data.mission_id)) &&
-          get(/databases/$(database)/documents/missions/$(resource.data.mission_id)).data.created_by == request.auth.uid));
-      
-      // Create: allow users to create their own participation records
+      // Writers: the signed-in submitter can create/update their own doc
       allow create: if request.auth != null && 
         request.auth.uid == request.resource.data.user_id &&
         request.resource.data.mission_id is string &&
         request.resource.data.user_id is string &&
         request.resource.data.status in ['active', 'completed', 'cancelled'];
-      
-      // Update: allow users to update their own participation records (e.g., add tasks_completed)
+
       allow update: if request.auth != null && 
         (resource.data.user_id == request.auth.uid || 
          request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
+      
+      // Readers:
+      // - submitter can read their own
+      // - mission owner can read all submissions for their mission
+      // - admins/moderators can read any
+      allow get, list: if request.auth != null && (
+          resource.data.user_id == request.auth.uid ||
+          isMissionOwner(resource.data.mission_id) ||
+          userRole() in ['admin', 'moderator']
+      );
       
       // Delete: deny for security
       allow delete: if false;

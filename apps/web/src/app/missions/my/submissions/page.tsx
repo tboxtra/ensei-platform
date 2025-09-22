@@ -16,7 +16,12 @@ interface Mission {
     description: string;
     tweetUrl?: string;
     contentLink?: string;
+    tweetLink?: string;
+    link?: string;
+    url?: string;
+    postUrl?: string;
     username?: string;
+    slug?: string;
     creator?: string;
     created_by?: string;
     created_at?: string;
@@ -45,8 +50,21 @@ export default function MissionSubmissionsPage() {
 
     // Get submissions for selected mission using React Query
     // Support legacy mission IDs (tweetId, slug, etc.) for backward compatibility
-    const { id, tweetUrl, contentLink, username } = selectedMission ?? {};
-    const legacyIds: string[] = [tweetUrl, contentLink, username].filter((id): id is string => Boolean(id));
+    const {
+        id,
+        tweetUrl,
+        contentLink,
+        tweetLink,
+        link,
+        url,
+        postUrl,
+        username,
+        slug,
+    } = selectedMission ?? {};
+
+    const legacyIds = [
+        tweetUrl, contentLink, tweetLink, link, url, postUrl, username, slug
+    ].filter((s): s is string => Boolean(s));
 
     const { data: submissions = [], isLoading: loadingSubmissions, error: submissionsError } = useMissionTaskCompletions(
         id || '',
