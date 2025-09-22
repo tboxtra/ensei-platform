@@ -308,8 +308,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 taskType: taskId,
                 platform: mission.platform
             });
-        } catch (error) {
-            console.error('Failed to log intent action:', error);
+        } catch (err) {
+            console.warn('logIntentAction failed (non-blocking)', err);
         }
     }, [mission, user, normalizedMissionId]);
 
@@ -362,8 +362,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                     platform: mission.platform,
                     verificationMethod: 'direct'
                 });
-            } catch (error) {
-                console.error('Failed to log verify action:', error);
+            } catch (err) {
+                console.warn('logVerifyAction failed (non-blocking)', err);
             }
         } catch (e: any) {
             // Revert to previous state on error
@@ -465,8 +465,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                     verificationMethod: 'link',
                     extractedHandle: extractHandleFromUrl(link)
                 });
-            } catch (error) {
-                console.error('Failed to log link submit action:', error);
+            } catch (err) {
+                console.warn('logLinkSubmitAction failed (non-blocking)', err);
             }
         } catch (e: any) {
             // Revert to previous state on error
@@ -516,8 +516,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                     platform: mission.platform,
                     completionId: tc?.id
                 });
-            } catch (error) {
-                console.error('Failed to log redo action:', error);
+            } catch (err) {
+                console.warn('logRedoAction failed (non-blocking)', err);
             }
         } catch (e) {
             console.error('Failed to redo task:', e);
@@ -538,6 +538,18 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
     return (
         <div
             ref={cardRef}
+            onClick={(e) => {
+                // if the click originated from an intent button, do nothing
+                if ((e.target as HTMLElement)?.closest?.('[data-intent-button]')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // @ts-ignore
+                    e.nativeEvent?.stopImmediatePropagation?.();
+                    return;
+                }
+                // otherwise run the original behavior (open details, etc.)
+                // onViewDetails?.(normalizedMissionId)
+            }}
             className="bg-gray-800/60 backdrop-blur-lg rounded-xl transition-all duration-300 group overflow-hidden shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)] hover:shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.08)] hover:bg-gray-800/70"
         >
             {/* Header */}
@@ -690,8 +702,21 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                             {/* Two buttons always side by side */}
                             <div className="flex items-center gap-2">
                                 <button
+                                    data-intent-button
                                     type="button"
-                                    onClick={(e) => handleIntentClick(selectedTask, e)}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        // @ts-ignore
+                                        e.nativeEvent?.stopImmediatePropagation?.();
+                                    }}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        // @ts-ignore
+                                        e.nativeEvent?.stopImmediatePropagation?.();
+                                        handleIntentClick(selectedTask!);
+                                    }}
                                     disabled={getTaskStatus(selectedTask) === 'verified'}
                                     className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${getTaskStatus(selectedTask) === 'verified' ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
@@ -705,10 +730,19 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                 </button>
 
                                 <button
+                                    data-intent-button
                                     type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        // @ts-ignore
+                                        e.nativeEvent?.stopImmediatePropagation?.();
+                                    }}
                                     onClick={(e) => { 
                                         e.preventDefault();
                                         e.stopPropagation();
+                                        // @ts-ignore
+                                        e.nativeEvent?.stopImmediatePropagation?.();
                                         if (getVerifyMode(selectedTask) === 'direct') handleDirectVerify(selectedTask); 
                                     }}
                                     disabled={

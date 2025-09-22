@@ -181,24 +181,8 @@ export class TwitterIntents {
      * Bulletproof implementation that never navigates the current page
      */
     static openIntent(url: string, _taskId?: string): void {
-        // Open a new tab without giving it access to the opener
-        const win = window.open(url, '_blank', 'noopener,noreferrer');
-
-        // If popup blocked, fall back to a hidden anchor click (still no reload)
-        if (!win || win.closed || typeof win.closed === 'undefined') {
-            const a = document.createElement('a');
-            a.href = url;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            // Prevent any default navigation on this page
-            a.onclick = (e) => { 
-                e.preventDefault(); 
-                e.stopPropagation(); 
-            };
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        }
+        // never assign to location – only new tab
+        window.open(url, '_blank', 'noopener,noreferrer');
     }
 }
 

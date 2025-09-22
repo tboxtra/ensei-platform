@@ -489,8 +489,14 @@ export async function getAllUserTaskCompletions(userId: string): Promise<TaskCom
         });
 
         return completions;
-    } catch (error) {
-        throw handleFirebaseError(error, 'getAllUserTaskCompletions');
+    } catch (err: any) {
+        // show toast but don't throw into React tree
+        if (err?.code === 'failed-precondition') {
+            console.warn('getAllUserTaskCompletions: Operation not allowed', err);
+            return []; // fail soft
+        }
+        console.warn('getAllUserTaskCompletions failed (non-blocking)', err);
+        return [];
     }
 }
 
