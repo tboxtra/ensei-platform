@@ -738,12 +738,12 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                         // @ts-ignore
                                         e.nativeEvent?.stopImmediatePropagation?.();
                                     }}
-                                    onClick={(e) => { 
+                                    onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                         // @ts-ignore
                                         e.nativeEvent?.stopImmediatePropagation?.();
-                                        if (getVerifyMode(selectedTask) === 'direct') handleDirectVerify(selectedTask); 
+                                        if (getVerifyMode(selectedTask) === 'direct') handleDirectVerify(selectedTask);
                                     }}
                                     disabled={
                                         getTaskStatus(selectedTask) === 'verified' ||

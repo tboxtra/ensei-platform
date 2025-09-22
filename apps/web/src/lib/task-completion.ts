@@ -137,7 +137,7 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
 
         if (participationQuery.empty) {
             // Create new participation with required fields
-            const now = serverTimestamp();
+            const nowServer = serverTimestamp(); // top-level only
             const newParticipation = {
                 mission_id: input.missionId,
                 user_id: input.userId,
@@ -146,12 +146,12 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
                 user_social_handle: input.userSocialHandle || null,
                 platform: input.metadata?.platform || 'twitter',
                 status: 'active',
-                joined_at: now,
+                joined_at: nowServer,
                 tasks_completed: [],
                 total_honors_earned: 0,
                 // Required fields for standardized structure
-                created_at: now,
-                updated_at: now
+                created_at: nowServer,   // top-level OK
+                updated_at: nowServer    // top-level OK
             };
 
             const participationRef = await addDoc(collection(db, TASK_COMPLETIONS_COLLECTION), newParticipation);
@@ -164,12 +164,13 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
             participationData = snap.data();
         }
 
-        // Create task completion with required fields
-        const now = serverTimestamp();
+        // IMPORTANT: array-safe timestamps must be client-side
+        const nowClient = Timestamp.now();
+
         const taskCompletion = {
             task_id: input.taskId,
             action_id: input.metadata?.verificationMethod || 'direct',
-            completed_at: now,
+            completed_at: nowClient, // array-safe
             verification_data: {
                 url: input.metadata?.tweetUrl || null,
                 userAgent: input.metadata?.userAgent || null,
@@ -184,8 +185,8 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
             user_id: input.userId,
             verificationMethod: input.metadata?.verificationMethod || 'direct',
             url: input.metadata?.tweetUrl || null,
-            created_at: now,
-            updated_at: now
+            created_at: nowClient, // array-safe
+            updated_at: nowClient  // array-safe
         };
 
         // Update participation with new task completion
@@ -199,14 +200,14 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
 
         tasksCompleted.push(taskCompletion);
 
-        // Update the participation document
+        // top-level updated_at can still be serverTimestamp()
         await updateDoc(doc(db, TASK_COMPLETIONS_COLLECTION, participationId), {
             tasks_completed: tasksCompleted,
             updated_at: serverTimestamp()
         });
 
-        // Return in the new format for compatibility
-        const returnDate = new Date();
+        // return shape:
+        const returnNow = Timestamp.now();
         return {
             id: `${participationId}_${input.taskId}`,
             missionId: input.missionId,
@@ -215,18 +216,14 @@ export async function createTaskCompletion(input: TaskCompletionInput): Promise<
             userName: input.userName,
             userEmail: input.userEmail,
             userSocialHandle: input.userSocialHandle,
-            status: 'verified', // All completions are verified in the old system
-            completedAt: Timestamp.fromDate(returnDate),
-            verifiedAt: Timestamp.fromDate(returnDate),
-            flaggedAt: undefined,
-            flaggedReason: undefined,
+            status: 'verified',
+            completedAt: returnNow,
+            verifiedAt: returnNow,
             url: taskCompletion.verification_data.url,
             platform: participationData.platform || 'twitter',
             twitterHandle: input.userSocialHandle,
-            reviewerId: undefined,
-            metadata: input.metadata,
-            createdAt: Timestamp.fromDate(returnDate),
-            updatedAt: Timestamp.fromDate(returnDate)
+            createdAt: returnNow,
+            updatedAt: returnNow
         } as TaskCompletion;
     } catch (error) {
         throw handleFirebaseError(error, 'createTaskCompletion');
@@ -267,17 +264,29 @@ export async function updateTaskCompletion(
             throw new Error('Task completion not found');
         }
 
+        // array-safe timestamp substitution
+        const nowClient = Timestamp.now();
+        const arraySafeUpdate: any = { ...update };
+
+        // Normalize known timestamp fields that might be set by callers
+        if ('updatedAt' in arraySafeUpdate) arraySafeUpdate.updatedAt = nowClient;
+        if ('verifiedAt' in arraySafeUpdate) arraySafeUpdate.verifiedAt = nowClient;
+        if ('flaggedAt' in arraySafeUpdate) arraySafeUpdate.flaggedAt = nowClient;
+
+        // Some callers might send Firestore serverTimestamp() directly in `update`;
+        // ensure any nested timestamp-like fields in the array element become client timestamps.
+        arraySafeUpdate.updated_at = nowClient;
+
         // Update the task completion
         tasksCompleted[taskIndex] = {
             ...tasksCompleted[taskIndex],
-            ...update,
-            updated_at: serverTimestamp()
+            ...arraySafeUpdate
         };
 
         // Update the participation document
         await updateDoc(participationRef, {
             tasks_completed: tasksCompleted,
-            updated_at: serverTimestamp()
+            updated_at: serverTimestamp() // top-level OK
         });
     } catch (error) {
         throw handleFirebaseError(error, 'updateTaskCompletion');
@@ -534,11 +543,12 @@ export async function verifyTaskCompletion(
     completionId: string,
     reviewedBy: string
 ): Promise<void> {
+    const now = Timestamp.now();
     await updateTaskCompletion(completionId, {
         status: 'verified',
         reviewerId: reviewedBy,
-        verifiedAt: serverTimestamp() as Timestamp,
-        updatedAt: serverTimestamp() as Timestamp
+        verifiedAt: now,
+        updatedAt: now
     });
 }
 
@@ -550,12 +560,13 @@ export async function flagTaskCompletion(
     flaggedReason: string,
     reviewedBy: string
 ): Promise<void> {
+    const now = Timestamp.now();
     await updateTaskCompletion(completionId, {
         status: 'flagged',
         flaggedReason,
         reviewerId: reviewedBy,
-        flaggedAt: serverTimestamp() as Timestamp,
-        updatedAt: serverTimestamp() as Timestamp
+        flaggedAt: now,
+        updatedAt: now
     });
 }
 
@@ -566,12 +577,13 @@ export async function unflagTaskCompletion(
     completionId: string,
     reviewedBy: string
 ): Promise<void> {
+    const now = Timestamp.now();
     await updateTaskCompletion(completionId, {
         status: 'pending',
         flaggedReason: undefined,
         reviewerId: reviewedBy,
         flaggedAt: undefined,
-        updatedAt: serverTimestamp() as Timestamp
+        updatedAt: now
     });
 }
 
