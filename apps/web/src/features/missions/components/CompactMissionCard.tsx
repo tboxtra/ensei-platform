@@ -14,6 +14,7 @@ import {
 import { normalizeMissionId } from '../../../lib/task-completion';
 import { dateFromAny } from '../../../utils/dates';
 import { ProgressBadge } from '../../../components/common/ProgressBadge';
+import { getTaskIdFromCompletion, isVerified } from '../../../utils/tasks';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -128,18 +129,39 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
     // Calculate progress for the progress badge
     const progressData = useMemo(() => {
-        // Count completed/verified tasks for the current user
-        const userCompletions = allCompletions.filter(c => c.userId === user?.id);
-        const done = userCompletions.filter(c =>
-            c.status === 'verified'
-        ).length;
+        // Normalize task IDs from mission
+        const taskIds: string[] = Array.isArray(mission?.tasks)
+            ? mission.tasks.map((t: any) => t.id || t)
+            : Array.isArray(mission?.requirements)
+            ? mission.requirements.map((r: any) => r.id || r)
+            : [];
 
-        // Count total tasks in the mission
-        const total = Array.isArray(mission.tasks) ? mission.tasks.length :
-            Array.isArray(mission.requirements) ? mission.requirements.length : 0;
+        const total = taskIds.length;
 
+        if (!user?.id || !mission?.id || !total) {
+            return { done: 0, total };
+        }
+
+        const taskIdSet = new Set<string>(taskIds); // whitelist only tasks on this card
+        const verifiedTaskIds = new Set<string>();
+
+        for (const c of allCompletions) {
+            // must be this user + this mission
+            const uid = c.userId;
+            const mid = c.missionId;
+            if (uid !== user.id || mid !== mission.id) continue;
+
+            // must be verified
+            if (!isVerified(c)) continue;
+
+            // normalize task id and ensure it belongs to this mission's tasks
+            const tid = getTaskIdFromCompletion(c);
+            if (tid && taskIdSet.has(tid)) verifiedTaskIds.add(tid);
+        }
+
+        const done = verifiedTaskIds.size; // distinct verified tasks
         return { done, total };
-    }, [allCompletions, user?.id, mission.tasks, mission.requirements]);
+    }, [allCompletions, user?.id, mission?.id, mission.tasks, mission.requirements]);
 
     const getTaskStatus = useCallback(
         (taskId: string): TaskStatus => {
