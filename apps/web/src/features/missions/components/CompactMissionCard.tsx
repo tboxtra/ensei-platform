@@ -180,8 +180,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             });
         }
 
-        return { 
-            done: verified.size, 
+        return {
+            done: verified.size,
             total: taskIds.length,
             // Add aggregate data for status calculation
             aggregates: aggregates
@@ -191,7 +191,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
     // Calculate mission status for status chips
     const missionStatus = useMemo(() => {
         if (!aggregates || isLoadingAggregates) return 'in-progress';
-        
+
         const missionData: MissionType = {
             id: mission.id,
             type: mission.type === 'fixed' ? 'fixed' : 'degen',
@@ -202,7 +202,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             tasks: taskIds.map(id => ({ id, label: 'Like' as const })),
             created_by: mission.created_by
         };
-        
+
         return getMissionStatus(new Date(), missionData, aggregates);
     }, [aggregates, isLoadingAggregates, mission, taskIds]);
 
@@ -684,17 +684,21 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                             {getPlatformName(mission.platform)} {mission.type} mission
                         </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                        {!isLoadingCompletions && !isLoadingAggregates && (
+                    <div className="flex items-center space-x-1" aria-live="polite" aria-label="Mission status">
+                        {!isLoadingCompletions && !isLoadingAggregates ? (
                             <>
                                 {missionStatus === 'completed' ? (
-                                    <span className="inline-flex items-center rounded-full bg-emerald-600/15 text-emerald-400 px-2 py-0.5 text-xs font-semibold">
+                                    <span className="inline-flex items-center rounded-full bg-emerald-600/15 text-emerald-400 px-2 py-0.5 text-xs font-semibold" aria-label="Mission completed">
                                         ✓ Completed
                                     </span>
                                 ) : (
                                     <ProgressBadge done={progressData.done} total={progressData.total} />
                                 )}
                             </>
+                        ) : (
+                            <span className="inline-flex items-center rounded-full bg-gray-600/15 text-gray-400 px-2 py-0.5 text-xs font-semibold" aria-label="Loading progress">
+                                —/—
+                            </span>
                         )}
                         <span className={`px-2 py-1 rounded-full text-xs ${getModelColor(mission.model)} shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]`}>
                             {mission.model}
@@ -845,6 +849,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                         handleIntentClick(selectedTask!);
                                     }}
                                     disabled={getTaskStatus(selectedTask) === 'verified' || isTaskDisabled(selectedTask!)}
+                                    aria-disabled={getTaskStatus(selectedTask) === 'verified' || isTaskDisabled(selectedTask!)}
+                                    title={isTaskDisabled(selectedTask!) ? 'Task full - no more participants allowed' : undefined}
                                     className={`flex-1 px-3 py-1 rounded-full text-xs transition-colors duration-200 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)] ${toneFor(getTaskStatus(selectedTask) === 'verified' ? 'verified' : getTaskStatus(selectedTask))} ${(getTaskStatus(selectedTask) === 'verified' || isTaskDisabled(selectedTask!)) ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
                                     {getTaskStatus(selectedTask) === 'verified' ? 'Verified'
@@ -958,16 +964,14 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 <div className="flex items-center space-x-2">
                     {!isLoadingCompletions && !isLoadingAggregates ? (
                         <>
-                            <div className={`w-2 h-2 rounded-full ${
-                                missionStatus === 'completed' ? 'bg-emerald-400' :
-                                missionStatus === 'almost-ending' ? 'bg-amber-400 animate-pulse' :
-                                'bg-gray-400 animate-pulse'
-                            }`}></div>
-                            <span className={`text-sm ${
-                                missionStatus === 'completed' ? 'text-emerald-400' :
-                                missionStatus === 'almost-ending' ? 'text-amber-400' :
-                                'text-gray-400'
-                            }`}>
+                            <div className={`w-2 h-2 rounded-full ${missionStatus === 'completed' ? 'bg-emerald-400 status-dot--steady' :
+                                    missionStatus === 'almost-ending' ? 'bg-amber-400 status-dot--blinking' :
+                                        'bg-gray-400 status-dot--blinking'
+                                }`}></div>
+                            <span className={`text-sm ${missionStatus === 'completed' ? 'text-emerald-400' :
+                                    missionStatus === 'almost-ending' ? 'text-amber-400' :
+                                        'text-gray-400'
+                                }`}>
                                 {statusChipProps.label}
                             </span>
                         </>
