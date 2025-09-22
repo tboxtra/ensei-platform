@@ -1,36 +1,42 @@
 /* Status Chip Animations */
 
 @keyframes pulse-amber {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
 }
 
 @keyframes pulse-green {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
 }
 
 .chip--blinking {
-  animation: pulse-amber 2s ease-in-out infinite;
+    animation: pulse-amber 2s ease-in-out infinite;
 }
 
 .chip--green.chip--blinking {
-  animation: pulse-green 2s ease-in-out infinite;
+    animation: pulse-green 2s ease-in-out infinite;
 }
 
 /* Status dot animations */
 .status-dot--blinking {
-  animation: pulse-amber 2s ease-in-out infinite;
+    animation: pulse-amber 2s ease-in-out infinite;
 }
 
 .status-dot--steady {
-  animation: none;
+    animation: none;
 }

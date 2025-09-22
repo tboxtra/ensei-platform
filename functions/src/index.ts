@@ -2074,18 +2074,18 @@ export const updateMissionAggregates = functions.firestore
 
       await db.runTransaction(async (tx) => {
         const aggDoc = await tx.get(aggRef);
-        const agg = aggDoc.exists ? aggDoc.data() : { 
-          taskCounts: {}, 
-          totalCompletions: 0, 
-          winnersPerTask, 
-          taskCount 
+        const agg = aggDoc.exists ? aggDoc.data() : {
+          taskCounts: {},
+          totalCompletions: 0,
+          winnersPerTask,
+          taskCount
         };
-        
+
         if (!agg) {
           console.error('Failed to get aggregate data');
           return;
         }
-        
+
         // Race condition protection: check if we're at cap before incrementing
         if (delta > 0 && missionData.type === 'fixed' && winnersPerTask) {
           const currentCount = agg.taskCounts[taskId] || 0;
@@ -2094,7 +2094,7 @@ export const updateMissionAggregates = functions.firestore
             return; // Skip this update - task is already full
           }
         }
-        
+
         // Update task count with bounds checking
         const prevCount = agg.taskCounts[taskId] || 0;
         const newCount = Math.max(0, prevCount + delta);
@@ -2103,20 +2103,20 @@ export const updateMissionAggregates = functions.firestore
         agg.winnersPerTask = winnersPerTask;
         agg.taskCount = taskCount;
         agg.updatedAt = firebaseAdmin.firestore.FieldValue.serverTimestamp();
-        
+
         // Log the mutation for monitoring
         console.log(`Aggregate mutation: mission=${missionId}, task=${taskId}, prev=${prevCount}, next=${newCount}, delta=${delta}, cause=verification`);
-        
+
         // Alert if count exceeds cap (should be impossible with race protection)
         if (newCount > winnersPerTask && winnersPerTask) {
           console.error(`🚨 ALERT: Task ${taskId} count (${newCount}) exceeds cap (${winnersPerTask})!`);
         }
-        
+
         // Alert if aggregates drift detected
         if (Math.abs(newCount - (agg.taskCounts[taskId] || 0)) > 1) {
           console.warn(`⚠️  Potential drift detected for task ${taskId}: expected=${agg.taskCounts[taskId] || 0}, actual=${newCount}`);
         }
-        
+
         tx.set(aggRef, agg, { merge: true });
       });
 

@@ -199,7 +199,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             endAt: mission.endAt ? new Date(mission.endAt) : null,
             maxDurationHours: mission.maxDurationHours,
             winnersPerTask: mission.winnersPerTask,
-            tasks: taskIds.map(id => ({ id, label: 'Like' as const })),
+            tasks: taskIds.map((id: string) => ({ id, label: 'Like' as const })),
             created_by: mission.created_by
         };
 
@@ -230,7 +230,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 startAt: new Date(mission.startAt || mission.createdAt),
                 endAt: mission.endAt ? new Date(mission.endAt) : null,
                 winnersPerTask: mission.winnersPerTask,
-                tasks: taskIds.map(id => ({ id, label: 'Like' as const })),
+                tasks: taskIds.map((id: string) => ({ id, label: 'Like' as const })),
                 created_by: mission.created_by
             }, aggregates);
         },
@@ -965,12 +965,12 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                     {!isLoadingCompletions && !isLoadingAggregates ? (
                         <>
                             <div className={`w-2 h-2 rounded-full ${missionStatus === 'completed' ? 'bg-emerald-400 status-dot--steady' :
-                                    missionStatus === 'almost-ending' ? 'bg-amber-400 status-dot--blinking' :
-                                        'bg-gray-400 status-dot--blinking'
+                                missionStatus === 'almost-ending' ? 'bg-amber-400 status-dot--blinking' :
+                                    'bg-gray-400 status-dot--blinking'
                                 }`}></div>
                             <span className={`text-sm ${missionStatus === 'completed' ? 'text-emerald-400' :
-                                    missionStatus === 'almost-ending' ? 'text-amber-400' :
-                                        'text-gray-400'
+                                missionStatus === 'almost-ending' ? 'text-amber-400' :
+                                    'text-gray-400'
                                 }`}>
                                 {statusChipProps.label}
                             </span>
