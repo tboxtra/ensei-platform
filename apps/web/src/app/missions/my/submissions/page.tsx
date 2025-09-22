@@ -9,6 +9,7 @@ import { getFlaggingReasons } from '@/lib/task-verification';
 import { type TaskCompletion } from '@/types/task-completion';
 import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
 import { useMyMissions } from '@/hooks/useMyMissions';
+import { formatDateSafe, dateFromAny } from '@/utils/dates';
 
 interface Mission {
     id: string;
@@ -124,30 +125,13 @@ export default function MissionSubmissionsPage() {
         }
     };
 
-    // Helper function to safely format date fields
+    // Helper function to safely format date fields using bulletproof parsing
     const formatDate = (dateField: any) => {
-        if (!dateField) return 'Unknown';
-
-        // If it's a Firestore Timestamp, use toDate()
-        if (dateField && typeof dateField.toDate === 'function') {
-            return dateField.toDate().toLocaleString();
-        }
-
-        // If it's already a Date object
-        if (dateField instanceof Date) {
-            return dateField.toLocaleString();
-        }
-
-        // If it's a string, try to parse it
-        if (typeof dateField === 'string') {
-            try {
-                return new Date(dateField).toLocaleString();
-            } catch (error) {
-                return 'Invalid Date';
-            }
-        }
-
-        return 'Unknown';
+        if (!dateField) return '—';
+        
+        // Use the bulletproof dateFromAny helper
+        const date = dateFromAny(dateField);
+        return formatDateSafe(date, '—');
     };
 
     // Check if there are any flagged submissions that need attention

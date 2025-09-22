@@ -18,6 +18,7 @@ import {
     Timestamp,
     serverTimestamp
 } from 'firebase/firestore';
+import { dateFromAny } from '../utils/dates';
 import { db } from './firebase';
 import { handleFirebaseError } from './error-handling';
 import type {
@@ -393,7 +394,11 @@ export async function getMissionTaskCompletions(missionDocId: string, legacyIds:
 
             // Convert each task completion to the new format
             tasksCompleted.forEach((task: any) => {
-                const taskDate = tsToDate(task.completed_at);
+                // Bulletproof date parsing - handle all possible formats
+                const completedAt = dateFromAny(task.completed_at ?? task.completedAt);
+                const verifiedAt = dateFromAny(task.verified_at ?? task.verifiedAt);
+                const updatedAt = dateFromAny(task.updated_at ?? task.updatedAt);
+                
                 completions.push({
                     id: `${snap.id}_${task.task_id}`, // Create unique ID
                     missionId: missionDocId,
@@ -403,8 +408,8 @@ export async function getMissionTaskCompletions(missionDocId: string, legacyIds:
                     userEmail: data.user_email || null,
                     userSocialHandle: data.user_social_handle || null,
                     status: task.status === 'completed' ? 'verified' : 'pending',
-                    completedAt: Timestamp.fromDate(taskDate),
-                    verifiedAt: task.status === 'completed' ? Timestamp.fromDate(taskDate) : undefined,
+                    completedAt: completedAt ? Timestamp.fromDate(completedAt) : Timestamp.now(),
+                    verifiedAt: verifiedAt ? Timestamp.fromDate(verifiedAt) : undefined,
                     flaggedAt: undefined,
                     flaggedReason: undefined,
                     url: task.verification_data?.url || null,
@@ -424,8 +429,8 @@ export async function getMissionTaskCompletions(missionDocId: string, legacyIds:
                         actionId: task.action_id,
                         apiResult: task.api_result
                     },
-                    createdAt: Timestamp.fromDate(taskDate),
-                    updatedAt: Timestamp.fromDate(taskDate)
+                    createdAt: completedAt ? Timestamp.fromDate(completedAt) : Timestamp.now(),
+                    updatedAt: updatedAt ? Timestamp.fromDate(updatedAt) : Timestamp.now()
                 } as TaskCompletion);
             });
         });
@@ -460,7 +465,11 @@ export async function getAllUserTaskCompletions(userId: string): Promise<TaskCom
 
             // Convert each task completion to the new format
             tasksCompleted.forEach((task: any) => {
-                const taskDate = tsToDate(task.completed_at);
+                // Bulletproof date parsing - handle all possible formats
+                const completedAt = dateFromAny(task.completed_at ?? task.completedAt);
+                const verifiedAt = dateFromAny(task.verified_at ?? task.verifiedAt);
+                const updatedAt = dateFromAny(task.updated_at ?? task.updatedAt);
+                
                 completions.push({
                     id: `${snap.id}_${task.task_id}`, // Create unique ID
                     missionId: data.mission_id,
@@ -470,8 +479,8 @@ export async function getAllUserTaskCompletions(userId: string): Promise<TaskCom
                     userEmail: data.user_email || null,
                     userSocialHandle: data.user_social_handle || null,
                     status: task.status === 'completed' ? 'verified' : 'pending',
-                    completedAt: Timestamp.fromDate(taskDate),
-                    verifiedAt: task.status === 'completed' ? Timestamp.fromDate(taskDate) : undefined,
+                    completedAt: completedAt ? Timestamp.fromDate(completedAt) : Timestamp.now(),
+                    verifiedAt: verifiedAt ? Timestamp.fromDate(verifiedAt) : undefined,
                     flaggedAt: undefined,
                     flaggedReason: undefined,
                     url: task.verification_data?.url || null,
@@ -491,8 +500,8 @@ export async function getAllUserTaskCompletions(userId: string): Promise<TaskCom
                         actionId: task.action_id,
                         apiResult: task.api_result
                     },
-                    createdAt: Timestamp.fromDate(taskDate),
-                    updatedAt: Timestamp.fromDate(taskDate)
+                    createdAt: completedAt ? Timestamp.fromDate(completedAt) : Timestamp.now(),
+                    updatedAt: updatedAt ? Timestamp.fromDate(updatedAt) : Timestamp.now()
                 } as TaskCompletion);
             });
         });
