@@ -9,7 +9,7 @@ import { getFlaggingReasons } from '@/lib/task-verification';
 import { type TaskCompletion } from '@/types/task-completion';
 import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
 import { useMyMissions } from '@/hooks/useMyMissions';
-import { formatDateSafe, dateFromAny } from '@/utils/dates';
+import { formatDateSafe, dateFromAny } from '@/features/missions/utils/dates';
 
 interface Mission {
     id: string;

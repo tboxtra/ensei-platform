@@ -12,7 +12,7 @@
  */
 
 import { getFirebaseFirestore } from './firebase';
-import { dateFromAny } from '../utils/dates';
+import { dateFromAny } from '../features/missions/utils/dates';
 import {
     collection,
     addDoc,

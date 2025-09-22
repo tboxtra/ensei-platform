@@ -18,7 +18,7 @@ import {
     Timestamp,
     serverTimestamp
 } from 'firebase/firestore';
-import { dateFromAny } from '../utils/dates';
+import { dateFromAny } from '../features/missions/utils/dates';
 import { db } from './firebase';
 import { handleFirebaseError } from './error-handling';
 import type {

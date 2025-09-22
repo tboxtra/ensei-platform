@@ -12,9 +12,9 @@ import {
     toneFor
 } from '../../../hooks/useTaskCompletions';
 import { normalizeMissionId } from '../../../lib/task-completion';
-import { dateFromAny } from '../../../utils/dates';
+import { dateFromAny } from '../utils/dates';
 import { ProgressBadge } from '../../../components/common/ProgressBadge';
-import { getTaskIdFromCompletion, isVerified } from '../../../utils/tasks';
+import { getTaskIdFromCompletion, isVerified } from '../utils/tasks';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -135,8 +135,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         const raw = Array.isArray(mission?.tasks)
             ? mission.tasks.map((t: any) => t.id ?? t)
             : Array.isArray(mission?.requirements)
-            ? mission.requirements.map((r: any) => r.id ?? r)
-            : [];
+                ? mission.requirements.map((r: any) => r.id ?? r)
+                : [];
         return raw.map(norm);
     }, [mission?.id, mission?.tasks, mission?.requirements]);
 
@@ -159,6 +159,17 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             // normalize task id and ensure it belongs to this mission's tasks
             const tid = norm(getTaskIdFromCompletion(c));
             if (tid && whitelist.has(tid)) verified.add(tid);
+        }
+
+        // Debug logging (only in development)
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Progress Debug] Mission ${mission.id}:`, {
+                taskIds,
+                total: taskIds.length,
+                done: verified.size,
+                userCompletions: allCompletions.filter(c => c.userId === user.id && c.missionId === mission.id),
+                verifiedTasks: Array.from(verified)
+            });
         }
 
         return { done: verified.size, total: taskIds.length };

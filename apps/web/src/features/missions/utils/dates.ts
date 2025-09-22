@@ -39,3 +39,4 @@ export function formatDateSafe(date: Date | null, fallback: string = '—'): str
 export function getTimeSafe(date: Date | null): number {
     return date?.getTime() ?? 0;
 }
+

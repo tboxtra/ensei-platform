@@ -1,9 +1,9 @@
 import * as functions from 'firebase-functions';
 import * as firebaseAdmin from 'firebase-admin';
+// User data integrity utilities
 import {
   updateUserProfileSafely,
   createMissionWithUidReferences,
-  createSubmissionWithUidReferences,
   verifyDataIntegrityAfterDisplayNameChange
 } from './utils/user-data-integrity';
 import { runMigration } from './migration/uid-migration';
@@ -2033,3 +2033,108 @@ export const sendCustomVerificationEmail = functions.https.onCall(async (data: a
     throw new functions.https.HttpsError('internal', 'Failed to send verification email');
   }
 });
+
+/**
+ * Sync mission progress summary when task completions are updated
+ * This creates/updates a lightweight summary document for efficient queries
+ */
+export const syncMissionProgress = functions.firestore
+  .document('mission_participations/{participationId}')
+  .onWrite(async (change, context) => {
+    try {
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+
+      // Only process if this is a task completion (has taskId)
+      if (!after || !after.taskId) {
+        return null;
+      }
+
+      const userId = after.user_id || after.userId;
+      const missionId = after.mission_id || after.missionId;
+
+      if (!userId || !missionId) {
+        console.log('Missing userId or missionId, skipping sync');
+        return null;
+      }
+
+      // Only sync when status changes to verified
+      const wasVerified = before && (before.status === 'verified' || before.status === 'completed');
+      const isVerified = after.status === 'verified' || after.status === 'completed';
+
+      if (!isVerified || wasVerified) {
+        console.log('Status not verified or already was verified, skipping sync');
+        return null;
+      }
+
+      console.log(`Syncing mission progress for user ${userId}, mission ${missionId}`);
+
+      // Normalize task ID
+      const norm = (v?: string) => String(v ?? '').trim().toLowerCase();
+      norm(after.taskId); // Normalize for consistency
+
+      // Get mission details to determine total tasks
+      const missionRef = db.collection('missions').doc(missionId);
+      const missionDoc = await missionRef.get();
+
+      if (!missionDoc.exists) {
+        console.log(`Mission ${missionId} not found, skipping sync`);
+        return null;
+      }
+
+      const missionData = missionDoc.data();
+      if (!missionData) {
+        console.log(`Mission ${missionId} has no data, skipping sync`);
+        return null;
+      }
+
+      const totalTasks = Array.isArray(missionData.tasks) ? missionData.tasks.length
+        : Array.isArray(missionData.requirements) ? missionData.requirements.length
+          : 0;
+
+      // Get all verified completions for this user+mission
+      const completionsQuery = db.collection('mission_participations')
+        .where('user_id', '==', userId)
+        .where('mission_id', '==', missionId)
+        .where('status', 'in', ['verified', 'completed']);
+
+      const completionsSnapshot = await completionsQuery.get();
+
+      // Build set of verified task IDs
+      const verifiedTaskIds = new Set<string>();
+      completionsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const tid = norm(data.taskId || data.task_id);
+        if (tid) verifiedTaskIds.add(tid);
+      });
+
+      const verifiedCount = verifiedTaskIds.size;
+      const missionCompleted = totalTasks > 0 && verifiedCount === totalTasks;
+
+      // Update or create mission progress summary
+      const progressRef = db.collection('mission_progress').doc(`${missionId}_${userId}`);
+      const progressDoc = await progressRef.get();
+
+      const progressData = {
+        userId,
+        missionId,
+        verifiedTaskIds: Array.from(verifiedTaskIds),
+        verifiedCount,
+        totalTasks,
+        missionCompleted,
+        completedAt: missionCompleted && (!progressDoc.exists || !progressDoc.data()?.missionCompleted)
+          ? firebaseAdmin.firestore.FieldValue.serverTimestamp()
+          : progressDoc.exists ? progressDoc.data()?.completedAt : null,
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+      };
+
+      await progressRef.set(progressData, { merge: true });
+
+      console.log(`Mission progress synced: ${verifiedCount}/${totalTasks} tasks completed for user ${userId}`);
+
+      return null;
+    } catch (error) {
+      console.error('Error syncing mission progress:', error);
+      return null;
+    }
+  });

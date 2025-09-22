@@ -26,9 +26,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.api = void 0;
+exports.syncMissionProgress = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.api = void 0;
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
+// User data integrity utilities
+const user_data_integrity_1 = require("./utils/user-data-integrity");
+const uid_migration_1 = require("./migration/uid-migration");
 // Initialize Firebase Admin
 firebaseAdmin.initializeApp();
 // Get Firestore instance
@@ -424,10 +427,14 @@ app.post('/v1/missions', verifyFirebaseToken, async (req, res) => {
             res.status(400).json({ error: 'At least one task must be selected' });
             return;
         }
-        const newMission = Object.assign(Object.assign({}, missionData), { created_by: userId, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'active', participants_count: 0, submissions_count: 0 });
-        const missionRef = await db.collection('missions').add(newMission);
-        const createdMission = Object.assign({ id: missionRef.id }, newMission);
-        res.status(201).json(createdMission);
+        // Use the safe mission creation function that ensures UID-based references
+        const result = await (0, user_data_integrity_1.createMissionWithUidReferences)(userId, missionData);
+        if (!result.success) {
+            console.error('Mission creation failed:', result.error);
+            res.status(400).json({ error: result.error });
+            return;
+        }
+        res.status(201).json(result.mission);
     }
     catch (error) {
         console.error('Error creating mission:', error);
@@ -615,56 +622,70 @@ app.get('/v1/user/profile', verifyFirebaseToken, async (req, res) => {
     }
 });
 app.put('/v1/user/profile', verifyFirebaseToken, async (req, res) => {
+    var _a, _b;
     try {
         const userId = req.user.uid;
         const updateData = req.body;
-        // Get current user document to preserve existing fields
-        const userDoc = await db.collection('users').doc(userId).get();
-        if (!userDoc.exists) {
-            // Create new user profile if it doesn't exist
-            const newUser = {
-                uid: userId,
-                email: req.user.email,
-                name: updateData.name || req.user.name || '',
-                avatar: updateData.avatar || req.user.picture || '',
-                firstName: updateData.firstName || '',
-                lastName: updateData.lastName || '',
-                bio: updateData.bio || '',
-                location: updateData.location || '',
-                website: updateData.website || '',
-                twitter: updateData.twitter || '',
-                instagram: updateData.instagram || '',
-                linkedin: updateData.linkedin || '',
-                twitter_handle: updateData.twitter_handle || updateData.twitter || '',
-                instagram_handle: updateData.instagram_handle || updateData.instagram || '',
-                linkedin_handle: updateData.linkedin_handle || updateData.linkedin || '',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                stats: {
-                    missions_created: 0,
-                    missions_completed: 0,
-                    total_honors_earned: 0,
-                    total_usd_earned: 0
-                }
-            };
-            await db.collection('users').doc(userId).set(newUser);
-            res.json(newUser);
+        console.log('Profile update request:', {
+            userId,
+            updateData,
+            body: req.body
+        });
+        // Use the safe profile update function that ensures data integrity
+        const result = await (0, user_data_integrity_1.updateUserProfileSafely)(userId, Object.assign(Object.assign({}, updateData), { email: req.user.email, displayName: updateData.displayName || updateData.name || req.user.displayName || '', avatar: updateData.avatar || req.user.picture || '' }));
+        if (!result.success) {
+            console.error('Profile update failed:', result.error);
+            res.status(400).json({ error: result.error });
             return;
         }
-        // Update existing user profile
-        const currentUser = userDoc.data();
-        const updatedUser = Object.assign(Object.assign(Object.assign({}, currentUser), updateData), { updated_at: new Date().toISOString() });
-        // Use set instead of update to avoid security rule conflicts
-        await db.collection('users').doc(userId).set(updatedUser, { merge: true });
-        // Get updated user document
-        const updatedUserDoc = await db.collection('users').doc(userId).get();
-        const user = updatedUserDoc.data();
-        res.json(user);
+        console.log('Profile update completed:', {
+            userId,
+            savedUser: result.updatedUser,
+            twitter: (_a = result.updatedUser) === null || _a === void 0 ? void 0 : _a.twitter,
+            twitter_handle: (_b = result.updatedUser) === null || _b === void 0 ? void 0 : _b.twitter_handle
+        });
+        res.json(result.updatedUser);
     }
     catch (error) {
         console.error('Error updating user profile:', error);
         console.error('Error details:', error.message);
         res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+// Data integrity verification endpoint
+app.post('/v1/user/verify-data-integrity', verifyFirebaseToken, async (req, res) => {
+    try {
+        const userId = req.user.uid;
+        const { oldDisplayName, newDisplayName } = req.body;
+        console.log('Data integrity verification request:', {
+            userId,
+            oldDisplayName,
+            newDisplayName
+        });
+        const result = await (0, user_data_integrity_1.verifyDataIntegrityAfterDisplayNameChange)(userId, oldDisplayName || '', newDisplayName || '');
+        if (!result.success) {
+            console.error('Data integrity verification failed:', result.issues);
+            res.status(400).json({
+                error: 'Data integrity verification failed',
+                issues: result.issues
+            });
+            return;
+        }
+        console.log('Data integrity verification completed:', {
+            userId,
+            verified: result.verified,
+            dataCounts: result.dataCounts,
+            issues: result.issues
+        });
+        res.json({
+            verified: result.verified,
+            issues: result.issues,
+            dataCounts: result.dataCounts
+        });
+    }
+    catch (error) {
+        console.error('Error verifying data integrity:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 // File upload endpoint (for mission proofs)
@@ -1491,6 +1512,30 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
         if (!mission) {
             return res.status(404).json({ error: 'Mission data not found' });
         }
+        // Server-side URL validation for link-based tasks
+        if (verificationData && verificationData.url && actionId === 'link') {
+            const url = verificationData.url;
+            const userSocialHandle = req.body.userSocialHandle;
+            // Validate Twitter URL format
+            const twitterUrlRegex = /^https?:\/\/(twitter\.com|x\.com)\/([^\/\?]+)\/status\/(\d+)/i;
+            const match = url.match(twitterUrlRegex);
+            if (!match) {
+                return res.status(400).json({
+                    error: 'Invalid Twitter URL format. Must be a valid Twitter/X post URL.'
+                });
+            }
+            const [, , extractedHandle] = match;
+            // Validate that the URL belongs to the user
+            if (userSocialHandle) {
+                const normalizedUserHandle = userSocialHandle.toLowerCase().replace('@', '');
+                const normalizedExtractedHandle = extractedHandle.toLowerCase();
+                if (normalizedExtractedHandle !== normalizedUserHandle) {
+                    return res.status(400).json({
+                        error: `URL must be from your own Twitter account (@${userSocialHandle}). Found: @${extractedHandle}`
+                    });
+                }
+            }
+        }
         // Check if user is already participating
         const participationQuery = await db.collection('mission_participations')
             .where('mission_id', '==', missionId)
@@ -1639,6 +1684,21 @@ const calculateTaskHonors = (platform, missionType, taskId) => {
 };
 // Export the Express app as a Firebase Function
 exports.api = functions.https.onRequest(app);
+// Export migration function (admin only)
+exports.migrateToUidBasedKeys = functions.https.onCall(async (data, context) => {
+    // Only allow admin users to run migration
+    if (!context.auth || !context.auth.token.admin) {
+        throw new functions.https.HttpsError('permission-denied', 'Only admin users can run migration');
+    }
+    try {
+        await (0, uid_migration_1.runMigration)();
+        return { success: true, message: 'Migration completed successfully' };
+    }
+    catch (error) {
+        console.error('Migration failed:', error);
+        throw new functions.https.HttpsError('internal', 'Migration failed', error);
+    }
+});
 // Export individual functions for better performance
 exports.auth = functions.https.onCall(async (data, context) => {
     return { success: true, message: 'Auth function working' };
@@ -1678,6 +1738,93 @@ exports.sendCustomVerificationEmail = functions.https.onCall(async (data, contex
     catch (error) {
         console.error('Error sending custom verification email:', error);
         throw new functions.https.HttpsError('internal', 'Failed to send verification email');
+    }
+});
+/**
+ * Sync mission progress summary when task completions are updated
+ * This creates/updates a lightweight summary document for efficient queries
+ */
+exports.syncMissionProgress = functions.firestore
+    .document('mission_participations/{participationId}')
+    .onWrite(async (change, context) => {
+    var _a, _b;
+    try {
+        const before = change.before.exists ? change.before.data() : null;
+        const after = change.after.exists ? change.after.data() : null;
+        // Only process if this is a task completion (has taskId)
+        if (!after || !after.taskId) {
+            return null;
+        }
+        const userId = after.user_id || after.userId;
+        const missionId = after.mission_id || after.missionId;
+        if (!userId || !missionId) {
+            console.log('Missing userId or missionId, skipping sync');
+            return null;
+        }
+        // Only sync when status changes to verified
+        const wasVerified = before && (before.status === 'verified' || before.status === 'completed');
+        const isVerified = after.status === 'verified' || after.status === 'completed';
+        if (!isVerified || wasVerified) {
+            console.log('Status not verified or already was verified, skipping sync');
+            return null;
+        }
+        console.log(`Syncing mission progress for user ${userId}, mission ${missionId}`);
+        // Normalize task ID
+        const norm = (v) => String(v !== null && v !== void 0 ? v : '').trim().toLowerCase();
+        norm(after.taskId); // Normalize for consistency
+        // Get mission details to determine total tasks
+        const missionRef = db.collection('missions').doc(missionId);
+        const missionDoc = await missionRef.get();
+        if (!missionDoc.exists) {
+            console.log(`Mission ${missionId} not found, skipping sync`);
+            return null;
+        }
+        const missionData = missionDoc.data();
+        if (!missionData) {
+            console.log(`Mission ${missionId} has no data, skipping sync`);
+            return null;
+        }
+        const totalTasks = Array.isArray(missionData.tasks) ? missionData.tasks.length
+            : Array.isArray(missionData.requirements) ? missionData.requirements.length
+                : 0;
+        // Get all verified completions for this user+mission
+        const completionsQuery = db.collection('mission_participations')
+            .where('user_id', '==', userId)
+            .where('mission_id', '==', missionId)
+            .where('status', 'in', ['verified', 'completed']);
+        const completionsSnapshot = await completionsQuery.get();
+        // Build set of verified task IDs
+        const verifiedTaskIds = new Set();
+        completionsSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            const tid = norm(data.taskId || data.task_id);
+            if (tid)
+                verifiedTaskIds.add(tid);
+        });
+        const verifiedCount = verifiedTaskIds.size;
+        const missionCompleted = totalTasks > 0 && verifiedCount === totalTasks;
+        // Update or create mission progress summary
+        const progressRef = db.collection('mission_progress').doc(`${missionId}_${userId}`);
+        const progressDoc = await progressRef.get();
+        const progressData = {
+            userId,
+            missionId,
+            verifiedTaskIds: Array.from(verifiedTaskIds),
+            verifiedCount,
+            totalTasks,
+            missionCompleted,
+            completedAt: missionCompleted && (!progressDoc.exists || !((_a = progressDoc.data()) === null || _a === void 0 ? void 0 : _a.missionCompleted))
+                ? firebaseAdmin.firestore.FieldValue.serverTimestamp()
+                : progressDoc.exists ? (_b = progressDoc.data()) === null || _b === void 0 ? void 0 : _b.completedAt : null,
+            updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+        };
+        await progressRef.set(progressData, { merge: true });
+        console.log(`Mission progress synced: ${verifiedCount}/${totalTasks} tasks completed for user ${userId}`);
+        return null;
+    }
+    catch (error) {
+        console.error('Error syncing mission progress:', error);
+        return null;
     }
 });
 //# sourceMappingURL=index.js.map

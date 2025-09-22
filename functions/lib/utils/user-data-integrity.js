@@ -1,56 +1,27 @@
-import { getFirestore } from 'firebase-admin/firestore';
-
-// Guarantees array fields exist even if `data` is null/undefined or partially shaped
-export type MinimalUserData = {
-    missions?: any[];
-    submissions?: any[];
-    reviews?: any[];
-    honorsLedger?: any[];
-};
-
-export function coerceUserData(data?: MinimalUserData | null) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.verifyDataIntegrityAfterDisplayNameChange = exports.createSubmissionWithUidReferences = exports.createMissionWithUidReferences = exports.updateUserProfileSafely = exports.isValidUid = exports.checkAllUsersIntegrity = exports.getUserData = exports.getAllUserData = exports.fixUserDataIntegrity = exports.checkUserDataIntegrity = exports.coerceUserData = void 0;
+const firestore_1 = require("firebase-admin/firestore");
+function coerceUserData(data) {
+    var _a, _b, _c, _d;
     return {
-        missions: data?.missions ?? [],
-        submissions: data?.submissions ?? [],
-        reviews: data?.reviews ?? [],
-        honorsLedger: data?.honorsLedger ?? [],
+        missions: (_a = data === null || data === void 0 ? void 0 : data.missions) !== null && _a !== void 0 ? _a : [],
+        submissions: (_b = data === null || data === void 0 ? void 0 : data.submissions) !== null && _b !== void 0 ? _b : [],
+        reviews: (_c = data === null || data === void 0 ? void 0 : data.reviews) !== null && _c !== void 0 ? _c : [],
+        honorsLedger: (_d = data === null || data === void 0 ? void 0 : data.honorsLedger) !== null && _d !== void 0 ? _d : [],
     };
 }
-
+exports.coerceUserData = coerceUserData;
 // Get Firestore instance lazily to avoid initialization issues
 function getDb() {
-    return getFirestore();
+    return (0, firestore_1.getFirestore)();
 }
-
-export interface UserDataIntegrityResult {
-    userId: string;
-    issues: string[];
-    fixes: string[];
-    stats: {
-        missions: number;
-        submissions: number;
-        reviews: number;
-        honorsLedger: number;
-    };
-}
-
-export interface UserDataIntegrityStats {
-    totalUsers: number;
-    usersWithIssues: number;
-    totalIssues: number;
-    totalFixes: number;
-    issueBreakdown: {
-        [issueType: string]: number;
-    };
-}
-
 /**
  * Check user data integrity and identify issues
  */
-export async function checkUserDataIntegrity(userId: string): Promise<UserDataIntegrityResult> {
-    const issues: string[] = [];
-    const fixes: string[] = [];
-
+async function checkUserDataIntegrity(userId) {
+    const issues = [];
+    const fixes = [];
     try {
         const userDoc = await getDb().collection('users').doc(userId).get();
         if (!userDoc.exists) {
@@ -61,65 +32,46 @@ export async function checkUserDataIntegrity(userId: string): Promise<UserDataIn
                 stats: { missions: 0, submissions: 0, reviews: 0, honorsLedger: 0 }
             };
         }
-
         const data = userDoc.data();
         const d = coerceUserData(data);
-
         // Check for old field names and suggest fixes
-        const submissionsWithOldName = d.submissions.filter((sub: any) =>
-            sub.missionId && !sub.mission_id
-        );
+        const submissionsWithOldName = d.submissions.filter((sub) => sub.missionId && !sub.mission_id);
         if (submissionsWithOldName.length > 0) {
             issues.push(`${submissionsWithOldName.length} submissions use old 'missionId' field`);
             fixes.push('Rename missionId to mission_id in submissions');
         }
-
-        const reviewsWithOldName = d.reviews.filter((rev: any) =>
-            rev.missionId && !rev.mission_id
-        );
+        const reviewsWithOldName = d.reviews.filter((rev) => rev.missionId && !rev.mission_id);
         if (reviewsWithOldName.length > 0) {
             issues.push(`${reviewsWithOldName.length} reviews use old 'missionId' field`);
             fixes.push('Rename missionId to mission_id in reviews');
         }
-
-        const honorsWithOldName = d.honorsLedger.filter((honor: any) =>
-            honor.missionId && !honor.mission_id
-        );
+        const honorsWithOldName = d.honorsLedger.filter((honor) => honor.missionId && !honor.mission_id);
         if (honorsWithOldName.length > 0) {
             issues.push(`${honorsWithOldName.length} honors use old 'missionId' field`);
             fixes.push('Rename missionId to mission_id in honorsLedger');
         }
-
         // Check for missing required fields
-        const submissionsWithoutStatus = d.submissions.filter((sub: any) => !sub.status);
+        const submissionsWithoutStatus = d.submissions.filter((sub) => !sub.status);
         if (submissionsWithoutStatus.length > 0) {
             issues.push(`${submissionsWithoutStatus.length} submissions missing status field`);
             fixes.push('Add status field to submissions');
         }
-
-        const reviewsWithoutStatus = d.reviews.filter((rev: any) => !rev.status);
+        const reviewsWithoutStatus = d.reviews.filter((rev) => !rev.status);
         if (reviewsWithoutStatus.length > 0) {
             issues.push(`${reviewsWithoutStatus.length} reviews missing status field`);
             fixes.push('Add status field to reviews');
         }
-
         // Check for inconsistent data types
-        const invalidSubmissions = d.submissions.filter((sub: any) =>
-            typeof sub.createdAt !== 'object' && typeof sub.createdAt !== 'string'
-        );
+        const invalidSubmissions = d.submissions.filter((sub) => typeof sub.createdAt !== 'object' && typeof sub.createdAt !== 'string');
         if (invalidSubmissions.length > 0) {
             issues.push(`${invalidSubmissions.length} submissions have invalid createdAt field`);
             fixes.push('Fix createdAt field format in submissions');
         }
-
-        const invalidReviews = d.reviews.filter((rev: any) =>
-            typeof rev.createdAt !== 'object' && typeof rev.createdAt !== 'string'
-        );
+        const invalidReviews = d.reviews.filter((rev) => typeof rev.createdAt !== 'object' && typeof rev.createdAt !== 'string');
         if (invalidReviews.length > 0) {
             issues.push(`${invalidReviews.length} reviews have invalid createdAt field`);
             fixes.push('Fix createdAt field format in reviews');
         }
-
         return {
             userId,
             issues,
@@ -131,8 +83,8 @@ export async function checkUserDataIntegrity(userId: string): Promise<UserDataIn
                 honorsLedger: d.honorsLedger.length,
             }
         };
-
-    } catch (error) {
+    }
+    catch (error) {
         return {
             userId,
             issues: [`Error checking user data: ${error}`],
@@ -141,30 +93,27 @@ export async function checkUserDataIntegrity(userId: string): Promise<UserDataIn
         };
     }
 }
-
+exports.checkUserDataIntegrity = checkUserDataIntegrity;
 /**
  * Fix user data integrity issues
  */
-export async function fixUserDataIntegrity(userId: string, fixes: string[]): Promise<boolean> {
+async function fixUserDataIntegrity(userId, fixes) {
     try {
         const userRef = getDb().collection('users').doc(userId);
         const userDoc = await userRef.get();
-
         if (!userDoc.exists) {
             return false;
         }
-
         const data = userDoc.data();
         const d = coerceUserData(data);
         let hasChanges = false;
-
         // Apply fixes
         for (const fix of fixes) {
             if (fix.includes('Rename missionId to mission_id in submissions')) {
-                const updatedSubmissions = d.submissions.map((sub: any) => {
+                const updatedSubmissions = d.submissions.map((sub) => {
                     if (sub.missionId && !sub.mission_id) {
                         hasChanges = true;
-                        return { ...sub, mission_id: sub.missionId };
+                        return Object.assign(Object.assign({}, sub), { mission_id: sub.missionId });
                     }
                     return sub;
                 });
@@ -172,12 +121,11 @@ export async function fixUserDataIntegrity(userId: string, fixes: string[]): Pro
                     await userRef.update({ submissions: updatedSubmissions });
                 }
             }
-
             if (fix.includes('Rename missionId to mission_id in reviews')) {
-                const updatedReviews = d.reviews.map((rev: any) => {
+                const updatedReviews = d.reviews.map((rev) => {
                     if (rev.missionId && !rev.mission_id) {
                         hasChanges = true;
-                        return { ...rev, mission_id: rev.missionId };
+                        return Object.assign(Object.assign({}, rev), { mission_id: rev.missionId });
                     }
                     return rev;
                 });
@@ -185,12 +133,11 @@ export async function fixUserDataIntegrity(userId: string, fixes: string[]): Pro
                     await userRef.update({ reviews: updatedReviews });
                 }
             }
-
             if (fix.includes('Rename missionId to mission_id in honorsLedger')) {
-                const updatedHonors = d.honorsLedger.map((honor: any) => {
+                const updatedHonors = d.honorsLedger.map((honor) => {
                     if (honor.missionId && !honor.mission_id) {
                         hasChanges = true;
-                        return { ...honor, mission_id: honor.missionId };
+                        return Object.assign(Object.assign({}, honor), { mission_id: honor.missionId });
                     }
                     return honor;
                 });
@@ -198,12 +145,11 @@ export async function fixUserDataIntegrity(userId: string, fixes: string[]): Pro
                     await userRef.update({ honorsLedger: updatedHonors });
                 }
             }
-
             if (fix.includes('Add status field to submissions')) {
-                const updatedSubmissions = d.submissions.map((sub: any) => {
+                const updatedSubmissions = d.submissions.map((sub) => {
                     if (!sub.status) {
                         hasChanges = true;
-                        return { ...sub, status: 'pending' };
+                        return Object.assign(Object.assign({}, sub), { status: 'pending' });
                     }
                     return sub;
                 });
@@ -211,12 +157,11 @@ export async function fixUserDataIntegrity(userId: string, fixes: string[]): Pro
                     await userRef.update({ submissions: updatedSubmissions });
                 }
             }
-
             if (fix.includes('Add status field to reviews')) {
-                const updatedReviews = d.reviews.map((rev: any) => {
+                const updatedReviews = d.reviews.map((rev) => {
                     if (!rev.status) {
                         hasChanges = true;
-                        return { ...rev, status: 'pending' };
+                        return Object.assign(Object.assign({}, rev), { status: 'pending' });
                     }
                     return rev;
                 });
@@ -225,171 +170,138 @@ export async function fixUserDataIntegrity(userId: string, fixes: string[]): Pro
                 }
             }
         }
-
         return hasChanges;
-
-    } catch (error) {
+    }
+    catch (error) {
         console.error(`Error fixing user data for ${userId}:`, error);
         return false;
     }
 }
-
+exports.fixUserDataIntegrity = fixUserDataIntegrity;
 /**
  * Get all user data for analysis
  */
-export async function getAllUserData(): Promise<any[]> {
+async function getAllUserData() {
     try {
         const usersSnapshot = await getDb().collection('users').get();
-        return usersSnapshot.docs.map((doc: any) => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-    } catch (error) {
+        return usersSnapshot.docs.map((doc) => (Object.assign({ id: doc.id }, doc.data())));
+    }
+    catch (error) {
         console.error('Error getting all user data:', error);
         return [];
     }
 }
-
+exports.getAllUserData = getAllUserData;
 /**
  * Get user data for a specific user
  */
-export async function getUserData(userId: string): Promise<any | null> {
+async function getUserData(userId) {
     try {
         const userDoc = await getDb().collection('users').doc(userId).get();
         if (!userDoc.exists) {
             return null;
         }
-        return {
-            id: userDoc.id,
-            ...userDoc.data()
-        };
-    } catch (error) {
+        return Object.assign({ id: userDoc.id }, userDoc.data());
+    }
+    catch (error) {
         console.error(`Error getting user data for ${userId}:`, error);
         return null;
     }
 }
-
+exports.getUserData = getUserData;
 /**
  * Run integrity check on all users
  */
-export async function checkAllUsersIntegrity(): Promise<UserDataIntegrityStats> {
+async function checkAllUsersIntegrity() {
     const allUsers = await getAllUserData();
-    const results = await Promise.all(
-        allUsers.map((user: any) => checkUserDataIntegrity(user.id))
-    );
-
-    const stats: UserDataIntegrityStats = {
+    const results = await Promise.all(allUsers.map((user) => checkUserDataIntegrity(user.id)));
+    const stats = {
         totalUsers: allUsers.length,
         usersWithIssues: 0,
         totalIssues: 0,
         totalFixes: 0,
         issueBreakdown: {}
     };
-
     for (const result of results) {
         if (result.issues.length > 0) {
             stats.usersWithIssues++;
             stats.totalIssues += result.issues.length;
             stats.totalFixes += result.fixes.length;
-
             for (const issue of result.issues) {
                 const issueType = issue.split(':')[0] || 'Unknown';
                 stats.issueBreakdown[issueType] = (stats.issueBreakdown[issueType] || 0) + 1;
             }
         }
     }
-
     return stats;
 }
-
+exports.checkAllUsersIntegrity = checkAllUsersIntegrity;
 /**
  * Helper function to validate Firebase UID format
  */
-export function isValidUid(uid: string): boolean {
+function isValidUid(uid) {
     return typeof uid === 'string' && uid.length >= 20 && uid.length <= 128;
 }
-
+exports.isValidUid = isValidUid;
 /**
  * Update user profile safely with UID validation
  */
-export async function updateUserProfileSafely(userId: string, updateData: any): Promise<any> {
+async function updateUserProfileSafely(userId, updateData) {
     if (!isValidUid(userId)) {
         throw new Error('Invalid user ID format');
     }
-
     const userRef = getDb().collection('users').doc(userId);
     await userRef.set(updateData, { merge: true });
-
     return {
         success: true,
-        updatedUser: { uid: userId, ...updateData }
+        updatedUser: Object.assign({ uid: userId }, updateData)
     };
 }
-
+exports.updateUserProfileSafely = updateUserProfileSafely;
 /**
  * Create mission with UID references
  */
-export async function createMissionWithUidReferences(userId: string, missionData: any): Promise<any> {
+async function createMissionWithUidReferences(userId, missionData) {
     if (!isValidUid(userId)) {
         throw new Error('Invalid user ID format');
     }
-
     const missionRef = getDb().collection('missions').doc();
-    const mission = {
-        ...missionData,
-        created_by: userId,
-        id: missionRef.id
-    };
-
+    const mission = Object.assign(Object.assign({}, missionData), { created_by: userId, id: missionRef.id });
     await missionRef.set(mission);
-
     return {
         success: true,
         mission
     };
 }
-
+exports.createMissionWithUidReferences = createMissionWithUidReferences;
 /**
  * Create submission with UID references
  */
-export async function createSubmissionWithUidReferences(userId: string, submissionData: any): Promise<any> {
+async function createSubmissionWithUidReferences(userId, submissionData) {
     if (!isValidUid(userId)) {
         throw new Error('Invalid user ID format');
     }
-
     const submissionRef = getDb().collection('submissions').doc();
-    const submission = {
-        ...submissionData,
-        user_id: userId,
-        id: submissionRef.id
-    };
-
+    const submission = Object.assign(Object.assign({}, submissionData), { user_id: userId, id: submissionRef.id });
     await submissionRef.set(submission);
-
     return {
         success: true,
         submission
     };
 }
-
+exports.createSubmissionWithUidReferences = createSubmissionWithUidReferences;
 /**
  * Verify data integrity after display name change
  */
-export async function verifyDataIntegrityAfterDisplayNameChange(
-    userId: string,
-    oldDisplayName: string,
-    newDisplayName: string
-): Promise<any> {
+async function verifyDataIntegrityAfterDisplayNameChange(userId, oldDisplayName, newDisplayName) {
     if (!isValidUid(userId)) {
         throw new Error('Invalid user ID format');
     }
-
     // Check that all data still references the UID, not displayName
     const userDoc = await getDb().collection('users').doc(userId).get();
     if (!userDoc.exists) {
         return { success: false, error: 'User not found' };
     }
-
     return {
         success: true,
         integrityCheck: {
@@ -404,3 +316,5 @@ export async function verifyDataIntegrityAfterDisplayNameChange(
         }
     };
 }
+exports.verifyDataIntegrityAfterDisplayNameChange = verifyDataIntegrityAfterDisplayNameChange;
+//# sourceMappingURL=user-data-integrity.js.map

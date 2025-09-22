@@ -8,3 +8,4 @@ export const getTaskIdFromCompletion = (c: any): string | undefined =>
 
 export const isVerified = (c: any): boolean =>
     (c?.status ?? '').toLowerCase() === 'verified';
+

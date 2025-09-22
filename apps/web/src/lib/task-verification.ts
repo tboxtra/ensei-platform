@@ -4,7 +4,7 @@
  * Now uses Firebase Firestore for proper server-side storage
  */
 
-import { dateFromAny } from '../utils/dates';
+import { dateFromAny } from '../features/missions/utils/dates';
 import {
     completeTask as firebaseCompleteTask,
     flagTaskCompletion as firebaseFlagTaskCompletion,

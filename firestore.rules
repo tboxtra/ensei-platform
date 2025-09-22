@@ -172,4 +172,14 @@ service cloud.firestore {
          request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
     }
   }
+
+  // Mission progress summaries (denormalized for efficient queries)
+  match /mission_progress/{progressId} {
+    allow read: if request.auth != null && (
+      resource.data.userId == request.auth.uid ||
+      isMissionOwner(resource.data.missionId) ||
+      isAdminOrMod()
+    );
+    allow write: if false; // Only written by Cloud Functions
+  }
 }
