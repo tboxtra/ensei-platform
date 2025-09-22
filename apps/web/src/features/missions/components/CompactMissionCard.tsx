@@ -130,13 +130,13 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
     const progressData = useMemo(() => {
         // Count completed/verified tasks for the current user
         const userCompletions = allCompletions.filter(c => c.userId === user?.id);
-        const done = userCompletions.filter(c => 
+        const done = userCompletions.filter(c =>
             c.status === 'verified'
         ).length;
 
         // Count total tasks in the mission
-        const total = Array.isArray(mission.tasks) ? mission.tasks.length : 
-                     Array.isArray(mission.requirements) ? mission.requirements.length : 0;
+        const total = Array.isArray(mission.tasks) ? mission.tasks.length :
+            Array.isArray(mission.requirements) ? mission.requirements.length : 0;
 
         return { done, total };
     }, [allCompletions, user?.id, mission.tasks, mission.requirements]);
@@ -600,7 +600,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                             {getPlatformName(mission.platform)} {mission.type} mission
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center space-x-1">
+                        <ProgressBadge done={progressData.done} total={progressData.total} />
                         <span className={`px-2 py-1 rounded-full text-xs ${getModelColor(mission.model)} shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]`}>
                             {mission.model}
                         </span>
@@ -614,7 +615,6 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                 ⚠ Flagged
                             </span>
                         )}
-                        <ProgressBadge done={progressData.done} total={progressData.total} />
                     </div>
                 </div>
             </div>
@@ -730,7 +730,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                 const instructions = fromTaskInstructions || fromTaskMeta || fromMission || '';
 
                                 return instructions ? (
-                                    <div className="rounded-lg p-3 text-sm text-gray-300 leading-relaxed">
+                                    <div className="p-3 text-sm text-gray-300 leading-relaxed">
                                         {instructions}
                                     </div>
                                 ) : null;
