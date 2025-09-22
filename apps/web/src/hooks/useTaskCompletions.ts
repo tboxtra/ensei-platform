@@ -5,6 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { dateFromAny } from '../utils/dates';
 import {
     createTaskCompletion,
     updateTaskCompletion,
@@ -420,8 +421,8 @@ function getTaskCompletionStatus(
     return {
         status: latestCompletion.status,
         flaggedReason: latestCompletion.flaggedReason || undefined,
-        flaggedAt: latestCompletion.flaggedAt?.toDate() || undefined,
-        completedAt: latestCompletion.completedAt?.toDate() || undefined,
-        verifiedAt: latestCompletion.verifiedAt?.toDate() || undefined
+        flaggedAt: dateFromAny(latestCompletion.flaggedAt) || undefined,
+        completedAt: dateFromAny(latestCompletion.completedAt) || undefined,
+        verifiedAt: dateFromAny(latestCompletion.verifiedAt) || undefined
     };
 }

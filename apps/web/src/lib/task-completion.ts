@@ -398,7 +398,7 @@ export async function getMissionTaskCompletions(missionDocId: string, legacyIds:
                 const completedAt = dateFromAny(task.completed_at ?? task.completedAt);
                 const verifiedAt = dateFromAny(task.verified_at ?? task.verifiedAt);
                 const updatedAt = dateFromAny(task.updated_at ?? task.updatedAt);
-                
+
                 completions.push({
                     id: `${snap.id}_${task.task_id}`, // Create unique ID
                     missionId: missionDocId,
@@ -469,7 +469,7 @@ export async function getAllUserTaskCompletions(userId: string): Promise<TaskCom
                 const completedAt = dateFromAny(task.completed_at ?? task.completedAt);
                 const verifiedAt = dateFromAny(task.verified_at ?? task.verifiedAt);
                 const updatedAt = dateFromAny(task.updated_at ?? task.updatedAt);
-                
+
                 completions.push({
                     id: `${snap.id}_${task.task_id}`, // Create unique ID
                     missionId: data.mission_id,
@@ -539,9 +539,9 @@ export function getTaskCompletionStatus(
     return {
         status: latestCompletion.status,
         flaggedReason: latestCompletion.flaggedReason || undefined,
-        flaggedAt: latestCompletion.flaggedAt?.toDate() || undefined,
-        completedAt: latestCompletion.completedAt?.toDate() || undefined,
-        verifiedAt: latestCompletion.verifiedAt?.toDate() || undefined
+        flaggedAt: dateFromAny(latestCompletion.flaggedAt) || undefined,
+        completedAt: dateFromAny(latestCompletion.completedAt) || undefined,
+        verifiedAt: dateFromAny(latestCompletion.verifiedAt) || undefined
     };
 }
 

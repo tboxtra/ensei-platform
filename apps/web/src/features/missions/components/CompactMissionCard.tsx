@@ -11,6 +11,7 @@ import {
     toneFor
 } from '../../../hooks/useTaskCompletions';
 import { normalizeMissionId } from '../../../lib/task-completion';
+import { dateFromAny } from '../../../utils/dates';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -91,13 +92,14 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         const map = new Map<string, { status: string; flaggedReason?: string | null; flaggedAt?: Date | null }>();
         for (const c of taskCompletions) {
             const cur = map.get(c.taskId);
-            if (!cur || c.createdAt.toMillis() > (cur as any)?.createdAtMillis) {
+            const currentMillis = dateFromAny(c.createdAt)?.getTime() || 0;
+            if (!cur || currentMillis > (cur as any)?.createdAtMillis) {
                 map.set(c.taskId, {
                     status: c.status,
                     flaggedReason: c.flaggedReason || null,
-                    flaggedAt: c.flaggedAt ? c.flaggedAt.toDate() : null,
+                    flaggedAt: dateFromAny(c.flaggedAt),
                     // @ts-ignore keep millis internally (not returned)
-                    createdAtMillis: c.createdAt.toMillis()
+                    createdAtMillis: dateFromAny(c.createdAt)?.getTime() || 0
                 } as any);
             }
         }

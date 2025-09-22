@@ -4,6 +4,7 @@
  * Now uses Firebase Firestore for proper server-side storage
  */
 
+import { dateFromAny } from '../utils/dates';
 import {
     completeTask as firebaseCompleteTask,
     flagTaskCompletion as firebaseFlagTaskCompletion,
@@ -91,12 +92,12 @@ export async function completeTask(
         // Convert Firebase Timestamps to JavaScript Dates for compatibility
         const convertedCompletion: TaskCompletion = {
             ...completion,
-            completedAt: completion.completedAt.toDate(),
-            verifiedAt: completion.verifiedAt?.toDate(),
-            flaggedAt: completion.flaggedAt?.toDate(),
-            reviewedAt: completion.reviewedAt?.toDate(),
-            createdAt: completion.createdAt.toDate(),
-            updatedAt: completion.updatedAt.toDate()
+            completedAt: dateFromAny(completion.completedAt) || new Date(),
+            verifiedAt: dateFromAny(completion.verifiedAt) || undefined,
+            flaggedAt: dateFromAny(completion.flaggedAt) || undefined,
+            reviewedAt: dateFromAny(completion.reviewedAt) || undefined,
+            createdAt: dateFromAny(completion.createdAt) || new Date(),
+            updatedAt: dateFromAny(completion.updatedAt) || new Date()
         };
 
         console.log('Task completed and saved to Firebase:', convertedCompletion);
@@ -152,12 +153,12 @@ export async function getMissionTaskCompletions(missionId: string): Promise<Task
         // Convert Firebase Timestamps to JavaScript Dates for compatibility
         return completions.map(completion => ({
             ...completion,
-            completedAt: completion.completedAt.toDate(),
-            verifiedAt: completion.verifiedAt?.toDate(),
-            flaggedAt: completion.flaggedAt?.toDate(),
-            reviewedAt: completion.reviewedAt?.toDate(),
-            createdAt: completion.createdAt.toDate(),
-            updatedAt: completion.updatedAt.toDate()
+            completedAt: dateFromAny(completion.completedAt) || new Date(),
+            verifiedAt: dateFromAny(completion.verifiedAt) || undefined,
+            flaggedAt: dateFromAny(completion.flaggedAt) || undefined,
+            reviewedAt: dateFromAny(completion.reviewedAt) || undefined,
+            createdAt: dateFromAny(completion.createdAt) || new Date(),
+            updatedAt: dateFromAny(completion.updatedAt) || new Date()
         }));
     } catch (error) {
         console.error('Error getting mission task completions:', error);

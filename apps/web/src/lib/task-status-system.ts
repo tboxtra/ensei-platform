@@ -12,6 +12,7 @@
  */
 
 import { getFirebaseFirestore } from './firebase';
+import { dateFromAny } from '../utils/dates';
 import {
     collection,
     addDoc,
@@ -317,9 +318,9 @@ export async function getTaskStatusInfo(
     return {
         status: latestCompletion.status,
         flaggedReason: latestCompletion.flaggedReason || undefined,
-        flaggedAt: latestCompletion.flaggedAt?.toDate(),
-        verifiedAt: latestCompletion.verifiedAt?.toDate(),
-        completedAt: latestCompletion.completedAt.toDate(),
+        flaggedAt: dateFromAny(latestCompletion.flaggedAt) || undefined,
+        verifiedAt: dateFromAny(latestCompletion.verifiedAt) || undefined,
+        completedAt: dateFromAny(latestCompletion.completedAt) || undefined,
         canRedo: latestCompletion.status === 'flagged',
         canVerify: latestCompletion.status === 'pending',
         canFlag: latestCompletion.status === 'completed'

@@ -128,7 +128,7 @@ export default function MissionSubmissionsPage() {
     // Helper function to safely format date fields using bulletproof parsing
     const formatDate = (dateField: any) => {
         if (!dateField) return '—';
-        
+
         // Use the bulletproof dateFromAny helper
         const date = dateFromAny(dateField);
         return formatDateSafe(date, '—');
