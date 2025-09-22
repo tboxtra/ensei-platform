@@ -63,7 +63,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         mission.slug,
     ].filter((id): id is string => Boolean(id));
 
-    const { data: allCompletions = [] } = useMissionTaskCompletions(
+    const { data: allCompletions = [], isLoading: isLoadingCompletions } = useMissionTaskCompletions(
         normalizedMissionId,
         legacyIds
     );
@@ -127,41 +127,42 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         return map;
     }, [taskCompletions]);
 
+    // Normalize function for consistent ID comparison
+    const norm = (v?: string) => String(v ?? '').trim().toLowerCase();
+
+    // Build normalized task IDs from mission
+    const taskIds = useMemo(() => {
+        const raw = Array.isArray(mission?.tasks)
+            ? mission.tasks.map((t: any) => t.id ?? t)
+            : Array.isArray(mission?.requirements)
+            ? mission.requirements.map((r: any) => r.id ?? r)
+            : [];
+        return raw.map(norm);
+    }, [mission?.id, mission?.tasks, mission?.requirements]);
+
     // Calculate progress for the progress badge
     const progressData = useMemo(() => {
-        // Normalize task IDs from mission
-        const taskIds: string[] = Array.isArray(mission?.tasks)
-            ? mission.tasks.map((t: any) => t.id || t)
-            : Array.isArray(mission?.requirements)
-            ? mission.requirements.map((r: any) => r.id || r)
-            : [];
-
-        const total = taskIds.length;
-
-        if (!user?.id || !mission?.id || !total) {
-            return { done: 0, total };
+        if (!user?.id || !mission?.id || taskIds.length === 0) {
+            return { done: 0, total: taskIds.length };
         }
 
-        const taskIdSet = new Set<string>(taskIds); // whitelist only tasks on this card
-        const verifiedTaskIds = new Set<string>();
+        const whitelist = new Set(taskIds);
+        const verified = new Set<string>();
 
         for (const c of allCompletions) {
             // must be this user + this mission
-            const uid = c.userId;
-            const mid = c.missionId;
-            if (uid !== user.id || mid !== mission.id) continue;
-
+            if (c.userId !== user.id || c.missionId !== mission.id) continue;
+            
             // must be verified
-            if (!isVerified(c)) continue;
-
+            if ((c.status ?? '').toLowerCase() !== 'verified') continue;
+            
             // normalize task id and ensure it belongs to this mission's tasks
-            const tid = getTaskIdFromCompletion(c);
-            if (tid && taskIdSet.has(tid)) verifiedTaskIds.add(tid);
+            const tid = norm(getTaskIdFromCompletion(c));
+            if (tid && whitelist.has(tid)) verified.add(tid);
         }
 
-        const done = verifiedTaskIds.size; // distinct verified tasks
-        return { done, total };
-    }, [allCompletions, user?.id, mission?.id, mission.tasks, mission.requirements]);
+        return { done: verified.size, total: taskIds.length };
+    }, [allCompletions, user?.id, mission?.id, taskIds]);
 
     const getTaskStatus = useCallback(
         (taskId: string): TaskStatus => {
@@ -623,7 +624,9 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                         </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                        <ProgressBadge done={progressData.done} total={progressData.total} />
+                        {!isLoadingCompletions && (
+                            <ProgressBadge done={progressData.done} total={progressData.total} />
+                        )}
                         <span className={`px-2 py-1 rounded-full text-xs ${getModelColor(mission.model)} shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.1)]`}>
                             {mission.model}
                         </span>
