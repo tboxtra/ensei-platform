@@ -6,14 +6,23 @@ service cloud.firestore {
       return uid is string && uid.size() == 28 && uid.matches('[a-zA-Z0-9]{28}');
     }
     
-    // Helper: read a user's role
+    // Helper: read a user's role (defensive)
     function userRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+             ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+             : null;
     }
 
-    // Helper: mission owner check
+    // Helper: mission owner check (defensive)
     function isMissionOwner(missionId) {
-      return get(/databases/$(database)/documents/missions/$(missionId)).data.created_by == request.auth.uid;
+      return exists(/databases/$(database)/documents/missions/$(missionId)) &&
+             get(/databases/$(database)/documents/missions/$(missionId)).data.created_by == request.auth.uid;
+    }
+
+    // Helper: admin or moderator check
+    function isAdminOrMod() {
+      let r = userRole();
+      return r == 'admin' || r == 'moderator';
     }
     // Users can read/write their own data
     match /users/{userId} {
@@ -59,7 +68,7 @@ service cloud.firestore {
       allow get, list: if request.auth != null && (
           resource.data.user_id == request.auth.uid ||
           isMissionOwner(resource.data.mission_id) ||
-          userRole() in ['admin', 'moderator']
+          isAdminOrMod()
       );
       
       // Delete: deny for security
