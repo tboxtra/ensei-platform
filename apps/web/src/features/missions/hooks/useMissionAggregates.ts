@@ -34,7 +34,7 @@ async function getMissionAggregates(missionId: string): Promise<MissionAggregate
     } catch (error: any) {
         // Handle permission denied gracefully
         if (error.code === 'permission-denied') {
-            console.warn('Permission denied for mission aggregates - user may not have access');
+            console.debug('Permission denied for mission aggregates - user may not have access');
             return null;
         } else {
             console.error('Error getting mission aggregates:', error);
