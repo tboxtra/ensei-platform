@@ -24,6 +24,7 @@ service cloud.firestore {
       let r = userRole();
       return r == 'admin' || r == 'moderator';
     }
+    
     // Users can read/write their own data
     match /users/{userId} {
       allow read, write: if request.auth != null && 
@@ -173,13 +174,13 @@ service cloud.firestore {
     }
     
     // User stats (private to user, write-only via Cloud Functions)
-    match /stats/summary {
+    match /users/{userId}/stats/summary {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false; // only server writes
     }
     
     // Mission progress tracking (private to user, write-only via Cloud Functions)
-    match /missionProgress/{missionId} {
+    match /users/{userId}/missionProgress/{missionId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false; // only server writes
       
