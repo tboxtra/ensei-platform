@@ -9,9 +9,24 @@
 4. Save it as: `/Users/mac/Desktop/Ensei Alexis/ensei-platform/service-account-key.json`
 
 ### Step 2: Run the Real Stats Calculation Script
+
+**Option A: Using Environment Variable (Recommended)**
 ```bash
 cd "/Users/mac/Desktop/Ensei Alexis/ensei-platform"
-node scripts/calculate-real-user-stats.js
+export GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/service-account-key.json"
+node scripts/calculate-real-user-stats.js mDPgwAwb1pYqmxmsPsYW1b4qlup2
+```
+
+**Option B: Using Local File (Fallback)**
+```bash
+cd "/Users/mac/Desktop/Ensei Alexis/ensei-platform"
+# Place service-account-key.json in project root
+node scripts/calculate-real-user-stats.js mDPgwAwb1pYqmxmsPsYW1b4qlup2
+```
+
+**Dry Run (Test First)**
+```bash
+node scripts/calculate-real-user-stats.js mDPgwAwb1pYqmxmsPsYW1b4qlup2 --dry
 ```
 
 ### Step 3: Verify Real Numbers

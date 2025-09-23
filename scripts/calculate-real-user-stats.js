@@ -1,166 +1,153 @@
-#!/usr/bin/env node
-
-/**
- * Calculate Real User Statistics
- * 
- * This script calculates actual user statistics based on real data:
- * - Missions Created: count of missions where ownerId == currentUser.uid and deletedAt == null
- * - Missions Completed: missions the user participated in and has completed all required tasks
- * - Tasks Done: total number of verified task actions by the user
- * - Total Earned: sum of task.honors for verified actions
- */
+// scripts/calculate-real-user-stats.js
+// Usage:
+//   GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/service-account-key.json \
+//   node scripts/calculate-real-user-stats.js <UID> [--dry]
+//
+// What it does:
+// - missionsCreated: missions owned by UID (not soft-deleted)
+// - tasksDone: verified participations by UID
+// - totalEarned: sum of honors from verified participations by UID
+// - missionsCompleted: missions where UID completed ALL required tasks
+//
+// Assumed schema:
+// - missions (collection)
+//    - doc: { ownerId, deleted? }
+//    - subcollection: tasks (required?: boolean, taskId?)
+// - mission_participations (collection)
+//    - doc: { user_id, mission_id, task_id, verified, honors }
 
 const admin = require('firebase-admin');
+const { Timestamp, FieldValue } = admin.firestore;
 
-// Configuration
-const PROJECT_ID = 'ensei-6c8e0';
-const USER_ID = 'mDPgwAwb1pYqmxmsPsYW1b4qlup2'; // From your screenshot
-
-// Service Account Key Path - UPDATE THIS PATH
-const SERVICE_ACCOUNT_PATH = '/Users/mac/Desktop/Ensei Alexis/ensei-platform/service-account-key.json';
-
-async function calculateRealUserStats() {
-  console.log('🚀 Calculating real user statistics...\n');
-  
+(async () => {
   try {
-    // Check if service account file exists
-    const fs = require('fs');
-    if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
-      console.error('❌ Service account key file not found!');
-      console.log('\n📋 To fix this:');
-      console.log('1. Go to Firebase Console → Project Settings → Service Accounts');
-      console.log('2. Click "Generate new private key"');
-      console.log('3. Save the JSON file as:', SERVICE_ACCOUNT_PATH);
-      console.log('4. Run this script again');
+    const UID = process.argv[2];
+    const DRY = process.argv.includes('--dry');
+
+    if (!UID) {
+      console.error('❌ Missing UID. Run: node scripts/calculate-real-user-stats.js <UID> [--dry]');
       process.exit(1);
     }
 
-    // Initialize Firebase Admin with explicit credentials
-    const serviceAccount = require(SERVICE_ACCOUNT_PATH);
-    
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: PROJECT_ID
-      });
+    // Prefer GOOGLE_APPLICATION_CREDENTIALS env. Fallback to local file.
+    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      try {
+        const serviceAccount = require('../service-account-key.json');
+        admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+      } catch (e) {
+        console.error(
+          '❌ No credentials. Set GOOGLE_APPLICATION_CREDENTIALS or place service-account-key.json in project root.'
+        );
+        process.exit(1);
+      }
+    } else {
+      admin.initializeApp(); // uses GOOGLE_APPLICATION_CREDENTIALS
     }
 
     const db = admin.firestore();
-    console.log(`✅ Connected to Firebase project: ${PROJECT_ID}`);
 
-    // 1. Calculate Missions Created
-    console.log('📊 Calculating missions created...');
-    const missionsCreatedSnapshot = await db.collection('missions')
-      .where('created_by', '==', USER_ID)
-      .where('deleted_at', '==', null)
-      .get();
-    
-    const missionsCreated = missionsCreatedSnapshot.docs.length;
-    console.log(`   Found ${missionsCreated} missions created by user`);
+    console.log(`\n🔎 Calculating real stats for user: ${UID}${DRY ? ' (dry run)' : ''}`);
 
-    // 2. Calculate Tasks Done and Total Earned from mission_participations
-    console.log('📊 Calculating tasks done and total earned...');
-    const participationsSnapshot = await db.collection('mission_participations')
-      .where('user_id', '==', USER_ID)
+    // 1) missionsCreated
+    const missionsSnap = await db
+      .collection('missions')
+      .where('ownerId', '==', UID)
       .get();
-    
+
+    let missionsCreated = 0;
+    const missionIdsOwned = [];
+    missionsSnap.forEach(doc => {
+      const d = doc.data() || {};
+      if (!d.deleted) {
+        missionsCreated += 1;
+        missionIdsOwned.push(doc.id);
+      }
+    });
+
+    // 2) task completions by this user
+    const partsSnap = await db
+      .collection('mission_participations')
+      .where('user_id', '==', UID)
+      .get();
+
     let tasksDone = 0;
     let totalEarned = 0;
-    let missionsCompleted = 0;
-    const missionTaskCounts = new Map(); // missionId -> {required: number, completed: number}
-    
-    for (const participationDoc of participationsSnapshot.docs) {
-      const participation = participationDoc.data();
-      const missionId = participation.mission_id;
-      const tasksCompleted = participation.tasks_completed || [];
-      
-      // Count verified tasks for this participation
-      let verifiedTasks = 0;
-      for (const task of tasksCompleted) {
-        if (task.status === 'verified') {
-          tasksDone++;
-          verifiedTasks++;
-          
-          // Get mission to find task honors
-          const missionDoc = await db.collection('missions').doc(missionId).get();
-          if (missionDoc.exists) {
-            const mission = missionDoc.data();
-            const tasks = mission.tasks || [];
-            const taskData = tasks.find(t => t.id === task.task_id);
-            if (taskData && taskData.honors) {
-              totalEarned += taskData.honors;
-            }
+    // For missionsCompleted calc:
+    // map missionId => Set of task_ids the user verified
+    const userVerifiedByMission = new Map();
+
+    partsSnap.forEach(doc => {
+      const d = doc.data() || {};
+      if (d.verified) {
+        tasksDone += 1;
+        if (typeof d.honors === 'number') totalEarned += d.honors;
+        if (d.mission_id && d.task_id) {
+          if (!userVerifiedByMission.has(d.mission_id)) {
+            userVerifiedByMission.set(d.mission_id, new Set());
           }
+          userVerifiedByMission.get(d.mission_id).add(String(d.task_id));
         }
       }
-      
-      // Track mission completion progress
-      if (!missionTaskCounts.has(missionId)) {
-        // Get mission to find required task count
-        const missionDoc = await db.collection('missions').doc(missionId).get();
-        if (missionDoc.exists) {
-          const mission = missionDoc.data();
-          const tasks = mission.tasks || [];
-          missionTaskCounts.set(missionId, {
-            required: tasks.length,
-            completed: 0
-          });
-        }
+    });
+
+    // 3) missionsCompleted = count of missions where ALL required tasks are verified by the user
+    let missionsCompleted = 0;
+
+    // For each mission we have at least one verified completion, check required tasks
+    const missionIdsToCheck = Array.from(userVerifiedByMission.keys());
+    // (You can also include missions the user owns/participates in, but this set is enough to judge completion)
+    for (const missionId of missionIdsToCheck) {
+      const requiredTasksSnap = await db
+        .collection('missions')
+        .doc(missionId)
+        .collection('tasks')
+        .where('required', '==', true)
+        .get();
+
+      // If a mission has no "required" flags, treat all tasks as required
+      let requiredTaskIds = [];
+      if (requiredTasksSnap.empty) {
+        const allTasksSnap = await db
+          .collection('missions')
+          .doc(missionId)
+          .collection('tasks')
+          .get();
+        requiredTaskIds = allTasksSnap.docs.map(t => String(t.id));
+      } else {
+        requiredTaskIds = requiredTasksSnap.docs.map(t => String(t.id));
       }
-      
-      const missionProgress = missionTaskCounts.get(missionId);
-      if (missionProgress) {
-        missionProgress.completed = Math.max(missionProgress.completed, verifiedTasks);
-      }
+
+      // If there are no tasks at all, we won't count it as completed
+      if (requiredTaskIds.length === 0) continue;
+
+      const userCompletedSet = userVerifiedByMission.get(missionId) || new Set();
+      const allRequiredDone = requiredTaskIds.every(tid => userCompletedSet.has(tid));
+      if (allRequiredDone) missionsCompleted += 1;
     }
-    
-    // 3. Calculate Missions Completed (missions where user completed all required tasks)
-    for (const [missionId, progress] of missionTaskCounts) {
-      if (progress.completed >= progress.required && progress.required > 0) {
-        missionsCompleted++;
-      }
-    }
-    
-    console.log(`   Found ${tasksDone} verified tasks completed`);
-    console.log(`   Found ${missionsCompleted} missions completed`);
-    console.log(`   Total earned: ${totalEarned} honors`);
-    
-    // 4. Update user stats document
-    console.log('\n📝 Updating user stats document...');
-    const statsRef = db.doc(`users/${USER_ID}/stats/summary`);
-    
-    const realStats = {
-      missionsCreated: missionsCreated,
-      missionsCompleted: missionsCompleted,
-      tasksDone: tasksDone,
-      totalEarned: totalEarned,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+
+    const summaryDocRef = db.doc(`users/${UID}/stats/summary`);
+    const payload = {
+      missionsCreated,
+      missionsCompleted,
+      tasksDone,
+      totalEarned,
+      updatedAt: FieldValue.serverTimestamp(),
     };
-    
-    await statsRef.set(realStats);
-    
-    console.log('\n📊 Real User Stats Updated:');
-    console.log(`   Missions Created: ${missionsCreated}`);
-    console.log(`   Missions Completed: ${missionsCompleted}`);
-    console.log(`   Tasks Done: ${tasksDone}`);
-    console.log(`   Total Earned: ${totalEarned} honors`);
-    
-    console.log('\n✅ Real user statistics calculation completed!');
-    console.log('🔄 Refresh your app to see the real QuickStats numbers');
-    
-  } catch (error) {
-    console.error('❌ Error calculating real user stats:', error);
+
+    console.log('\n📊 Computed stats:');
+    console.table([payload]);
+
+    if (DRY) {
+      console.log('\n🧪 Dry run: not writing to Firestore.');
+    } else {
+      await summaryDocRef.set(payload, { merge: true });
+      console.log('\n✅ Wrote stats to users/%s/stats/summary', UID);
+    }
+
+    console.log('\n✨ Done.\n');
+    process.exit(0);
+  } catch (err) {
+    console.error('\n❌ Failed:', err?.message || err);
     process.exit(1);
   }
-}
-
-// Run the script
-calculateRealUserStats()
-  .then(() => {
-    console.log('🎉 Script completed successfully');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('💥 Script failed:', error);
-    process.exit(1);
-  });
+})();
