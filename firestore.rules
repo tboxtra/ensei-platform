@@ -237,4 +237,10 @@ service cloud.firestore {
     allow read: if request.auth != null; // public to all authenticated users
     allow write: if false; // only via Cloud Functions using Admin SDK
   }
+
+  // User stats (private to user, write-only via Cloud Functions)
+  match /users/{uid}/stats/{docId} {
+    allow read: if request.auth != null && request.auth.uid == uid;
+    allow write: if false; // only via Cloud Functions using Admin SDK
+  }
 }

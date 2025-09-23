@@ -73,7 +73,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
     );
 
     // Get mission aggregates for public progress counts
-    const { data: aggregates, isLoading: isLoadingAggregates } = useMissionAggregates(normalizedMissionId);
+    const { data: aggregates, isLoading: isLoadingAggregates } = useMissionAggregates(normalizedMissionId, user?.id);
 
     const completeTaskMutation = useCompleteTask();
     const redoTaskMutation = useRedoTaskCompletion();

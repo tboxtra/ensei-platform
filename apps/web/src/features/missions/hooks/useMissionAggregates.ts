@@ -46,14 +46,15 @@ async function getMissionAggregates(missionId: string): Promise<MissionAggregate
 /**
  * Hook to get mission aggregates
  */
-export function useMissionAggregates(missionId: string) {
+export function useMissionAggregates(missionId: string, userId?: string) {
     return useQuery({
         queryKey: ['mission-aggregates', missionId],
         queryFn: () => getMissionAggregates(missionId),
-        enabled: !!missionId,
+        enabled: !!missionId && !!userId, // Gate on both mission and user auth
         staleTime: 1000 * 30, // 30 seconds
         gcTime: 1000 * 60 * 5, // 5 minutes
         refetchInterval: 1000 * 30, // Refetch every 30 seconds for real-time updates
+        retry: false, // Don't retry on permission errors
     });
 }
 
