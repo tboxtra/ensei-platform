@@ -26,9 +26,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.syncMissionProgress = exports.updateMissionAggregates = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.api = void 0;
+exports.syncMissionProgress = exports.onMissionCreate = exports.onDegenWinnersChosen = exports.onVerificationWrite = exports.updateMissionAggregates = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.api = void 0;
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
+// Helper functions for safe defaults
+const emptyStats = () => ({
+    missionsCreated: 0,
+    missionsCompleted: 0,
+    tasksDone: 0,
+    totalEarned: 0,
+});
+const emptyProgress = (req = 1) => ({
+    tasksVerified: 0,
+    tasksRequired: req,
+    completed: false,
+});
 // User data integrity utilities
 const user_data_integrity_1 = require("./utils/user-data-integrity");
 const uid_migration_1 = require("./migration/uid-migration");
@@ -1821,6 +1833,145 @@ exports.updateMissionAggregates = functions.firestore
     catch (error) {
         console.error('Error updating mission aggregates:', error);
         return null;
+    }
+});
+/**
+ * Update user stats when a verification is created or transitions to verified
+ */
+exports.onVerificationWrite = functions.firestore
+    .document('verifications/{verificationId}')
+    .onWrite(async (change, context) => {
+    try {
+        const after = change.after.exists ? change.after.data() : null;
+        const before = change.before.exists ? change.before.data() : null;
+        // Only act when moving into a VERIFIED state the first time
+        const becameVerified = (after === null || after === void 0 ? void 0 : after.status) === 'VERIFIED' && (before === null || before === void 0 ? void 0 : before.status) !== 'VERIFIED';
+        if (!becameVerified)
+            return;
+        const { uid, missionId, taskId, missionType, honorsPerTask, tasksRequired } = after;
+        if (!uid || !missionId || !taskId) {
+            console.log('Missing required fields in verification:', { uid, missionId, taskId });
+            return;
+        }
+        const userStatsRef = db.doc(`users/${uid}/stats`);
+        const progressRef = db.doc(`users/${uid}/missionProgress/${missionId}`);
+        const userTaskMarker = db.doc(`users/${uid}/missionProgress/${missionId}/tasks/${taskId}`);
+        await db.runTransaction(async (tx) => {
+            var _a, _b, _c, _d, _e, _f;
+            const statsSnap = await tx.get(userStatsRef);
+            const missionProgSnap = await tx.get(progressRef);
+            // ✅ normalize snapshots
+            const stats = statsSnap.exists
+                ? statsSnap.data()
+                : emptyStats();
+            const tasksRequiredFromMission = tasksRequired || 1;
+            const prog = missionProgSnap.exists
+                ? missionProgSnap.data()
+                : emptyProgress(tasksRequiredFromMission);
+            // safe arithmetic
+            const newStats = {
+                missionsCreated: (_a = stats.missionsCreated) !== null && _a !== void 0 ? _a : 0,
+                missionsCompleted: (_b = stats.missionsCompleted) !== null && _b !== void 0 ? _b : 0,
+                tasksDone: ((_c = stats.tasksDone) !== null && _c !== void 0 ? _c : 0) + 1,
+                totalEarned: (_d = stats.totalEarned) !== null && _d !== void 0 ? _d : 0,
+            };
+            // 2) Check if this is a new task completion for this user
+            const userTaskSnap = await tx.get(userTaskMarker);
+            if (!userTaskSnap.exists) {
+                // Mark this task as completed for this user
+                tx.set(userTaskMarker, {
+                    verified: true,
+                    at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+                });
+                const newTasksVerified = ((_e = prog.tasksVerified) !== null && _e !== void 0 ? _e : 0) + 1;
+                const req = prog.tasksRequired || tasksRequiredFromMission || 1;
+                const completed = newTasksVerified >= req;
+                tx.set(progressRef, {
+                    tasksVerified: newTasksVerified,
+                    tasksRequired: req,
+                    completed,
+                    updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                }, { merge: true });
+                // if mission just completed for this user, bump missionsCompleted once
+                if (completed && !prog.completed) {
+                    newStats.missionsCompleted = ((_f = newStats.missionsCompleted) !== null && _f !== void 0 ? _f : 0) + 1;
+                }
+            }
+            // writes
+            tx.set(userStatsRef, newStats, { merge: true });
+            // if fixed mission and per-task honors pay immediately:
+            if (missionType === 'fixed' && honorsPerTask) {
+                tx.set(userStatsRef, { totalEarned: firebaseAdmin.firestore.FieldValue.increment(honorsPerTask) }, { merge: true });
+            }
+        });
+        console.log(`Updated user stats for ${uid}: tasksDone++, missionType=${missionType}`);
+    }
+    catch (error) {
+        console.error('Error updating user stats on verification:', error);
+    }
+});
+/**
+ * Update user stats when degen winners are chosen
+ */
+exports.onDegenWinnersChosen = functions.firestore
+    .document('missions/{missionId}/tasks/{taskId}')
+    .onUpdate(async (change, context) => {
+    try {
+        const after = change.after.data();
+        const before = change.before.data();
+        if (!after || (before === null || before === void 0 ? void 0 : before.winnersHash) === after.winnersHash)
+            return; // idempotency
+        if (after.type !== 'degen' || !Array.isArray(after.winners))
+            return;
+        const { winners, honorsPerTask, missionId } = after;
+        const taskId = context.params.taskId;
+        await Promise.all(winners.map(async (uid) => {
+            const statsRef = db.doc(`users/${uid}/stats`);
+            const winMarker = db.doc(`users/${uid}/missionProgress/${missionId}/wins/${taskId}`);
+            await db.runTransaction(async (tx) => {
+                // Check if already paid (idempotency)
+                const winSnap = await tx.get(winMarker);
+                if (winSnap.exists) {
+                    console.log(`User ${uid} already won task ${taskId}, skipping payment`);
+                    return;
+                }
+                // pay winner honors idempotently
+                tx.set(statsRef, {
+                    totalEarned: firebaseAdmin.firestore.FieldValue.increment(honorsPerTask || 0),
+                }, { merge: true });
+                // Mark win to avoid double-paying
+                tx.set(winMarker, {
+                    won: true,
+                    at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+                });
+            });
+        }));
+        console.log(`Updated degen winners for mission ${missionId}, task ${taskId}: ${winners.length} winners`);
+    }
+    catch (error) {
+        console.error('Error updating degen winners:', error);
+    }
+});
+/**
+ * Update user stats when a mission is created
+ */
+exports.onMissionCreate = functions.firestore
+    .document('missions/{missionId}')
+    .onCreate(async (snap, context) => {
+    try {
+        const missionData = snap.data();
+        const { created_by, deletedAt } = missionData;
+        if (!created_by || deletedAt)
+            return; // skip if no owner or soft-deleted
+        const statsRef = db.doc(`users/${created_by}/stats`);
+        await statsRef.set({
+            missionsCreated: firebaseAdmin.firestore.FieldValue.increment(1),
+            updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        console.log(`Updated missionsCreated for user ${created_by}`);
+    }
+    catch (error) {
+        console.error('Error updating missionsCreated:', error);
     }
 });
 exports.syncMissionProgress = functions.firestore

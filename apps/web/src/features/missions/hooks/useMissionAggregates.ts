@@ -50,3 +50,5 @@ export function useMissionAggregates(missionId: string) {
         refetchInterval: 1000 * 30, // Refetch every 30 seconds for real-time updates
     });
 }
+
+

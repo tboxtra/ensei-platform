@@ -108,3 +108,5 @@ export function getMissionProgress(mission: MissionType, agg: MissionAggregates)
 
     return pct(totalCompleted, totalPossible);
 }
+
+

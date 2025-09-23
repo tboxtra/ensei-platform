@@ -1,5 +1,33 @@
 import * as functions from 'firebase-functions';
 import * as firebaseAdmin from 'firebase-admin';
+
+// Type definitions for user stats
+type UserStats = {
+  missionsCreated: number;
+  missionsCompleted: number;
+  tasksDone: number;
+  totalEarned: number;
+};
+
+type MissionProgress = {
+  tasksVerified: number;
+  tasksRequired: number;
+  completed: boolean;
+};
+
+// Helper functions for safe defaults
+const emptyStats = (): UserStats => ({
+  missionsCreated: 0,
+  missionsCompleted: 0,
+  tasksDone: 0,
+  totalEarned: 0,
+});
+
+const emptyProgress = (req = 1): MissionProgress => ({
+  tasksVerified: 0,
+  tasksRequired: req,
+  completed: false,
+});
 // User data integrity utilities
 import {
   updateUserProfileSafely,
@@ -2161,15 +2189,26 @@ export const onVerificationWrite = functions.firestore
       const userTaskMarker = db.doc(`users/${uid}/missionProgress/${missionId}/tasks/${taskId}`);
 
       await db.runTransaction(async tx => {
-        // 1) Update tasksDone count
         const statsSnap = await tx.get(userStatsRef);
-        const stats = statsSnap.exists ? statsSnap.data() : {};
-        const nextStats = {
+        const missionProgSnap = await tx.get(progressRef);
+
+        // ✅ normalize snapshots
+        const stats: UserStats = statsSnap.exists
+          ? (statsSnap.data() as UserStats)
+          : emptyStats();
+
+        const tasksRequiredFromMission = tasksRequired || 1;
+
+        const prog: MissionProgress = missionProgSnap.exists
+          ? (missionProgSnap.data() as MissionProgress)
+          : emptyProgress(tasksRequiredFromMission);
+
+        // safe arithmetic
+        const newStats: UserStats = {
           missionsCreated: stats.missionsCreated ?? 0,
           missionsCompleted: stats.missionsCompleted ?? 0,
           tasksDone: (stats.tasksDone ?? 0) + 1,
           totalEarned: stats.totalEarned ?? 0,
-          updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         };
 
         // 2) Check if this is a new task completion for this user
@@ -2181,16 +2220,8 @@ export const onVerificationWrite = functions.firestore
             at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
           });
 
-          // Update mission progress
-          const progSnap = await tx.get(progressRef);
-          const prog = progSnap.exists ? progSnap.data() : {
-            tasksVerified: 0,
-            tasksRequired: 0,
-            completed: false
-          };
-
           const newTasksVerified = (prog.tasksVerified ?? 0) + 1;
-          const req = prog.tasksRequired || tasksRequired || 1; // fallback to 1 if not provided
+          const req = prog.tasksRequired || tasksRequiredFromMission || 1;
           const completed = newTasksVerified >= req;
 
           tx.set(progressRef, {
@@ -2200,19 +2231,23 @@ export const onVerificationWrite = functions.firestore
             updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
           }, { merge: true });
 
-          // If mission just completed, increment missionsCompleted
+          // if mission just completed for this user, bump missionsCompleted once
           if (completed && !prog.completed) {
-            nextStats.missionsCompleted = (nextStats.missionsCompleted ?? 0) + 1;
+            newStats.missionsCompleted = (newStats.missionsCompleted ?? 0) + 1;
           }
         }
 
-        // 3) Honors logic
-        if (missionType === 'fixed') {
-          nextStats.totalEarned = (nextStats.totalEarned ?? 0) + (honorsPerTask || 0);
-        }
-        // degen: no honors here; winners script will add
+        // writes
+        tx.set(userStatsRef, newStats, { merge: true });
 
-        tx.set(userStatsRef, nextStats, { merge: true });
+        // if fixed mission and per-task honors pay immediately:
+        if (missionType === 'fixed' && honorsPerTask) {
+          tx.set(
+            userStatsRef,
+            { totalEarned: firebaseAdmin.firestore.FieldValue.increment(honorsPerTask) },
+            { merge: true }
+          );
+        }
       });
 
       console.log(`Updated user stats for ${uid}: tasksDone++, missionType=${missionType}`);
@@ -2255,13 +2290,14 @@ export const onDegenWinnersChosen = functions.firestore
             return;
           }
 
-          // Update totalEarned
-          const statsSnap = await tx.get(statsRef);
-          const curr = statsSnap.exists ? statsSnap.data() : {};
-          tx.set(statsRef, {
-            totalEarned: (curr.totalEarned ?? 0) + (honorsPerTask || 0),
-            updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-          }, { merge: true });
+          // pay winner honors idempotently
+          tx.set(
+            statsRef,
+            {
+              totalEarned: firebaseAdmin.firestore.FieldValue.increment(honorsPerTask || 0),
+            },
+            { merge: true }
+          );
 
           // Mark win to avoid double-paying
           tx.set(winMarker, {

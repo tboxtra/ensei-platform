@@ -36,3 +36,5 @@ export interface StatusChipProps {
     className: string;
     blinking?: boolean;
 }
+
+
