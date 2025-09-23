@@ -2176,17 +2176,17 @@ export const onVerificationWrite = functions.firestore
         const userTaskSnap = await tx.get(userTaskMarker);
         if (!userTaskSnap.exists) {
           // Mark this task as completed for this user
-          tx.set(userTaskMarker, { 
-            verified: true, 
-            at: firebaseAdmin.firestore.FieldValue.serverTimestamp() 
+          tx.set(userTaskMarker, {
+            verified: true,
+            at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
           });
 
           // Update mission progress
           const progSnap = await tx.get(progressRef);
-          const prog = progSnap.exists ? progSnap.data() : { 
-            tasksVerified: 0, 
-            tasksRequired: 0, 
-            completed: false 
+          const prog = progSnap.exists ? progSnap.data() : {
+            tasksVerified: 0,
+            tasksRequired: 0,
+            completed: false
           };
 
           const newTasksVerified = (prog.tasksVerified ?? 0) + 1;
@@ -2230,7 +2230,7 @@ export const onDegenWinnersChosen = functions.firestore
     try {
       const after = change.after.data();
       const before = change.before.data();
-      
+
       if (!after || before?.winnersHash === after.winnersHash) return; // idempotency
 
       if (after.type !== 'degen' || !Array.isArray(after.winners)) return;
@@ -2246,7 +2246,7 @@ export const onDegenWinnersChosen = functions.firestore
       await Promise.all(winners.map(async (uid) => {
         const statsRef = db.doc(`users/${uid}/stats`);
         const winMarker = db.doc(`users/${uid}/missionProgress/${missionId}/wins/${taskId}`);
-        
+
         await db.runTransaction(async tx => {
           // Check if already paid (idempotency)
           const winSnap = await tx.get(winMarker);
@@ -2264,9 +2264,9 @@ export const onDegenWinnersChosen = functions.firestore
           }, { merge: true });
 
           // Mark win to avoid double-paying
-          tx.set(winMarker, { 
-            won: true, 
-            at: firebaseAdmin.firestore.FieldValue.serverTimestamp() 
+          tx.set(winMarker, {
+            won: true,
+            at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
           });
         });
       }));
@@ -2286,7 +2286,7 @@ export const onMissionCreate = functions.firestore
     try {
       const missionData = snap.data();
       const { created_by, deletedAt } = missionData;
-      
+
       if (!created_by || deletedAt) return; // skip if no owner or soft-deleted
 
       const statsRef = db.doc(`users/${created_by}/stats`);

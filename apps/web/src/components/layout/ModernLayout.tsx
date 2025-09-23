@@ -22,7 +22,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     const { logout, getMissions } = useApi();
     const { user: storeUser, stats } = useUserStore();
     const { user: authUser } = useAuthStore();
-    
+
     // Use real-time Quick Stats
     const { stats: quickStats, loading: statsLoading } = useQuickStats(user?.id);
 
