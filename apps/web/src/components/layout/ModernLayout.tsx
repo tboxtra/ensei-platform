@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useApi } from '../../hooks/useApi';
 import { useUserStore } from '../../store/userStore';
 import { useAuthStore } from '../../store/authStore';
+import { useQuickStats } from '../../hooks/useQuickStats';
 
 interface ModernLayoutProps {
     children: React.ReactNode;
@@ -18,14 +19,12 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
-    const [quickStats, setQuickStats] = useState({
-        missionsCreated: 0,
-        missionsCompleted: 0,
-        totalEarned: 0
-    });
     const { logout, getMissions } = useApi();
     const { user: storeUser, stats } = useUserStore();
     const { user: authUser } = useAuthStore();
+    
+    // Use real-time Quick Stats
+    const { stats: quickStats, loading: statsLoading } = useQuickStats(user?.id);
 
     useEffect(() => {
         // Use auth store as primary source, fallback to localStorage
@@ -47,16 +46,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
         setIsLoading(false);
     }, [authUser]);
 
-    // Use stats from store instead of fetching
-    useEffect(() => {
-        if (stats) {
-            setQuickStats({
-                missionsCreated: stats.missionsCreated,
-                missionsCompleted: stats.missionsCompleted,
-                totalEarned: stats.honorsEarned
-            });
-        }
-    }, [stats]);
+    // Stats are now handled by useQuickStats hook
 
     // Scroll detection for mobile full-screen UI
     useEffect(() => {
@@ -259,15 +249,19 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                             <div className="space-y-1 text-xs">
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Missions Created:</span>
-                                    <span className="text-white">{quickStats.missionsCreated}</span>
+                                    <span className="text-white">{statsLoading ? '—' : (quickStats?.missionsCreated ?? 0)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Missions Completed:</span>
-                                    <span className="text-white">{quickStats.missionsCompleted}</span>
+                                    <span className="text-white">{statsLoading ? '—' : (quickStats?.missionsCompleted ?? 0)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Tasks Done:</span>
+                                    <span className="text-white">{statsLoading ? '—' : (quickStats?.tasksDone ?? 0)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Total Earned:</span>
-                                    <span className="text-green-400">{quickStats.totalEarned.toLocaleString()} Honors</span>
+                                    <span className="text-green-400">{statsLoading ? '—' : `${(quickStats?.totalEarned ?? 0).toLocaleString()} Honors`}</span>
                                 </div>
                             </div>
                         </div>
@@ -319,7 +313,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                                     </div>
                                     <div>
                                         <div className="text-white font-medium text-sm">{user.name}</div>
-                                        <div className="text-green-400 text-xs">{quickStats.totalEarned.toLocaleString()} Honors</div>
+                                        <div className="text-green-400 text-xs">{statsLoading ? '—' : `${(quickStats?.totalEarned ?? 0).toLocaleString()} Honors`}</div>
                                     </div>
                                 </div>
                             </div>

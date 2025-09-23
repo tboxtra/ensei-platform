@@ -25,23 +25,23 @@ export function isValidOrigin(origin: string): boolean {
  * Send postMessage with origin validation
  */
 export function sendPostMessage(
-  target: Window | MessagePort | ServiceWorker,
-  message: any,
-  targetOrigin: string = '*'
+    target: Window | MessagePort | ServiceWorker,
+    message: any,
+    targetOrigin: string = '*'
 ): void {
-  try {
-    if (target && typeof target.postMessage === 'function') {
-      // Handle different postMessage signatures
-      if (target instanceof Window) {
-        target.postMessage(message, targetOrigin);
-      } else {
-        // For MessagePort and ServiceWorker, postMessage doesn't take targetOrigin
-        (target as any).postMessage(message);
-      }
+    try {
+        if (target && typeof target.postMessage === 'function') {
+            // Handle different postMessage signatures
+            if (target instanceof Window) {
+                target.postMessage(message, targetOrigin);
+            } else {
+                // For MessagePort and ServiceWorker, postMessage doesn't take targetOrigin
+                (target as any).postMessage(message);
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to send postMessage:', error);
     }
-  } catch (error) {
-    console.warn('Failed to send postMessage:', error);
-  }
 }
 
 /**

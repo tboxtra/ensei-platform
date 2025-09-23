@@ -171,6 +171,24 @@ service cloud.firestore {
         (request.auth.uid == userId || 
          request.auth.token.role == 'admin' || request.auth.token.role == 'moderator');
     }
+    
+    // User stats (private to user, write-only via Cloud Functions)
+    match /stats {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // only server writes
+    }
+    
+    // Mission progress tracking (private to user, write-only via Cloud Functions)
+    match /missionProgress/{missionId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // only server writes
+      
+      // Task markers and wins (private to user, write-only via Cloud Functions)
+      match /{document=**} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // only server writes
+      }
+    }
   }
 
   // Mission progress summaries (denormalized for efficient queries)
