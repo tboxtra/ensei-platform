@@ -106,3 +106,8 @@ Thumbs.db
 
 # Local development
 *.log
+
+# Firebase service account keys
+service-account-key.json
+*-service-account.json
+firebase-adminsdk-*.json
