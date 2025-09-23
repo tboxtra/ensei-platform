@@ -43,8 +43,8 @@ async function backfillUserStats(dryRun = true) {
             // Compute stats from source data
             const stats = await computeUserStats(uid);
 
-      // Get existing stats
-      const existingStatsDoc = await db.doc(`users/${uid}/stats/summary`).get();
+            // Get existing stats
+            const existingStatsDoc = await db.doc(`users/${uid}/stats/summary`).get();
             const existingStats = existingStatsDoc.exists ? existingStatsDoc.data() : null;
 
             console.log(`   📈 Computed stats:`, stats);
@@ -68,19 +68,19 @@ async function backfillUserStats(dryRun = true) {
             }
 
             if (!dryRun) {
-        if (existingStats) {
-          await db.doc(`users/${uid}/stats/summary`).set({
-            ...stats,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-          updated++;
-        } else {
-          await db.doc(`users/${uid}/stats/summary`).set({
-            ...stats,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          created++;
-        }
+                if (existingStats) {
+                    await db.doc(`users/${uid}/stats/summary`).set({
+                        ...stats,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    updated++;
+                } else {
+                    await db.doc(`users/${uid}/stats/summary`).set({
+                        ...stats,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    created++;
+                }
             }
 
             processed++;

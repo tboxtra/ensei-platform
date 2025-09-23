@@ -31,9 +31,15 @@ async function getMissionAggregates(missionId: string): Promise<MissionAggregate
             taskCount: data.taskCount || 0,
             updatedAt: data.updatedAt?.toDate?.() || new Date()
         };
-    } catch (error) {
-        console.error('Error getting mission aggregates:', error);
-        return null;
+    } catch (error: any) {
+        // Handle permission denied gracefully
+        if (error.code === 'permission-denied') {
+            console.warn('Permission denied for mission aggregates - user may not have access');
+            return null;
+        } else {
+            console.error('Error getting mission aggregates:', error);
+            return null;
+        }
     }
 }
 

@@ -36,40 +36,53 @@ export function useQuickStats(uid?: string) {
 
         const statsRef = doc(db, `users/${uid}/stats/summary`);
 
-        const unsubscribe = onSnapshot(
-            statsRef,
-            (snapshot) => {
-                try {
-                    const data = snapshot.data();
-                    if (data) {
-                        setStats({
-                            missionsCreated: data.missionsCreated ?? 0,
-                            missionsCompleted: data.missionsCompleted ?? 0,
-                            tasksDone: data.tasksDone ?? 0,
-                            totalEarned: data.totalEarned ?? 0,
-                        });
-                    } else {
-                        // No stats document exists yet, use defaults
-                        setStats({
-                            missionsCreated: 0,
-                            missionsCompleted: 0,
-                            tasksDone: 0,
-                            totalEarned: 0,
-                        });
-                    }
-                    setLoading(false);
-                } catch (err) {
-                    console.error('Error processing stats data:', err);
-                    setError(err as Error);
-                    setLoading(false);
-                }
-            },
-            (err) => {
-                console.error('Error listening to stats:', err);
-                setError(err);
-                setLoading(false);
-            }
-        );
+    const unsubscribe = onSnapshot(
+      statsRef,
+      (snapshot) => {
+        try {
+          const data = snapshot.data();
+          if (data) {
+            setStats({
+              missionsCreated: data.missionsCreated ?? 0,
+              missionsCompleted: data.missionsCompleted ?? 0,
+              tasksDone: data.tasksDone ?? 0,
+              totalEarned: data.totalEarned ?? 0,
+            });
+          } else {
+            // No stats document exists yet, use defaults
+            setStats({
+              missionsCreated: 0,
+              missionsCompleted: 0,
+              tasksDone: 0,
+              totalEarned: 0,
+            });
+          }
+          setLoading(false);
+        } catch (err) {
+          console.error('Error processing stats data:', err);
+          setError(err as Error);
+          setLoading(false);
+        }
+      },
+      (err: any) => {
+        // Handle permission denied gracefully
+        if (err.code === 'permission-denied') {
+          console.warn('Permission denied for stats - user may not have access');
+          // Set default stats instead of error
+          setStats({
+            missionsCreated: 0,
+            missionsCompleted: 0,
+            tasksDone: 0,
+            totalEarned: 0,
+          });
+          setLoading(false);
+        } else {
+          console.error('Error listening to stats:', err);
+          setError(err);
+          setLoading(false);
+        }
+      }
+    );
 
         return () => unsubscribe();
     }, [uid]);
