@@ -66,11 +66,10 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         mission.slug,
     ].filter((id): id is string => Boolean(id));
 
-    const { data: allCompletions = [], isLoading: isLoadingCompletions } = useMissionTaskCompletions(
+    // Get only the current user's completions for this mission
+    const { data: userCompletions = [], isLoading: isLoadingCompletions } = useUserMissionTaskCompletions(
         normalizedMissionId,
-        legacyIds,
-        user?.id,
-        mission.created_by
+        user?.id
     );
 
     // Get mission aggregates for public progress counts
@@ -157,9 +156,8 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         const whitelist = new Set(taskIds);
         const verified = new Set<string>();
 
-        for (const c of allCompletions) {
-            // must be this user + this mission
-            if (c.userId !== user.id || c.missionId !== mission.id) continue;
+        for (const c of userCompletions) {
+            // userCompletions already filtered to this user and mission
 
             // must be verified
             if ((c.status ?? '').toLowerCase() !== 'verified') continue;
@@ -175,7 +173,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 taskIds,
                 total: taskIds.length,
                 done: verified.size,
-                userCompletions: allCompletions.filter(c => c.userId === user.id && c.missionId === mission.id),
+                userCompletions: userCompletions,
                 verifiedTasks: Array.from(verified)
             });
         }
@@ -186,7 +184,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             // Add aggregate data for status calculation
             aggregates: aggregates
         };
-    }, [allCompletions, user?.id, mission?.id, taskIds, aggregates]);
+    }, [userCompletions, user?.id, mission?.id, taskIds, aggregates]);
 
     // Calculate mission status for status chips
     const missionStatus = useMemo(() => {

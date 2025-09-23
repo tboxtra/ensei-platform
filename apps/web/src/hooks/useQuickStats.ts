@@ -43,13 +43,14 @@ export function useQuickStats(uid?: string) {
                     const data = snapshot.data();
                     if (data) {
                         setStats({
-                            missionsCreated: data.missionsCreated ?? 0,
-                            missionsCompleted: data.missionsCompleted ?? 0,
-                            tasksDone: data.tasksDone ?? 0,
-                            totalEarned: data.totalEarned ?? 0,
+                            missionsCreated: Number(data.missionsCreated ?? 0),
+                            missionsCompleted: Number(data.missionsCompleted ?? 0),
+                            tasksDone: Number(data.tasksDone ?? 0),
+                            totalEarned: Number(data.totalEarned ?? 0),
                         });
                     } else {
                         // No stats document exists yet, use defaults
+                        console.log(`No stats document found for user ${uid}, using defaults`);
                         setStats({
                             missionsCreated: 0,
                             missionsCompleted: 0,
