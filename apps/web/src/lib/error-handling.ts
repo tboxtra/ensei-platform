@@ -216,6 +216,16 @@ export class ErrorHandler {
 
             switch (error.code) {
                 case 'permission-denied':
+                    // Suppress permission errors for task completions to prevent spam
+                    if (operation.includes('getMissionTaskCompletions')) {
+                        console.debug('Permission denied for task completions (expected for non-owners)');
+                        return {
+                            code: 'FIREBASE_permission-denied',
+                            message: 'Permission denied',
+                            timestamp: new Date(),
+                            context: `Firebase: ${operation}`
+                        };
+                    }
                     message = 'Permission denied';
                     break;
                 case 'unavailable':

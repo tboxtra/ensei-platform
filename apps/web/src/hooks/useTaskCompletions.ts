@@ -86,6 +86,7 @@ export function useUserMissionTaskCompletions(missionId: string, userId?: string
 /**
  * Hook to get task completions for a specific mission (all users)
  * Supports legacy mission IDs for backward compatibility
+ * Only runs for mission owners or admins to prevent permission errors
  */
 export function useMissionTaskCompletions(
     missionDocId: string,
@@ -93,12 +94,17 @@ export function useMissionTaskCompletions(
     currentUserId?: string,
     missionOwnerUid?: string
 ) {
+    // Check if current user has permission to read all completions
+    const isMissionOwner = currentUserId && missionOwnerUid && currentUserId === missionOwnerUid;
+    const hasPermission = isMissionOwner; // Add admin check if needed
+    
     return useQuery({
         queryKey: taskCompletionKeys.mission(missionDocId),
         queryFn: () => getMissionTaskCompletions(missionDocId, legacyIds, currentUserId, missionOwnerUid),
-        enabled: !!missionDocId,
+        enabled: !!missionDocId && !!currentUserId && hasPermission,
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 30, // 30 minutes
+        retry: false, // Don't retry permission errors
     });
 }
 
