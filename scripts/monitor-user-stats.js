@@ -33,7 +33,7 @@ async function monitorUserStats() {
 
         for (const userDoc of usersSnapshot.docs) {
             const uid = userDoc.id;
-            const statsDoc = await db.doc(`users/${uid}/stats`).get();
+            const statsDoc = await db.doc(`users/${uid}/stats/summary`).get();
 
             if (statsDoc.exists) {
                 statsCount++;

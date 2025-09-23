@@ -63,7 +63,7 @@ export default function UserStatsAuditPage() {
                 const uid = userDoc.id;
 
                 // Get stored stats
-                const statsDoc = await getDoc(doc(db, `users/${uid}/stats`));
+                const statsDoc = await getDoc(doc(db, `users/${uid}/stats/summary`));
                 const storedStats = statsDoc.exists() ? {
                     missionsCreated: statsDoc.data()?.missionsCreated ?? 0,
                     missionsCompleted: statsDoc.data()?.missionsCompleted ?? 0,

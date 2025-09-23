@@ -1853,7 +1853,7 @@ exports.onVerificationWrite = functions.firestore
             console.log('Missing required fields in verification:', { uid, missionId, taskId });
             return;
         }
-        const userStatsRef = db.doc(`users/${uid}/stats`);
+        const userStatsRef = db.doc(`users/${uid}/stats/summary`);
         const progressRef = db.doc(`users/${uid}/missionProgress/${missionId}`);
         const userTaskMarker = db.doc(`users/${uid}/missionProgress/${missionId}/tasks/${taskId}`);
         await db.runTransaction(async (tx) => {
@@ -1926,7 +1926,7 @@ exports.onDegenWinnersChosen = functions.firestore
         const { winners, honorsPerTask, missionId } = after;
         const taskId = context.params.taskId;
         await Promise.all(winners.map(async (uid) => {
-            const statsRef = db.doc(`users/${uid}/stats`);
+            const statsRef = db.doc(`users/${uid}/stats/summary`);
             const winMarker = db.doc(`users/${uid}/missionProgress/${missionId}/wins/${taskId}`);
             await db.runTransaction(async (tx) => {
                 // Check if already paid (idempotency)
@@ -1963,7 +1963,7 @@ exports.onMissionCreate = functions.firestore
         const { created_by, deletedAt } = missionData;
         if (!created_by || deletedAt)
             return; // skip if no owner or soft-deleted
-        const statsRef = db.doc(`users/${created_by}/stats`);
+        const statsRef = db.doc(`users/${created_by}/stats/summary`);
         await statsRef.set({
             missionsCreated: firebaseAdmin.firestore.FieldValue.increment(1),
             updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),

@@ -34,7 +34,7 @@ export function useQuickStats(uid?: string) {
         setLoading(true);
         setError(null);
 
-        const statsRef = doc(db, `users/${uid}/stats`);
+        const statsRef = doc(db, `users/${uid}/stats/summary`);
 
         const unsubscribe = onSnapshot(
             statsRef,

@@ -173,7 +173,7 @@ service cloud.firestore {
     }
     
     // User stats (private to user, write-only via Cloud Functions)
-    match /stats {
+    match /stats/summary {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false; // only server writes
     }
