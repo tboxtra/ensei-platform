@@ -95,13 +95,13 @@ export function useMissionTaskCompletions(
     missionOwnerUid?: string
 ) {
     // Check if current user has permission to read all completions
-    const isMissionOwner = currentUserId && missionOwnerUid && currentUserId === missionOwnerUid;
+    const isMissionOwner = Boolean(currentUserId && missionOwnerUid && currentUserId === missionOwnerUid);
     const hasPermission = isMissionOwner; // Add admin check if needed
-
+    
     return useQuery({
         queryKey: taskCompletionKeys.mission(missionDocId),
         queryFn: () => getMissionTaskCompletions(missionDocId, legacyIds, currentUserId, missionOwnerUid),
-        enabled: !!missionDocId && !!currentUserId && hasPermission,
+        enabled: Boolean(missionDocId && currentUserId && hasPermission),
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 30, // 30 minutes
         retry: false, // Don't retry permission errors

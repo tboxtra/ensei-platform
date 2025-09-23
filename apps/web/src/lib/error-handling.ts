@@ -217,7 +217,7 @@ export class ErrorHandler {
             switch (error.code) {
                 case 'permission-denied':
                     // Suppress permission errors for expected cases to prevent spam
-                    if (operation.includes('getMissionTaskCompletions') || 
+                    if (operation.includes('getMissionTaskCompletions') ||
                         operation.includes('getUserMissionTaskCompletions')) {
                         console.debug(`Permission denied for ${operation} (expected for non-owners)`);
                         return {

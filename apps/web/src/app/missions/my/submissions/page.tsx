@@ -70,7 +70,7 @@ export default function MissionSubmissionsPage() {
     const { data: submissions = [], isLoading: loadingSubmissions, error: submissionsError } = useMissionTaskCompletions(
         id || '',
         legacyIds
-    );
+    ) as { data: any[], isLoading: boolean, error: any };
 
     // Debug logging
     console.log('My Missions Submissions - submissions:', submissions);
