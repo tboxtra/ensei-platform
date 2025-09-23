@@ -10,9 +10,9 @@ const admin = require('firebase-admin');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: 'ensei-6c8e0'
-  });
+    admin.initializeApp({
+        projectId: 'ensei-6c8e0'
+    });
 }
 
 const db = admin.firestore();
@@ -22,11 +22,16 @@ async function createUserStats() {
   
   try {
     // Get all users
-    const usersSnapshot = await db.collection('users').limit(10).get();
+    const usersSnapshot = await db.collection('users').limit(20).get();
     console.log(`📊 Found ${usersSnapshot.docs.length} users`);
     
     let created = 0;
     let updated = 0;
+    
+    // Process users in batches to avoid overwhelming Firestore
+    const batch = db.batch();
+    let batchCount = 0;
+    const BATCH_SIZE = 10;
     
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
@@ -53,9 +58,22 @@ async function createUserStats() {
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       };
       
-      await statsRef.set(initialStats);
-      console.log(`   ✅ Created stats for ${uid}`);
+      batch.set(statsRef, initialStats);
+      batchCount++;
       created++;
+      
+      // Commit batch when it reaches the size limit
+      if (batchCount >= BATCH_SIZE) {
+        await batch.commit();
+        console.log(`   📦 Committed batch of ${batchCount} stats documents`);
+        batchCount = 0;
+      }
+    }
+    
+    // Commit any remaining documents in the batch
+    if (batchCount > 0) {
+      await batch.commit();
+      console.log(`   📦 Committed final batch of ${batchCount} stats documents`);
     }
     
     console.log(`\n📈 Summary:`);
@@ -77,11 +95,11 @@ async function createUserStats() {
 
 // Run the script
 createUserStats()
-  .then(() => {
-    console.log('🎉 Script completed successfully');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('💥 Script failed:', error);
-    process.exit(1);
-  });
+    .then(() => {
+        console.log('🎉 Script completed successfully');
+        process.exit(0);
+    })
+    .catch((error) => {
+        console.error('💥 Script failed:', error);
+        process.exit(1);
+    });

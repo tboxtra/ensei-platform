@@ -5,7 +5,7 @@
  * Uses Firestore onSnapshot for instant updates
  */
 
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { getFirestore } from 'firebase/firestore';
 import type { UserStats } from '../types/user-stats';
@@ -36,51 +36,72 @@ export function useQuickStats(uid?: string) {
 
         const statsRef = doc(db, `users/${uid}/stats/summary`);
 
-        const unsubscribe = onSnapshot(
-            statsRef,
-            (snapshot) => {
-                try {
+        // Use getDoc first to check if document exists, then onSnapshot for real-time updates
+        const loadStats = async () => {
+            try {
+                const snapshot = await getDoc(statsRef);
+                if (snapshot.exists()) {
                     const data = snapshot.data();
-                    if (data) {
-                        setStats({
-                            missionsCreated: Number(data.missionsCreated ?? 0),
-                            missionsCompleted: Number(data.missionsCompleted ?? 0),
-                            tasksDone: Number(data.tasksDone ?? 0),
-                            totalEarned: Number(data.totalEarned ?? 0),
-                        });
-                    } else {
-                        // No stats document exists yet, use defaults
-                        console.log(`No stats document found for user ${uid}, using defaults`);
-                        setStats({
-                            missionsCreated: 0,
-                            missionsCompleted: 0,
-                            tasksDone: 0,
-                            totalEarned: 0,
-                        });
-                    }
-                    setLoading(false);
-                } catch (err) {
-                    console.error('Error processing stats data:', err);
-                    setError(err as Error);
-                    setLoading(false);
-                }
-            },
-            (err: any) => {
-                // Handle permission denied gracefully
-                if (err.code === 'permission-denied') {
-                    console.warn('Permission denied for stats - user may not have access');
-                    // Set default stats instead of error
+                    setStats({
+                        missionsCreated: Number(data.missionsCreated ?? 0),
+                        missionsCompleted: Number(data.missionsCompleted ?? 0),
+                        tasksDone: Number(data.tasksDone ?? 0),
+                        totalEarned: Number(data.totalEarned ?? 0),
+                    });
+                } else {
+                    // No stats document exists yet, use defaults
+                    console.log(`No stats document found for user ${uid}, using defaults`);
                     setStats({
                         missionsCreated: 0,
                         missionsCompleted: 0,
                         tasksDone: 0,
                         totalEarned: 0,
                     });
-                    setLoading(false);
+                }
+                setLoading(false);
+            } catch (err: any) {
+                if (err.code === 'permission-denied') {
+                    console.warn('Permission denied for stats - user may not have access');
+                    setStats({
+                        missionsCreated: 0,
+                        missionsCompleted: 0,
+                        tasksDone: 0,
+                        totalEarned: 0,
+                    });
                 } else {
-                    console.error('Error listening to stats:', err);
+                    console.error('Error loading stats:', err);
                     setError(err);
-                    setLoading(false);
+                }
+                setLoading(false);
+            }
+        };
+
+        loadStats();
+
+        // Set up real-time listener for updates
+        const unsubscribe = onSnapshot(
+            statsRef,
+            (snapshot) => {
+                try {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        setStats({
+                            missionsCreated: Number(data.missionsCreated ?? 0),
+                            missionsCompleted: Number(data.missionsCompleted ?? 0),
+                            tasksDone: Number(data.tasksDone ?? 0),
+                            totalEarned: Number(data.totalEarned ?? 0),
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error processing real-time stats update:', err);
+                }
+            },
+            (err: any) => {
+                // Handle permission denied gracefully for real-time updates
+                if (err.code === 'permission-denied') {
+                    console.debug('Permission denied for real-time stats updates (expected)');
+                } else {
+                    console.error('Error in real-time stats listener:', err);
                 }
             }
         );
