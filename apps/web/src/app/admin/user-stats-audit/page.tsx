@@ -36,8 +36,8 @@ export default function UserStatsAuditPage() {
     const [error, setError] = useState<string | null>(null);
     const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
-  // Check if user is admin (flexible check for now)
-  const isAdmin = user?.email?.includes('admin') || user?.email?.includes('tobiobembe@gmail.com');
+    // Check if user is admin (flexible check for now)
+    const isAdmin = user?.email?.includes('admin') || user?.email?.includes('tobiobembe@gmail.com');
 
     useEffect(() => {
         if (!isAdmin) {

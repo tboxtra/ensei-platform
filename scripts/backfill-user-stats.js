@@ -5,6 +5,10 @@
  * 
  * Computes and creates user stats documents for existing users
  * based on their mission participations and verifications
+ * 
+ * Usage:
+ *   node scripts/backfill-user-stats.js              # Dry run
+ *   node scripts/backfill-user-stats.js --execute    # Live run
  */
 
 const admin = require('firebase-admin');
