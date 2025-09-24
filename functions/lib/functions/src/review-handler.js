@@ -67,9 +67,16 @@ exports.submitReview = functions.https.onCall(async (data, context) => {
     if (!twitterUsername) {
         throw new functions.https.HttpsError("invalid-argument", "Twitter handle not found in profile. Please update your profile first.");
     }
-    // Validate that the link contains the user's Twitter handle
-    if (!commentLink.includes(`/${twitterUsername}`)) {
-        throw new functions.https.HttpsError("invalid-argument", `Link must match your Twitter username (@${twitterUsername})`);
+    // Enhanced link validation - matches Discover & Earn behavior
+    const link = commentLink?.trim();
+    const handle = twitterUsername?.replace(/^@/, ''); // Remove @ if present
+    const domainOk = /(^https?:\/\/)?(twitter\.com|x\.com)\//i.test(link);
+    const handleOk = handle && new RegExp(`/(?:${handle})(/|$)`, 'i').test(link);
+    if (!domainOk) {
+        throw new functions.https.HttpsError("invalid-argument", "Link must be from twitter.com or x.com");
+    }
+    if (!handleOk) {
+        throw new functions.https.HttpsError("invalid-argument", `Link must match your Twitter username (@${handle})`);
     }
     const partRef = db.collection("mission_participations").doc(participationId);
     const userStatsRef = db.doc(`users/${uid}/stats/summary`);
