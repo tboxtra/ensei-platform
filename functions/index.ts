@@ -4,19 +4,12 @@
 // Workaround: Build script copies lib/functions/index.js to lib/index.js
 
 // functions/index.ts
-// Temporarily comment out other functions to deploy review system
-// import { onParticipationUpdate, onMissionCreate } from "./src/realtime-stats-updater";
-// import { onDegenWinnersChosen, onDegenMissionCompleted } from "./src/degen-winner-handler";
+// Import the main API function and review handler
+import { api } from "./src/index";
 import { submitReview } from "./src/review-handler";
 
-// If you still need legacy function(s), export them here explicitly too.
-// export { syncMissionProgress } from "./src/legacy-sync-mission-progress";
+// Export the main API function (contains all HTTP endpoints with CORS)
+export { api };
 
-// V2 names Firebase will discover
-// export const onParticipationUpdateV2 = onParticipationUpdate;
-// export const onMissionCreateV2 = onMissionCreate;
-// export const onDegenWinnersChosenV2 = onDegenWinnersChosen;
-// export { onDegenMissionCompleted }; // already desired name
-
-// Review system
+// Export the review system callable function
 export { submitReview };

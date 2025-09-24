@@ -52,7 +52,7 @@ export const submitReview = functions.https.onCall(async (data, context) => {
 
     const partRef = db.collection("mission_participations").doc(participationId);
     const userStatsRef = db.doc(`users/${uid}/stats/summary`);
-    
+
     // Use deterministic review key: participationId:taskId:submitterUid
     const reviewKey = `${participationId}:${taskId}:${submitterId}`;
     const reviewRef = db.collection("reviews").doc(reviewKey);

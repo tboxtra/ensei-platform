@@ -4,10 +4,10 @@
 // See debugging notes in DEBUG-NOTES.md and .tsc.effective.json
 // Workaround: Build script copies lib/functions/index.js to lib/index.js
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.submitReview = void 0;
+exports.submitReview = exports.api = void 0;
 // functions/index.ts
-// Temporarily comment out other functions to deploy review system
-// import { onParticipationUpdate, onMissionCreate } from "./src/realtime-stats-updater";
-// import { onDegenWinnersChosen, onDegenMissionCompleted } from "./src/degen-winner-handler";
+// Import the main API function and review handler
+const index_1 = require("./src/index");
+Object.defineProperty(exports, "api", { enumerable: true, get: function () { return index_1.api; } });
 const review_handler_1 = require("./src/review-handler");
 Object.defineProperty(exports, "submitReview", { enumerable: true, get: function () { return review_handler_1.submitReview; } });

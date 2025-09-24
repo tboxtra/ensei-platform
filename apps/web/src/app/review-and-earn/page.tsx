@@ -208,8 +208,8 @@ export default function ReviewAndEarnPage() {
                                         {[1, 2, 3, 4, 5].map(n => (
                                             <button key={n} onClick={() => handleRate(n)} aria-label={`rate ${n}`}
                                                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-110 ${n <= rating
-                                                        ? "text-yellow-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)] bg-yellow-500/20"
-                                                        : "text-gray-500 hover:text-gray-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)] bg-gray-800/30"
+                                                    ? "text-yellow-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)] bg-yellow-500/20"
+                                                    : "text-gray-500 hover:text-gray-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)] bg-gray-800/30"
                                                     }`}>
                                                 <Star className="w-4 h-4" fill={n <= rating ? "currentColor" : "none"} />
                                             </button>

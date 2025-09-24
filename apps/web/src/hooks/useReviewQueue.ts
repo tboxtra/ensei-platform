@@ -25,8 +25,8 @@ type Participation = {
 const isTwitterUrl = (u?: string | null) =>
     !!u && /(https?:\/\/)?(twitter\.com|x\.com)\//i.test(u);
 
-const toMillis = (ts?: Timestamp | string | null) =>
-    ts && typeof ts !== 'string' ? ts.toMillis() : (ts ? Date.parse(ts) : 0);
+const toMillis = (v: any) =>
+    v?.toMillis ? v.toMillis() : (typeof v === 'string' ? Date.parse(v) : 0);
 
 export function useReviewQueue() {
     const { user } = useAuthUser();
@@ -40,14 +40,27 @@ export function useReviewQueue() {
             if (!uid) return null;
 
             // 1) Get a reasonable slice; do NOT predicate on fields that aren't in your docs
-            const qRef = query(
-                collection(db, 'mission_participations'),
-                where('status', 'in', ['active', 'completed']),
-                orderBy('created_at', 'desc'),    // this field exists in your docs
-                limit(50)
-            );
-
-            const snap = await getDocs(qRef);
+            // Try with orderBy; fall back to no-orderBy if it fails (mixed field types)
+            let snap;
+            try {
+                snap = await getDocs(
+                    query(
+                        collection(db, 'mission_participations'),
+                        where('status', 'in', ['active', 'completed']),
+                        orderBy('created_at', 'desc'),
+                        limit(50)
+                    )
+                );
+            } catch {
+                // fallback when mixed / missing created_at
+                snap = await getDocs(
+                    query(
+                        collection(db, 'mission_participations'),
+                        where('status', 'in', ['active', 'completed']),
+                        limit(50)
+                    )
+                );
+            }
             const rows: Participation[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 
             // Debug probe to identify filtering stage
@@ -125,7 +138,7 @@ export function useReviewQueue() {
             if (results.length === 0) return null;
 
             const result = results[0];
-            
+
             // Get mission details for the first eligible task
             const missionRef = doc(db, "missions", result.mission_id);
             const mission = (await getDoc(missionRef)).data() as any | undefined;
