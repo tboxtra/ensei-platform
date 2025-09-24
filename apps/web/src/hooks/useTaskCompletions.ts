@@ -102,9 +102,9 @@ export function useMissionTaskCompletions(
         queryKey: taskCompletionKeys.mission(missionDocId),
         queryFn: () => getMissionTaskCompletions(missionDocId, legacyIds, currentUserId, missionOwnerUid),
         enabled: Boolean(missionDocId && currentUserId && hasPermission),
+        retry: false,             // avoid spinner loops
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 30, // 30 minutes
-        retry: false, // Don't retry permission errors
     });
 }
 

@@ -29,11 +29,11 @@ export function MissionListItem({
     const verifyTaskCompletionMutation = useVerifyTaskCompletion();
 
     // Use permission-gated hook for submissions (only loads if user is mission owner)
-    const { 
-        data: submissions = [], 
-        isLoading: loadingSubmissions, 
+    const {
+        data: submissions = [],
+        isLoading: loadingSubmissions,
         error: submissionsError,
-        refetch: refetchSubmissions 
+        refetch: refetchSubmissions
     } = useMissionTaskCompletions(
         mission.id,
         [], // legacy IDs

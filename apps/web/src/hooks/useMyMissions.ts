@@ -93,11 +93,11 @@ export function useMyMissions(): UseMyMissionsReturn {
                 throw error;
             }
         },
+        retry: false,             // avoid spinner loops
         refetchOnMount: 'always', // Always refetch on mount
         staleTime: 0, // Always consider data stale
         gcTime: 5 * 60 * 1000, // 5 minutes
         refetchOnWindowFocus: false,
-        retry: 1, // Fail fast; don't spin forever
     });
 
     return {
