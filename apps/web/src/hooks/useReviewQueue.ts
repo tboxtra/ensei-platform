@@ -43,18 +43,34 @@ export function useReviewQueue() {
             // 2) Client-side filters Firestore can't do:
             //    - exclude your own participations
             //    - exclude ones you already reviewed
-            const unreviewed = snap.docs
-                .map(d => ({ ...(d.data() as Participation), id: d.id }))
-                .filter(p =>
-                    p.user_id !== uid &&                      // exclude self
-                    !(p.reviewed_by && p.reviewed_by[uid])    // exclude already reviewed
-                );
+            const rows = snap.docs.map(d => ({ ...(d.data() as Participation), id: d.id }));
+            
+            // Debug probe to identify filtering stage
+            const rows0 = rows; // raw page
+            const rows1 = rows0.filter(p => p.status === 'completed');
+            const rows2 = rows1.filter(p => !!p.submitted_at); // has timestamp we order by
+            const rows3 = rows2.filter(p => p.user_id !== uid); // exclude self
+            const rows4 = rows3.filter(p => !(p.reviewed_by && p.reviewed_by[uid])); // not already reviewed
+
+            // TEMP debug
+            if (typeof window !== 'undefined') {
+                (window as any).__reviewDebug = {
+                    total: rows0.length,
+                    completed: rows1.length,
+                    hasSubmittedAt: rows2.length,
+                    notSelf: rows3.length,
+                    notReviewed: rows4.length,
+                    sample: rows0.slice(0, 3),
+                    uid: uid
+                };
+                console.log('[review-queue] counts', (window as any).__reviewDebug);
+            }
 
             // 3) Return first eligible; null when none
-            if (unreviewed.length === 0) return null;
+            if (rows4.length === 0) return null;
 
-            const participation = unreviewed[0];
-            
+            const participation = rows4[0];
+
             // Get mission details for the first eligible participation
             const missionRef = doc(db, "missions", participation.mission_id);
             const mission = (await getDoc(missionRef)).data() as any | undefined;
