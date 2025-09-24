@@ -7,12 +7,14 @@ type Participation = {
     id: string;
     user_id: string;
     mission_id: string;
-    status: 'completed' | 'active' | 'rejected';
+    status: 'completed' | 'active' | 'rejected' | 'submitted' | 'verified';
     reviewed_by?: Record<string, boolean>;
     submitted_at?: any; // Timestamp
+    updated_at?: any; // Timestamp
+    created_at?: any; // Timestamp
+    createdAt?: any; // Timestamp (alternative naming)
     latest_submission_link?: string;
     user_social_handle?: string;
-    createdAt?: any;
 };
 
 const PAGE_SIZE = 25; // pull a small batch, then client-filter
@@ -28,13 +30,13 @@ export function useReviewQueue() {
         queryFn: async () => {
             if (!uid) return null;
 
-            // 1) Query only what Firestore can do efficiently
-            //    status == 'completed' and ordered by submitted_at
+            // 1) Query with flexible status values and timestamp fallbacks
+            //    Support multiple status values and different timestamp fields
             const colRef = collection(db, "mission_participations");
             const q = query(
                 colRef,
-                where("status", "==", "completed"),        // ✅ match your real schema
-                orderBy("submitted_at", "asc"),            // ✅ needs index: status+submitted_at
+                where("status", "in", ["completed", "submitted", "verified"]), // ← accept what you really use
+                orderBy("updated_at", "asc"),  // ← fallback if submitted_at missing
                 limit(PAGE_SIZE)
             );
 
@@ -43,12 +45,18 @@ export function useReviewQueue() {
             // 2) Client-side filters Firestore can't do:
             //    - exclude your own participations
             //    - exclude ones you already reviewed
-            const rows = snap.docs.map(d => ({ ...(d.data() as Participation), id: d.id }));
+            const raw = snap.docs.map(d => ({ ...(d.data() as Participation), id: d.id }));
+            
+            // Normalize timestamps - use any available timestamp field
+            const withTs = raw.map(p => ({
+                ...p,
+                _ts: p.submitted_at || p.updated_at || p.created_at || null
+            }));
             
             // Debug probe to identify filtering stage
-            const rows0 = rows; // raw page
-            const rows1 = rows0.filter(p => p.status === 'completed');
-            const rows2 = rows1.filter(p => !!p.submitted_at); // has timestamp we order by
+            const rows0 = withTs; // raw page with normalized timestamps
+            const rows1 = rows0.filter(p => ['completed', 'submitted', 'verified'].includes(p.status));
+            const rows2 = rows1.filter(p => !!p._ts); // has any timestamp
             const rows3 = rows2.filter(p => p.user_id !== uid); // exclude self
             const rows4 = rows3.filter(p => !(p.reviewed_by && p.reviewed_by[uid])); // not already reviewed
 

@@ -10,45 +10,45 @@ const db = admin.firestore();
 const HONORS_PER_REVIEW = 20;
 
 export const submitReview = functions.https.onCall(async (data, context) => {
-  const uid = context.auth?.uid;
-  if (!uid) throw new functions.https.HttpsError("unauthenticated", "Login required");
+    const uid = context.auth?.uid;
+    if (!uid) throw new functions.https.HttpsError("unauthenticated", "Login required");
 
-  const { missionId, participationId, submitterId, rating, commentLink } = data || {};
-  if (!missionId || !participationId || !submitterId) {
-    throw new functions.https.HttpsError("invalid-argument", "Missing required ids");
-  }
-  if (typeof rating !== "number" || rating < 1 || rating > 5) {
-    throw new functions.https.HttpsError("invalid-argument", "Rating must be 1–5");
-  }
-  if (typeof commentLink !== "string" || (!commentLink.includes("twitter.com") && !commentLink.includes("x.com"))) {
-    throw new functions.https.HttpsError("invalid-argument", "Link must be from Twitter or X");
-  }
+    const { missionId, participationId, submitterId, rating, commentLink } = data || {};
+    if (!missionId || !participationId || !submitterId) {
+        throw new functions.https.HttpsError("invalid-argument", "Missing required ids");
+    }
+    if (typeof rating !== "number" || rating < 1 || rating > 5) {
+        throw new functions.https.HttpsError("invalid-argument", "Rating must be 1–5");
+    }
+    if (typeof commentLink !== "string" || (!commentLink.includes("twitter.com") && !commentLink.includes("x.com"))) {
+        throw new functions.https.HttpsError("invalid-argument", "Link must be from Twitter or X");
+    }
 
-  // Fetch user's Twitter handle for validation
-  const userRef = db.collection("users").doc(uid);
-  const userSnap = await userRef.get();
-  if (!userSnap.exists) {
-    throw new functions.https.HttpsError("not-found", "User profile not found");
-  }
-  const userData = userSnap.data() as any;
-  const twitterUsername = userData.twitter_handle || userData.twitterUsername;
-  
-  if (!twitterUsername) {
-    throw new functions.https.HttpsError("invalid-argument", "Twitter handle not found in profile. Please update your profile first.");
-  }
+    // Fetch user's Twitter handle for validation
+    const userRef = db.collection("users").doc(uid);
+    const userSnap = await userRef.get();
+    if (!userSnap.exists) {
+        throw new functions.https.HttpsError("not-found", "User profile not found");
+    }
+    const userData = userSnap.data() as any;
+    const twitterUsername = userData.twitter_handle || userData.twitterUsername;
 
-  // Enhanced link validation - matches Discover & Earn behavior
-  const link = commentLink?.trim();
-  const handle = twitterUsername?.replace(/^@/, ''); // Remove @ if present
-  const domainOk = /(^https?:\/\/)?(twitter\.com|x\.com)\//i.test(link);
-  const handleOk = handle && new RegExp(`/(?:${handle})(/|$)`, 'i').test(link);
+    if (!twitterUsername) {
+        throw new functions.https.HttpsError("invalid-argument", "Twitter handle not found in profile. Please update your profile first.");
+    }
 
-  if (!domainOk) {
-    throw new functions.https.HttpsError("invalid-argument", "Link must be from twitter.com or x.com");
-  }
-  if (!handleOk) {
-    throw new functions.https.HttpsError("invalid-argument", `Link must match your Twitter username (@${handle})`);
-  }
+    // Enhanced link validation - matches Discover & Earn behavior
+    const link = commentLink?.trim();
+    const handle = twitterUsername?.replace(/^@/, ''); // Remove @ if present
+    const domainOk = /(^https?:\/\/)?(twitter\.com|x\.com)\//i.test(link);
+    const handleOk = handle && new RegExp(`/(?:${handle})(/|$)`, 'i').test(link);
+
+    if (!domainOk) {
+        throw new functions.https.HttpsError("invalid-argument", "Link must be from twitter.com or x.com");
+    }
+    if (!handleOk) {
+        throw new functions.https.HttpsError("invalid-argument", `Link must match your Twitter username (@${handle})`);
+    }
 
     const partRef = db.collection("mission_participations").doc(participationId);
     const userStatsRef = db.doc(`users/${uid}/stats/summary`);
