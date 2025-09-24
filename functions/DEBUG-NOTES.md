@@ -76,3 +76,4 @@ The build script successfully copies `lib/functions/index.js` to `lib/index.js`,
 - Functions are ready for deployment
 - Build script works as workaround
 - Need to resolve root compilation issue for clean build
+

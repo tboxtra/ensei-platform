@@ -80,7 +80,7 @@ export const submitReview = functions.https.onCall(async (data, context) => {
         });
 
         // mark reviewed_by.uid = true (keep existing logic for backward compatibility)
-        tx.set(partRef, { 
+        tx.set(partRef, {
             reviewed_by: { [uid]: true },
             reviews: { [reviewKey]: true }
         }, { merge: true });

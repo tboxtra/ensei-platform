@@ -16,7 +16,8 @@ import {
     orderBy,
     limit,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    FieldValue
 } from 'firebase/firestore';
 import { getFirebaseFirestore } from './firebase';
 
@@ -29,9 +30,9 @@ export interface TaskCompletion {
     userEmail?: string;
     userSocialHandle?: string; // Twitter handle, Instagram username, etc.
     status: 'pending' | 'verified' | 'flagged' | 'rejected';
-    completedAt: Timestamp;
-    verifiedAt?: Timestamp;
-    flaggedAt?: Timestamp;
+    completedAt: FieldValue | Timestamp;
+    verifiedAt?: FieldValue | Timestamp | null;
+    flaggedAt?: FieldValue | Timestamp | null;
     flaggedReason?: string;
     proof?: string; // Screenshot URL, transaction hash, etc.
     url?: string; // For link submissions
@@ -50,9 +51,9 @@ export interface TaskCompletion {
         urlValidation?: any; // Validation result for link submissions
     };
     reviewedBy?: string; // Legacy field, use reviewerId instead
-    reviewedAt?: Timestamp; // Legacy field, use verifiedAt/flaggedAt instead
-    createdAt: Timestamp;
-    updatedAt: Timestamp;
+    reviewedAt?: FieldValue | Timestamp | null; // Legacy field, use verifiedAt/flaggedAt instead
+    createdAt: FieldValue | Timestamp;
+    updatedAt: FieldValue | Timestamp;
 }
 
 const COLLECTION_NAME = 'taskCompletions';

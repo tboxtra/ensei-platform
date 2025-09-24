@@ -80,7 +80,7 @@ export function useReviewQueue() {
 
             // Flatten every completed *task* inside each participation
             const allTasks = rows
-                .filter(p => ['active','completed'].includes(String(p?.status || '').toLowerCase()))
+                .filter(p => ['active', 'completed'].includes(String(p?.status || '').toLowerCase()))
                 .flatMap(p => (Array.isArray(p?.tasks_completed) ? p.tasks_completed.map((t: any) => ({ p, t })) : []));
 
             // Keep only LINK-verification tasks with a usable url
@@ -133,7 +133,7 @@ export function useReviewQueue() {
             }
 
             if (!next) return null;
-            
+
             // Get mission details for the first eligible task
             const missionRef = doc(db, "missions", next.p.mission_id);
             const mission = (await getDoc(missionRef)).data() as any | undefined;
