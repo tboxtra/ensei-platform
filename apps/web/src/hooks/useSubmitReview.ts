@@ -6,6 +6,7 @@ type Payload = {
     missionId: string;
     participationId: string;
     submitterId: string;
+    taskId: string;
     rating: number;
     commentLink: string;
 };

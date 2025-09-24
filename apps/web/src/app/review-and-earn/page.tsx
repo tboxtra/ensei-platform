@@ -43,6 +43,7 @@ export default function ReviewAndEarnPage() {
             missionId: item.missionId,
             participationId: item.participationId,
             submitterId: item.submitterId,
+            taskId: item.taskId,
             rating,
             commentLink: link
         });

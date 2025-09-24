@@ -46,8 +46,8 @@ exports.submitReview = functions.https.onCall(async (data, context) => {
     const uid = context.auth?.uid;
     if (!uid)
         throw new functions.https.HttpsError("unauthenticated", "Login required");
-    const { missionId, participationId, submitterId, rating, commentLink } = data || {};
-    if (!missionId || !participationId || !submitterId) {
+    const { missionId, participationId, submitterId, taskId, rating, commentLink } = data || {};
+    if (!missionId || !participationId || !submitterId || !taskId) {
         throw new functions.https.HttpsError("invalid-argument", "Missing required ids");
     }
     if (typeof rating !== "number" || rating < 1 || rating > 5) {
@@ -80,27 +80,30 @@ exports.submitReview = functions.https.onCall(async (data, context) => {
     }
     const partRef = db.collection("mission_participations").doc(participationId);
     const userStatsRef = db.doc(`users/${uid}/stats/summary`);
-    const reviewsRef = db.collection("reviews").doc();
+    // Use deterministic review key: participationId:taskId:submitterUid
+    const reviewKey = `${participationId}:${taskId}:${submitterId}`;
+    const reviewRef = db.collection("reviews").doc(reviewKey);
     return db.runTransaction(async (tx) => {
+        // Check if already reviewed using the deterministic key
+        const reviewSnap = await tx.get(reviewRef);
+        if (reviewSnap.exists) {
+            throw new functions.https.HttpsError("already-exists", "You already reviewed this submission");
+        }
         const partSnap = await tx.get(partRef);
         if (!partSnap.exists)
             throw new functions.https.HttpsError("not-found", "Participation not found");
-        const part = partSnap.data();
-        // prevent duplicate review
-        if (part.reviewed_by && part.reviewed_by[uid]) {
-            throw new functions.https.HttpsError("already-exists", "You already reviewed this submission");
-        }
-        // write review
-        tx.set(reviewsRef, {
+        // write review using deterministic key
+        tx.set(reviewRef, {
             mission_id: missionId,
             participation_id: participationId,
+            task_id: taskId,
             submitter_id: submitterId,
             reviewer_id: uid,
             rating,
             comment_link: commentLink,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-        // mark reviewed_by.uid = true
+        // mark reviewed_by.uid = true (keep existing logic for backward compatibility)
         tx.set(partRef, { reviewed_by: { [uid]: true } }, { merge: true });
         // increment stats
         tx.set(userStatsRef, {
