@@ -20,6 +20,7 @@ type Participation = {
     status: 'active' | 'completed' | string;
     tasks_completed?: TaskEntry[];
     created_at?: any;
+    reviews?: Record<string, boolean>;
 };
 
 const isTwitterUrl = (u?: string | null) =>
@@ -63,95 +64,89 @@ export function useReviewQueue() {
             }
             const rows: Participation[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 
-            // Debug probe to identify filtering stage
-            const rows0 = rows; // raw participations
-            const rows1 = rows0.filter(p => ['active', 'completed'].includes(p.status));
-            const rows2 = rows1.filter(p => p.tasks_completed && p.tasks_completed.length > 0);
+            // Helper functions for robust data handling
+            const toIso = (v: any) => {
+                // supports Firestore Timestamp, JS Date, and ISO strings
+                if (!v) return null;
+                // Firestore Timestamp
+                if (typeof v?.toDate === 'function') return v.toDate().toISOString();
+                if (v instanceof Date) return v.toISOString();
+                if (typeof v === 'string') return v; // assume ISO-like
+                return null;
+            };
 
-            // 2) Flatten reviewable task entries
-            const tasks = rows2.flatMap(p =>
-                (p.tasks_completed || []).map(t => ({ p, t }))
-            );
+            const isTwitterUrl = (u?: string) =>
+                !!u && /^https?:\/\/(twitter\.com|x\.com)\//i.test(u);
 
-            // 3) Filter to link-based, completed, valid X/Twitter URLs
-            const linkTasks = tasks.filter(({ t }) =>
-                t.status === 'completed' &&
-                t.verificationMethod === 'link' &&
-                isTwitterUrl(t.url) &&
-                (t.urlValidation?.isValid ?? true)
-            );
+            // Flatten every completed *task* inside each participation
+            const allTasks = rows
+                .filter(p => ['active','completed'].includes(String(p?.status || '').toLowerCase()))
+                .flatMap(p => (Array.isArray(p?.tasks_completed) ? p.tasks_completed.map((t: any) => ({ p, t })) : []));
 
-            // 4) Exclude the current user's own tasks
-            const notSelf = linkTasks.filter(({ t }) => (t.user_id ?? '') !== uid);
+            // Keep only LINK-verification tasks with a usable url
+            const linkTasks = allTasks.filter(({ t }) => {
+                const method = String(t?.verificationMethod || '').toLowerCase();
+                const okLink = isTwitterUrl(t?.url) || !!t?.urlValidation?.isValid;
+                return method === 'link' && okLink;
+            });
 
-            // 5) Exclude already reviewed (uses deterministic review key)
-            //    Key: participationId:taskId:submitterUid
-            const results: {
-                participationId: string;
-                mission_id: string;
-                submitterUid: string;
-                taskId: string;
-                url: string;
-                completedAtMs: number;
-                reviewKey: string;
-            }[] = [];
+            // Exclude self by the *task* submitter user_id (not the top-level doc)
+            // (your sample shows user_id living on each task map)
+            const notSelf = linkTasks.filter(({ t }) => t?.user_id && t.user_id !== uid);
 
-            for (const { p, t } of notSelf) {
-                const submitter = t.user_id ?? 'unknown';
-                const reviewKey = `${p.id}:${t.task_id}:${submitter}`;
+            // Exclude tasks already reviewed by this reviewer using deterministic key
+            const notReviewed = notSelf.filter(({ p, t }) => {
+                const submitter = t?.user_id;
+                if (!submitter) return false;
+                const reviewKey = `${p.id}:${t.task_id}:${submitter}:${uid}`;
+                return !(window as any).__reviewReceipts?.has?.(reviewKey) && !p.reviews?.[reviewKey];
+            });
 
-                // you can store review receipts at reviews/{reviewKey}
-                const rDoc = await getDoc(doc(db, 'reviews', reviewKey));
-                if (rDoc.exists()) continue;
+            // Pick the oldest by completed_at (string or Timestamp supported)
+            notReviewed.sort((a, b) => {
+                const A = toIso(a.t?.completed_at) ?? '9999';
+                const B = toIso(b.t?.completed_at) ?? '9999';
+                return A.localeCompare(B);
+            });
 
-                results.push({
-                    participationId: p.id,
-                    mission_id: p.mission_id,
-                    submitterUid: submitter,
-                    taskId: t.task_id!,
-                    url: t.url!,
-                    completedAtMs: toMillis(t.completed_at),
-                    reviewKey,
-                });
-            }
-
-            // sort oldest first
-            results.sort((a, b) => a.completedAtMs - b.completedAtMs);
+            const next = notReviewed[0];
 
             // TEMP debug
             if (typeof window !== 'undefined') {
                 (window as any).__reviewDebug = {
-                    total: rows0.length,
-                    withValidStatus: rows1.length,
-                    withTasks: rows2.length,
-                    totalTasks: tasks.length,
+                    total: rows.length,
+                    withTasks: allTasks.length,
                     linkTasks: linkTasks.length,
                     notSelf: notSelf.length,
-                    notReviewed: results.length,
-                    sample: rows0.slice(0, 3),
-                    uid: uid
+                    notReviewed: notReviewed.length,
+                    sample: notReviewed.slice(0, 2).map(({ p, t }) => ({
+                        pid: p.id,
+                        taskId: t?.task_id,
+                        submitter: t?.user_id,
+                        url: t?.url,
+                        completed_at: t?.completed_at,
+                        urlValidation: t?.urlValidation?.isValid ?? null,
+                    })),
+                    uid,
                 };
                 console.log('[review-queue] counts', (window as any).__reviewDebug);
             }
 
-            // return the next one
-            if (results.length === 0) return null;
-
-            const result = results[0];
-
+            if (!next) return null;
+            
             // Get mission details for the first eligible task
-            const missionRef = doc(db, "missions", result.mission_id);
+            const missionRef = doc(db, "missions", next.p.mission_id);
             const mission = (await getDoc(missionRef)).data() as any | undefined;
 
             return {
-                participationId: result.participationId,
-                missionId: result.mission_id,
-                submitterId: result.submitterUid,
-                taskId: result.taskId,
+                participationId: next.p.id,
+                missionId: next.p.mission_id,
+                submitterId: next.t.user_id,
+                taskId: next.t.task_id,
                 missionLink: mission?.original_link ?? mission?.tweet_url ?? "",
-                submissionLink: result.url,
+                submissionLink: next.t.url,
                 submitterHandle: "", // We'll need to get this from user profile
-                createdAgo: new Date(result.completedAtMs)
+                createdAgo: new Date(toIso(next.t.completed_at) || Date.now())
             };
         }
     });

@@ -53,8 +53,8 @@ export const submitReview = functions.https.onCall(async (data, context) => {
     const partRef = db.collection("mission_participations").doc(participationId);
     const userStatsRef = db.doc(`users/${uid}/stats/summary`);
 
-    // Use deterministic review key: participationId:taskId:submitterUid
-    const reviewKey = `${participationId}:${taskId}:${submitterId}`;
+    // Use deterministic review key: participationId:taskId:submitterUid:reviewerUid
+    const reviewKey = `${participationId}:${taskId}:${submitterId}:${uid}`;
     const reviewRef = db.collection("reviews").doc(reviewKey);
 
     return db.runTransaction(async (tx) => {
@@ -80,7 +80,10 @@ export const submitReview = functions.https.onCall(async (data, context) => {
         });
 
         // mark reviewed_by.uid = true (keep existing logic for backward compatibility)
-        tx.set(partRef, { reviewed_by: { [uid]: true } }, { merge: true });
+        tx.set(partRef, { 
+            reviewed_by: { [uid]: true },
+            reviews: { [reviewKey]: true }
+        }, { merge: true });
 
         // increment stats
         tx.set(userStatsRef, {
