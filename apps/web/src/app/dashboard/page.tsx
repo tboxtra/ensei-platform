@@ -98,9 +98,9 @@ export default function DashboardPage() {
             </ModernCard>
 
             <ModernCard className="bg-gradient-to-br from-orange-600/20 to-red-600/20 hover:from-orange-600/30 hover:to-red-600/30 transition-all duration-300 transform hover:scale-105 cursor-pointer shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_6px_rgba(255,255,255,0.05)] hover:shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.2),inset_1px_1px_3px_rgba(255,255,255,0.08)]">
-              <a href="/review" className="block text-center">
+              <a href="/review-and-earn" className="block text-center">
                 <div className="text-2xl mb-2">⚖️</div>
-                <h3 className="text-sm font-semibold mb-1 text-orange-400">Judge & Earn</h3>
+                <h3 className="text-sm font-semibold mb-1 text-orange-400">Review & Earn</h3>
                 <p className="text-xs text-gray-400">Review submissions and earn rewards</p>
               </a>
             </ModernCard>

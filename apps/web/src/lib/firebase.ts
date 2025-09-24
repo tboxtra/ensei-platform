@@ -4,6 +4,7 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getMessaging, isSupported as isMessagingSupported } from 'firebase/messaging';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 let app: FirebaseApp;
 
@@ -97,6 +98,25 @@ export const getFirebaseMessaging = async () => {
 
     return getMessaging(getFirebaseApp());
 };
+
+// Initialize Functions
+export const getFirebaseFunctions = () => {
+    const functions = getFunctions(getFirebaseApp());
+
+    // Connect to emulator in development
+    if (process.env.NODE_ENV === 'development') {
+        try {
+            connectFunctionsEmulator(functions, 'localhost', 5001);
+        } catch (error) {
+            // Emulator already connected or not available
+        }
+    }
+
+    return functions;
+};
+
+// Export functions as alias
+export const functions = getFirebaseFunctions();
 
 export const googleProvider = new GoogleAuthProvider();
 

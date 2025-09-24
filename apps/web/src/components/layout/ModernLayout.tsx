@@ -64,7 +64,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
         { href: '/missions', icon: '🔍', label: 'Discover & Earn' },
         { href: '/missions/create', icon: '🚀', label: 'Create Mission' },
         { href: '/missions/my', icon: '📊', label: 'My Missions' },
-        { href: '/review', icon: '📄', label: 'Review & Earn' },
+        { href: '/review-and-earn', icon: '📄', label: 'Review & Earn' },
         { href: '/claim', icon: '💰', label: 'Claim' },
         { href: '/wallet', icon: '👛', label: 'Wallet' }
     ];
