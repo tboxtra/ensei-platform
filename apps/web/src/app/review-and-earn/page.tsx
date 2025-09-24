@@ -31,6 +31,25 @@ export default function ReviewAndEarnPage() {
         avg: 0
     }), []);
 
+    const handleIntent = () => setStep(1);
+    const handleLink = () => {
+        if (!link || !link.includes("twitter.com")) return alert("Enter a valid Twitter link");
+        setStep(2);
+    };
+    const handleRate = (n: number) => { setRating(n); setStep(3); };
+    const handleComplete = async () => {
+        if (!item) return;
+        await submitReview.mutateAsync({
+            missionId: item.missionId,
+            participationId: item.participationId,
+            submitterId: item.submitterId,
+            rating,
+            commentLink: link
+        });
+        setShowSuccess(true);
+    };
+    const next = () => { setShowSuccess(false); refetch(); };
+
     if (isLoading) return (
         <ProtectedRoute>
             <ModernLayout currentPage="/review-and-earn">
@@ -56,7 +75,7 @@ export default function ReviewAndEarnPage() {
                         </h1>
                         <p className="text-gray-400">Review mission submissions and earn {HONORS_PER_REVIEW} honors per review</p>
                     </div>
-
+                    
                     <ModernCard className="text-center py-16">
                         <div className="text-6xl mb-4">📝</div>
                         <h2 className="text-2xl font-semibold text-white mb-2">No Reviews Available</h2>
@@ -66,24 +85,6 @@ export default function ReviewAndEarnPage() {
             </ModernLayout>
         </ProtectedRoute>
     );
-
-    const handleIntent = () => setStep(1);
-    const handleLink = () => {
-        if (!link || !link.includes("twitter.com")) return alert("Enter a valid Twitter link");
-        setStep(2);
-    };
-    const handleRate = (n: number) => { setRating(n); setStep(3); };
-    const handleComplete = async () => {
-        await submitReview.mutateAsync({
-            missionId: item.missionId,
-            participationId: item.participationId,
-            submitterId: item.submitterId,
-            rating,
-            commentLink: link
-        });
-        setShowSuccess(true);
-    };
-    const next = () => { setShowSuccess(false); refetch(); };
 
     return (
         <ProtectedRoute>
@@ -188,10 +189,11 @@ export default function ReviewAndEarnPage() {
                                     <div className="flex gap-2 justify-center mb-6">
                                         {[1, 2, 3, 4, 5].map(n => (
                                             <button key={n} onClick={() => handleRate(n)} aria-label={`rate ${n}`}
-                                                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 transform hover:scale-110 ${n <= rating
-                                                    ? "text-yellow-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)] bg-yellow-500/20"
-                                                    : "text-gray-500 hover:text-gray-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)] bg-gray-800/30"
-                                                    }`}>
+                                                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 transform hover:scale-110 ${
+                                                    n <= rating 
+                                                        ? "text-yellow-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)] bg-yellow-500/20" 
+                                                        : "text-gray-500 hover:text-gray-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)] bg-gray-800/30"
+                                                }`}>
                                                 <Star className="w-6 h-6" fill={n <= rating ? "currentColor" : "none"} />
                                             </button>
                                         ))}
@@ -214,26 +216,25 @@ export default function ReviewAndEarnPage() {
                                 </ModernButton>
                             </div>
                         </div>
-                </div>
+                    </ModernCard>
 
-                {/* Success Modal */}
-                {showSuccess && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-gray-800/90 backdrop-blur-lg rounded-2xl p-8 max-w-md mx-4 text-center border border-gray-700/50 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
-                            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)]">
-                                <Check className="w-8 h-8 text-green-400" />
+                    {/* Success Modal */}
+                    {showSuccess && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+                            <div className="bg-gray-800/90 backdrop-blur-lg rounded-2xl p-8 max-w-md mx-4 text-center border border-gray-700/50 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.4),inset_2px_2px_6px_rgba(255,255,255,0.05)]">
+                                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)]">
+                                    <Check className="w-8 h-8 text-green-400" />
+                                </div>
+                                <h3 className="text-xl font-semibold mb-2 text-white">Review Completed!</h3>
+                                <p className="text-gray-400 mb-6">You earned {HONORS_PER_REVIEW} honors for this review</p>
+                                <ModernButton onClick={next} variant="success" className="w-full">
+                                    Next Review
+                                </ModernButton>
                             </div>
-                            <h3 className="text-xl font-semibold mb-2 text-white">Review Completed!</h3>
-                            <p className="text-gray-400 mb-6">You earned {HONORS_PER_REVIEW} honors for this review</p>
-                            <ModernButton onClick={next} variant="success" className="w-full">
-                                Next Review
-                            </ModernButton>
                         </div>
-                    </div>
-                )}
-            </ModernCard>
-        </div>
-      </ModernLayout>
-    </ProtectedRoute>
-  );
+                    )}
+                </div>
+            </ModernLayout>
+        </ProtectedRoute>
+    );
 }
