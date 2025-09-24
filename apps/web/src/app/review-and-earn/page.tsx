@@ -75,7 +75,7 @@ export default function ReviewAndEarnPage() {
                         </h1>
                         <p className="text-gray-400">Review mission submissions and earn {HONORS_PER_REVIEW} honors per review</p>
                     </div>
-                    
+
                     <ModernCard className="text-center py-16">
                         <div className="text-6xl mb-4">📝</div>
                         <h2 className="text-2xl font-semibold text-white mb-2">No Reviews Available</h2>
@@ -189,11 +189,10 @@ export default function ReviewAndEarnPage() {
                                     <div className="flex gap-2 justify-center mb-6">
                                         {[1, 2, 3, 4, 5].map(n => (
                                             <button key={n} onClick={() => handleRate(n)} aria-label={`rate ${n}`}
-                                                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 transform hover:scale-110 ${
-                                                    n <= rating 
-                                                        ? "text-yellow-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)] bg-yellow-500/20" 
+                                                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 transform hover:scale-110 ${n <= rating
+                                                        ? "text-yellow-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)] bg-yellow-500/20"
                                                         : "text-gray-500 hover:text-gray-400 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)] bg-gray-800/30"
-                                                }`}>
+                                                    }`}>
                                                 <Star className="w-6 h-6" fill={n <= rating ? "currentColor" : "none"} />
                                             </button>
                                         ))}
