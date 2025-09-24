@@ -233,7 +233,7 @@ export default function ReviewAndEarnPage() {
                 )}
             </ModernCard>
         </div>
-      </ModernLayout >
-    </ProtectedRoute >
+      </ModernLayout>
+    </ProtectedRoute>
   );
 }
