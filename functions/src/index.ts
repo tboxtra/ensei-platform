@@ -2437,3 +2437,21 @@ export const syncMissionProgress = functions.firestore
       return null;
     }
   });
+
+// ---- V2 public API (no local declarations with the same names) ----
+
+import {
+  onParticipationUpdate as _onParticipationUpdate,
+  onMissionCreate as _onMissionCreate,
+} from './realtime-stats-updater';
+
+import {
+  onDegenWinnersChosen as _onDegenWinnersChosen,
+  onDegenMissionCompleted as _onDegenMissionCompleted,
+} from './degen-winner-handler';
+
+// Export with the V2 names Firebase will pick up
+export const onParticipationUpdateV2 = _onParticipationUpdate;
+export const onMissionCreateV2 = _onMissionCreate;
+export const onDegenWinnersChosenV2 = _onDegenWinnersChosen;
+export const onDegenMissionCompleted = _onDegenMissionCompleted;

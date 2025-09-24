@@ -165,3 +165,4 @@ const { Timestamp, FieldValue } = admin.firestore;
         process.exit(1);
     }
 })();
+

@@ -1,0 +1,44 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "module": "commonjs",
+        "moduleResolution": "node10",
+        "lib": [
+            "es2020"
+        ],
+        "outDir": "./lib",
+        "rootDir": "./",
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "downlevelIteration": true,
+        "strict": false,
+        "allowSyntheticDefaultImports": true
+    },
+    "files": [
+        "./index.ts",
+        "./src/data-init.ts",
+        "./src/degen-winner-handler.ts",
+        "./src/index.legacy.ts",
+        "./src/realtime-stats-updater.ts",
+        "./src/seed-data.ts",
+        "./src/seedData.ts",
+        "./src/verification.ts",
+        "./src/migration/uid-migration.ts",
+        "./src/tests/user-data-integrity.test.ts",
+        "./src/types/verification.ts",
+        "./src/utils/user-data-integrity.ts",
+        "./src/utils/verification.ts",
+        "./shared/degen-calculator.ts",
+        "./shared/honors.ts"
+    ],
+    "include": [
+        "index.ts",
+        "src/**/*.ts",
+        "shared/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "lib"
+    ]
+}
