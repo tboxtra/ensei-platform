@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle, Flag, AlertCircle, Clock, User } from 'lucide-react';
-import { getMissionTaskCompletions, getFlaggingReasons, type TaskCompletion } from '@/lib/task-verification';
+import { getFlaggingReasons } from '@/lib/task-verification';
+import { type TaskCompletion } from '@/types/task-completion';
 import { getUserDisplayName } from '@/lib/firebase-task-completions';
-import { useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
+import { useMissionTaskCompletions, useFlagTaskCompletion, useVerifyTaskCompletion } from '@/hooks/useTaskCompletions';
+import { useAuthUser } from '@/hooks/useAuthUser';
 
 interface MissionListItemProps {
     mission: any;
@@ -14,28 +16,35 @@ export function MissionListItem({
     onViewDetails
 }: MissionListItemProps) {
     const [showSubmissions, setShowSubmissions] = useState(false);
-    const [submissions, setSubmissions] = useState<TaskCompletion[]>([]);
-    const [loadingSubmissions, setLoadingSubmissions] = useState(false);
     const [showFlagModal, setShowFlagModal] = useState<{ completion: TaskCompletion | null, show: boolean }>({ completion: null, show: false });
+
+    // Get current user for permission checks
+    const { user: currentUser } = useAuthUser();
+
+    // Check if current user is the mission owner
+    const isOwner = currentUser?.uid === mission.created_by;
 
     // Use React Query hooks for mutations
     const flagTaskCompletionMutation = useFlagTaskCompletion();
     const verifyTaskCompletionMutation = useVerifyTaskCompletion();
 
-    const loadSubmissions = async () => {
-        if (showSubmissions && submissions.length > 0) return; // Already loaded
+    // Use permission-gated hook for submissions (only loads if user is mission owner)
+    const { 
+        data: submissions = [], 
+        isLoading: loadingSubmissions, 
+        error: submissionsError,
+        refetch: refetchSubmissions 
+    } = useMissionTaskCompletions(
+        mission.id,
+        [], // legacy IDs
+        currentUser?.uid,
+        mission.created_by
+    );
 
-        setLoadingSubmissions(true);
-        try {
-            const missionSubmissions = await getMissionTaskCompletions(mission.id);
-            setSubmissions(missionSubmissions);
-        } catch (error) {
-            console.error('Error loading submissions:', error);
-            setSubmissions([]);
-        } finally {
-            setLoadingSubmissions(false);
-        }
-    };
+    // Suppress permission errors for non-owners
+    if (submissionsError && !isOwner) {
+        console.debug('Expected permission denied for non-owner; suppressed');
+    }
 
     const handleFlagSubmission = async (completion: TaskCompletion, reason: string) => {
         try {
@@ -228,12 +237,13 @@ export function MissionListItem({
                         <button
                             onClick={() => {
                                 setShowSubmissions(!showSubmissions);
-                                if (!showSubmissions) {
-                                    loadSubmissions();
+                                if (!showSubmissions && isOwner) {
+                                    refetchSubmissions();
                                 }
                             }}
                             className="flex items-center justify-center w-8 h-8 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition-colors"
-                            title="View Submissions"
+                            title={isOwner ? "View Submissions" : "Only mission owners can view submissions"}
+                            disabled={!isOwner}
                         >
                             {showSubmissions ? (
                                 <ChevronUp className="w-4 h-4 text-green-400" />
@@ -245,13 +255,13 @@ export function MissionListItem({
                 </div>
             </div>
 
-            {/* Submissions Dropdown */}
-            {showSubmissions && (
+            {/* Submissions Dropdown - Only show for mission owners */}
+            {showSubmissions && isOwner && (
                 <div className="mt-3 border-t border-gray-700/50 pt-3">
                     <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-medium text-white">Submissions</h4>
                         <button
-                            onClick={loadSubmissions}
+                            onClick={() => refetchSubmissions()}
                             disabled={loadingSubmissions}
                             className="text-xs text-gray-400 hover:text-white transition-colors"
                         >
@@ -291,12 +301,12 @@ export function MissionListItem({
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-400 mb-2">
-                                        <div>Completed: {submission.completedAt.toLocaleString()}</div>
+                                        <div>Completed: {submission.completedAt.toDate().toLocaleString()}</div>
                                         {submission.verifiedAt && (
-                                            <div>Verified: {submission.verifiedAt.toLocaleString()}</div>
+                                            <div>Verified: {submission.verifiedAt.toDate().toLocaleString()}</div>
                                         )}
                                         {submission.flaggedAt && (
-                                            <div>Flagged: {submission.flaggedAt.toLocaleString()}</div>
+                                            <div>Flagged: {submission.flaggedAt.toDate().toLocaleString()}</div>
                                         )}
                                     </div>
 
