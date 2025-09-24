@@ -3,18 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMyMissions } from '../../../hooks/useMyMissions';
+import { useAuthUser } from '../../../hooks/useAuthUser';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
 import { MissionListItem } from '../../../components/ui/MissionListItem';
 import { FilterBar } from '../../../components/ui/FilterBar';
 import { StatsCard } from '../../../components/ui/StatsCard';
-import { ProtectedRoute } from '../../../components/auth/ProtectedRoute';
 import { Spinner, ErrorBox } from '../../../components/ui/Feedback';
 
 export default function MyMissionsPage() {
     const router = useRouter();
-    const { data: missions = [], isLoading, error, refetch, authReady } = useMyMissions();
+    const { user: currentUser, ready: authReady, isAuthenticated } = useAuthUser();
+    const { data: missions = [], isLoading, error, refetch } = useMyMissions();
     const [filteredMissions, setFilteredMissions] = useState<any[]>([]);
 
     // Filter state
@@ -31,13 +32,21 @@ export default function MyMissionsPage() {
         setFilters(prev => ({ ...prev, [filter]: value }));
     };
 
+    // Handle authentication redirect
+    useEffect(() => {
+        if (authReady && !isAuthenticated) {
+            console.log('MyMissionsPage: User not authenticated, redirecting to login');
+            router.push('/auth/login');
+        }
+    }, [authReady, isAuthenticated, router]);
+
     // Defensive: refetch after navigation completes from profile
     useEffect(() => {
         // Refetch once authReady flips to true ensures fresh data after any route
-        if (authReady) {
+        if (authReady && isAuthenticated) {
             refetch();
         }
-    }, [authReady, refetch]);
+    }, [authReady, isAuthenticated, refetch]);
 
     useEffect(() => {
         filterAndSortMissions();
@@ -131,13 +140,18 @@ export default function MyMissionsPage() {
     const totalRewards = (missions || []).reduce((sum, mission) => sum + (mission.total_cost_honors || 0), 0);
     const totalParticipants = (missions || []).reduce((sum, mission) => sum + (mission.participants_count || 0), 0);
 
-    // Handle auth readiness
+    // Handle auth readiness - resolve immediately on auth state determination
     if (!authReady) {
         return (
             <ModernLayout currentPage="/missions/my">
                 <Spinner label="Checking session…" />
             </ModernLayout>
         );
+    }
+
+    // Show nothing while redirecting unauthenticated users
+    if (!isAuthenticated) {
+        return null;
     }
 
     // Handle loading state
@@ -164,8 +178,7 @@ export default function MyMissionsPage() {
     }
 
     return (
-        <ProtectedRoute>
-            <ModernLayout currentPage="/missions/my">
+        <ModernLayout currentPage="/missions/my">
                 <div className="container mx-auto px-2 py-2">
                     {/* Header */}
                     <div className="text-left mb-2">
@@ -314,7 +327,6 @@ export default function MyMissionsPage() {
                         </div>
                     )}
                 </div>
-            </ModernLayout>
-        </ProtectedRoute>
+        </ModernLayout>
     );
 }
