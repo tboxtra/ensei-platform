@@ -122,11 +122,16 @@ export const functions = fns;
 
 // For debugging in browser console
 if (typeof window !== "undefined") {
-    (window as any).firebaseApp = app;
-    (window as any).firebaseAuth = auth;
-    (window as any).firebaseDb = db;
-    (window as any).firebaseFns = fns;
-    (window as any).firebaseFunctions = { httpsCallable };
+  // expose the same instances your app uses
+  (window as any).__ensei = { app, auth, db, fns };
+  console.log('Firebase debug handle attached to window.__ensei');
+  
+  // Legacy exports for backward compatibility
+  (window as any).firebaseApp = app;
+  (window as any).firebaseAuth = auth;
+  (window as any).firebaseDb = db;
+  (window as any).firebaseFns = fns;
+  (window as any).firebaseFunctions = { httpsCallable };
 }
 
 export const googleProvider = new GoogleAuthProvider();
