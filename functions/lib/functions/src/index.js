@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onDegenMissionCompleted = exports.onDegenWinnersChosenV2 = exports.onMissionCreateV2 = exports.onParticipationUpdateV2 = exports.syncMissionProgress = exports.onMissionCreate = exports.onDegenWinnersChosen = exports.onVerificationWrite = exports.updateMissionAggregates = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.api = void 0;
+exports.onDegenMissionCompleted = exports.onDegenWinnersChosenV2 = exports.onMissionCreateV2 = exports.onParticipationUpdateV2 = exports.getReviewQueue = exports.submitReview = exports.syncMissionProgress = exports.onMissionCreate = exports.onDegenWinnersChosen = exports.onVerificationWrite = exports.updateMissionAggregates = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.api = void 0;
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
 // Helper functions for safe defaults
@@ -2180,6 +2180,11 @@ exports.syncMissionProgress = functions.firestore
 // ---- V2 public API (no local declarations with the same names) ----
 const realtime_stats_updater_1 = require("./realtime-stats-updater");
 const degen_winner_handler_1 = require("./degen-winner-handler");
+// Export review functions
+var review_handler_1 = require("./review-handler");
+Object.defineProperty(exports, "submitReview", { enumerable: true, get: function () { return review_handler_1.submitReview; } });
+var review_queue_1 = require("./review-queue");
+Object.defineProperty(exports, "getReviewQueue", { enumerable: true, get: function () { return review_queue_1.getReviewQueue; } });
 // Export with the V2 names Firebase will pick up
 exports.onParticipationUpdateV2 = realtime_stats_updater_1.onParticipationUpdate;
 exports.onMissionCreateV2 = realtime_stats_updater_1.onMissionCreate;

@@ -4,13 +4,13 @@ import { functions } from "@/lib/firebase";
 import { useAuthUser } from "@/hooks/useAuthUser";
 
 type QueueItem = {
-  participationId: string;
-  missionId: string;
-  submitterUid: string;
-  taskId: string;
-  url: string;
-  createdAt: string;
-  handle: string;
+    participationId: string;
+    missionId: string;
+    submitterUid: string;
+    taskId: string;
+    url: string;
+    createdAt: string;
+    handle: string;
 };
 
 export function useReviewQueue() {
@@ -27,7 +27,7 @@ export function useReviewQueue() {
             try {
                 const getReviewQueueFn = httpsCallable(functions, 'getReviewQueue');
                 const result = (await getReviewQueueFn({})).data as { item: QueueItem | null };
-                
+
                 if (!result.item) return null;
 
                 // Transform the server response to match the expected format

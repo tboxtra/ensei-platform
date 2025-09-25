@@ -101,7 +101,7 @@ export const getFirebaseMessaging = async () => {
 
 // Initialize Functions
 export const getFirebaseFunctions = () => {
-    const functions = getFunctions(getFirebaseApp());
+    const functions = getFunctions(getFirebaseApp(), 'us-central1');
 
     // Connect to emulator in development
     if (process.env.NODE_ENV === 'development') {

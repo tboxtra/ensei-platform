@@ -7,9 +7,11 @@
 // Import the main API function and review handler
 import { api } from "./src/index";
 import { submitReview } from "./src/review-handler";
+import { getReviewQueue } from "./src/review-queue";
 
 // Export the main API function (contains all HTTP endpoints with CORS)
 export { api };
 
-// Export the review system callable function
+// Export the review system callable functions
 export { submitReview };
+export { getReviewQueue };
