@@ -1,4 +1,5 @@
 "use client";
+import '@/lib/firebase'; // force-initialize the shared Firebase client on this route
 import { useEffect, useMemo, useState, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
