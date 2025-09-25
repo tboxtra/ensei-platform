@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useReviewQueue } from "@/hooks/useReviewQueue";
 import { useSubmitReview } from "@/hooks/useSubmitReview";
+import { useQueryClient } from "@tanstack/react-query";
 import { Star, MessageCircle, ExternalLink, Check, SkipForward, Target, Link, User as UserIcon } from "lucide-react";
 import { ModernCard } from "@/components/ui/ModernCard";
 import { ModernButton } from "@/components/ui/ModernButton";
@@ -14,12 +15,14 @@ import { EmbeddedContent } from "@/components/ui/EmbeddedContent";
 import { TwitterIntents } from "@/lib/twitter-intents";
 import { parseTweetUrl } from "@/shared/constants/x";
 import { Suspense } from "react";
+import toast from "react-hot-toast";
 
 const HONORS_PER_REVIEW = 20;
 
 function ReviewAndEarnContent({ uid }: { uid: string | null }) {
-    const { data: item, isLoading, refetch } = useReviewQueue();
+    const { data: item, isLoading, refetch, isRefetching } = useReviewQueue();
     const submitReview = useSubmitReview();
+    const queryClient = useQueryClient();
 
     const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
     const [rating, setRating] = useState(0);
@@ -32,10 +35,18 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         error?: string;
     }>({ isValid: false });
 
+    // Centralized reset function
+    const resetReviewUI = () => {
+        setStep(0);
+        setRating(0);
+        setLink("");
+        setLinkValidation({ isValid: false });
+    };
+
     useEffect(() => {
         // reset UI on new item
-        setStep(0); setRating(0); setLink(""); setShowSuccess(false);
-        setLinkValidation({ isValid: false });
+        resetReviewUI();
+        setShowSuccess(false);
     }, [item?.participationId]);
 
     // Validate link as user types
@@ -76,8 +87,11 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     };
     const handleRate = (n: number) => { setRating(n); setStep(3); };
     const handleComplete = async () => {
-        if (!item) return;
+        if (!item || !uid) return;
         try {
+            // Optimistic update: clear the card instantly
+            queryClient.setQueryData(["review-queue", uid], { item: null });
+            
             await submitReview.mutateAsync({
                 missionId: item.missionId,
                 participationId: item.participationId,
@@ -86,29 +100,36 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                 rating,
                 commentLink: link
             });
+            
             // Reset UI state after successful submission
-            setStep(0);
-            setRating(0);
-            setLink("");
-            setLinkValidation({ isValid: false });
+            resetReviewUI();
             setShowSuccess(true);
-        } catch (error) {
+            toast.success(`Review completed! +${HONORS_PER_REVIEW} honors earned`);
+        } catch (error: any) {
             console.error('Failed to submit review:', error);
+            toast.error(error?.message || 'Failed to submit review. Please try again.');
         }
     };
     
-    const handleSkip = () => {
-        // Reset UI state and refetch
-        setStep(0);
-        setRating(0);
-        setLink("");
-        setLinkValidation({ isValid: false });
-        refetch();
+    const handleSkip = async () => {
+        if (!uid) return;
+        try {
+            // Optimistic update: clear the card instantly
+            queryClient.setQueryData(["review-queue", uid], { item: null });
+            
+            // Reset UI state and refetch
+            resetReviewUI();
+            await refetch();
+            toast.success('Skipped to next review');
+        } catch (error: any) {
+            console.error('Failed to skip review:', error);
+            toast.error('Failed to load next review. Please try again.');
+        }
     };
-    
-    const next = () => { 
-        setShowSuccess(false); 
-        refetch(); 
+
+    const next = () => {
+        setShowSuccess(false);
+        refetch();
     };
 
     if (isLoading) return (
@@ -316,6 +337,8 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                     variant="secondary"
                                     size="sm"
                                     className="flex-shrink-0"
+                                    disabled={isRefetching}
+                                    loading={isRefetching}
                                 >
                                     <SkipForward className="w-3 h-3 mr-2" /> Skip
                                 </ModernButton>
