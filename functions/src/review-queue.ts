@@ -9,81 +9,114 @@ if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
 type QueueItem = {
-    participationId: string;
-    taskId: string;
-    submitterUid: string;
-    missionId: string;
-    url: string;
-    urlHandle?: string | null;
-    urlTweetId?: string | null;
+  participationId: string;
+  taskId: string;
+  submitterUid: string;
+  missionId: string;
+  url: string;
+  urlHandle?: string | null;
+  urlTweetId?: string | null;
+  createdAt?: any;
 };
 
+// Robust URL parsing for twitter.com and x.com
+function parseTweetUrl(url: string | null | undefined) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./i, '').toLowerCase();
+    if (host !== 'twitter.com' && host !== 'x.com') return null;
+
+    // /{handle}/status/{tweetId}
+    const [, handle, statusLiteral, tweetId] = u.pathname.split('/');
+    if (!handle || statusLiteral !== 'status' || !tweetId) return null;
+
+    return { handle, tweetId };
+  } catch {
+    return null;
+  }
+}
+
 export const getReviewQueue = functions.region('us-central1').https.onCall(
-    async (_data, context): Promise<{ item: QueueItem | null }> => {
-        const reviewerUid = context.auth?.uid;
-        if (!reviewerUid) {
-            throw new functions.https.HttpsError('unauthenticated', 'Sign in required.');
-        }
+  async (_data, context): Promise<{ item: QueueItem | null }> => {
+    const reviewerUid = context.auth?.uid;
+    if (!reviewerUid) {
+      throw new functions.https.HttpsError('unauthenticated', 'Sign in required.');
+    }
 
-        // 1) Fetch a recent window of participations (server-side, Admin SDK)
-        //    We DO NOT require submitted_at; we order by created_at as a fallback.
-        const snap = await db
-            .collection('mission_participations')
-            .where('status', 'in', ['active', 'completed'])
-            .orderBy('created_at', 'desc')
-            .limit(100)
-            .get();
+    // 1) Query participations broadly (don't over-filter in Firestore)
+    const partsSnap = await db
+      .collection('mission_participations')
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .get();
 
-        const participations = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+    // 2) Debug counters
+    const dbg = {
+      totalParts: partsSnap.size,
+      totalTasks: 0,
+      completedTasks: 0,
+      linkTasks: 0,
+      urlOK: 0,
+      notSelf: 0,
+      notReviewed: 0,
+      reviewerUid,
+    };
 
-        // 2) Flatten tasks and apply task-level filters
-        const allTasks = participations.flatMap(p =>
-            Array.isArray(p.tasks_completed) ? p.tasks_completed.map((t: any) => ({ p, t })) : []
-        );
+    const items: QueueItem[] = [];
 
-        const linkTasks = allTasks.filter(({ t }) =>
-            t?.verificationMethod === 'link' &&
-            typeof t?.url === 'string' &&
-            /(^https?:\/\/)?(x\.com|twitter\.com)\//i.test(t.url) &&
-            (t?.urlValidation?.isValid === true) // be strict here
-        );
+    for (const doc of partsSnap.docs) {
+      const p = doc.data();
+      const tasks: any[] = Array.isArray(p.tasks_completed) ? p.tasks_completed : [];
+      dbg.totalTasks += tasks.length;
 
-        // 3) Exclude self (use the **task** submitter)
-        const notSelf = linkTasks.filter(({ t }) => t?.user_id && t.user_id !== reviewerUid);
+      for (const t of tasks) {
+        // Only review completed tasks
+        if (t?.status !== 'completed') continue;
+        dbg.completedTasks++;
 
-        // 4) Exclude already-reviewed via deterministic review key
-        //    reviews/{participationId}:{taskId}:{submitterUid}:{reviewerUid}
-        const results: QueueItem[] = [];
-        for (const { p, t } of notSelf) {
-            const partId = p.id;
-            const taskId = String(t.task_id);
-            const submitter = String(t.user_id);
-            const reviewKey = `${partId}:${taskId}:${submitter}:${reviewerUid}`;
-            const reviewRef = db.collection('reviews').doc(reviewKey);
-            const exists = (await reviewRef.get()).exists;
-            if (!exists) {
-                results.push({
-                    participationId: partId,
-                    taskId,
-                    submitterUid: submitter,
-                    missionId: String(p.mission_id ?? ''),
-                    url: String(t.url),
-                    urlHandle: t?.urlValidation?.extractedHandle ?? null,
-                    urlTweetId: t?.urlValidation?.tweetId ?? null,
-                });
-            }
-        }
+        // Only review LINK tasks
+        if (t?.verificationMethod !== 'link') continue;
+        dbg.linkTasks++;
 
-        // 5) Debug counters to logs for quick triage
-        console.log('getReviewQueue counts', {
-            totalParts: participations.length,
-            totalTasks: allTasks.length,
-            linkTasks: linkTasks.length,
-            notSelf: notSelf.length,
-            notReviewed: results.length,
-            reviewerUid,
+        // Exclude self at TASK level
+        if (t?.user_id === reviewerUid) continue;
+        dbg.notSelf++;
+
+        // URL must be valid x/twitter OR urlValidation.isValid === true
+        const parsed = parseTweetUrl(t?.url);
+        const urlOK = parsed || t?.urlValidation?.isValid === true;
+        if (!urlOK) continue;
+        dbg.urlOK++;
+
+        // Check if already reviewed
+        const reviewKey = `${doc.id}:${t.task_id}:${t.user_id}:${reviewerUid}`;
+        const receiptRef = db.collection('reviews').doc(reviewKey);
+        const receipt = await receiptRef.get();
+        if (receipt.exists) continue;
+        dbg.notReviewed++;
+
+        // ✅ candidate found
+        items.push({
+          participationId: doc.id,
+          missionId: p.mission_id,
+          submitterUid: t.user_id,
+          taskId: t.task_id,
+          url: t.url,
+          urlHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
+          urlTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
+          createdAt: p.created_at ?? p.updated_at ?? null,
         });
 
-        return { item: results[0] ?? null };
+        // Return one-at-a-time
+        if (items.length) break;
+      }
+      if (items.length) break;
     }
+
+    // Debug output
+    console.log('[getReviewQueue]', dbg);
+
+    return { item: items[0] ?? null };
+  }
 );
