@@ -2,7 +2,7 @@
   "name": "ensei-platform-functions",
   "description": "Ensei Platform Firebase Functions",
   "scripts": {
-    "build": "rimraf lib && tsc -p tsconfig.json && cp lib/functions/index.js lib/index.js && sed -i.bak 's|require(\"./src/|require(\"./functions/src/|g' lib/index.js && rm -f lib/index.js.bak",
+
     "build:watch": "tsc --watch",
     "lint": "echo 'Linting skipped for deployment'",
     "serve": "npm run build && firebase emulators:start --only functions",

@@ -18,17 +18,22 @@ type QueueItem = {
     missionUrl?: string | null;
     missionTweetId?: string | null;
     missionHandle?: string | null;
+    // Unique key to detect repeats
+    submissionKey: string;
 };
 
-export function useReviewQueue() {
+export function useReviewQueue(refreshKey = 0) {
     const { user } = useAuthUser();
     const uid = user?.uid;
 
     return useQuery({
-        queryKey: ["review-queue", uid],
+        queryKey: ["review-queue", uid, refreshKey],
         enabled: !!uid,
         retry: 1,
-        staleTime: 15_000,
+        staleTime: 0,
+        gcTime: 0,
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: false,
         queryFn: async () => {
             if (!uid) return null;
 
@@ -60,7 +65,9 @@ export function useReviewQueue() {
                     submissionHandle: item.submissionHandle,
                     submissionLink: item.submissionUrl, // For backward compatibility
                     submitterHandle: item.submissionHandle || "",
-                    createdAgo: new Date() // We don't have createdAt in the new format
+                    createdAgo: new Date(), // We don't have createdAt in the new format
+                    // Unique key to detect repeats
+                    submissionKey: `${item.participationId}:${item.taskId}:${item.submitterUid}`
                 };
             } catch (error) {
                 console.error('Failed to fetch review queue:', error);

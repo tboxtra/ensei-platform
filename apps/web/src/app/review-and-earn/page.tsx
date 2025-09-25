@@ -23,9 +23,11 @@ type Step = 'comment' | 'link' | 'rate' | 'ready';
 
 function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const qc = useQueryClient();
-    const { data: item, isFetching, refetch } = useReviewQueue();
+    const [refreshKey, setRefreshKey] = useState(0);
+    const { data: item, isFetching } = useReviewQueue(refreshKey);
     const submitReview = useSubmitReview();
     const { user } = useAuthUser();
+    const lastKeyRef = useRef<string | null>(null);
 
     // linear state
     const [step, setStep] = useState<Step>('comment');
@@ -55,6 +57,17 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     useEffect(() => {
         if (step === 'link') linkRef.current?.focus();
     }, [step]);
+
+    // If the API ever returns the same item again, force a second refresh once
+    useEffect(() => {
+        if (!item?.submissionKey) return;
+        if (lastKeyRef.current === item.submissionKey) {
+            // same item came back — force another fetch
+            setRefreshKey(k => k + 1);
+        } else {
+            lastKeyRef.current = item.submissionKey;
+        }
+    }, [item?.submissionKey]);
 
     // Get reviewer handle for validation - use Twitter username from profile
     const reviewerHandle = normHandle(
@@ -96,6 +109,12 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         setStep('ready'); // final step visible, complete will work
     };
 
+    const advanceQueue = async () => {
+        // clear current immediately, then bump the key
+        qc.setQueryData(['review-queue', uid, refreshKey], null);
+        setRefreshKey(k => k + 1);
+    };
+
     const handleComplete = async () => {
         if (!item || !linkValid || rating < 1 || submitting) return;
 
@@ -111,8 +130,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
             });
 
             resetUI();
-            await qc.invalidateQueries({ queryKey: ['review-queue', uid], refetchType: 'active' });
-            refetch();
+            await advanceQueue();
             toast.success(`Review completed! +${HONORS_PER_REVIEW} honors`);
         } catch (e: any) {
             console.error(e);
@@ -125,9 +143,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const handleSkip = async () => {
         try {
             resetUI();
-            qc.setQueryData(['review-queue', uid], null);
-            await qc.invalidateQueries({ queryKey: ['review-queue', uid], refetchType: 'active' });
-            refetch();
+            await advanceQueue();
             toast('Skipped');
         } catch {
             toast.error('Could not load next review.');
@@ -136,8 +152,11 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
     if (!item && !isFetching) {
         return (
-            <div className="mx-auto max-w-6xl p-6 text-center text-gray-300">
-                No reviews available right now.
+            <div className="mx-auto max-w-6xl p-8 text-center">
+                <div className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+                    <span className="text-gray-200">No more submissions to review right now.</span>
+                </div>
+                <p className="mt-2 text-sm text-gray-400">Please check back later.</p>
             </div>
         );
     }
