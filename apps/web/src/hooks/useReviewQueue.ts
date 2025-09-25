@@ -45,29 +45,31 @@ export function useReviewQueue(refreshKey = 0) {
 
                 const callable = httpsCallable(fns, 'getReviewQueue');
                 const res = await callable({});
-                const item = (res.data as any)?.item ?? null;
+                const raw = (res.data as any)?.item ?? null;
+                if (!raw) return null;
 
-                if (!item) return null;
+                // 🔧 normalize server shapes (supports both `submissionLink` and `submissionUrl`)
+                const sUrl = raw.submissionUrl ?? raw.submissionLink ?? null;
 
-                // Transform the server response to match the expected format
                 return {
-                    participationId: item.participationId,
-                    missionId: item.missionId,
-                    submitterId: item.submitterUid,
-                    taskId: item.taskId,
-                    // Mission data
-                    missionUrl: item.missionUrl,
-                    missionTweetId: item.missionTweetId,
-                    missionHandle: item.missionHandle,
-                    // Submission data
-                    submissionUrl: item.submissionUrl,
-                    submissionTweetId: item.submissionTweetId,
-                    submissionHandle: item.submissionHandle,
-                    submissionLink: item.submissionUrl, // For backward compatibility
-                    submitterHandle: item.submissionHandle || "",
-                    createdAgo: new Date(), // We don't have createdAt in the new format
-                    // Unique key to detect repeats
-                    submissionKey: `${item.participationId}:${item.taskId}:${item.submitterUid}`
+                    participationId: raw.participationId,
+                    missionId: raw.missionId,
+                    submitterId: raw.submitterUid,        // keep this name for submitReview
+                    taskId: raw.taskId,
+
+                    // Mission
+                    missionUrl: raw.missionUrl ?? null,
+                    missionTweetId: raw.missionTweetId ?? null,
+                    missionHandle: raw.missionHandle ?? null,
+
+                    // Submission
+                    submissionUrl: sUrl,
+                    submissionLink: sUrl,                    // page expects this
+                    submissionTweetId: raw.submissionTweetId ?? null,
+                    submissionHandle: raw.submissionHandle ?? null,
+
+                    // Unique key
+                    submissionKey: `${raw.participationId}:${raw.taskId}:${raw.submitterUid}`,
                 };
             } catch (error) {
                 console.error('Failed to fetch review queue:', error);
