@@ -33,14 +33,14 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const [rating, setRating] = useState(0);
     const [link, setLink] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
-    const [linkValidation, setLinkValidation] = useState<{ isValid: boolean; msg?: string }>({ isValid: false });
+    const [linkOk, setLinkOk] = useState(false);
 
     // Reset UI state when loading new item or skipping
     const resetReviewUI = () => {
         setStep('comment');
         setLink('');
-        setLinkValidation({ isValid: false });
         setRating(0);
+        setLinkOk(false);
     };
 
 
@@ -51,36 +51,32 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     }, [item?.participationId]);
 
     // Validate link as user types
-    const onLinkChange = (v: string) => {
-        setLink(v);
-        const parsed = parseTweetUrl(v);
+    const onLinkChange = (value: string) => {
+        setLink(value);
+        const parsed = parseTweetUrl(value);
         const profile = (user?.twitter_handle || '').replace(/^@/, '').toLowerCase();
         const ok = !!parsed && parsed.handle.toLowerCase() === profile;
-        setLinkValidation({
-            isValid: ok,
-            msg: ok ? `Valid link: @${parsed?.handle} (Tweet ID: ${parsed?.tweetId})` :
-                      'Paste a valid link from your profile handle.'
-        });
+        setLinkOk(ok);
     };
 
-    const canComplete = step === 'complete' && rating > 0 && linkValidation.isValid;
+    const canComplete = step === 'complete' && rating > 0 && linkOk;
     const header = useMemo(() => ({
         pending: 1, // hook up later if you want counters
         completed: 0,
         avg: 0
     }), []);
 
-    const handleIntent = () => setTimeout(() => setStep('link'), 150);
+    const handleIntent = () => setTimeout(() => setStep('link'), 120);
     const handleLink = () => {
-        if (!linkValidation.isValid) return;
+        if (!linkOk) return;
         setStep('rate');
     };
     const onPickRating = (n: number) => {
         setRating(n);
-        if (linkValidation.isValid && n > 0) setStep('complete');
+        setStep('complete');
     };
     const handleComplete = async () => {
-        if (!(step === 'complete' && linkValidation.isValid && rating > 0)) return;
+        if (!(step === 'complete' && linkOk && rating > 0)) return;
         if (!item || !uid) return;
         
         try {
@@ -93,9 +89,10 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                 commentLink: link
             });
 
-            // Refresh queue & reset UI
+            // Queue advance - optimistic clear then refetch
+            queryClient.setQueryData(['review-queue', uid], null);
             await queryClient.invalidateQueries({ queryKey: ['review-queue', uid] });
-            setTimeout(() => queryClient.refetchQueries({ queryKey: ['review-queue', uid] }), 0);
+            refetch();
             resetReviewUI();
             toast.success(`Review completed! +${HONORS_PER_REVIEW} honors earned`);
         } catch (error: any) {
@@ -108,9 +105,11 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         if (!uid) return;
         try {
             resetReviewUI();
+            // Clear & refetch next
+            queryClient.setQueryData(['review-queue', uid], null);
             await queryClient.invalidateQueries({ queryKey: ['review-queue', uid] });
-            refetch(); // from useReviewQueue
-            toast.success('Skipped to next review');
+            refetch();
+            toast.success('Skipped to next review (no rewards earned)');
         } catch (error: any) {
             console.error('Failed to skip review:', error);
             toast.error('Failed to load next review. Please try again.');
@@ -223,115 +222,117 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                 </div>
                             </div>
 
-                            {/* === ACTIONS ROW (spans both columns) === */}
+                            {/* === ACTIONS CONTAINER === */}
                             <div className="col-span-full rounded-xl border border-white/5 bg-black/30 p-3 backdrop-blur">
-                                <div className="grid gap-3 lg:grid-cols-[auto_1fr_auto_auto] items-center">
-                                    {/* Comment is always visible at step 'comment' */}
-                                    <div className={step === 'comment' ? 'opacity-100' : 'opacity-40 pointer-events-none'}>
-                                        <a
-                                            href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={handleIntent}
-                                            className="inline-flex h-11 items-center justify-center rounded-lg
-                                                       bg-gradient-to-r from-[#4b6bff] to-[#a855f7]
-                                                       px-4 text-sm font-medium text-white
-                                                       ring-1 ring-white/10 transition-[background,box-shadow]
-                                                       hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/20"
+                                <div
+                                    className="
+                                        mt-4
+                                        flex flex-col gap-3
+                                        lg:grid lg:grid-cols-[auto_1fr_auto_auto] lg:items-center lg:gap-3
+                                    "
+                                >
+                                    {/* 1) Comment */}
+                                    <a
+                                        href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
+                                        target="_blank" rel="noopener noreferrer"
+                                        onClick={handleIntent}
+                                        className="inline-flex h-11 items-center justify-center rounded-lg
+                                                   bg-gradient-to-r from-[#4b6bff] to-[#a855f7]
+                                                   px-4 text-sm font-medium text-white
+                                                   ring-1 ring-white/10 transition-[background,box-shadow]
+                                                   hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/20"
+                                    >
+                                        <MessageCircle className="w-4 h-4 mr-2" /> Comment
+                                    </a>
+
+                                    {/* 2) Link input + Submit Link (hidden until step >= 'link') */}
+                                    <div
+                                        className={`${step === 'comment' ? 'hidden' : 'flex'} 
+                                                    lg:flex items-center gap-2 w-full`}
+                                    >
+                                        <input
+                                            value={link}
+                                            onChange={(e) => onLinkChange(e.target.value)}
+                                            placeholder="https://x.com/yourhandle/status/1234567890"
+                                            className="h-11 w-full rounded-lg bg-white/5 border border-white/10 px-3
+                                                       text-sm text-white/90 placeholder-white/40 outline-none
+                                                       focus:border-white/20 focus:ring-2 focus:ring-white/20"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleLink}
+                                            disabled={!linkOk}
+                                            className="h-11 px-3 rounded-lg border border-white/10 bg-white/10
+                                                       text-sm font-medium text-white/90
+                                                       disabled:opacity-40 disabled:cursor-not-allowed
+                                                       hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/20"
                                         >
-                                            <MessageCircle className="w-4 h-4 mr-2" /> Comment
-                                        </a>
+                                            Submit Link
+                                        </button>
                                     </div>
 
-                                    {/* Link input active at step >= 'link' */}
-                                    <div className={step === 'comment' ? 'opacity-40 pointer-events-none' : 'opacity-100'}>
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                value={link}
-                                                onChange={(e) => onLinkChange(e.target.value)}
-                                                placeholder="https://x.com/yourhandle/status/1234567890"
-                                                className="h-11 w-full min-w-[320px] rounded-lg border border-white/10 bg-black/40 px-3
-                                                           text-sm text-white/90 placeholder-white/40 outline-none
-                                                           focus:border-white/20 focus:ring-2 focus:ring-white/10"
-                                            />
+                                    {/* 3) Rating (hidden until step >= 'rate') */}
+                                    <div className={`${(step === 'rate' || step === 'complete') ? 'flex' : 'hidden'} lg:flex items-center gap-1`}>
+                                        {[1,2,3,4,5].map(n => (
                                             <button
+                                                key={n}
                                                 type="button"
-                                                onClick={handleLink}
-                                                disabled={!linkValidation.isValid}
-                                                className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10
-                                                           bg-white/10 px-3 text-sm font-medium text-white/90
-                                                           disabled:cursor-not-allowed disabled:opacity-40
-                                                           hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/20"
+                                                onClick={() => onPickRating(n)}
+                                                className={`
+                                                    h-9 w-9 rounded-md border border-white/10 text-sm
+                                                    ${rating >= n ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/5 text-white/50'}
+                                                    focus:outline-none focus:ring-2 focus:ring-white/20
+                                                `}
+                                                aria-pressed={rating >= n}
+                                                aria-label={`Rate ${n} star${n>1?'s':''}`}
                                             >
-                                                Submit Link
+                                                ★
                                             </button>
-                                        </div>
+                                        ))}
                                     </div>
 
-                                    {/* Stars active at step >= 'rate' */}
-                                    <div className={step === 'rate' || step === 'complete' ? '' : 'opacity-40 pointer-events-none'}>
-                                        <div className="flex items-center gap-1">
-                                            {[1, 2, 3, 4, 5].map(n => (
-                                                <button
-                                                    key={n}
-                                                    type="button"
-                                                    onClick={() => onPickRating(n)}
-                                                    className={`h-8 w-8 rounded-md border border-white/10 text-sm
-                                                                ${rating >= n ? 'bg-yellow-400/20 text-yellow-300' : 'bg-white/5 text-white/60'}
-                                                                hover:bg-white/10 focus:outline-none focus:ring-1 focus:ring-white/15`}
-                                                >
-                                                    ★
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    {/* 4) Skip + Complete */}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleSkip}
+                                            disabled={isRefetching}
+                                            className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10
+                                                       bg-white/5 px-4 text-sm font-medium text-white/80 hover:bg-white/10
+                                                       focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Skip this review (forfeits honor rewards)"
+                                        >
+                                            {isRefetching ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white/60 mr-2"></div>
+                                            ) : (
+                                                <SkipForward className="w-3 h-3 mr-2" />
+                                            )}
+                                            Skip (No Rewards)
+                                        </button>
 
-                                    {/* Complete active only at 'complete' */}
-                                    <div className={step === 'complete' ? '' : 'opacity-40 pointer-events-none'}>
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={handleSkip}
-                                                disabled={isRefetching}
-                                                className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10
-                                                           bg-white/5 px-4 text-sm font-medium text-white/80 hover:bg-white/10
-                                                           focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {isRefetching ? (
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white/60 mr-2"></div>
-                                                ) : (
-                                                    <SkipForward className="w-3 h-3 mr-2" />
-                                                )}
-                                                Skip
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                onClick={handleComplete}
-                                                disabled={!(step === 'complete' && linkValidation.isValid && rating > 0) || submitReview.isPending}
-                                                className="inline-flex h-11 min-w-[240px] items-center justify-center rounded-lg
-                                                           bg-gradient-to-r from-[#14b8a6] to-[#22c55e]
-                                                           px-5 text-sm font-semibold text-black
-                                                           disabled:cursor-not-allowed disabled:opacity-40
-                                                           focus:outline-none focus:ring-2 focus:ring-white/20"
-                                            >
-                                                {submitReview.isPending ? (
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black/60 mr-2"></div>
-                                                ) : (
-                                                    <Check className="w-3 h-3 mr-2" />
-                                                )}
-                                                Complete Review (+{HONORS_PER_REVIEW} Honors)
-                                            </button>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleComplete}
+                                            disabled={!(step === 'complete' && linkOk && rating > 0) || submitReview.isPending}
+                                            className={`inline-flex h-11 min-w-[240px] items-center justify-center rounded-lg px-5 text-sm font-semibold
+                                                       ${(step === 'complete' && linkOk && rating > 0) 
+                                                           ? 'bg-gradient-to-r from-[#14b8a6] to-[#22c55e] text-black' 
+                                                           : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                                       }
+                                                       focus:outline-none focus:ring-2 focus:ring-white/20`}
+                                        >
+                                            {submitReview.isPending ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black/60 mr-2"></div>
+                                            ) : (
+                                                <Check className="w-3 h-3 mr-2" />
+                                            )}
+                                            {step === 'complete' && linkOk && rating > 0 
+                                                ? `Complete Review (+${HONORS_PER_REVIEW} Honors)`
+                                                : 'Complete Review (Complete all steps)'
+                                            }
+                                        </button>
                                     </div>
                                 </div>
-
-                                {/* Compact validation message */}
-                                {link && (
-                                    <p className={`mt-2 text-xs ${linkValidation.isValid ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                        {linkValidation.msg}
-                                    </p>
-                                )}
                             </div>
                         </section>
                     ) : (
