@@ -25,21 +25,22 @@ type QueueItem = {
 };
 
 // Robust URL parsing for twitter.com and x.com
+const X_LINK_RX = /^(?:https?:\/\/)?(?:www\.)?(?:mobile\.)?(?:x\.com|twitter\.com)\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/i;
+
 function parseTweetUrl(url: string | null | undefined) {
-    if (!url) return null;
-    try {
-        const u = new URL(url);
-        const host = u.hostname.replace(/^www\./i, '').toLowerCase();
-        if (host !== 'twitter.com' && host !== 'x.com') return null;
+    const m = (url ?? '').trim().match(X_LINK_RX);
+    if (!m) return null;
+    return { handle: m[1].toLowerCase(), tweetId: m[2] };
+}
 
-        // /{handle}/status/{tweetId}
-        const [, handle, statusLiteral, tweetId] = u.pathname.split('/');
-        if (!handle || statusLiteral !== 'status' || !tweetId) return null;
+function parseHandle(url?: string | null) {
+    const m = (url ?? '').match(X_LINK_RX);
+    return m ? m[1].toLowerCase() : null;
+}
 
-        return { handle, tweetId };
-    } catch {
-        return null;
-    }
+function parseTweetId(url?: string | null) {
+    const m = (url ?? '').match(X_LINK_RX);
+    return m ? m[2] : null;
 }
 
 export const getReviewQueue = functions.region('us-central1').https.onCall(
@@ -101,21 +102,42 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
                 if (receipt.exists) continue;
                 dbg.notReviewed++;
 
-                // ✅ candidate found
+                // ✅ candidate found - now fetch mission data
+                let missionUrl = null;
+                let missionTweetId = null;
+                let missionHandle = null;
+
+                try {
+                    // Fetch mission to show "Original Mission"
+                    const missionRef = db.collection('missions').doc(p.mission_id);
+                    const missionSnap = await missionRef.get();
+                    const mission = missionSnap.exists ? missionSnap.data() : null;
+
+                    // Pick the right field in your schema (common names: original_link, url, action_url, tweet_link)
+                    missionUrl = mission?.original_link ?? mission?.url ?? mission?.action_url ?? mission?.tweet_link ?? mission?.tweet_url ?? null;
+                    
+                    if (missionUrl) {
+                        missionHandle = parseHandle(missionUrl);
+                        missionTweetId = parseTweetId(missionUrl);
+                    }
+                } catch (error) {
+                    console.warn('[getReviewQueue] Failed to fetch mission data:', error);
+                }
+
                 items.push({
-                    participationId: doc.id,
-                    missionId: p.mission_id,
-                    submitterUid: t.user_id,
-                    taskId: t.task_id,
-                    // Submission (user's link)
-                    submissionUrl: t.url,
-                    submissionTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
-                    submissionHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
-                    // Mission (original) - we'll need to fetch this from the mission document
-                    missionUrl: null, // Will be populated by fetching mission data
-                    missionTweetId: null,
-                    missionHandle: null,
-                    createdAt: p.created_at ?? p.updated_at ?? null,
+                  participationId: doc.id,
+                  missionId: p.mission_id,
+                  submitterUid: t.user_id,
+                  taskId: t.task_id,
+                  // Submission (user's link)
+                  submissionUrl: t.url,
+                  submissionTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
+                  submissionHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
+                  // Mission (original)
+                  missionUrl,
+                  missionTweetId,
+                  missionHandle,
+                  createdAt: p.created_at ?? p.updated_at ?? null,
                 });
 
                 // Return one-at-a-time

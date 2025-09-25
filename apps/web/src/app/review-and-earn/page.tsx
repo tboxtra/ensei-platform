@@ -12,6 +12,7 @@ import { ModernLayout } from "@/components/layout/ModernLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { EmbeddedContent } from "@/components/ui/EmbeddedContent";
 import { TwitterIntents } from "@/lib/twitter-intents";
+import { parseTweetUrl } from "@/shared/constants/x";
 
 const HONORS_PER_REVIEW = 20;
 
@@ -23,13 +24,44 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const [rating, setRating] = useState(0);
     const [link, setLink] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
+    const [linkValidation, setLinkValidation] = useState<{
+        isValid: boolean;
+        handle?: string;
+        tweetId?: string;
+        error?: string;
+    }>({ isValid: false });
 
     useEffect(() => {
         // reset UI on new item
         setStep(0); setRating(0); setLink(""); setShowSuccess(false);
+        setLinkValidation({ isValid: false });
     }, [item?.participationId]);
 
-    const canComplete = step === 3 && rating > 0 && link.includes("twitter.com");
+    // Validate link as user types
+    useEffect(() => {
+        if (!link.trim()) {
+            setLinkValidation({ isValid: false });
+            return;
+        }
+
+        const parsed = parseTweetUrl(link);
+        if (!parsed) {
+            setLinkValidation({ 
+                isValid: false, 
+                error: "Please paste a full X/Twitter status link, e.g. https://x.com/<handle>/status/<id>" 
+            });
+            return;
+        }
+
+        // For now, just show it's valid - we'll check handle match on submit
+        setLinkValidation({ 
+            isValid: true, 
+            handle: parsed.handle, 
+            tweetId: parsed.tweetId 
+        });
+    }, [link]);
+
+    const canComplete = step === 3 && rating > 0 && linkValidation.isValid;
     const header = useMemo(() => ({
         pending: 1, // hook up later if you want counters
         completed: 0,
@@ -38,7 +70,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
     const handleIntent = () => setStep(1);
     const handleLink = () => {
-        if (!link || !link.includes("twitter.com")) return alert("Enter a valid Twitter link");
+        if (!linkValidation.isValid) return;
         setStep(2);
     };
     const handleRate = (n: number) => { setRating(n); setStep(3); };
@@ -120,7 +152,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         </div>
                     </div>
 
-                    <ModernCard>
+                    <ModernCard className="glass-effect rounded-xl border border-white/10 hover:border-white/20 transition">
                         <div className="mb-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <div className="w-6 h-6 bg-orange-500/20 rounded-lg flex items-center justify-center">
@@ -184,18 +216,49 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                     <div className="flex gap-2 mb-2">
                                         <input
                                             type="url"
-                                            placeholder="https://twitter.com/yourusername/status/..."
+                                            placeholder="https://x.com/yourusername/status/..."
                                             value={link}
                                             onChange={(e) => setLink(e.target.value)}
-                                            className="flex-1 px-3 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-white placeholder-gray-400 text-sm shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]"
+                                            className={`flex-1 px-3 py-2 bg-gray-800/50 border rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-400 text-sm shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)] transition-colors ${
+                                                linkValidation.isValid 
+                                                    ? 'border-green-500/50 focus:ring-green-500/50' 
+                                                    : linkValidation.error 
+                                                        ? 'border-red-500/50 focus:ring-red-500/50' 
+                                                        : 'border-gray-700/50 focus:ring-orange-500/50'
+                                            }`}
                                         />
-                                        <ModernButton onClick={handleLink} variant="success" size="sm">
+                                        <ModernButton 
+                                            onClick={handleLink} 
+                                            variant="primary" 
+                                            size="sm"
+                                            disabled={!linkValidation.isValid}
+                                        >
                                             Submit Link
                                         </ModernButton>
                                     </div>
-                                    <p className="text-xs text-gray-400">
-                                        Please paste the link to your comment from your Twitter account. The link must match your profile username.
-                                    </p>
+                                    
+                                    {/* Validation feedback */}
+                                    {linkValidation.isValid && (
+                                        <div className="mb-2 p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+                                            <p className="text-xs text-green-400">
+                                                ✓ Valid link: @{linkValidation.handle} (Tweet ID: {linkValidation.tweetId})
+                                            </p>
+                                        </div>
+                                    )}
+                                    
+                                    {linkValidation.error && (
+                                        <div className="mb-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+                                            <p className="text-xs text-red-400">
+                                                {linkValidation.error}
+                                            </p>
+                                        </div>
+                                    )}
+                                    
+                                    {!linkValidation.isValid && !linkValidation.error && (
+                                        <p className="text-xs text-gray-400">
+                                            Please paste the link to your comment from your Twitter account. The link must match your profile username.
+                                        </p>
+                                    )}
                                 </div>
                             )}
 

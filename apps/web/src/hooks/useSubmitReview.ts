@@ -2,6 +2,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "@/lib/firebase";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthUser } from "./useAuthUser";
+import { parseTweetUrl } from "@/shared/constants/x";
 
 type Payload = {
     missionId: string;
@@ -12,14 +13,7 @@ type Payload = {
     commentLink: string;
 };
 
-// URL parsing for X/Twitter links
-const X_URL = /^(?:https?:\/\/)?(?:x\.com|twitter\.com)\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/i;
-
-function parseTweetUrl(url: string) {
-    const m = url.trim().match(X_URL);
-    if (!m) return null;
-    return { handle: m[1].toLowerCase(), tweetId: m[2] };
-}
+// Using shared parser from @/shared/constants/x
 
 export function useSubmitReview() {
     const qc = useQueryClient();
@@ -30,16 +24,16 @@ export function useSubmitReview() {
             // Client-side validation
             const parsed = parseTweetUrl(payload.commentLink);
             if (!parsed) {
-                throw new Error('Please paste a valid X/Twitter link to your comment.');
+                throw new Error('Please paste a full X/Twitter status link, e.g. https://x.com/<handle>/status/<id>');
             }
 
-            const reviewerHandle = user?.twitter_handle?.toLowerCase()?.replace(/^@/, '') ?? '';
-            if (!reviewerHandle) {
-                throw new Error('Please add your Twitter handle in your profile before submitting.');
+            const profileHandle = (user?.twitter_handle ?? '').trim().replace(/^@/, '').toLowerCase();
+            if (!profileHandle) {
+                throw new Error('Add your Twitter handle to your profile to submit a review.');
             }
 
-            if (parsed.handle !== reviewerHandle) {
-                throw new Error(`Link handle mismatch. Your profile handle is @${reviewerHandle}, but the link is @${parsed.handle}.`);
+            if (parsed.handle !== profileHandle) {
+                throw new Error(`Handle mismatch. Your profile is @${profileHandle}, but the link is @${parsed.handle}.`);
             }
 
             // Proceed with server call

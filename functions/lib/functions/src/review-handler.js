@@ -68,9 +68,9 @@ exports.submitReview = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("invalid-argument", "Twitter handle not found in profile. Please update your profile first.");
     }
     // Enhanced link validation - matches client-side parsing
-    const X_URL = /^(?:https?:\/\/)?(?:x\.com|twitter\.com)\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/i;
+    const X_LINK_RX = /^(?:https?:\/\/)?(?:www\.)?(?:mobile\.)?(?:x\.com|twitter\.com)\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/i;
     function parseTweetUrl(url) {
-        const m = (url ?? '').trim().match(X_URL);
+        const m = (url ?? '').trim().match(X_LINK_RX);
         if (!m)
             return null;
         return { handle: m[1].toLowerCase(), tweetId: m[2] };
@@ -79,9 +79,9 @@ exports.submitReview = functions.https.onCall(async (data, context) => {
     if (!parsed) {
         throw new functions.https.HttpsError("invalid-argument", "Invalid X/Twitter link.");
     }
-    const reviewerHandle = twitterUsername?.toLowerCase()?.replace(/^@/, '') ?? '';
+    const reviewerHandle = (twitterUsername ?? '').replace(/^@/, '').toLowerCase();
     if (!reviewerHandle) {
-        throw new functions.https.HttpsError("failed-precondition", "Add your Twitter handle to your profile first.");
+        throw new functions.https.HttpsError("failed-precondition", "No Twitter handle on profile.");
     }
     // Enforce handle match
     if (parsed.handle !== reviewerHandle) {
