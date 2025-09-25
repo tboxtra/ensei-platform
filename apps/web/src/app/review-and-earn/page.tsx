@@ -176,7 +176,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     return (
         <ProtectedRoute>
             <ModernLayout currentPage="/review-and-earn">
-                <div className="mx-auto w-full max-w-screen-2xl px-4 lg:px-6">
+                <div className="mx-auto max-w-[1200px] px-4 md:px-6 lg:px-8">
                     {/* Header */}
                     <div className="text-left mb-2">
                         <h1 className="text-base font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent mb-1">
@@ -198,144 +198,146 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                     </div>
 
                     {item ? (
-                        <div
+                        <section
                             className="
-                                mt-4 grid gap-6
-                                lg:grid-cols-[minmax(0,1fr)_400px]   /* main + right rail */
-                                xl:grid-cols-[minmax(0,1fr)_440px]
+                                mt-4 grid auto-rows-min gap-4
+                                lg:grid-cols-2
                             "
+                            style={{ gridAutoFlow: 'row' }}
                         >
-                            {/* LEFT: mission + submission embeds */}
-                            <section className="space-y-6">
-                                {/* Mission card */}
-                                <div className="rounded-xl border border-white/10 bg-white/5 p-4 shadow-[0_0_1px_rgba(255,255,255,.2),0_12px_40px_-20px_rgba(0,0,0,.6)]">
-                                    <div className="mb-2 flex items-center gap-2">
-                                        <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
-                                        <h3 className="text-base font-semibold text-white/90">Original Mission</h3>
-                                    </div>
-
-                                    {/* fixed height for desktop, auto for mobile */}
-                                    <div className="rounded-lg bg-black/20">
-                                        <div className="aspect-[4/3] w-full overflow-hidden rounded-lg lg:aspect-[16/12]">
-                                            <EmbeddedContent
-                                                url={item.missionUrl}
-                                                platform="twitter"
-                                                className="h-full w-full"
-                                            />
-                                        </div>
+                            {/* Original Mission */}
+                            <div className="rounded-xl border border-white/5 bg-black/30 p-3 backdrop-blur">
+                                <h3 className="mb-2 text-sm font-semibold text-white/80">Original Mission</h3>
+                                <div className="relative overflow-hidden rounded-lg border border-white/10">
+                                    {/* Fixed, compact height so both tweets fit above the fold */}
+                                    <div className="h-[260px] xl:h-[300px]">
+                                        <EmbeddedContent
+                                            url={item.missionUrl}
+                                            platform="twitter"
+                                            className="h-full w-full"
+                                        />
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Submission card */}
-                                <div className="rounded-xl border border-white/10 bg-white/5 p-4 shadow-[0_0_1px_rgba(255,255,255,.2),0_12px_40px_-20px_rgba(0,0,0,.6)]">
-                                    <div className="mb-2 flex items-center gap-2">
-                                        <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                                        <h3 className="text-base font-semibold text-white/90">User Submission</h3>
-                                    </div>
-                                    <div className="rounded-lg bg-black/20">
-                                        <div className="aspect-[4/3] w-full overflow-hidden rounded-lg lg:aspect-[16/12]">
-                                            <EmbeddedContent
-                                                url={item.submissionLink}
-                                                platform="twitter"
-                                                className="h-full w-full"
-                                            />
-                                        </div>
+                            {/* User Submission */}
+                            <div className="rounded-xl border border-white/5 bg-black/30 p-3 backdrop-blur">
+                                <h3 className="mb-2 text-sm font-semibold text-white/80">User Submission</h3>
+                                <div className="relative overflow-hidden rounded-lg border border-white/10">
+                                    <div className="h-[260px] xl:h-[300px]">
+                                        <EmbeddedContent
+                                            url={item.submissionLink}
+                                            platform="twitter"
+                                            className="h-full w-full"
+                                        />
                                     </div>
                                 </div>
-                            </section>
+                            </div>
 
-                            {/* RIGHT: sticky action panel */}
-                            <aside
-                                className="
-                                    space-y-5 rounded-xl border border-white/10 bg-gradient-to-b from-white/5 to-white/[.03]
-                                    p-4 shadow-[0_0_1px_rgba(255,255,255,.2),0_12px_40px_-20px_rgba(0,0,0,.6)]
-                                    lg:sticky lg:top-20 lg:h-fit
-                                "
-                            >
-                                {/* Comment CTA */}
-                                <a
-                                    href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
-                                    target="_blank" rel="noopener noreferrer"
-                                    onClick={handleIntent}
-                                    className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.15)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500"
-                                >
-                                    <MessageCircle className="w-4 h-4 mr-2" /> Comment
-                                </a>
-
-                                {/* Link input + inline validation note */}
-                                <div className="space-y-2">
-                                    <ModernInput
-                                        value={link}
-                                        onChange={setLink}
-                                        placeholder="https://x.com/yourhandle/status/1234567890"
-                                        type="url"
-                                        className={linkValidation.isValid
-                                            ? 'border-emerald-500/50 focus:border-emerald-400'
-                                            : link.length
-                                            ? 'border-rose-500/50 focus:border-rose-400'
-                                            : ''
-                                        }
-                                    />
-                                    {link.length > 0 && (
-                                        <p className={`text-xs ${linkValidation.isValid ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                            {linkValidation.isValid 
-                                                ? `✓ Valid link: @${linkValidation.handle} (Tweet ID: ${linkValidation.tweetId})`
-                                                : linkValidation.error || 'Please paste a valid X/Twitter link to your comment.'
-                                            }
-                                        </p>
-                                    )}
-                                    <ModernButton
-                                        onClick={handleLink}
-                                        variant="secondary"
-                                        size="sm"
-                                        className="w-full"
-                                        disabled={!linkValidation.isValid}
+                            {/* === ACTIONS ROW (spans both columns) === */}
+                            <div className="col-span-full rounded-xl border border-white/5 bg-black/30 p-3 backdrop-blur">
+                                <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
+                                    {/* Comment button uses reply composer */}
+                                    <a
+                                        href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={handleIntent}
+                                        className="inline-flex h-11 items-center justify-center rounded-lg
+                                                   bg-gradient-to-r from-[#4b6bff] to-[#a855f7]
+                                                   px-4 text-sm font-medium text-white
+                                                   ring-1 ring-white/10 transition-[background,box-shadow]
+                                                   hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/20"
                                     >
-                                        Submit Link
-                                    </ModernButton>
-                                </div>
+                                        <MessageCircle className="w-4 h-4 mr-2" /> Comment
+                                    </a>
 
-                                {/* Star rating */}
-                                <div className="space-y-2">
-                                    <p className="text-xs text-white/70">Rate this submission</p>
-                                    <div className="flex items-center gap-2">
-                                        {[1,2,3,4,5].map((n) => (
+                                    {/* Link input (compacted) */}
+                                    <div className="flex items-center gap-2 lg:justify-end">
+                                        <input
+                                            value={link}
+                                            onChange={(e) => setLink(e.target.value)}
+                                            placeholder="https://x.com/yourhandle/status/1234567890"
+                                            className="h-11 w-full min-w-[320px] rounded-lg border border-white/10 bg-black/40 px-3
+                                                       text-sm text-white/90 placeholder-white/40 outline-none
+                                                       focus:border-white/20 focus:ring-2 focus:ring-white/10"
+                                        />
+                                        <button
+                                            onClick={handleLink}
+                                            disabled={!linkValidation.isValid}
+                                            className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10
+                                                       bg-white/10 px-3 text-sm font-medium text-white/90
+                                                       disabled:cursor-not-allowed disabled:opacity-40
+                                                       hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/20"
+                                        >
+                                            Submit Link
+                                        </button>
+                                    </div>
+
+                                    {/* Rating + primary actions */}
+                                    <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
+                                        {/* Stars */}
+                                        <div className="flex items-center gap-1">
+                                            {[1,2,3,4,5].map(n => (
+                                                <button
+                                                    key={n}
+                                                    onClick={() => setRating(n)}
+                                                    className={`h-8 w-8 rounded-md border border-white/10 text-sm
+                                                                ${rating >= n ? 'bg-yellow-400/20 text-yellow-300' : 'bg-white/5 text-white/60'}
+                                                                hover:bg-white/10 focus:outline-none focus:ring-1 focus:ring-white/15`}
+                                                >
+                                                    ★
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex items-center gap-8">
                                             <button
-                                                key={n}
-                                                onClick={() => setRating(n)}
-                                                className={`h-9 w-9 rounded-md transition-colors
-                                                    ${rating >= n ? 'bg-amber-500/90' : 'bg-white/[.06] hover:bg-white/[.1]'}`}
-                                                aria-label={`Rate ${n} star${n>1?'s':''}`}
+                                                onClick={handleSkip}
+                                                disabled={isRefetching}
+                                                className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10
+                                                           bg-white/5 px-4 text-sm font-medium text-white/80 hover:bg-white/10
+                                                           focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                <Star className="w-4 h-4 mx-auto" fill={rating >= n ? "currentColor" : "none"} />
+                                                {isRefetching ? (
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white/60 mr-2"></div>
+                                                ) : (
+                                                    <SkipForward className="w-3 h-3 mr-2" />
+                                                )}
+                                                Skip
                                             </button>
-                                        ))}
+
+                                            <button
+                                                onClick={handleComplete}
+                                                disabled={!canComplete || submitReview.isPending}
+                                                className="inline-flex h-11 min-w-[240px] items-center justify-center rounded-lg
+                                                           bg-gradient-to-r from-[#14b8a6] to-[#22c55e]
+                                                           px-5 text-sm font-semibold text-black
+                                                           disabled:cursor-not-allowed disabled:opacity-40
+                                                           focus:outline-none focus:ring-2 focus:ring-white/20"
+                                            >
+                                                {submitReview.isPending ? (
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black/60 mr-2"></div>
+                                                ) : (
+                                                    <Check className="w-3 h-3 mr-2" />
+                                                )}
+                                                Complete Review (+{HONORS_PER_REVIEW} Honors)
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Actions row */}
-                                <div className="flex items-center gap-3 pt-1">
-                                    <ModernButton
-                                        onClick={handleSkip}
-                                        variant="secondary"
-                                        className="w-[110px]"
-                                        disabled={isRefetching}
-                                        loading={isRefetching}
-                                    >
-                                        <SkipForward className="w-3 h-3 mr-2" /> Skip
-                                    </ModernButton>
-
-                                    <ModernButton
-                                        onClick={handleComplete}
-                                        disabled={!canComplete || submitReview.isPending}
-                                        className="flex-1"
-                                        loading={submitReview.isPending}
-                                    >
-                                        <Check className="w-3 h-3 mr-2" /> Complete Review (+{HONORS_PER_REVIEW} Honors)
-                                    </ModernButton>
-                                </div>
-                            </aside>
-                        </div>
+                                {/* Compact validation message */}
+                                {link && (
+                                    <p className={`mt-2 text-xs ${linkValidation.isValid ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        {linkValidation.isValid 
+                                            ? `✓ Valid link: @${linkValidation.handle} (Tweet ID: ${linkValidation.tweetId})`
+                                            : linkValidation.error || 'Please paste a valid X/Twitter link to your comment.'
+                                        }
+                                    </p>
+                                )}
+                            </div>
+                        </section>
                     ) : (
                         /* existing empty state */
                         <div className="text-center py-12">
