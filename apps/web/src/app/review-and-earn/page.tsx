@@ -143,39 +143,37 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     }
 
     return (
-        <div className="mx-auto max-w-6xl p-6 space-y-6">
+                <div className="container mx-auto px-2 py-2">
             {/* Page Header */}
-            <div className="text-center mb-6">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-2">
-                    Review & Earn
-                </h1>
-                <p className="text-gray-400 text-sm">
-                    Review mission submissions and earn {HONORS_PER_REVIEW} honors per review
-                </p>
-            </div>
+                    <div className="text-left mb-2">
+                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-1">
+                            Review & Earn
+                        </h1>
+                        <p className="text-gray-400 text-xs">Review mission submissions and earn {HONORS_PER_REVIEW} honors per review</p>
+                    </div>
 
             {/* Top: two tweets, side-by-side */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
-                <div className="rounded-xl border border-white/20 bg-gradient-to-br from-gray-900/50 to-gray-800/30 p-4 backdrop-blur-sm">
-                    <div className="text-sm font-semibold text-white/90 mb-3">Original Mission</div>
-                    <div className="rounded-lg overflow-hidden aspect-[4/3] shadow-lg">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+                <div className="bg-gray-800/30 rounded-lg p-3 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                    <div className="text-sm font-semibold text-white/90 mb-2">Original Mission</div>
+                    <div className="aspect-[4/3] overflow-hidden rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                         {item?.missionUrl ? (
                             <EmbeddedContent url={item.missionUrl} platform="twitter" className="h-full w-full" />
                         ) : (
-                            <div className="h-full w-full bg-gradient-to-br from-gray-700/30 to-gray-600/20 animate-pulse" />
+                            <div className="h-full w-full bg-gray-800/30 animate-pulse" />
                         )}
-                    </div>
+                            </div>
                         </div>
 
-                <div className="rounded-xl border border-white/20 bg-gradient-to-br from-gray-900/50 to-gray-800/30 p-4 backdrop-blur-sm">
-                    <div className="text-sm font-semibold text-white/90 mb-3">User Submission</div>
-                    <div className="rounded-lg overflow-hidden aspect-[4/3] shadow-lg">
+                <div className="bg-gray-800/30 rounded-lg p-3 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                    <div className="text-sm font-semibold text-white/90 mb-2">User Submission</div>
+                    <div className="aspect-[4/3] overflow-hidden rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                         {item?.submissionLink ? (
                             <EmbeddedContent url={item.submissionLink} platform="twitter" className="h-full w-full" />
                         ) : (
-                            <div className="h-full w-full bg-gradient-to-br from-gray-700/30 to-gray-600/20 animate-pulse" />
+                            <div className="h-full w-full bg-gray-800/30 animate-pulse" />
                         )}
-                    </div>
+                        </div>
 
                     {/* Actions live UNDER the submission card — linear, presentation-style */}
                     <div className="mt-4 space-y-3 max-w-[720px]">
@@ -183,14 +181,14 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         {step === 'comment' && (
                             <div className="flex gap-3">
                                 <button type="button" onClick={handleComment}
-                                        disabled={!item?.submissionTweetId}
-                                        className="flex-1 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600
+                                    disabled={!item?.submissionTweetId}
+                                    className="flex-1 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600
                                                    px-4 py-2.5 font-medium text-white hover:from-blue-500 hover:to-purple-500
                                                    disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
                                     Comment
                                 </button>
                                 <button type="button" onClick={handleSkip}
-                                        className="rounded-lg border border-white/20 px-4 py-2.5 text-white/80 
+                                    className="rounded-lg border border-white/20 px-4 py-2.5 text-white/80 
                                                    hover:bg-white/10 hover:border-white/30 transition-all duration-200">
                                     Skip
                                 </button>
@@ -201,9 +199,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         {step === 'link' && (
                             <div className="space-y-2">
                                 <div className="flex w-full gap-3">
-                                    <input
+                                        <input
                                         ref={linkRef}
-                                        value={link}
+                                            value={link}
                                         onChange={(e) => { setLink(e.target.value); setLinkValid(false); setLinkError(null); }}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') { e.preventDefault(); handleSubmitLink(); }
@@ -213,16 +211,16 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                             ${linkError ? 'border-red-500/70 bg-red-500/5' : linkValid ? 'border-green-500/70 bg-green-500/5' : 'border-white/20'}`}
                                     />
                                     <button type="button" onClick={handleSubmitLink}
-                                            className="rounded-lg bg-gray-700/50 px-4 py-2.5 text-white hover:bg-gray-600/50 
+                                        className="rounded-lg bg-gray-700/50 px-4 py-2.5 text-white hover:bg-gray-600/50 
                                                        border border-white/20 hover:border-white/30 transition-all duration-200">
-                                        Submit Link
+                                            Submit Link
                                     </button>
                                 </div>
 
                                 {linkError && <p className="text-sm text-red-400">{linkError}</p>}
                                 {linkValid && <p className="text-sm text-emerald-400">✅ Link verified for @{reviewerHandle}</p>}
-                            </div>
-                        )}
+                                </div>
+                            )}
 
                         {/* Step 3 — Rate */}
                         {step === 'rate' && (
@@ -237,8 +235,8 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                             className={`h-9 w-9 rounded-lg border transition-all duration-200 ${rating >= n ? 'bg-yellow-400 text-black border-yellow-300 shadow-md' : 'bg-gray-700/50 text-gray-300 border-white/20 hover:bg-gray-600/50'}`}
                                         >
                                             ★
-                                        </button>
-                                    ))}
+                                            </button>
+                                        ))}
                                     </div>
                                 <div className="flex gap-3">
                                     <button type="button" onClick={handleSkip}
@@ -250,8 +248,8 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                         Complete Review
                                     </button>
                                 </div>
-                            </div>
-                        )}
+                                </div>
+                            )}
 
                         {/* Final Step — Ready */}
                         {step === 'ready' && (
@@ -266,12 +264,12 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                                    hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed">
                                     {submitting ? 'Completing…' : 'Complete Review'}
                                 </button>
-                                </div>
-                            )}
-                                    </div>
-                                </div>
+                            </div>
+                        )}
                             </div>
                         </div>
+                                </div>
+                            </div>
     );
 }
 
