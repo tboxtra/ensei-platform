@@ -112,17 +112,19 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
                     const missionSnap = await db.collection('missions').doc(p.mission_id).get();
                     const m = missionSnap.exists ? missionSnap.data() as any : null;
 
-                    // Try common fields first
-                    missionUrl = m?.original_link || m?.tweet_link || m?.tweet_url || m?.action_url || m?.url || null;
+                    // Use the same field resolution pattern as the client components
+                    missionUrl = m?.tweetLink || m?.contentLink || m?.link || m?.tweet_link || m?.content_link || null;
 
-                    // Fallback: try to derive from tasks config
-                    if (!missionUrl && Array.isArray(m?.tasks)) {
-                        const t = m.tasks.find((t: any) =>
-                            t?.link || t?.url || t?.tweet || t?.tweetUrl || t?.target_url
-                        );
-                        missionUrl = t?.link || t?.url || t?.tweet || t?.tweetUrl || t?.target_url || null;
-                    }
-                    
+                    // Debug logging for mission URL resolution
+                    console.log(`[getReviewQueue] Mission ${p.mission_id} URL resolution:`, {
+                        tweetLink: m?.tweetLink,
+                        contentLink: m?.contentLink,
+                        link: m?.link,
+                        tweet_link: m?.tweet_link,
+                        content_link: m?.content_link,
+                        resolvedUrl: missionUrl
+                    });
+
                     // Parse handle/tweet id if present
                     const parsedMission = missionUrl ? parseTweetUrl(missionUrl) : null;
                     if (parsedMission) {

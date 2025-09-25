@@ -229,10 +229,10 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                             value={link}
                                             onChange={(e) => setLink(e.target.value)}
                                             className={`flex-1 px-3 py-2 bg-gray-800/50 border rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-400 text-sm shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)] transition-colors ${linkValidation.isValid
-                                                    ? 'border-green-500/50 focus:ring-green-500/50'
-                                                    : linkValidation.error
-                                                        ? 'border-red-500/50 focus:ring-red-500/50'
-                                                        : 'border-gray-700/50 focus:ring-orange-500/50'
+                                                ? 'border-green-500/50 focus:ring-green-500/50'
+                                                : linkValidation.error
+                                                    ? 'border-red-500/50 focus:ring-red-500/50'
+                                                    : 'border-gray-700/50 focus:ring-orange-500/50'
                                                 }`}
                                         />
                                         <ModernButton
@@ -289,9 +289,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                             )}
 
                             <div className="flex gap-2 pt-2">
-                                <ModernButton 
-                                    onClick={() => refetch()} 
-                                    variant="secondary" 
+                                <ModernButton
+                                    onClick={() => refetch()}
+                                    variant="secondary"
                                     size="sm"
                                     className="flex-shrink-0"
                                 >
