@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useReviewQueue } from "@/hooks/useReviewQueue";
 import { useSubmitReview } from "@/hooks/useSubmitReview";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { Star, MessageCircle, ExternalLink, Check, SkipForward, Target, Link, User as UserIcon } from "lucide-react";
 import { ModernCard } from "@/components/ui/ModernCard";
@@ -20,29 +21,28 @@ import toast from "react-hot-toast";
 
 const HONORS_PER_REVIEW = 20;
 
+type Step = 'comment' | 'link' | 'rate' | 'complete';
+
 function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const { data: item, isLoading, refetch, isRefetching } = useReviewQueue();
     const submitReview = useSubmitReview();
     const queryClient = useQueryClient();
+    const { user } = useAuthUser();
 
-    const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
+    const [step, setStep] = useState<Step>('comment');
     const [rating, setRating] = useState(0);
     const [link, setLink] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
-    const [linkValidation, setLinkValidation] = useState<{
-        isValid: boolean;
-        handle?: string;
-        tweetId?: string;
-        error?: string;
-    }>({ isValid: false });
+    const [linkValidation, setLinkValidation] = useState<{ isValid: boolean; msg?: string }>({ isValid: false });
 
-    // Centralized reset function
+    // Reset UI state when loading new item or skipping
     const resetReviewUI = () => {
-        setStep(0);
-        setRating(0);
-        setLink("");
+        setStep('comment');
+        setLink('');
         setLinkValidation({ isValid: false });
+        setRating(0);
     };
+
 
     useEffect(() => {
         // reset UI on new item
@@ -51,48 +51,39 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     }, [item?.participationId]);
 
     // Validate link as user types
-    useEffect(() => {
-        if (!link.trim()) {
-            setLinkValidation({ isValid: false });
-            return;
-        }
-
-        const parsed = parseTweetUrl(link);
-        if (!parsed) {
-            setLinkValidation({
-                isValid: false,
-                error: "Please paste a full X/Twitter status link, e.g. https://x.com/<handle>/status/<id>"
-            });
-            return;
-        }
-
-        // For now, just show it's valid - we'll check handle match on submit
+    const onLinkChange = (v: string) => {
+        setLink(v);
+        const parsed = parseTweetUrl(v);
+        const profile = (user?.twitter_handle || '').replace(/^@/, '').toLowerCase();
+        const ok = !!parsed && parsed.handle.toLowerCase() === profile;
         setLinkValidation({
-            isValid: true,
-            handle: parsed.handle,
-            tweetId: parsed.tweetId
+            isValid: ok,
+            msg: ok ? `Valid link: @${parsed?.handle} (Tweet ID: ${parsed?.tweetId})` :
+                      'Paste a valid link from your profile handle.'
         });
-    }, [link]);
+    };
 
-    const canComplete = step === 3 && rating > 0 && linkValidation.isValid;
+    const canComplete = step === 'complete' && rating > 0 && linkValidation.isValid;
     const header = useMemo(() => ({
         pending: 1, // hook up later if you want counters
         completed: 0,
         avg: 0
     }), []);
 
-    const handleIntent = () => setStep(1);
+    const handleIntent = () => setTimeout(() => setStep('link'), 150);
     const handleLink = () => {
         if (!linkValidation.isValid) return;
-        setStep(2);
+        setStep('rate');
     };
-    const handleRate = (n: number) => { setRating(n); setStep(3); };
+    const onPickRating = (n: number) => {
+        setRating(n);
+        if (linkValidation.isValid && n > 0) setStep('complete');
+    };
     const handleComplete = async () => {
+        if (!(step === 'complete' && linkValidation.isValid && rating > 0)) return;
         if (!item || !uid) return;
+        
         try {
-            // Optimistic update: clear the card instantly
-            queryClient.setQueryData(["review-queue", uid], null);
-
             await submitReview.mutateAsync({
                 missionId: item.missionId,
                 participationId: item.participationId,
@@ -102,9 +93,10 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                 commentLink: link
             });
 
-            // Reset UI state after successful submission
+            // Refresh queue & reset UI
+            await queryClient.invalidateQueries({ queryKey: ['review-queue', uid] });
+            setTimeout(() => queryClient.refetchQueries({ queryKey: ['review-queue', uid] }), 0);
             resetReviewUI();
-            setShowSuccess(true);
             toast.success(`Review completed! +${HONORS_PER_REVIEW} honors earned`);
         } catch (error: any) {
             console.error('Failed to submit review:', error);
@@ -115,12 +107,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const handleSkip = async () => {
         if (!uid) return;
         try {
-            // Optimistic update: clear the card instantly
-            queryClient.setQueryData(["review-queue", uid], null);
-
-            // Reset UI state and refetch
             resetReviewUI();
-            await refetch();
+            await queryClient.invalidateQueries({ queryKey: ['review-queue', uid] });
+            refetch(); // from useReviewQueue
             toast.success('Skipped to next review');
         } catch (error: any) {
             console.error('Failed to skip review:', error);
@@ -236,52 +225,57 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
                             {/* === ACTIONS ROW (spans both columns) === */}
                             <div className="col-span-full rounded-xl border border-white/5 bg-black/30 p-3 backdrop-blur">
-                                <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
-                                    {/* Comment button uses reply composer */}
-                                    <a
-                                        href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={handleIntent}
-                                        className="inline-flex h-11 items-center justify-center rounded-lg
-                                                   bg-gradient-to-r from-[#4b6bff] to-[#a855f7]
-                                                   px-4 text-sm font-medium text-white
-                                                   ring-1 ring-white/10 transition-[background,box-shadow]
-                                                   hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/20"
-                                    >
-                                        <MessageCircle className="w-4 h-4 mr-2" /> Comment
-                                    </a>
-
-                                    {/* Link input (compacted) */}
-                                    <div className="flex items-center gap-2 lg:justify-end">
-                                        <input
-                                            value={link}
-                                            onChange={(e) => setLink(e.target.value)}
-                                            placeholder="https://x.com/yourhandle/status/1234567890"
-                                            className="h-11 w-full min-w-[320px] rounded-lg border border-white/10 bg-black/40 px-3
-                                                       text-sm text-white/90 placeholder-white/40 outline-none
-                                                       focus:border-white/20 focus:ring-2 focus:ring-white/10"
-                                        />
-                                        <button
-                                            onClick={handleLink}
-                                            disabled={!linkValidation.isValid}
-                                            className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10
-                                                       bg-white/10 px-3 text-sm font-medium text-white/90
-                                                       disabled:cursor-not-allowed disabled:opacity-40
-                                                       hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/20"
+                                <div className="grid gap-3 lg:grid-cols-[auto_1fr_auto_auto] items-center">
+                                    {/* Comment is always visible at step 'comment' */}
+                                    <div className={step === 'comment' ? 'opacity-100' : 'opacity-40 pointer-events-none'}>
+                                        <a
+                                            href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={handleIntent}
+                                            className="inline-flex h-11 items-center justify-center rounded-lg
+                                                       bg-gradient-to-r from-[#4b6bff] to-[#a855f7]
+                                                       px-4 text-sm font-medium text-white
+                                                       ring-1 ring-white/10 transition-[background,box-shadow]
+                                                       hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/20"
                                         >
-                                            Submit Link
-                                        </button>
+                                            <MessageCircle className="w-4 h-4 mr-2" /> Comment
+                                        </a>
                                     </div>
 
-                                    {/* Rating + primary actions */}
-                                    <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
-                                        {/* Stars */}
+                                    {/* Link input active at step >= 'link' */}
+                                    <div className={step === 'comment' ? 'opacity-40 pointer-events-none' : 'opacity-100'}>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                value={link}
+                                                onChange={(e) => onLinkChange(e.target.value)}
+                                                placeholder="https://x.com/yourhandle/status/1234567890"
+                                                className="h-11 w-full min-w-[320px] rounded-lg border border-white/10 bg-black/40 px-3
+                                                           text-sm text-white/90 placeholder-white/40 outline-none
+                                                           focus:border-white/20 focus:ring-2 focus:ring-white/10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleLink}
+                                                disabled={!linkValidation.isValid}
+                                                className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10
+                                                           bg-white/10 px-3 text-sm font-medium text-white/90
+                                                           disabled:cursor-not-allowed disabled:opacity-40
+                                                           hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/20"
+                                            >
+                                                Submit Link
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Stars active at step >= 'rate' */}
+                                    <div className={step === 'rate' || step === 'complete' ? '' : 'opacity-40 pointer-events-none'}>
                                         <div className="flex items-center gap-1">
-                                            {[1,2,3,4,5].map(n => (
+                                            {[1, 2, 3, 4, 5].map(n => (
                                                 <button
                                                     key={n}
-                                                    onClick={() => setRating(n)}
+                                                    type="button"
+                                                    onClick={() => onPickRating(n)}
                                                     className={`h-8 w-8 rounded-md border border-white/10 text-sm
                                                                 ${rating >= n ? 'bg-yellow-400/20 text-yellow-300' : 'bg-white/5 text-white/60'}
                                                                 hover:bg-white/10 focus:outline-none focus:ring-1 focus:ring-white/15`}
@@ -290,9 +284,13 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                                 </button>
                                             ))}
                                         </div>
+                                    </div>
 
-                                        <div className="flex items-center gap-8">
+                                    {/* Complete active only at 'complete' */}
+                                    <div className={step === 'complete' ? '' : 'opacity-40 pointer-events-none'}>
+                                        <div className="flex items-center gap-3">
                                             <button
+                                                type="button"
                                                 onClick={handleSkip}
                                                 disabled={isRefetching}
                                                 className="inline-flex h-11 items-center justify-center rounded-lg border border-white/10
@@ -308,8 +306,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                             </button>
 
                                             <button
+                                                type="button"
                                                 onClick={handleComplete}
-                                                disabled={!canComplete || submitReview.isPending}
+                                                disabled={!(step === 'complete' && linkValidation.isValid && rating > 0) || submitReview.isPending}
                                                 className="inline-flex h-11 min-w-[240px] items-center justify-center rounded-lg
                                                            bg-gradient-to-r from-[#14b8a6] to-[#22c55e]
                                                            px-5 text-sm font-semibold text-black
@@ -330,10 +329,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                 {/* Compact validation message */}
                                 {link && (
                                     <p className={`mt-2 text-xs ${linkValidation.isValid ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                        {linkValidation.isValid 
-                                            ? `✓ Valid link: @${linkValidation.handle} (Tweet ID: ${linkValidation.tweetId})`
-                                            : linkValidation.error || 'Please paste a valid X/Twitter link to your comment.'
-                                        }
+                                        {linkValidation.msg}
                                     </p>
                                 )}
                             </div>
