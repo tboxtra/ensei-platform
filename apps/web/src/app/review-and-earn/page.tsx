@@ -90,20 +90,20 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         if (!item || !uid) return;
         try {
             // Optimistic update: clear the card instantly
-            queryClient.setQueryData(["review-queue", uid], { item: null });
+            queryClient.setQueryData(["review-queue", uid], null);
             
-            await submitReview.mutateAsync({
-                missionId: item.missionId,
-                participationId: item.participationId,
-                submitterId: item.submitterId,
-                taskId: item.taskId,
-                rating,
-                commentLink: link
-            });
+        await submitReview.mutateAsync({
+            missionId: item.missionId,
+            participationId: item.participationId,
+            submitterId: item.submitterId,
+            taskId: item.taskId,
+            rating,
+            commentLink: link
+        });
             
             // Reset UI state after successful submission
             resetReviewUI();
-            setShowSuccess(true);
+        setShowSuccess(true);
             toast.success(`Review completed! +${HONORS_PER_REVIEW} honors earned`);
         } catch (error: any) {
             console.error('Failed to submit review:', error);
@@ -115,7 +115,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         if (!uid) return;
         try {
             // Optimistic update: clear the card instantly
-            queryClient.setQueryData(["review-queue", uid], { item: null });
+            queryClient.setQueryData(["review-queue", uid], null);
             
             // Reset UI state and refetch
             resetReviewUI();
@@ -178,14 +178,14 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                 <div className="container mx-auto px-2 py-2">
                     {/* Header */}
                     <div className="text-left mb-2">
-                        <h1 className="text-lg font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent mb-1">
+                        <h1 className="text-base font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent mb-1">
                             Review & Earn
                         </h1>
                         <p className="text-gray-400 text-xs">Review mission submissions and earn {HONORS_PER_REVIEW} honors per review</p>
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="grid grid-cols-2 gap-2 mb-3">
                         <div className="bg-gray-800/30 rounded-lg p-2 text-center shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                             <div className="text-sm font-bold text-white">1</div>
                             <div className="text-xs text-gray-400">Review Available</div>
@@ -211,19 +211,21 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                             <h3 className="text-sm font-medium mb-2 text-gray-300">Original Mission</h3>
                             {item.missionUrl ? (
                                 <Suspense fallback={
-                                    <div className="h-28 rounded-lg bg-gray-800/30 animate-pulse flex items-center justify-center">
-                                        <div className="text-gray-400 text-sm">Loading mission...</div>
+                                    <div className="h-20 rounded-lg bg-gray-800/30 animate-pulse flex items-center justify-center">
+                                        <div className="text-gray-400 text-xs">Loading mission...</div>
                                     </div>
                                 }>
-                                    <EmbeddedContent
-                                        url={item.missionUrl}
-                                        platform="twitter"
-                                        className="rounded-lg"
-                                    />
+                                    <div className="scale-75 origin-top-left">
+                                        <EmbeddedContent
+                                            url={item.missionUrl}
+                                            platform="twitter"
+                                            className="rounded-lg"
+                                        />
+                                    </div>
                                 </Suspense>
                             ) : (
-                                <div className="bg-gray-800/40 backdrop-blur-lg rounded-lg p-4 border border-gray-700/50 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
-                                    <div className="text-sm text-gray-400">
+                                <div className="bg-gray-800/40 backdrop-blur-lg rounded-lg p-3 border border-gray-700/50 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                                    <div className="text-xs text-gray-400">
                                         Original mission link not available.
                                     </div>
                                 </div>
@@ -234,15 +236,17 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         <div className="mb-3">
                             <h3 className="text-sm font-medium mb-2 text-gray-300">User Submission</h3>
                             <Suspense fallback={
-                                <div className="h-28 rounded-lg bg-gray-800/30 animate-pulse flex items-center justify-center">
-                                    <div className="text-gray-400 text-sm">Loading submission...</div>
-                                </div>
+                                <div className="h-20 rounded-lg bg-gray-800/30 animate-pulse flex items-center justify-center">
+                                    <div className="text-gray-400 text-xs">Loading submission...</div>
+                                    </div>
                             }>
-                                <EmbeddedContent
-                                    url={item.submissionLink}
-                                    platform="twitter"
-                                    className="rounded-lg"
-                                />
+                                <div className="scale-75 origin-top-left">
+                                    <EmbeddedContent
+                                        url={item.submissionLink}
+                                        platform="twitter"
+                                        className="rounded-lg"
+                                    />
+                                </div>
                             </Suspense>
                         </div>
 
@@ -306,9 +310,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                     )}
 
                                     {!linkValidation.isValid && !linkValidation.error && (
-                                        <p className="text-xs text-gray-400">
-                                            Please paste the link to your comment from your Twitter account. The link must match your profile username.
-                                        </p>
+                                    <p className="text-xs text-gray-400">
+                                        Please paste the link to your comment from your Twitter account. The link must match your profile username.
+                                    </p>
                                     )}
                                 </div>
                             )}
