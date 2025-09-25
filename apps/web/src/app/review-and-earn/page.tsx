@@ -77,17 +77,39 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const handleRate = (n: number) => { setRating(n); setStep(3); };
     const handleComplete = async () => {
         if (!item) return;
-        await submitReview.mutateAsync({
-            missionId: item.missionId,
-            participationId: item.participationId,
-            submitterId: item.submitterId,
-            taskId: item.taskId,
-            rating,
-            commentLink: link
-        });
-        setShowSuccess(true);
+        try {
+            await submitReview.mutateAsync({
+                missionId: item.missionId,
+                participationId: item.participationId,
+                submitterId: item.submitterId,
+                taskId: item.taskId,
+                rating,
+                commentLink: link
+            });
+            // Reset UI state after successful submission
+            setStep(0);
+            setRating(0);
+            setLink("");
+            setLinkValidation({ isValid: false });
+            setShowSuccess(true);
+        } catch (error) {
+            console.error('Failed to submit review:', error);
+        }
     };
-    const next = () => { setShowSuccess(false); refetch(); };
+    
+    const handleSkip = () => {
+        // Reset UI state and refetch
+        setStep(0);
+        setRating(0);
+        setLink("");
+        setLinkValidation({ isValid: false });
+        refetch();
+    };
+    
+    const next = () => { 
+        setShowSuccess(false); 
+        refetch(); 
+    };
 
     if (isLoading) return (
         <ProtectedRoute>
@@ -290,7 +312,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
                             <div className="flex gap-2 pt-2">
                                 <ModernButton
-                                    onClick={() => refetch()}
+                                    onClick={handleSkip}
                                     variant="secondary"
                                     size="sm"
                                     className="flex-shrink-0"

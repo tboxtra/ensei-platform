@@ -43,7 +43,10 @@ export function useSubmitReview() {
         },
         onSuccess: async () => {
             // Refresh the queue to get the next item
-            await qc.invalidateQueries({ queryKey: ["review-queue"] });
+            const uid = user?.uid;
+            if (uid) {
+                await qc.invalidateQueries({ queryKey: ["review-queue", uid] });
+            }
             qc.invalidateQueries({ queryKey: ["quick-stats"] });
         }
     });
