@@ -9,6 +9,7 @@ import { useReviewQueue } from '@/hooks/useReviewQueue';
 import { useSubmitReview } from '@/hooks/useSubmitReview';
 import { parseTweetUrl } from '@/shared/constants/x';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { UserRatingDisplay } from '@/features/reviews/components/UserRatingDisplay';
 
 // Link validation helpers
 const normHandle = (h?: string) => (h ?? '').toLowerCase().replace(/^@/, '');
@@ -165,7 +166,16 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                 </div>
 
                 <div className="bg-gray-800/30 rounded-lg p-3 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
-                    <div className="text-sm font-semibold text-white/90 mb-2">User Submission</div>
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-semibold text-white/90">User Submission</div>
+                        {item?.submitterId && (
+                            <UserRatingDisplay
+                                userId={item.submitterId}
+                                className="text-xs"
+                                showCount={true}
+                            />
+                        )}
+                    </div>
                     <div className="aspect-[4/3] max-h-[360px] overflow-hidden rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                         {item?.submissionLink ? (
                             <EmbeddedContent url={item.submissionLink} platform="twitter" className="h-full w-full" />

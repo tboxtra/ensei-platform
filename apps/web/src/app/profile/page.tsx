@@ -9,6 +9,7 @@ import { useApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
 import { useUpdateProfile } from '../../hooks/useUpdateProfile';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
+import { ProfileRatingsCard } from '../../features/reviews/components/ProfileRatingsCard';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -695,6 +696,11 @@ export default function ProfilePage() {
                             </>
                         )}
                     </ModernCard>
+
+                    {/* Ratings Card */}
+                    <div className="mb-8">
+                        <ProfileRatingsCard user={user} />
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-between">

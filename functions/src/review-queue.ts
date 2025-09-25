@@ -14,7 +14,7 @@ type QueueItem = {
     submitterUid: string;
     missionId: string;
     // Submission (user's link)
-    submissionUrl: string;
+    submissionLink: string;
     submissionTweetId?: string | null;
     submissionHandle?: string | null;
     // Mission (original)
@@ -66,10 +66,11 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
             urlOK: 0,
             notSelf: 0,
             notReviewed: 0,
+            notClosed: 0,
             reviewerUid,
         };
 
-        const items: QueueItem[] = [];
+        const candidates: QueueItem[] = [];
 
         for (const doc of partsSnap.docs) {
             const p = doc.data();
@@ -85,6 +86,9 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
                 if (t?.verificationMethod !== 'link') continue;
                 dbg.linkTasks++;
 
+                // Guard for missing link
+                if (!t?.url) continue;
+
                 // Exclude self at TASK level
                 if (t?.user_id === reviewerUid) continue;
                 dbg.notSelf++;
@@ -95,12 +99,8 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
                 if (!urlOK) continue;
                 dbg.urlOK++;
 
-                // Check if already reviewed
-                const reviewKey = `${doc.id}:${t.task_id}:${t.user_id}:${reviewerUid}`;
-                const receiptRef = db.collection('reviews').doc(reviewKey);
-                const receipt = await receiptRef.get();
-                if (receipt.exists) continue;
-                dbg.notReviewed++;
+                // Build submission key for this candidate
+                const submissionKey = `${doc.id}:${t.task_id}:${t.user_id}`;
 
                 // ✅ candidate found - now fetch mission data
                 let missionUrl = null;
@@ -135,13 +135,13 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
                     console.warn('[getReviewQueue] Failed to fetch mission data:', error);
                 }
 
-                items.push({
+                candidates.push({
                     participationId: doc.id,
                     missionId: p.mission_id,
                     submitterUid: t.user_id,
                     taskId: t.task_id,
-                    // Submission (user's link)
-                    submissionUrl: t.url,
+                    // Submission (user's link) – match client prop name
+                    submissionLink: t.url,
                     submissionTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
                     submissionHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
                     // Mission (original)
@@ -150,16 +150,38 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
                     missionHandle,
                     createdAt: p.created_at ?? p.updated_at ?? null,
                 });
-
-                // Return one-at-a-time
-                if (items.length) break;
             }
-            if (items.length) break;
         }
+
+        // 3) Filter out submissions already reviewed by this reviewer
+        const enriched = candidates.map(t => ({
+            ...t,
+            submissionKey: `${t.participationId}:${t.taskId}:${t.submitterUid}`
+        }));
+
+        // Check which ones this reviewer already reviewed
+        const reviewKeys = enriched.map(t => `${t.submissionKey}:${reviewerUid}`);
+        const reviewRefs = reviewKeys.map(key => db.doc(`reviews/${key}`));
+        const reviewSnaps = await db.getAll(...reviewRefs);
+
+        const notReviewed = enriched.filter((t, i) => !reviewSnaps[i].exists);
+        dbg.notReviewed = notReviewed.length;
+
+        // 4) Filter out submissions that are closed (>=3 reviews)
+        const aggRefs = notReviewed.map(t => db.doc(`submission_reviews/${t.submissionKey}`));
+        const aggSnaps = await db.getAll(...aggRefs);
+
+        const open = notReviewed.filter((t, i) => {
+            const s = aggSnaps[i];
+            if (!s.exists) return true; // No aggregate yet, so it's open
+            const d = s.data()!;
+            return d.reviewersCount < 3 && !d.closed;
+        });
+        dbg.notClosed = open.length;
 
         // Debug output
         console.log('[getReviewQueue]', dbg);
 
-        return { item: items[0] ?? null };
+        return { item: open[0] ?? null };
     }
 );
