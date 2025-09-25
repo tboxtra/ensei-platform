@@ -2450,6 +2450,10 @@ import {
   onDegenMissionCompleted as _onDegenMissionCompleted,
 } from './degen-winner-handler';
 
+// Export review functions
+export { submitReview } from './review-handler';
+export { getReviewQueue } from './review-queue';
+
 // Export with the V2 names Firebase will pick up
 export const onParticipationUpdateV2 = _onParticipationUpdate;
 export const onMissionCreateV2 = _onMissionCreate;
