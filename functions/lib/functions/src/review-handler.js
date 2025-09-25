@@ -67,16 +67,25 @@ exports.submitReview = functions.https.onCall(async (data, context) => {
     if (!twitterUsername) {
         throw new functions.https.HttpsError("invalid-argument", "Twitter handle not found in profile. Please update your profile first.");
     }
-    // Enhanced link validation - matches Discover & Earn behavior
-    const link = commentLink?.trim();
-    const handle = twitterUsername?.replace(/^@/, ''); // Remove @ if present
-    const domainOk = /(^https?:\/\/)?(twitter\.com|x\.com)\//i.test(link);
-    const handleOk = handle && new RegExp(`/(?:${handle})(/|$)`, 'i').test(link);
-    if (!domainOk) {
-        throw new functions.https.HttpsError("invalid-argument", "Link must be from twitter.com or x.com");
+    // Enhanced link validation - matches client-side parsing
+    const X_URL = /^(?:https?:\/\/)?(?:x\.com|twitter\.com)\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/i;
+    function parseTweetUrl(url) {
+        const m = (url ?? '').trim().match(X_URL);
+        if (!m)
+            return null;
+        return { handle: m[1].toLowerCase(), tweetId: m[2] };
     }
-    if (!handleOk) {
-        throw new functions.https.HttpsError("invalid-argument", `Link must match your Twitter username (@${handle})`);
+    const parsed = parseTweetUrl(commentLink);
+    if (!parsed) {
+        throw new functions.https.HttpsError("invalid-argument", "Invalid X/Twitter link.");
+    }
+    const reviewerHandle = twitterUsername?.toLowerCase()?.replace(/^@/, '') ?? '';
+    if (!reviewerHandle) {
+        throw new functions.https.HttpsError("failed-precondition", "Add your Twitter handle to your profile first.");
+    }
+    // Enforce handle match
+    if (parsed.handle !== reviewerHandle) {
+        throw new functions.https.HttpsError("failed-precondition", `Handle mismatch. Profile: @${reviewerHandle}, Link: @${parsed.handle}.`);
     }
     const partRef = db.collection("mission_participations").doc(participationId);
     const userStatsRef = db.doc(`users/${uid}/stats/summary`);

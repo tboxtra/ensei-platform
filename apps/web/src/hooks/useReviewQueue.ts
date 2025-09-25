@@ -6,13 +6,18 @@ import { fns, auth } from "@/lib/firebase";
 import { useAuthUser } from "@/hooks/useAuthUser";
 
 type QueueItem = {
-    participationId: string;
-    taskId: string;
-    submitterUid: string;
-    missionId: string;
-    url: string;
-    urlHandle?: string | null;
-    urlTweetId?: string | null;
+  participationId: string;
+  taskId: string;
+  submitterUid: string;
+  missionId: string;
+  // Submission (user's link)
+  submissionUrl: string;
+  submissionTweetId?: string | null;
+  submissionHandle?: string | null;
+  // Mission (original)
+  missionUrl?: string | null;
+  missionTweetId?: string | null;
+  missionHandle?: string | null;
 };
 
 export function useReviewQueue() {
@@ -39,17 +44,24 @@ export function useReviewQueue() {
 
                 if (!item) return null;
 
-                // Transform the server response to match the expected format
-                return {
-                    participationId: item.participationId,
-                    missionId: item.missionId,
-                    submitterId: item.submitterUid,
-                    taskId: item.taskId,
-                    missionLink: "", // Will be populated by the UI component
-                    submissionLink: item.url,
-                    submitterHandle: item.urlHandle || "",
-                    createdAgo: new Date() // We don't have createdAt in the new format
-                };
+                        // Transform the server response to match the expected format
+                        return {
+                            participationId: item.participationId,
+                            missionId: item.missionId,
+                            submitterId: item.submitterUid,
+                            taskId: item.taskId,
+                            // Mission data
+                            missionUrl: item.missionUrl,
+                            missionTweetId: item.missionTweetId,
+                            missionHandle: item.missionHandle,
+                            // Submission data
+                            submissionUrl: item.submissionUrl,
+                            submissionTweetId: item.submissionTweetId,
+                            submissionHandle: item.submissionHandle,
+                            submissionLink: item.submissionUrl, // For backward compatibility
+                            submitterHandle: item.submissionHandle || "",
+                            createdAgo: new Date() // We don't have createdAt in the new format
+                        };
             } catch (error) {
                 console.error('Failed to fetch review queue:', error);
                 return null;

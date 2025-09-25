@@ -10,6 +10,8 @@ import { ModernCard } from "@/components/ui/ModernCard";
 import { ModernButton } from "@/components/ui/ModernButton";
 import { ModernLayout } from "@/components/layout/ModernLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { EmbeddedContent } from "@/components/ui/EmbeddedContent";
+import { TwitterIntents } from "@/lib/twitter-intents";
 
 const HONORS_PER_REVIEW = 20;
 
@@ -131,54 +133,54 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         {/* Original Mission */}
                         <div className="mb-4">
                             <h3 className="text-sm font-medium mb-2 text-gray-300">Original Mission</h3>
-                            <div className="bg-gray-800/40 backdrop-blur-lg rounded-lg p-3 border border-gray-700/50 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]">
-                                        <Link className="w-4 h-4 text-orange-400" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-semibold mb-1 text-white text-sm">Twitter Engagement Campaign</h4>
-                                        <p className="text-gray-400 text-xs mb-2">Like, retweet, comment, quote, follow</p>
-                                        {item.missionLink && (
-                                            <a href={item.missionLink} target="_blank" className="text-orange-400 hover:text-orange-300 text-xs inline-flex items-center gap-1 transition-colors">
-                                                <ExternalLink className="w-3 h-3" /> {item.missionLink}
-                                            </a>
-                                        )}
+                            {item.missionUrl ? (
+                                <EmbeddedContent
+                                    url={item.missionUrl}
+                                    className="rounded-lg"
+                                />
+                            ) : (
+                                <div className="bg-gray-800/40 backdrop-blur-lg rounded-lg p-3 border border-gray-700/50 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]">
+                                            <Link className="w-4 h-4 text-orange-400" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold mb-1 text-white text-sm">Twitter Engagement Campaign</h4>
+                                            <p className="text-gray-400 text-xs mb-2">Like, retweet, comment, quote, follow</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Submission */}
                         <div className="mb-4">
                             <h3 className="text-sm font-medium mb-2 text-gray-300">User Submission</h3>
-                            <div className="bg-gray-800/40 backdrop-blur-lg rounded-lg p-3 border border-gray-700/50 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.3),inset_1px_1px_2px_rgba(255,255,255,0.1)]">
-                                        <UserIcon className="w-4 h-4 text-blue-400" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-semibold text-white text-sm">@{item.submitterHandle || "user"}</span>
-                                            <span className="text-gray-500 text-xs">•</span>
-                                            <span className="text-gray-500 text-xs">{item.createdAgo ? `${Math.floor((Date.now() - item.createdAgo.getTime()) / 1000 / 60)}m ago` : "Unknown"}</span>
-                                        </div>
-                                        {item.submissionLink && (
-                                            <a href={item.submissionLink} target="_blank" className="text-blue-400 hover:text-blue-300 text-xs inline-flex items-center gap-1 transition-colors">
-                                                <ExternalLink className="w-3 h-3" /> {item.submissionLink}
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                            <EmbeddedContent
+                                url={item.submissionLink}
+                                className="rounded-lg"
+                            />
                         </div>
 
                         {/* Actions */}
                         <div className="space-y-4">
-                            {/* Intent */}
+                            {/* Comment */}
                             {step === 0 && (
-                                <ModernButton onClick={handleIntent} variant="primary" className="w-full" size="sm">
-                                    <MessageCircle className="w-3 h-3 mr-2" /> Intent to Comment
+                                <ModernButton 
+                                    asChild
+                                    variant="primary" 
+                                    className="w-full" 
+                                    size="sm"
+                                    title="Comment under this submission on X"
+                                >
+                                    <a 
+                                        href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        onClick={handleIntent}
+                                    >
+                                        <MessageCircle className="w-3 h-3 mr-2" /> Comment
+                                    </a>
                                 </ModernButton>
                             )}
 

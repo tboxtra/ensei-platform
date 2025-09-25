@@ -119,9 +119,14 @@ exports.getReviewQueue = functions.region('us-central1').https.onCall(async (_da
                 missionId: p.mission_id,
                 submitterUid: t.user_id,
                 taskId: t.task_id,
-                url: t.url,
-                urlHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
-                urlTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
+                // Submission (user's link)
+                submissionUrl: t.url,
+                submissionTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
+                submissionHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
+                // Mission (original) - we'll need to fetch this from the mission document
+                missionUrl: null, // Will be populated by fetching mission data
+                missionTweetId: null,
+                missionHandle: null,
                 createdAt: p.created_at ?? p.updated_at ?? null,
             });
             // Return one-at-a-time
