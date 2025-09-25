@@ -6,7 +6,7 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getMessaging, isSupported as isMessagingSupported } from 'firebase/messaging';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 
 const config = {
     apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
@@ -126,7 +126,7 @@ if (typeof window !== "undefined") {
   (window as any).firebaseAuth = auth;
   (window as any).firebaseDb = db;
   (window as any).firebaseFns = fns;
-  (window as any).firebaseFunctions = functions;
+  (window as any).firebaseFunctions = { httpsCallable };
 }
 
 export const googleProvider = new GoogleAuthProvider();
