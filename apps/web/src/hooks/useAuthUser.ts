@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { onAuthStateChanged, getAuth } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { useAuthStore } from '../store/authStore';
 
 /**
@@ -17,7 +18,6 @@ export function useAuthUser() {
     const { user, ready, setUser, setReady } = useAuthStore();
 
     useEffect(() => {
-        const auth = getAuth();
 
         // Set ready to false initially
         setReady(false);

@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useReviewQueue } from "@/hooks/useReviewQueue";
 import { useSubmitReview } from "@/hooks/useSubmitReview";
 import { Star, MessageCircle, ExternalLink, Check, SkipForward, Target, Link, User as UserIcon } from "lucide-react";
@@ -10,7 +12,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 const HONORS_PER_REVIEW = 20;
 
-export default function ReviewAndEarnPage() {
+function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const { data: item, isLoading, refetch } = useReviewQueue();
     const submitReview = useSubmitReview();
 
@@ -255,4 +257,22 @@ export default function ReviewAndEarnPage() {
             </ModernLayout>
         </ProtectedRoute>
     );
+}
+
+export default function ReviewAndEarnPage() {
+    const [ready, setReady] = useState(false);
+    const uidRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        const unsub = onAuthStateChanged(auth, (u) => {
+            uidRef.current = u?.uid ?? null;
+            setReady(true);                 // always resolve (user or null)
+            // optional: if you require auth here, redirect on null
+            // if (!u) router.replace('/auth/login');
+        });
+        return unsub;
+    }, []);
+
+    if (!ready) return null;            // no spinner overlay, avoid "stuck" feel
+    return <ReviewAndEarnContent uid={uidRef.current} />;
 }

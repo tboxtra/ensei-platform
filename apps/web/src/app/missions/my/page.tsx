@@ -1,6 +1,7 @@
 'use client';
 
-import { onAuthStateChanged, getAuth, User } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useMyMissions } from '../../../hooks/useMyMissions';
@@ -18,7 +19,7 @@ export default function MyMissionsPage() {
     const userRef = useRef<User | null>(null);
 
     useEffect(() => {
-        const unsub = onAuthStateChanged(getAuth(), (u) => {
+        const unsub = onAuthStateChanged(auth, (u) => {
             userRef.current = u;
             setAuthReady(true);     // ✅ ALWAYS resolves (user or null)
             if (!u) router.replace('/auth/login'); // redirect, but do not block render

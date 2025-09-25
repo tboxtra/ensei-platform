@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { getFirebaseApp } from "@/lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { fns, auth } from "@/lib/firebase";
 import { useAuthUser } from "@/hooks/useAuthUser";
 
 type QueueItem = {
@@ -20,16 +20,19 @@ export function useReviewQueue() {
     return useQuery({
         queryKey: ["review-queue", uid],
         enabled: !!uid,
-        retry: false,
+        retry: 1,
         staleTime: 15_000,
         queryFn: async () => {
             if (!uid) return null;
 
             try {
-                const app = getFirebaseApp();
-                const fns = getFunctions(app, 'us-central1');
-                const call = httpsCallable(fns, 'getReviewQueue');
-                const res = await call({});
+                // Wait until auth "ready": if currentUser is still undefined, retry shortly
+                if (auth.currentUser === undefined) {
+                    await new Promise(r => setTimeout(r, 50)); // one tiny tick
+                }
+                
+                const callable = httpsCallable(fns, 'getReviewQueue');
+                const res = await callable({});
                 const item = (res.data as any)?.item ?? null;
                 
                 if (!item) return null;

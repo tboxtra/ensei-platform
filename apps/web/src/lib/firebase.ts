@@ -1,4 +1,6 @@
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+'use client';
+
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, connectAuthEmulator, sendEmailVerification, applyActionCode, checkActionCode, setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
@@ -6,27 +8,30 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getMessaging, isSupported as isMessagingSupported } from 'firebase/messaging';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
-let app: FirebaseApp;
+const config = {
+    apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
+    authDomain: "ensei-6c8e0.firebaseapp.com",
+    projectId: "ensei-6c8e0",
+    storageBucket: "ensei-6c8e0.firebasestorage.app",
+    messagingSenderId: "542777590186",
+    appId: "1:542777590186:web:59a664f5053a6057d5abd3",
+    measurementId: "G-XHHBG5RLVQ"
+};
 
+// Single Firebase app instance
+export const app = getApps().length ? getApp() : initializeApp(config);
+
+// Important: set persistence once
+export const auth = getAuth(app);
+void setPersistence(auth, browserLocalPersistence);
+
+// Legacy function for backward compatibility
 export function getFirebaseApp(): FirebaseApp {
-    if (!getApps().length) {
-        app = initializeApp({
-            apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
-            authDomain: "ensei-6c8e0.firebaseapp.com",
-            projectId: "ensei-6c8e0",
-            storageBucket: "ensei-6c8e0.firebasestorage.app",
-            messagingSenderId: "542777590186",
-            appId: "1:542777590186:web:59a664f5053a6057d5abd3",
-            measurementId: "G-XHHBG5RLVQ"
-        });
-    }
     return app;
 }
 
 // Initialize Firebase services
 export const getFirebaseAuth = () => {
-    const auth = getAuth(getFirebaseApp());
-
     // Connect to emulator in development
     if (process.env.NODE_ENV === 'development' && !auth.emulatorConfig) {
         try {
@@ -46,27 +51,24 @@ export const getFirebaseAuth = () => {
     return auth;
 };
 
-export const getFirebaseFirestore = () => {
-    const firestore = getFirestore(getFirebaseApp());
+export const db = getFirestore(app);
 
+export const getFirebaseFirestore = () => {
     // Connect to emulator in development
     if (process.env.NODE_ENV === 'development') {
         try {
-            connectFirestoreEmulator(firestore, 'localhost', 8080);
+            connectFirestoreEmulator(db, 'localhost', 8080);
         } catch (error) {
             // Emulator already connected or not available
         }
     }
 
-    return firestore;
+    return db;
 };
 
-// Export db as alias for Firestore instance
-export const db = getFirebaseFirestore();
+export const storage = getStorage(app);
 
 export const getFirebaseStorage = () => {
-    const storage = getStorage(getFirebaseApp());
-
     // Connect to emulator in development
     if (process.env.NODE_ENV === 'development') {
         try {
@@ -100,23 +102,23 @@ export const getFirebaseMessaging = async () => {
 };
 
 // Initialize Functions
-export const getFirebaseFunctions = () => {
-    const functions = getFunctions(getFirebaseApp(), 'us-central1');
+export const fns = getFunctions(app, 'us-central1');
 
+export const getFirebaseFunctions = () => {
     // Connect to emulator in development
     if (process.env.NODE_ENV === 'development') {
         try {
-            connectFunctionsEmulator(functions, 'localhost', 5001);
+            connectFunctionsEmulator(fns, 'localhost', 5001);
         } catch (error) {
             // Emulator already connected or not available
         }
     }
 
-    return functions;
+    return fns;
 };
 
-// Export functions as alias
-export const functions = getFirebaseFunctions();
+// Export functions as alias for backward compatibility
+export const functions = fns;
 
 export const googleProvider = new GoogleAuthProvider();
 
