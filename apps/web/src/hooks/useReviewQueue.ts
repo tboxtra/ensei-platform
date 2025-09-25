@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "@/lib/firebase";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { getFirebaseApp } from "@/lib/firebase";
 import { useAuthUser } from "@/hooks/useAuthUser";
 
 type QueueItem = {
-    participationId: string;
-    missionId: string;
-    submitterUid: string;
-    taskId: string;
-    url: string;
-    createdAt: string;
-    handle: string;
+  participationId: string;
+  taskId: string;
+  submitterUid: string;
+  missionId: string;
+  url: string;
+  urlHandle?: string | null;
+  urlTweetId?: string | null;
 };
 
 export function useReviewQueue() {
@@ -21,25 +21,29 @@ export function useReviewQueue() {
         queryKey: ["review-queue", uid],
         enabled: !!uid,
         retry: false,
+        staleTime: 15_000,
         queryFn: async () => {
             if (!uid) return null;
 
             try {
-                const getReviewQueueFn = httpsCallable(functions, 'getReviewQueue');
-                const result = (await getReviewQueueFn({})).data as { item: QueueItem | null };
-
-                if (!result.item) return null;
+                const app = getFirebaseApp();
+                const fns = getFunctions(app, 'us-central1');
+                const call = httpsCallable(fns, 'getReviewQueue');
+                const res = await call({});
+                const item = (res.data as any)?.item ?? null;
+                
+                if (!item) return null;
 
                 // Transform the server response to match the expected format
                 return {
-                    participationId: result.item.participationId,
-                    missionId: result.item.missionId,
-                    submitterId: result.item.submitterUid,
-                    taskId: result.item.taskId,
+                    participationId: item.participationId,
+                    missionId: item.missionId,
+                    submitterId: item.submitterUid,
+                    taskId: item.taskId,
                     missionLink: "", // Will be populated by the UI component
-                    submissionLink: result.item.url,
-                    submitterHandle: result.item.handle,
-                    createdAgo: new Date(result.item.createdAt)
+                    submissionLink: item.url,
+                    submitterHandle: item.urlHandle || "",
+                    createdAgo: new Date() // We don't have createdAt in the new format
                 };
             } catch (error) {
                 console.error('Failed to fetch review queue:', error);

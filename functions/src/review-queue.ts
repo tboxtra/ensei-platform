@@ -6,83 +6,84 @@ import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) admin.initializeApp();
 
+const db = admin.firestore();
+
 type QueueItem = {
-    participationId: string;
-    missionId: string;
-    submitterUid: string;
-    taskId: string;                      // like|retweet|comment|quote|follow
-    url: string;
-    createdAt: string;                   // ISO for UI
-    handle: string;                      // extractedHandle (for display)
+  participationId: string;
+  taskId: string;
+  submitterUid: string;
+  missionId: string;
+  url: string;
+  urlHandle?: string | null;
+  urlTweetId?: string | null;
 };
 
-export const getReviewQueue = functions.https.onCall(async (data, context) => {
-  const uid = context.auth?.uid;
-  if (!uid) throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
-
-  console.log('getReviewQueue called by user:', uid);
-
-    const db = admin.firestore();
-
-    // Pull a small window, then filter server-side.
-    const snap = await db
-        .collection('mission_participations')
-        .where('status', 'in', ['active', 'completed'])
-        .orderBy('created_at', 'desc')
-        .limit(50)
-        .get();
-
-    // Look up existing review receipts (deterministic key)
-    const makeKey = (pId: string, tId: string, submitter: string) =>
-        `${pId}:${tId}:${submitter}:${uid}`;
-
-    const items: QueueItem[] = [];
-
-    for (const doc of snap.docs) {
-        const p = doc.data() as any;
-        const participationId = doc.id;
-
-        // Never review yourself
-        if (p.user_id === uid) continue;
-
-        const tasks: any[] = Array.isArray(p.tasks_completed) ? p.tasks_completed : [];
-        for (const t of tasks) {
-            if (t?.verificationMethod !== 'link') continue;
-            if (!t?.url || typeof t.url !== 'string') continue;
-
-            // Accept twitter.com and x.com
-            const u = t.url as string;
-            try {
-                const urlObj = new URL(u);
-                const hostOk = /(^|\.)twitter\.com$|(^|\.)x\.com$/.test(urlObj.hostname);
-                if (!hostOk) continue;
-            } catch {
-                // Invalid URL, skip
-                continue;
-            }
-
-            const handle = t?.urlValidation?.extractedHandle;
-            const isValid = t?.urlValidation?.isValid === true;
-            if (!handle || !isValid) continue;
-
-            const key = makeKey(participationId, t.task_id, p.user_id);
-            const reviewed = await db.collection('reviews').doc(key).get();
-            if (reviewed.exists) continue;
-
-            items.push({
-                participationId,
-                missionId: p.mission_id,
-                submitterUid: p.user_id,
-                taskId: t.task_id,
-                url: u,
-                createdAt: (t.created_at?.toDate?.() ?? new Date(t.created_at ?? Date.now())).toISOString(),
-                handle
-            });
-
-            // Return just one to keep UX "one-at-a-time"
-            if (items.length === 1) return { item: items[0] };
-        }
+export const getReviewQueue = functions.region('us-central1').https.onCall(
+  async (_data, context): Promise<{ item: QueueItem | null }> => {
+    const reviewerUid = context.auth?.uid;
+    if (!reviewerUid) {
+      throw new functions.https.HttpsError('unauthenticated', 'Sign in required.');
     }
 
-    return { item: null };
-});
+    // 1) Fetch a recent window of participations (server-side, Admin SDK)
+    //    We DO NOT require submitted_at; we order by created_at as a fallback.
+    const snap = await db
+      .collection('mission_participations')
+      .where('status', 'in', ['active', 'completed'])
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .get();
+
+    const participations = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+
+    // 2) Flatten tasks and apply task-level filters
+    const allTasks = participations.flatMap(p =>
+      Array.isArray(p.tasks_completed) ? p.tasks_completed.map((t: any) => ({ p, t })) : []
+    );
+
+    const linkTasks = allTasks.filter(({ t }) =>
+      t?.verificationMethod === 'link' &&
+      typeof t?.url === 'string' &&
+      /(^https?:\/\/)?(x\.com|twitter\.com)\//i.test(t.url) &&
+      (t?.urlValidation?.isValid === true) // be strict here
+    );
+
+    // 3) Exclude self (use the **task** submitter)
+    const notSelf = linkTasks.filter(({ t }) => t?.user_id && t.user_id !== reviewerUid);
+
+    // 4) Exclude already-reviewed via deterministic review key
+    //    reviews/{participationId}:{taskId}:{submitterUid}:{reviewerUid}
+    const results: QueueItem[] = [];
+    for (const { p, t } of notSelf) {
+      const partId = p.id;
+      const taskId = String(t.task_id);
+      const submitter = String(t.user_id);
+      const reviewKey = `${partId}:${taskId}:${submitter}:${reviewerUid}`;
+      const reviewRef = db.collection('reviews').doc(reviewKey);
+      const exists = (await reviewRef.get()).exists;
+      if (!exists) {
+        results.push({
+          participationId: partId,
+          taskId,
+          submitterUid: submitter,
+          missionId: String(p.mission_id ?? ''),
+          url: String(t.url),
+          urlHandle: t?.urlValidation?.extractedHandle ?? null,
+          urlTweetId: t?.urlValidation?.tweetId ?? null,
+        });
+      }
+    }
+
+    // 5) Debug counters to logs for quick triage
+    console.log('getReviewQueue counts', {
+      totalParts: participations.length,
+      totalTasks: allTasks.length,
+      linkTasks: linkTasks.length,
+      notSelf: notSelf.length,
+      notReviewed: results.length,
+      reviewerUid,
+    });
+
+    return { item: results[0] ?? null };
+  }
+);
