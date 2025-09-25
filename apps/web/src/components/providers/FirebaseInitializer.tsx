@@ -5,35 +5,16 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { getFirebaseAuth } from '../../lib/firebase';
+import React from 'react';
+// This import ensures Firebase is initialized on every page load
+import '../../lib/firebase';
 
 interface FirebaseInitializerProps {
     children: React.ReactNode;
 }
 
 export default function FirebaseInitializer({ children }: FirebaseInitializerProps) {
-    const [isInitialized, setIsInitialized] = useState(false);
-
-    useEffect(() => {
-        const initializeFirebase = async () => {
-            try {
-                // Initialize Firebase Auth
-                await getFirebaseAuth();
-                setIsInitialized(true);
-            } catch (error) {
-                console.error('Failed to initialize Firebase:', error);
-                // Still render children even if Firebase fails to initialize
-                setIsInitialized(true);
-            }
-        };
-
-        initializeFirebase();
-    }, []);
-
-    if (!isInitialized) {
-        return <div>Initializing Firebase...</div>;
-    }
-
+    // Firebase is initialized by the import above
+    // No need for async initialization or loading states
     return <>{children}</>;
 }
