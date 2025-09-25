@@ -39,6 +39,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const [linkValid, setLinkValid] = useState(false);
     const [linkError, setLinkError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [advancing, setAdvancing] = useState(false);
 
     const linkRef = useRef<HTMLInputElement | null>(null);
 
@@ -113,9 +114,11 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     };
 
     const advanceQueue = async () => {
+        setAdvancing(true);
         // clear current immediately, then bump the key
         qc.setQueryData(['review-queue', uid, refreshKey, Array.from(skippedRef.current).join("|")], null);
         setRefreshKey(k => k + 1);
+        setAdvancing(false);
     };
 
     const handleComplete = async () => {
@@ -123,14 +126,14 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
         try {
             setSubmitting(true);
-        await submitReview.mutateAsync({
-            missionId: item.missionId,
-            participationId: item.participationId,
-            submitterId: item.submitterId,
-            taskId: item.taskId,
-            rating,
-            commentLink: link
-        });
+            await submitReview.mutateAsync({
+                missionId: item.missionId,
+                participationId: item.participationId,
+                submitterId: item.submitterId,
+                taskId: item.taskId,
+                rating,
+                commentLink: link
+            });
 
             resetUI();
             await advanceQueue();
@@ -169,19 +172,42 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                     <span className="text-gray-200">No more submissions to review right now.</span>
                 </div>
                 <p className="mt-2 text-sm text-gray-400">Please check back later.</p>
+            </div>
+        );
+    }
+
+    if (isFetching) {
+        return (
+            <div className="container mx-auto px-2 py-2">
+                <div className="text-left mb-2">
+                    <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-1">
+                        Review & Earn
+                    </h1>
+                    <p className="text-gray-400 text-xs">Loading next review...</p>
                 </div>
-    );
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="bg-gray-800/30 rounded-lg p-3 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                        <div className="h-4 bg-gray-700/50 rounded mb-2 animate-pulse"></div>
+                        <div className="aspect-[4/3] max-h-[360px] bg-gray-700/30 rounded-lg animate-pulse"></div>
+                    </div>
+                    <div className="bg-gray-800/30 rounded-lg p-3 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                        <div className="h-4 bg-gray-700/50 rounded mb-2 animate-pulse"></div>
+                        <div className="aspect-[4/3] max-h-[360px] bg-gray-700/30 rounded-lg animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
-                <div className="container mx-auto px-2 py-2">
+        <div className="container mx-auto px-2 py-2">
             {/* Page Header */}
-                    <div className="text-left mb-2">
+            <div className="text-left mb-2">
                 <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-1">
-                            Review & Earn
-                        </h1>
-                        <p className="text-gray-400 text-xs">Review mission submissions and earn {HONORS_PER_REVIEW} honors per review</p>
-                    </div>
+                    Review & Earn
+                </h1>
+                <p className="text-gray-400 text-xs">Review mission submissions and earn {HONORS_PER_REVIEW} honors per review</p>
+            </div>
 
             {/* Top: two tweets, side-by-side */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
@@ -193,8 +219,8 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         ) : (
                             <div className="h-full w-full bg-gray-800/30 animate-pulse" />
                         )}
-                            </div>
-                        </div>
+                    </div>
+                </div>
 
                 <div className="bg-gray-800/30 rounded-lg p-3 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                     <div className="flex items-center justify-between mb-2">
@@ -205,15 +231,15 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                 className="text-xs"
                                 showCount={true}
                             />
-                                        )}
-                                    </div>
+                        )}
+                    </div>
                     <div className="aspect-[4/3] max-h-[360px] overflow-hidden rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                         {item?.submissionLink ? (
                             <EmbeddedContent url={item.submissionLink} platform="twitter" className="h-full w-full" />
                         ) : (
                             <div className="h-full w-full bg-gray-800/30 animate-pulse" />
-                                        )}
-                                    </div>
+                        )}
+                    </div>
 
                     {/* Actions live UNDER the submission card — linear, presentation-style */}
                     <div className="mt-4 space-y-3 max-w-[720px]">
@@ -227,9 +253,10 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                                    disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
                                     Comment
                                 </button>
-                                <button type="button" onClick={handleSkip}
+                                <button type="button" onClick={handleSkip} disabled={advancing || submitting}
                                     className="rounded-lg border border-white/20 px-4 py-2.5 text-white/80 
-                                                   hover:bg-white/10 hover:border-white/30 transition-all duration-200">
+                                                   hover:bg-white/10 hover:border-white/30 transition-all duration-200
+                                                   disabled:opacity-50 disabled:cursor-not-allowed">
                                     Skip
                                 </button>
                             </div>
@@ -239,9 +266,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         {step === 'link' && (
                             <div className="space-y-2">
                                 <div className="flex w-full gap-3">
-                                        <input
+                                    <input
                                         ref={linkRef}
-                                            value={link}
+                                        value={link}
                                         onChange={(e) => {
                                             setLink(e.target.value);
                                             setLinkValid(false);
@@ -269,14 +296,14 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                         className="rounded-lg bg-gray-700/50 px-4 py-2.5 text-white hover:bg-gray-600/50 
                                                        border border-white/20 hover:border-white/30 transition-all duration-200 
                                                        disabled:opacity-50 disabled:cursor-not-allowed">
-                                            Submit Link
+                                        Submit Link
                                     </button>
                                 </div>
 
                                 {linkError && <p className="text-sm text-red-400">{linkError}</p>}
                                 {linkValid && <p className="text-sm text-emerald-400">✅ Link verified for @{reviewerHandle}</p>}
-                                </div>
-                            )}
+                            </div>
+                        )}
 
                         {/* Step 3 — Rate */}
                         {step === 'rate' && (
@@ -291,12 +318,12 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                             className={`h-9 w-9 rounded-lg border transition-all duration-200 ${rating >= n ? 'bg-yellow-400 text-black border-yellow-300 shadow-md' : 'bg-gray-700/50 text-gray-300 border-white/20 hover:bg-gray-600/50'}`}
                                         >
                                             ★
-                                            </button>
-                                        ))}
-                                    </div>
+                                        </button>
+                                    ))}
+                                </div>
                                 <div className="flex gap-3">
-                                    <button type="button" onClick={handleSkip}
-                                        className="rounded-md border border-white/15 px-4 py-2 text-gray-200 hover:bg-white/5">
+                                    <button type="button" onClick={handleSkip} disabled={advancing || submitting}
+                                        className="rounded-md border border-white/15 px-4 py-2 text-gray-200 hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed">
                                         Skip
                                     </button>
                                     <button type="button" disabled
@@ -304,28 +331,28 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                         Complete Review
                                     </button>
                                 </div>
-                                </div>
-                            )}
+                            </div>
+                        )}
 
                         {/* Final Step — Ready */}
                         {step === 'ready' && (
                             <div className="flex justify-end gap-3">
-                                <button type="button" onClick={handleSkip}
-                                    className="rounded-md border border-white/15 px-4 py-2 text-gray-200 hover:bg-white/5">
+                                <button type="button" onClick={handleSkip} disabled={advancing || submitting}
+                                    className="rounded-md border border-white/15 px-4 py-2 text-gray-200 hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed">
                                     Skip
                                 </button>
                                 <button type="button" onClick={handleComplete}
-                                    disabled={submitting}
+                                    disabled={advancing || submitting || !(linkValid && rating > 0)}
                                     className="rounded-md bg-emerald-500 px-4 py-2 font-medium text-black
                                                    hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed">
                                     {submitting ? 'Completing…' : 'Complete Review'}
                                 </button>
                             </div>
                         )}
-                            </div>
-                        </div>
-                                </div>
-                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -351,7 +378,7 @@ export default function ReviewAndEarnPage() {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
                             <p className="text-gray-400">Loading...</p>
                         </div>
-                </div>
+                    </div>
                 </ModernLayout>
             </ProtectedRoute>
         );
