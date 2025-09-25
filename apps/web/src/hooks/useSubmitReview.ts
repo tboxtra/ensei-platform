@@ -24,7 +24,7 @@ function parseTweetUrl(url: string) {
 export function useSubmitReview() {
     const qc = useQueryClient();
     const { user } = useAuthUser();
-    
+
     return useMutation({
         mutationFn: async (payload: Payload) => {
             // Client-side validation

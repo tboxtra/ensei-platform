@@ -166,22 +166,16 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         <div className="space-y-4">
                             {/* Comment */}
                             {step === 0 && (
-                                <ModernButton 
-                                    asChild
-                                    variant="primary" 
-                                    className="w-full" 
-                                    size="sm"
+                                <a 
+                                    href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    onClick={handleIntent}
+                                    className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.1)] hover:shadow-[inset_-1px_-1px_2px_rgba(0,0,0,0.2),inset_1px_1px_2px_rgba(255,255,255,0.15)] transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500"
                                     title="Comment under this submission on X"
                                 >
-                                    <a 
-                                        href={item.submissionTweetId ? `https://x.com/intent/tweet?in_reply_to=${item.submissionTweetId}` : '#'}
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        onClick={handleIntent}
-                                    >
-                                        <MessageCircle className="w-3 h-3 mr-2" /> Comment
-                                    </a>
-                                </ModernButton>
+                                    <MessageCircle className="w-3 h-3 mr-2" /> Comment
+                                </a>
                             )}
 
                             {/* Link */}

@@ -39,7 +39,7 @@ export const submitReview = functions.https.onCall(async (data, context) => {
 
     // Enhanced link validation - matches client-side parsing
     const X_URL = /^(?:https?:\/\/)?(?:x\.com|twitter\.com)\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/i;
-    
+
     function parseTweetUrl(url: string) {
         const m = (url ?? '').trim().match(X_URL);
         if (!m) return null;

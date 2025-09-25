@@ -9,19 +9,19 @@ if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
 type QueueItem = {
-  participationId: string;
-  taskId: string;
-  submitterUid: string;
-  missionId: string;
-  // Submission (user's link)
-  submissionUrl: string;
-  submissionTweetId?: string | null;
-  submissionHandle?: string | null;
-  // Mission (original)
-  missionUrl?: string | null;
-  missionTweetId?: string | null;
-  missionHandle?: string | null;
-  createdAt?: any;
+    participationId: string;
+    taskId: string;
+    submitterUid: string;
+    missionId: string;
+    // Submission (user's link)
+    submissionUrl: string;
+    submissionTweetId?: string | null;
+    submissionHandle?: string | null;
+    // Mission (original)
+    missionUrl?: string | null;
+    missionTweetId?: string | null;
+    missionHandle?: string | null;
+    createdAt?: any;
 };
 
 // Robust URL parsing for twitter.com and x.com
@@ -101,22 +101,22 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
                 if (receipt.exists) continue;
                 dbg.notReviewed++;
 
-        // ✅ candidate found
-        items.push({
-          participationId: doc.id,
-          missionId: p.mission_id,
-          submitterUid: t.user_id,
-          taskId: t.task_id,
-          // Submission (user's link)
-          submissionUrl: t.url,
-          submissionTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
-          submissionHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
-          // Mission (original) - we'll need to fetch this from the mission document
-          missionUrl: null, // Will be populated by fetching mission data
-          missionTweetId: null,
-          missionHandle: null,
-          createdAt: p.created_at ?? p.updated_at ?? null,
-        });
+                // ✅ candidate found
+                items.push({
+                    participationId: doc.id,
+                    missionId: p.mission_id,
+                    submitterUid: t.user_id,
+                    taskId: t.task_id,
+                    // Submission (user's link)
+                    submissionUrl: t.url,
+                    submissionTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
+                    submissionHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
+                    // Mission (original) - we'll need to fetch this from the mission document
+                    missionUrl: null, // Will be populated by fetching mission data
+                    missionTweetId: null,
+                    missionHandle: null,
+                    createdAt: p.created_at ?? p.updated_at ?? null,
+                });
 
                 // Return one-at-a-time
                 if (items.length) break;
