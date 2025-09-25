@@ -41,8 +41,9 @@ export function useSubmitReview() {
             const res = await call(payload);
             return res.data as { ok: boolean; credits: number };
         },
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ["review-queue"] });
+        onSuccess: async () => {
+            // Refresh the queue to get the next item
+            await qc.invalidateQueries({ queryKey: ["review-queue"] });
             qc.invalidateQueries({ queryKey: ["quick-stats"] });
         }
     });

@@ -109,35 +109,44 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
 
                 try {
                     // Fetch mission to show "Original Mission"
-                    const missionRef = db.collection('missions').doc(p.mission_id);
-                    const missionSnap = await missionRef.get();
-                    const mission = missionSnap.exists ? missionSnap.data() : null;
+                    const missionSnap = await db.collection('missions').doc(p.mission_id).get();
+                    const m = missionSnap.exists ? missionSnap.data() as any : null;
 
-                    // Pick the right field in your schema (common names: original_link, url, action_url, tweet_link)
-                    missionUrl = mission?.original_link ?? mission?.url ?? mission?.action_url ?? mission?.tweet_link ?? mission?.tweet_url ?? null;
+                    // Try common fields first
+                    missionUrl = m?.original_link || m?.tweet_link || m?.tweet_url || m?.action_url || m?.url || null;
+
+                    // Fallback: try to derive from tasks config
+                    if (!missionUrl && Array.isArray(m?.tasks)) {
+                        const t = m.tasks.find((t: any) =>
+                            t?.link || t?.url || t?.tweet || t?.tweetUrl || t?.target_url
+                        );
+                        missionUrl = t?.link || t?.url || t?.tweet || t?.tweetUrl || t?.target_url || null;
+                    }
                     
-                    if (missionUrl) {
-                        missionHandle = parseHandle(missionUrl);
-                        missionTweetId = parseTweetId(missionUrl);
+                    // Parse handle/tweet id if present
+                    const parsedMission = missionUrl ? parseTweetUrl(missionUrl) : null;
+                    if (parsedMission) {
+                        missionHandle = parsedMission.handle;
+                        missionTweetId = parsedMission.tweetId;
                     }
                 } catch (error) {
                     console.warn('[getReviewQueue] Failed to fetch mission data:', error);
                 }
 
                 items.push({
-                  participationId: doc.id,
-                  missionId: p.mission_id,
-                  submitterUid: t.user_id,
-                  taskId: t.task_id,
-                  // Submission (user's link)
-                  submissionUrl: t.url,
-                  submissionTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
-                  submissionHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
-                  // Mission (original)
-                  missionUrl,
-                  missionTweetId,
-                  missionHandle,
-                  createdAt: p.created_at ?? p.updated_at ?? null,
+                    participationId: doc.id,
+                    missionId: p.mission_id,
+                    submitterUid: t.user_id,
+                    taskId: t.task_id,
+                    // Submission (user's link)
+                    submissionUrl: t.url,
+                    submissionTweetId: parsed?.tweetId ?? t?.urlValidation?.tweetId ?? null,
+                    submissionHandle: parsed?.handle ?? t?.urlValidation?.extractedHandle ?? null,
+                    // Mission (original)
+                    missionUrl,
+                    missionTweetId,
+                    missionHandle,
+                    createdAt: p.created_at ?? p.updated_at ?? null,
                 });
 
                 // Return one-at-a-time

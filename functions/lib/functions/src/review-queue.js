@@ -116,14 +116,20 @@ exports.getReviewQueue = functions.region('us-central1').https.onCall(async (_da
             let missionHandle = null;
             try {
                 // Fetch mission to show "Original Mission"
-                const missionRef = db.collection('missions').doc(p.mission_id);
-                const missionSnap = await missionRef.get();
-                const mission = missionSnap.exists ? missionSnap.data() : null;
-                // Pick the right field in your schema (common names: original_link, url, action_url, tweet_link)
-                missionUrl = mission?.original_link ?? mission?.url ?? mission?.action_url ?? mission?.tweet_link ?? mission?.tweet_url ?? null;
-                if (missionUrl) {
-                    missionHandle = parseHandle(missionUrl);
-                    missionTweetId = parseTweetId(missionUrl);
+                const missionSnap = await db.collection('missions').doc(p.mission_id).get();
+                const m = missionSnap.exists ? missionSnap.data() : null;
+                // Try common fields first
+                missionUrl = m?.original_link || m?.tweet_link || m?.tweet_url || m?.action_url || m?.url || null;
+                // Fallback: try to derive from tasks config
+                if (!missionUrl && Array.isArray(m?.tasks)) {
+                    const t = m.tasks.find((t) => t?.link || t?.url || t?.tweet || t?.tweetUrl || t?.target_url);
+                    missionUrl = t?.link || t?.url || t?.tweet || t?.tweetUrl || t?.target_url || null;
+                }
+                // Parse handle/tweet id if present
+                const parsedMission = missionUrl ? parseTweetUrl(missionUrl) : null;
+                if (parsedMission) {
+                    missionHandle = parsedMission.handle;
+                    missionTweetId = parsedMission.tweetId;
                 }
             }
             catch (error) {
