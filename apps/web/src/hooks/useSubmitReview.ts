@@ -33,7 +33,7 @@ export function useSubmitReview() {
                 throw new Error('Please paste a valid X/Twitter link to your comment.');
             }
 
-            const reviewerHandle = user?.profile?.twitterHandle?.toLowerCase()?.replace(/^@/, '') ?? '';
+            const reviewerHandle = user?.twitter_handle?.toLowerCase()?.replace(/^@/, '') ?? '';
             if (!reviewerHandle) {
                 throw new Error('Please add your Twitter handle in your profile before submitting.');
             }
