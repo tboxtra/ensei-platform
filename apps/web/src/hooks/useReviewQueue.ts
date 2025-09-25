@@ -22,12 +22,12 @@ type QueueItem = {
     submissionKey: string;
 };
 
-export function useReviewQueue(refreshKey = 0) {
+export function useReviewQueue(refreshKey = 0, excludeKeys: string[] = []) {
     const { user } = useAuthUser();
     const uid = user?.uid;
 
     return useQuery({
-        queryKey: ["review-queue", uid, refreshKey],
+        queryKey: ["review-queue", uid, refreshKey, excludeKeys.join("|")],
         enabled: !!uid,
         retry: 1,
         staleTime: 0,
@@ -44,7 +44,7 @@ export function useReviewQueue(refreshKey = 0) {
                 }
 
                 const callable = httpsCallable(fns, 'getReviewQueue');
-                const res = await callable({});
+                const res = await callable({ excludeKeys });
                 const raw = (res.data as any)?.item ?? null;
                 if (!raw) return null;
 

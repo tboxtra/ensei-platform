@@ -8,6 +8,7 @@
 import { api } from "./src/index";
 import { submitReview } from "./src/review-handler";
 import { getReviewQueue } from "./src/review-queue";
+import { skipSubmission } from "./src/review/skipSubmission";
 
 // Export the main API function (contains all HTTP endpoints with CORS)
 export { api };
@@ -15,3 +16,4 @@ export { api };
 // Export the review system callable functions
 export { submitReview };
 export { getReviewQueue };
+export { skipSubmission };

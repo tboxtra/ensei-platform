@@ -44,11 +44,13 @@ function parseTweetId(url?: string | null) {
 }
 
 export const getReviewQueue = functions.region('us-central1').https.onCall(
-    async (_data, context): Promise<{ item: QueueItem | null }> => {
+    async (data, context): Promise<{ item: QueueItem | null }> => {
         const reviewerUid = context.auth?.uid;
         if (!reviewerUid) {
             throw new functions.https.HttpsError('unauthenticated', 'Sign in required.');
         }
+
+        const { excludeKeys = [] } = data || {};
 
         // 1) Query participations broadly (don't over-filter in Firestore)
         const partsSnap = await db
@@ -101,6 +103,9 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
 
                 // Build submission key for this candidate
                 const submissionKey = `${doc.id}:${t.task_id}:${t.user_id}`;
+
+                // Early filter: exclude keys passed from client
+                if (excludeKeys.includes(submissionKey)) continue;
 
                 // ✅ candidate found - now fetch mission data
                 let missionUrl = null;
@@ -167,11 +172,26 @@ export const getReviewQueue = functions.region('us-central1').https.onCall(
         const notReviewed = enriched.filter((t, i) => !reviewSnaps[i].exists);
         dbg.notReviewed = notReviewed.length;
 
-        // 4) Filter out submissions that are closed (>=3 reviews)
-        const aggRefs = notReviewed.map(t => db.doc(`submission_reviews/${t.submissionKey}`));
+        // 4) Filter out recent skips for this reviewer
+        const skipKeys = notReviewed.map(t => `${t.submissionKey}:${reviewerUid}`);
+        const skipRefs = skipKeys.map(key => db.doc(`review_skips/${key}`));
+        const skipSnaps = await db.getAll(...skipRefs);
+
+        // If you want a custom window (e.g., 24h) beyond TTL:
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        const now = Date.now();
+        const notSkipped = notReviewed.filter((t, i) => {
+            const s = skipSnaps[i];
+            if (!s.exists) return true;
+            const ts = (s.data()?.createdAt?.toMillis?.() ?? 0);
+            return (now - ts) > DAY_MS; // treat as not skipped if old
+        });
+
+        // 5) Filter out submissions that are closed (>=3 reviews)
+        const aggRefs = notSkipped.map(t => db.doc(`submission_reviews/${t.submissionKey}`));
         const aggSnaps = await db.getAll(...aggRefs);
 
-        const open = notReviewed.filter((t, i) => {
+        const open = notSkipped.filter((t, i) => {
             const s = aggSnaps[i];
             if (!s.exists) return true; // No aggregate yet, so it's open
             const d = s.data()!;
