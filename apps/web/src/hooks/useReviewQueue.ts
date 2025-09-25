@@ -6,13 +6,13 @@ import { fns, auth } from "@/lib/firebase";
 import { useAuthUser } from "@/hooks/useAuthUser";
 
 type QueueItem = {
-  participationId: string;
-  taskId: string;
-  submitterUid: string;
-  missionId: string;
-  url: string;
-  urlHandle?: string | null;
-  urlTweetId?: string | null;
+    participationId: string;
+    taskId: string;
+    submitterUid: string;
+    missionId: string;
+    url: string;
+    urlHandle?: string | null;
+    urlTweetId?: string | null;
 };
 
 export function useReviewQueue() {
@@ -32,11 +32,11 @@ export function useReviewQueue() {
                 if (auth.currentUser === undefined) {
                     await new Promise(r => setTimeout(r, 50)); // one tiny tick
                 }
-                
+
                 const callable = httpsCallable(fns, 'getReviewQueue');
                 const res = await callable({});
                 const item = (res.data as any)?.item ?? null;
-                
+
                 if (!item) return null;
 
                 // Transform the server response to match the expected format

@@ -15,11 +15,6 @@ const QueryProvider = dynamic(() => import('./providers/QueryProvider'), {
     loading: () => <div>Loading...</div>
 });
 
-const FirebaseInitializer = dynamic(() => import('./providers/FirebaseInitializer'), {
-    ssr: false,
-    loading: () => <div>Loading...</div>
-});
-
 const UserAuthProvider = dynamic(() => import('../contexts/UserAuthContext').then(mod => ({ default: mod.UserAuthProvider })), {
     ssr: false,
     loading: () => <div>Loading...</div>
@@ -33,11 +28,9 @@ export const ConditionalProviders: React.FC<ConditionalProvidersProps> = ({ chil
     return (
         <Suspense fallback={<div>Loading providers...</div>}>
             <QueryProvider>
-                <FirebaseInitializer>
-                    <UserAuthProvider>
-                        {children}
-                    </UserAuthProvider>
-                </FirebaseInitializer>
+                <UserAuthProvider>
+                    {children}
+                </UserAuthProvider>
             </QueryProvider>
         </Suspense>
     );

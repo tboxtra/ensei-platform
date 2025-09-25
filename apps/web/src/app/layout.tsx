@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ConditionalProviders } from '../components/ConditionalProviders';
-import { QueryProvider } from '../providers/QueryProvider';
 import { Toaster } from 'react-hot-toast';
 import FirebaseBootstrap from './_providers/FirebaseBootstrap';
 
@@ -24,11 +23,9 @@ export default function RootLayout({
       <body className={`${inter.className} bg-black text-white`}>
         <FirebaseBootstrap />
         <ErrorBoundary>
-          <QueryProvider>
-            <ConditionalProviders>
-              {children}
-            </ConditionalProviders>
-          </QueryProvider>
+          <ConditionalProviders>
+            {children}
+          </ConditionalProviders>
           <Toaster
             position="top-right"
             toastOptions={{
