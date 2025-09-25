@@ -8,6 +8,7 @@ import { EmbeddedContent } from '@/components/ui/EmbeddedContent';
 import { useReviewQueue } from '@/hooks/useReviewQueue';
 import { useSubmitReview } from '@/hooks/useSubmitReview';
 import { parseTweetUrl } from '@/shared/constants/x';
+import { useAuthUser } from '@/hooks/useAuthUser';
 
 // Link validation helpers (same logic client & server)
 const X_RX = /^(?:https?:\/\/)?(?:www\.|mobile\.)?(?:x\.com|twitter\.com)\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/i;
@@ -29,6 +30,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const qc = useQueryClient();
     const { data: item, isFetching, refetch } = useReviewQueue();
     const submitReview = useSubmitReview();
+    const { user } = useAuthUser();
 
     // linear state
     const [step, setStep] = useState<Step>('comment');
@@ -60,7 +62,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     }, [step]);
 
     // Get reviewer handle for validation - use Twitter username from profile
-    const reviewerHandle = normHandle((window as any).__ensei?.profile?.twitterHandle);
+    const reviewerHandle = normHandle(user?.twitter_handle || user?.twitter);
 
     const handleComment = () => {
         if (!item?.submissionTweetId) return;
@@ -215,7 +217,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                                        border border-white/20 hover:border-white/30 transition-all duration-200">
                                             Submit Link
                                     </button>
-                                </div>
+                                    </div>
 
                                 {linkError && <p className="text-sm text-red-400">{linkError}</p>}
                                 {linkValid && <p className="text-sm text-emerald-400">✅ Link verified for @{reviewerHandle}</p>}
@@ -247,7 +249,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                         className="cursor-not-allowed rounded-md bg-white/10 px-4 py-2 text-gray-400">
                                         Complete Review
                                     </button>
-                                </div>
+                                    </div>
                                 </div>
                             )}
 
