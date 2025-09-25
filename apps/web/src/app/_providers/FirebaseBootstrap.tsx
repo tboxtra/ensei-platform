@@ -5,5 +5,5 @@
 import '@/lib/firebase';
 
 export default function FirebaseBootstrap() {
-  return null; // no UI
+    return null; // no UI
 }

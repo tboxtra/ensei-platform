@@ -8,18 +8,18 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getMessaging, isSupported as isMessagingSupported } from 'firebase/messaging';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 
-const config = {
-    apiKey: "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
-    authDomain: "ensei-6c8e0.firebaseapp.com",
-    projectId: "ensei-6c8e0",
-    storageBucket: "ensei-6c8e0.firebasestorage.app",
-    messagingSenderId: "542777590186",
-    appId: "1:542777590186:web:59a664f5053a6057d5abd3",
+const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCA-bn41GjFSjM7LEVTIiow6N18cbV8oJY",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "ensei-6c8e0.firebaseapp.com",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "ensei-6c8e0",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "ensei-6c8e0.firebasestorage.app",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "542777590186",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:542777590186:web:59a664f5053a6057d5abd3",
     measurementId: "G-XHHBG5RLVQ"
 };
 
 // Single Firebase app instance
-export const app = getApps().length ? getApp() : initializeApp(config);
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Important: set persistence once
 export const auth = getAuth(app);

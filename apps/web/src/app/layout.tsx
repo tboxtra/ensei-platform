@@ -5,6 +5,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ConditionalProviders } from '../components/ConditionalProviders';
 import { QueryProvider } from '../providers/QueryProvider';
 import { Toaster } from 'react-hot-toast';
+import FirebaseBootstrap from './_providers/FirebaseBootstrap';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-black text-white`}>
+        <FirebaseBootstrap />
         <ErrorBoundary>
           <QueryProvider>
             <ConditionalProviders>

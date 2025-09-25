@@ -1,3 +1,5 @@
+'use client';
+import '@/lib/firebase'; // ensures init even if tree-shaken elsewhere
 import { useQuery } from "@tanstack/react-query";
 import { httpsCallable } from "firebase/functions";
 import { fns, auth } from "@/lib/firebase";
