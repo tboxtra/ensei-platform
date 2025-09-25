@@ -10,14 +10,8 @@ import { useSubmitReview } from '@/hooks/useSubmitReview';
 import { parseTweetUrl } from '@/shared/constants/x';
 import { useAuthUser } from '@/hooks/useAuthUser';
 
-// Link validation helpers (same logic client & server)
-const X_RX = /^(?:https?:\/\/)?(?:www\.|mobile\.)?(?:x\.com|twitter\.com)\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/i;
+// Link validation helpers
 const normHandle = (h?: string) => (h ?? '').toLowerCase().replace(/^@/, '');
-const parseX = (url: string) => {
-    const m = (url ?? '').trim().match(X_RX);
-    if (!m) return null;
-    return { handle: m[1].toLowerCase(), tweetId: m[2] };
-};
 import { ModernLayout } from '@/components/layout/ModernLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import toast from 'react-hot-toast';
@@ -62,7 +56,10 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     }, [step]);
 
     // Get reviewer handle for validation - use Twitter username from profile
-    const reviewerHandle = normHandle(user?.twitter_handle || user?.twitter);
+    const reviewerHandle = normHandle(
+        user?.twitter_handle
+        ?? user?.twitter
+    );
 
     const handleComment = () => {
         if (!item?.submissionTweetId) return;
@@ -72,7 +69,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     };
 
     const handleSubmitLink = () => {
-        const parsed = parseX(link);
+        const parsed = parseTweetUrl(link);
         if (!parsed) {
             setLinkValid(false);
             setLinkError('Paste a valid X/Twitter link to your reply (…/status/ID).');
@@ -103,17 +100,17 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
         try {
             setSubmitting(true);
-        await submitReview.mutateAsync({
-            missionId: item.missionId,
-            participationId: item.participationId,
-            submitterId: item.submitterId,
-            taskId: item.taskId,
-            rating,
-            commentLink: link
-        });
+            await submitReview.mutateAsync({
+                missionId: item.missionId,
+                participationId: item.participationId,
+                submitterId: item.submitterId,
+                taskId: item.taskId,
+                rating,
+                commentLink: link
+            });
 
             resetUI();
-            await qc.invalidateQueries({ queryKey: ['review-queue', uid] });
+            await qc.invalidateQueries({ queryKey: ['review-queue', uid], refetchType: 'active' });
             refetch();
             toast.success(`Review completed! +${HONORS_PER_REVIEW} honors`);
         } catch (e: any) {
@@ -128,7 +125,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         try {
             resetUI();
             qc.setQueryData(['review-queue', uid], null);
-            await qc.invalidateQueries({ queryKey: ['review-queue', uid] });
+            await qc.invalidateQueries({ queryKey: ['review-queue', uid], refetchType: 'active' });
             refetch();
             toast('Skipped');
         } catch {
@@ -140,42 +137,42 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         return (
             <div className="mx-auto max-w-6xl p-6 text-center text-gray-300">
                 No reviews available right now.
-                </div>
-    );
+            </div>
+        );
     }
 
     return (
-                <div className="container mx-auto px-2 py-2">
+        <div className="container mx-auto px-2 py-2">
             {/* Page Header */}
-                    <div className="text-left mb-2">
+            <div className="text-left mb-2">
                 <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-1">
-                            Review & Earn
-                        </h1>
-                        <p className="text-gray-400 text-xs">Review mission submissions and earn {HONORS_PER_REVIEW} honors per review</p>
-                    </div>
+                    Review & Earn
+                </h1>
+                <p className="text-gray-400 text-xs">Review mission submissions and earn {HONORS_PER_REVIEW} honors per review</p>
+            </div>
 
             {/* Top: two tweets, side-by-side */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
                 <div className="bg-gray-800/30 rounded-lg p-3 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                     <div className="text-sm font-semibold text-white/90 mb-2">Original Mission</div>
-                    <div className="aspect-[4/3] overflow-hidden rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                    <div className="aspect-[4/3] max-h-[360px] overflow-hidden rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                         {item?.missionUrl ? (
                             <EmbeddedContent url={item.missionUrl} platform="twitter" className="h-full w-full" />
                         ) : (
                             <div className="h-full w-full bg-gray-800/30 animate-pulse" />
                         )}
-                            </div>
-                        </div>
+                    </div>
+                </div>
 
                 <div className="bg-gray-800/30 rounded-lg p-3 shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                     <div className="text-sm font-semibold text-white/90 mb-2">User Submission</div>
-                    <div className="aspect-[4/3] overflow-hidden rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
+                    <div className="aspect-[4/3] max-h-[360px] overflow-hidden rounded-lg shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                         {item?.submissionLink ? (
                             <EmbeddedContent url={item.submissionLink} platform="twitter" className="h-full w-full" />
                         ) : (
                             <div className="h-full w-full bg-gray-800/30 animate-pulse" />
                         )}
-                        </div>
+                    </div>
 
                     {/* Actions live UNDER the submission card — linear, presentation-style */}
                     <div className="mt-4 space-y-3 max-w-[720px]">
@@ -201,10 +198,25 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                         {step === 'link' && (
                             <div className="space-y-2">
                                 <div className="flex w-full gap-3">
-                                        <input
+                                    <input
                                         ref={linkRef}
-                                            value={link}
-                                        onChange={(e) => { setLink(e.target.value); setLinkValid(false); setLinkError(null); }}
+                                        value={link}
+                                        onChange={(e) => {
+                                            setLink(e.target.value);
+                                            setLinkValid(false);
+                                            setLinkError(null);
+                                        }}
+                                        onPaste={(e) => {
+                                            setTimeout(() => {
+                                                const pasted = (e.target as HTMLInputElement).value;
+                                                if (pasted && !linkValid) { /* opportunistic check */
+                                                    const p = parseTweetUrl(pasted);
+                                                    if (p && reviewerHandle && p.handle === reviewerHandle) {
+                                                        setLinkError(null); setLinkValid(true);
+                                                    }
+                                                }
+                                            }, 0);
+                                        }}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') { e.preventDefault(); handleSubmitLink(); }
                                         }}
@@ -212,17 +224,18 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                         className={`flex-1 rounded-lg border px-3 py-2.5 outline-none bg-gray-800/40 text-white placeholder:text-gray-400
                                             ${linkError ? 'border-red-500/70 bg-red-500/5' : linkValid ? 'border-green-500/70 bg-green-500/5' : 'border-white/20'}`}
                                     />
-                                    <button type="button" onClick={handleSubmitLink}
+                                    <button type="button" onClick={handleSubmitLink} disabled={!link}
                                         className="rounded-lg bg-gray-700/50 px-4 py-2.5 text-white hover:bg-gray-600/50 
-                                                       border border-white/20 hover:border-white/30 transition-all duration-200">
-                                            Submit Link
+                                                       border border-white/20 hover:border-white/30 transition-all duration-200 
+                                                       disabled:opacity-50 disabled:cursor-not-allowed">
+                                        Submit Link
                                     </button>
-                                    </div>
+                                </div>
 
                                 {linkError && <p className="text-sm text-red-400">{linkError}</p>}
                                 {linkValid && <p className="text-sm text-emerald-400">✅ Link verified for @{reviewerHandle}</p>}
-                                </div>
-                            )}
+                            </div>
+                        )}
 
                         {/* Step 3 — Rate */}
                         {step === 'rate' && (
@@ -237,9 +250,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                             className={`h-9 w-9 rounded-lg border transition-all duration-200 ${rating >= n ? 'bg-yellow-400 text-black border-yellow-300 shadow-md' : 'bg-gray-700/50 text-gray-300 border-white/20 hover:bg-gray-600/50'}`}
                                         >
                                             ★
-                                            </button>
-                                        ))}
-                                    </div>
+                                        </button>
+                                    ))}
+                                </div>
                                 <div className="flex gap-3">
                                     <button type="button" onClick={handleSkip}
                                         className="rounded-md border border-white/15 px-4 py-2 text-gray-200 hover:bg-white/5">
@@ -249,9 +262,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                         className="cursor-not-allowed rounded-md bg-white/10 px-4 py-2 text-gray-400">
                                         Complete Review
                                     </button>
-                                    </div>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
                         {/* Final Step — Ready */}
                         {step === 'ready' && (
@@ -268,10 +281,10 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                                 </button>
                             </div>
                         )}
-                            </div>
-                        </div>
-                                </div>
-                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -297,7 +310,7 @@ export default function ReviewAndEarnPage() {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
                             <p className="text-gray-400">Loading...</p>
                         </div>
-                </div>
+                    </div>
                 </ModernLayout>
             </ProtectedRoute>
         );
