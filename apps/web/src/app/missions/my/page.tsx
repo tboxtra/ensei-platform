@@ -9,6 +9,7 @@ import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
 import { FilterBar } from '../../../components/ui/FilterBar';
+import { MissionListItem } from '../../../components/ui/MissionListItem';
 import { Spinner, ErrorBox } from '../../../components/ui/Feedback';
 
 export default function MyMissionsPage() {
@@ -17,8 +18,8 @@ export default function MyMissionsPage() {
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
-            if (!u) { 
-                router.replace('/auth/login'); 
+            if (!u) {
+                router.replace('/auth/login');
             }
             setAuthReady(true);
         });
@@ -128,22 +129,6 @@ function MyMissionsContent() {
         return arr;
     }, [missions, filters]);
 
-    // Status color mapping for better extensibility (memoized to avoid re-creation)
-    const STATUS_STYLE = useMemo(() => ({
-        active: 'bg-green-500/20 text-green-400 border-green-500/30',
-        completed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-        draft: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-        paused: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    } as Record<string, string>), []);
-
-    const getStatusColor = (status: string) => STATUS_STYLE[status] ?? STATUS_STYLE.draft;
-
-    // Shared date formatter for consistent date display
-    const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined, { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-    }), []);
 
     const handleEditMission = useCallback((id: string) => router.push(`/missions/${id}/edit`), [router]);
     const handleViewDetails = useCallback((id: string) => router.push(`/missions/${id}`), [router]);
@@ -158,14 +143,11 @@ function MyMissionsContent() {
     }, [filteredMissions, router]);
 
     // Memoized stats to prevent recomputation on every render
-    const { totalMissions, activeMissions, completedMissions, totalRewards, totalParticipants } = useMemo(() => {
+    const { totalMissions, activeMissions } = useMemo(() => {
         const list = missions || [];
         return {
             totalMissions: list.length,
             activeMissions: list.filter(m => m.status === 'active').length,
-            completedMissions: list.filter(m => m.status === 'completed').length,
-            totalRewards: list.reduce((s, m) => s + (m.total_cost_honors ?? 0), 0),
-            totalParticipants: list.reduce((s, m) => s + (m.participants_count ?? 0), 0),
         };
     }, [missions]);
 
@@ -210,7 +192,7 @@ function MyMissionsContent() {
                     <p className="text-gray-400 text-xs">Manage and track your created missions</p>
                 </div>
 
-                {/* Stats Cards */}
+                {/* Stats Cards - Simplified */}
                 {totalMissions > 0 && (
                     <div className="grid grid-cols-2 gap-2 mb-4" aria-live="polite">
                         <div className="bg-gray-800/30 rounded-lg p-2 text-center shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
@@ -220,14 +202,6 @@ function MyMissionsContent() {
                         <div className="bg-gray-800/30 rounded-lg p-2 text-center shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
                             <div className="text-sm font-bold text-white">{activeMissions}</div>
                             <div className="text-xs text-gray-400">Active</div>
-                        </div>
-                        <div className="bg-gray-800/30 rounded-lg p-2 text-center shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
-                            <div className="text-sm font-bold text-white">{completedMissions}</div>
-                            <div className="text-xs text-gray-400">Completed</div>
-                        </div>
-                        <div className="bg-gray-800/30 rounded-lg p-2 text-center shadow-[inset_-1px_-1px_3px_rgba(0,0,0,0.3),inset_1px_1px_3px_rgba(255,255,255,0.05)]">
-                            <div className="text-sm font-bold text-white">{totalParticipants}</div>
-                            <div className="text-xs text-gray-400">Participants</div>
                         </div>
                     </div>
                 )}
@@ -278,85 +252,28 @@ function MyMissionsContent() {
                 {filteredMissions.length > 0 ? (
                     <div 
                         key={`missions-${filters.type}-${filters.model}-${filters.platform}-${filters.status}-${filters.sortBy}-${filters.showEnded}`}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-opacity duration-200"
+                        className="space-y-3 transition-opacity duration-200"
                         aria-live="polite"
                     >
+                        {/* List Header */}
+                        <div className="bg-gray-800/50 rounded-lg p-3">
+                            <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-400">
+                                <div className="col-span-1">Mission</div>
+                                <div className="col-span-1">Date</div>
+                                <div className="col-span-1">Cost</div>
+                                <div className="col-span-1">Participants</div>
+                                <div className="col-span-1">Status</div>
+                                <div className="col-span-1">Actions</div>
+                            </div>
+                        </div>
+
+                        {/* Mission Items */}
                         {filteredMissions.map((mission) => (
-                            <ModernCard key={mission.id} className="p-4">
-                                <div className="space-y-3">
-                                    {/* Mission Header */}
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <h3 className="text-sm font-semibold text-white truncate">
-                                                {mission.title || 'Untitled Mission'}
-                                            </h3>
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                {[mission.platform, mission.type].filter(Boolean).join(' • ') || '—'}
-                                            </p>
-                                        </div>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(mission.status)}`}>
-                                            {mission.status}
-                                        </span>
-                                    </div>
-
-                                    {/* Mission Stats */}
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="bg-gray-800/30 rounded p-2 text-center">
-                                            <div className="text-white font-semibold">{mission.participants_count || 0}</div>
-                                            <div className="text-gray-400">Participants</div>
-                                        </div>
-                                        <div className="bg-gray-800/30 rounded p-2 text-center">
-                                            <div className="text-white font-semibold">{mission.total_cost_honors || 0}</div>
-                                            <div className="text-gray-400">Honors</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Mission Details */}
-                                    <div className="text-xs text-gray-400 space-y-1">
-                                        <div className="flex justify-between">
-                                            <span>Model:</span>
-                                            <span className="text-white capitalize">{mission.model || 'N/A'}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Created:</span>
-                                            <span className="text-white">
-                                                {mission.created_at ? dateFormatter.format(new Date(mission.created_at)) : 'N/A'}
-                                            </span>
-                                        </div>
-                                        {mission.deadline && (() => {
-                                            const deadline = new Date(mission.deadline);
-                                            return !isNaN(deadline.getTime()) && (
-                                                <div className="flex justify-between">
-                                                    <span>Deadline:</span>
-                                                    <span className="text-white">
-                                                        {dateFormatter.format(deadline)}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-
-                                    {/* Mission Actions */}
-                                    <div className="flex gap-2">
-                                        <ModernButton
-                                            onClick={() => handleViewDetails(mission.id)}
-                                            variant="secondary"
-                                            size="sm"
-                                            className="flex-1"
-                                        >
-                                            View Details
-                                        </ModernButton>
-                                        <ModernButton
-                                            onClick={() => handleEditMission(mission.id)}
-                                            variant="primary"
-                                            size="sm"
-                                            className="flex-1"
-                                        >
-                                            Edit
-                                        </ModernButton>
-                                    </div>
-                                </div>
-                            </ModernCard>
+                            <MissionListItem
+                                key={mission.id}
+                                mission={mission}
+                                onViewDetails={handleViewDetails}
+                            />
                         ))}
                     </div>
                 ) : (missions || []).length === 0 ? (
