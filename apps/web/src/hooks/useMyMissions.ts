@@ -47,15 +47,23 @@ interface Mission {
     submissions?: any[]; // Added for inline submissions
     // Additional fields for clicks calculation
     tasks_done?: number;
+    tasksDone?: number;
     verified_clicks?: number;
     verifiedCount?: number;
     verifications_count?: number;
     stats?: {
         verified_tasks_total?: number;
+        verifiedTasksTotal?: number;
     };
     submissions_verified_tasks?: number;
+    clicks_count?: number;
     clicks?: number;
     tasks?: any[];
+    // Additional submission field variants
+    submissions_list?: any[];
+    _submissions?: any[];
+    subs?: any[];
+    submissionItems?: any[];
 }
 
 interface UseMyMissionsReturn {

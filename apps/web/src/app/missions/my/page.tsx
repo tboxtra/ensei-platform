@@ -46,45 +46,45 @@ function isEnded(m: any) {
 
 // Helper to grab inline submissions from various field names
 function pickInlineSubs(m: any): any[] | null {
-  const cands = [
-    m.submissions,
-    m.submissions_list,
-    m._submissions,
-    m.subs,
-    m.submissionItems,
-    m.submissions?.items,
-    m.submissions?.data,
-  ];
-  for (const c of cands) if (Array.isArray(c) && c.length > 0) return c;
-  return null;
+    const cands = [
+        m.submissions,
+        m.submissions_list,
+        m._submissions,
+        m.subs,
+        m.submissionItems,
+        m.submissions?.items,
+        m.submissions?.data,
+    ];
+    for (const c of cands) if (Array.isArray(c) && c.length > 0) return c;
+    return null;
 }
 
 // Helper to compute clicks from mission data (for instant display)
 function getClicksFromMission(m: any): number {
-  const direct =
-    m.tasks_done ??
-    m.tasksDone ??
-    m.verified_clicks ??
-    m.verifiedCount ??
-    m.verifications_count ??
-    m.stats?.verified_tasks_total ??
-    m.stats?.verifiedTasksTotal ??
-    m.submissions_verified_tasks ??
-    m.clicks_count ??
-    m.clicks;
-  if (direct != null) return Number(direct) || 0;
+    const direct =
+        m.tasks_done ??
+        m.tasksDone ??
+        m.verified_clicks ??
+        m.verifiedCount ??
+        m.verifications_count ??
+        m.stats?.verified_tasks_total ??
+        m.stats?.verifiedTasksTotal ??
+        m.submissions_verified_tasks ??
+        m.clicks_count ??
+        m.clicks;
+    if (direct != null) return Number(direct) || 0;
 
-  const subs =
-    m.submissions?.items ?? m.submissions?.data ?? m.submissions ?? m.submissions_list ?? m._submissions;
-  if (Array.isArray(subs) && subs.length) {
-    return subs.reduce((sum: number, s: any) => {
-      const st = String(s?.status || '').toLowerCase();
-      if (st !== 'verified' && st !== 'approved') return sum;
-      const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
-      return sum + (Number(vt) || 0);
-    }, 0);
-  }
-  return 0;
+    const subs =
+        m.submissions?.items ?? m.submissions?.data ?? m.submissions ?? m.submissions_list ?? m._submissions;
+    if (Array.isArray(subs) && subs.length) {
+        return subs.reduce((sum: number, s: any) => {
+            const st = String(s?.status || '').toLowerCase();
+            if (st !== 'verified' && st !== 'approved') return sum;
+            const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
+            return sum + (Number(vt) || 0);
+        }, 0);
+    }
+    return 0;
 }
 
 export default function MyMissionsPage() {
@@ -186,27 +186,27 @@ function MyMissionsContent() {
         return { totalMissions: list.length, activeMissions: computedActive };
     }, [missions]);
 
-        useEffect(() => {
-            filteredMissions.slice(0, 12).forEach((m) => router.prefetch(`/missions/${m.id}`));
-        }, [filteredMissions, router]);
+    useEffect(() => {
+        filteredMissions.slice(0, 12).forEach((m) => router.prefetch(`/missions/${m.id}`));
+    }, [filteredMissions, router]);
 
-        // One-time sanity log to see available mission fields
-        useEffect(() => {
-            if (missions?.length) {
-                // Log only one
-                const m = missions[0];
-                // eslint-disable-next-line no-console
-                console.log('mission sample keys:', Object.keys(m));
-                // eslint-disable-next-line no-console
-                console.log('submissions hints:', {
-                    submissions: Array.isArray(m.submissions) ? m.submissions.length : typeof m.submissions,
-                    submissions_list: Array.isArray(m.submissions_list) ? m.submissions_list.length : typeof m.submissions_list,
-                    _submissions: Array.isArray(m._submissions) ? m._submissions.length : typeof m._submissions,
-                    stats: m.stats,
-                    tasks_done: m.tasks_done ?? m.tasksDone,
-                });
-            }
-        }, [missions]);
+    // One-time sanity log to see available mission fields
+    useEffect(() => {
+        if (missions?.length) {
+            // Log only one
+            const m = missions[0];
+            // eslint-disable-next-line no-console
+            console.log('mission sample keys:', Object.keys(m));
+            // eslint-disable-next-line no-console
+            console.log('submissions hints:', {
+                submissions: Array.isArray(m.submissions) ? m.submissions.length : typeof m.submissions,
+                submissions_list: Array.isArray(m.submissions_list) ? m.submissions_list.length : typeof m.submissions_list,
+                _submissions: Array.isArray(m._submissions) ? m._submissions.length : typeof m._submissions,
+                stats: m.stats,
+                tasks_done: m.tasks_done ?? m.tasksDone,
+            });
+        }
+    }, [missions]);
 
     if (isLoading) {
         return (
