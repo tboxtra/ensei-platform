@@ -118,10 +118,11 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         setStep('ready'); // final step visible, complete will work
     };
 
-    const advanceQueue = () => {
+    const advanceQueue = (overrideExcluded?: string[]) => {
         setAdvancing(true);
+        const ex = overrideExcluded ?? excluded; // freshest list
         qc.removeQueries({
-            queryKey: ["review-queue", uid, refreshKey, excluded.join("|")],
+            queryKey: ["review-queue", uid, refreshKey, ex.join("|")],
         });
         setRefreshKey(k => k + 1); // forces new fetch
     };
@@ -153,9 +154,12 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
     const handleSkip = async () => {
         if (item?.submissionKey) {
-            // optimistic local exclude (prevents seeing it again immediately)
-            setExcluded(prev => prev.includes(item.submissionKey) ? prev : [...prev, item.submissionKey]);
+            const nextExcluded =
+                excluded.includes(item.submissionKey)
+                    ? excluded
+                    : [...excluded, item.submissionKey];
 
+            setExcluded(nextExcluded);                 // schedule state update
             try {
                 await httpsCallable(fns, "skipSubmission")({
                     participationId: item.participationId,
@@ -165,9 +169,16 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
             } catch (e) {
                 console.warn("skipSubmission failed; continuing with local exclude", e);
             }
+
+            resetUI();
+            advanceQueue(nextExcluded);                // <- use freshest list
+            toast('Skipped');
+            return;
         }
+
+        // fallback (shouldn't happen)
         resetUI();
-        advanceQueue();
+        advanceQueue(excluded);
         toast('Skipped');
     };
 
