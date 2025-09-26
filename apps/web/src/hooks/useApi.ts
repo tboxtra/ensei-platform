@@ -518,8 +518,8 @@ export function useApi() {
             created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
             status: (t.status ?? 'pending').toLowerCase(),           // "verified"/"approved"/"pending"
             tasks_count: 1,                                           // one task per completion
-            verified_tasks: (String(t.status ?? '').toLowerCase() === 'verified' || 
-                             String(t.status ?? '').toLowerCase() === 'approved') ? 1 : 0,
+            verified_tasks: (String(t.status ?? '').toLowerCase() === 'verified' ||
+                String(t.status ?? '').toLowerCase() === 'approved') ? 1 : 0,
             // keep some raw for debugging if needed
             _raw: t,
         });

@@ -1292,6 +1292,85 @@ app.get('/v1/missions/:id/submissions', verifyFirebaseToken, async (req: any, re
   }
 });
 
+// Get task completions for a mission (for mission creators)
+app.get('/v1/missions/:missionId/taskCompletions', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const { missionId } = req.params;
+    const userId = req.user.uid;
+
+    // Check if user is the mission creator
+    const missionDoc = await db.collection('missions').doc(missionId).get();
+    if (!missionDoc.exists) {
+      res.status(404).json({ error: 'Mission not found' });
+      return;
+    }
+
+    const mission = missionDoc.data();
+    if (!mission || mission.created_by !== userId) {
+      res.status(403).json({ error: 'Access denied. Only mission creator can view task completions.' });
+      return;
+    }
+
+    // Get task completions from Firestore
+    const snap = await db
+      .collection('taskCompletions')
+      .where('missionId', '==', missionId)
+      .orderBy('createdAt', 'desc')
+      .limit(500)
+      .get();
+
+    const items = snap.docs.map(d => {
+      const t = d.data();
+      const status = String(t.status || 'pending').toLowerCase();
+      return {
+        id: d.id,
+        user_handle: t.twitterHandle ?? null,
+        user_id: t.userId ?? t.userEmail ?? null,
+        created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
+        status,
+        tasks_count: 1,
+        verified_tasks: (status === 'verified' || status === 'approved') ? 1 : 0,
+      };
+    });
+
+    res.json({ items });
+  } catch (err: any) {
+    console.error('taskCompletions route error:', err);
+    res.status(500).json({ error: err?.message ?? 'Internal Server Error' });
+  }
+});
+
+// Get task completions count for instant clicks
+app.get('/v1/missions/:missionId/taskCompletions/count', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const { missionId } = req.params;
+    const userId = req.user.uid;
+
+    // Check if user is the mission creator
+    const missionDoc = await db.collection('missions').doc(missionId).get();
+    if (!missionDoc.exists) {
+      res.status(404).json({ error: 'Mission not found' });
+      return;
+    }
+
+    const mission = missionDoc.data();
+    if (!mission || mission.created_by !== userId) {
+      res.status(403).json({ error: 'Access denied. Only mission creator can view task completions.' });
+      return;
+    }
+
+    const snap = await db.collection('taskCompletions')
+      .where('missionId', '==', missionId)
+      .where('status', 'in', ['verified','approved'])
+      .get();
+    
+    res.json({ count: snap.size });
+  } catch (err: any) {
+    console.error('taskCompletions count route error:', err);
+    res.status(500).json({ error: err?.message ?? 'Internal Server Error' });
+  }
+});
+
 // Admin API endpoints
 app.get('/v1/admin/missions', async (req, res) => {
   try {
