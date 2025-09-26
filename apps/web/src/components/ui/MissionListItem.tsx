@@ -84,10 +84,12 @@ export function MissionListItem({
                 setSubsError(null);
                 const data = await api.getMissionSubmissions(mission.id);
                 setSubs(Array.isArray(data) && data.length > 0 ? data : []);
-            } catch (e: any) {
-                setSubsError(e?.message || 'Failed to load submissions');
-                setSubs([]); // show "No submissions yet."
-            } finally {
+      } catch (e: any) {
+        const details =
+          e?.body?.error ?? e?.body?.message ?? e?.message ?? 'Failed to load submissions';
+        setSubsError(String(details));
+        setSubs([]); // show "No submissions yet."
+      } finally {
                 setSubsLoading(false);
             }
         })();
@@ -184,9 +186,11 @@ export function MissionListItem({
                                     setSubsError(null);
                                     const data = await api.getMissionSubmissions(mission.id);
                                     setSubs(Array.isArray(data) ? data : []);
-                                } catch (e: any) {
-                                    setSubsError(e?.message || 'Failed to load submissions');
-                                } finally {
+                } catch (e: any) {
+                  const details =
+                    e?.body?.error ?? e?.body?.message ?? e?.message ?? 'Failed to load submissions';
+                  setSubsError(String(details));
+                } finally {
                                     setSubsLoading(false);
                                 }
                             }}
