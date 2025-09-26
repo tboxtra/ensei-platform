@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuthUser } from './useAuthUser';
 import { useApi } from './useApi';
-import { getCurrentToken } from '../lib/auth/token';
 
 /**
  * MY MISSIONS HOOK - STABLE UID-BASED QUERIES
@@ -69,35 +68,30 @@ export function useMyMissions(): UseMyMissionsReturn {
                 throw new Error('User not authenticated');
             }
 
-            console.log('useMyMissions: Fetching missions for user:', authUser.uid);
-
             try {
-                // Get fresh token for API call
-                const token = await getCurrentToken();
-                if (!token) {
-                    throw new Error('No authentication token available');
-                }
-
                 // Get all missions and filter by created_by
+                // TODO: Optimize with server-side filtering - expose getMissionsByOwner(uid) API endpoint
+                // to reduce payload size and improve TTFB instead of client-side filtering
                 const allMissions = await api.getMissions();
-                console.log('useMyMissions: Got all missions:', allMissions?.length || 0);
 
                 const userMissions = Array.isArray(allMissions)
                     ? allMissions.filter(mission => mission.created_by === authUser.uid)
                     : [];
 
-                console.log('useMyMissions: Filtered user missions:', userMissions.length);
                 return userMissions;
             } catch (error) {
-                console.error('useMyMissions: Failed to fetch missions:', error);
                 throw error;
             }
         },
         retry: false,             // avoid spinner loops
         refetchOnMount: 'always', // Always refetch on mount
-        staleTime: 0, // Always consider data stale
+        staleTime: 30 * 1000, // 30 seconds for real-time feel
         gcTime: 5 * 60 * 1000, // 5 minutes
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: true, // Refetch when user returns to tab
+        // Pause refetch when tab is hidden to avoid unnecessary work
+        refetchInterval: () => (document.visibilityState === 'visible' ? 60 * 1000 : false),
+        // Keep previous data during refetch to prevent card flicker (TanStack v5)
+        placeholderData: (prev) => prev,
     });
 
     return {
