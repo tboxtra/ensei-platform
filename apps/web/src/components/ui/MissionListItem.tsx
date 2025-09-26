@@ -21,31 +21,34 @@ function getUsd(m: any): number {
 }
 
 function sumVerifiedClicks(subs: any[]): number {
-  return subs.reduce((sum, s) => {
-    const st = (s?.status ?? '').toLowerCase();
-    if (st !== 'verified' && st !== 'approved') return sum;
-    const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
-    return sum + (Number(vt) || 0);
-  }, 0);
+    return subs.reduce((sum, s) => {
+        const st = (s?.status ?? '').toLowerCase();
+        if (st !== 'verified' && st !== 'approved') return sum;
+        const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
+        return sum + (Number(vt) || 0);
+    }, 0);
 }
 
 export function MissionListItem({
-    mission,
-    dense = false,
-    onRefetch,
+  mission,
+  dense = false,
+  onRefetch,
 }: {
-    mission: any;
-    dense?: boolean;
-    onRefetch?: () => void;
+  mission: any;
+  dense?: boolean;
+  onRefetch?: () => void;
 }) {
-    const api = useApi();
-    const [open, setOpen] = useState(false);
-    const [busyId, setBusyId] = useState<string | null>(null);
+  const api = useApi();
+  const [open, setOpen] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-    // local submissions state (lazy-loaded)
-    const [subs, setSubs] = useState<any[] | null>(null);
-    const [subsLoading, setSubsLoading] = useState(false);
-    const [subsError, setSubsError] = useState<string | null>(null);
+  // ✅ prefer submissions coming with the mission payload
+  const payloadSubs: any[] | null =
+    Array.isArray(mission?.submissions) ? mission.submissions : null;
+
+  const [subs, setSubs] = useState<any[] | null>(payloadSubs);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [subsError, setSubsError] = useState<string | null>(null);
 
     const displayStatus: string = mission.__displayStatus ?? mission.status ?? 'draft';
     const created = mission.created_at ? new Date(mission.created_at) : null;
@@ -53,7 +56,7 @@ export function MissionListItem({
     // show USD (not honors)
     const usdCost = getUsd(mission);
 
-  // clicks: prefer submissions we fetched; else prefer the injected total; else fallbacks
+  // ✅ clicks: prefer whichever subs we currently hold (payload or fetched)
   const clicks = useMemo(() => {
     if (Array.isArray(subs)) return sumVerifiedClicks(subs);
     if (mission?.__verifiedClicks != null) return Number(mission.__verifiedClicks) || 0;
@@ -64,35 +67,36 @@ export function MissionListItem({
       mission?.stats?.verified_tasks_total ??
       mission?.submissions_verified_tasks ??
       mission?.tasks_done ??
-      mission?.clicks ??
-      0
+      mission?.clicks ?? 0
     ) || 0;
   }, [subs, mission]);
 
-    // lazy fetch when opening
-    useEffect(() => {
-        if (!open) return;
-        if (subs !== null) return; // already loaded this row
-        (async () => {
-            try {
-                setSubsLoading(true);
-                setSubsError(null);
-                const data = await api.getMissionSubmissions(mission.id);
-                setSubs(Array.isArray(data) ? data : []);
-            } catch (e: any) {
-                console.debug('Submissions fetch error:', {
-                    missionId: mission.id,
-                    status: e?.status,
-                    body: e?.body,
-                    message: e?.message
-                });
-                setSubsError(e?.message || 'Failed to load submissions');
-                setSubs([]);
-            } finally {
-                setSubsLoading(false);
-            }
-        })();
-    }, [open, subs, api, mission?.id]);
+  // ✅ lazy fetch ONLY if we don't already have submissions in the payload
+  useEffect(() => {
+    if (!open) return;
+    if (Array.isArray(payloadSubs)) return;      // we already have subs
+    if (subs !== null) return;                   // fetched already
+
+    (async () => {
+      try {
+        setSubsLoading(true);
+        setSubsError(null);
+        const data = await api.getMissionSubmissions(mission.id);
+        setSubs(Array.isArray(data) ? data : []);
+      } catch (e: any) {
+        console.debug('Submissions fetch error:', { 
+          missionId: mission.id, 
+          status: e?.status, 
+          body: e?.body,
+          message: e?.message 
+        });
+        setSubsError(e?.message || 'Failed to load submissions');
+        setSubs([]);
+      } finally {
+        setSubsLoading(false);
+      }
+    })();
+  }, [open, subs, api, mission?.id, payloadSubs]);
 
     const onVerify = useCallback(
         async (submissionId: string) => {
@@ -218,10 +222,10 @@ export function MissionListItem({
                                 <div className="px-3 py-3 text-[12px] text-gray-400">No submissions yet.</div>
                             )}
 
-              {(subs ?? []).map((s: any) => {
-                const createdAt = s?.created_at ? new Date(s.created_at) : null;
-                const status = (s?.status ?? 'pending').toLowerCase();
-                const isVerified = status === 'verified' || status === 'approved'; // <-- treat approved as verified
+                            {(subs ?? []).map((s: any) => {
+                                const createdAt = s?.created_at ? new Date(s.created_at) : null;
+                                const status = (s?.status ?? 'pending').toLowerCase();
+                                const isVerified = status === 'verified' || status === 'approved'; // <-- treat approved as verified
                                 return (
                                     <div key={s.id} className="px-3 py-2 text-[12px] flex items-center gap-2">
                                         <div className="flex-1 min-w-0">

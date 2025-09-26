@@ -21,27 +21,27 @@ type Filters = {
 };
 
 function isEnded(m: any) {
-  const model = (m.model || '').toLowerCase();
-  const now = Date.now();
+    const model = (m.model || '').toLowerCase();
+    const now = Date.now();
 
-  if (model === 'degen') {
-    if (!m.deadline) return false;
-    const dl = new Date(m.deadline).getTime();
-    return !Number.isNaN(dl) && dl <= now;
-  }
+    if (model === 'degen') {
+        if (!m.deadline) return false;
+        const dl = new Date(m.deadline).getTime();
+        return !Number.isNaN(dl) && dl <= now;
+    }
 
-  if (model === 'fixed') {
-    const current = m.participants_count ?? m.participants ?? 0;
-    const max = m.max_participants ?? m.cap ?? 0;
-    return max > 0 && current >= max;
-  }
+    if (model === 'fixed') {
+        const current = m.participants_count ?? m.participants ?? 0;
+        const max = m.max_participants ?? m.cap ?? 0;
+        return max > 0 && current >= max;
+    }
 
-  // generic: if deadline exists, use it
-  if (m.deadline) {
-    const dl = new Date(m.deadline).getTime();
-    return !Number.isNaN(dl) && dl <= now;
-  }
-  return false;
+    // generic: if deadline exists, use it
+    if (m.deadline) {
+        const dl = new Date(m.deadline).getTime();
+        return !Number.isNaN(dl) && dl <= now;
+    }
+    return false;
 }
 
 // ADD THIS helper near isEnded()
@@ -62,6 +62,15 @@ function getClicksFromMission(m: any): number {
   if (Array.isArray(m.tasks) && m.submissions_count != null) {
     const perSubmission = Number(m.tasks.length) || 0;
     return (Number(m.submissions_count) || 0) * perSubmission;
+  }
+  // ✅ NEW: if inline submissions exist on the mission, compute from them
+  if (Array.isArray(m.submissions)) {
+    return m.submissions.reduce((sum: number, s: any) => {
+      const st = (s?.status ?? '').toLowerCase();
+      if (st !== 'verified' && st !== 'approved') return sum;
+      const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
+      return sum + (Number(vt) || 0);
+    }, 0);
   }
   return 0;
 }
@@ -260,31 +269,31 @@ function MyMissionsContent() {
                         className="space-y-2"
                         aria-live="polite"
                     >
-            {/* Header row (smaller + rename Participants → Clicks) */}
-            <div className="bg-gray-800/60 rounded-md px-3 py-2">
-              <div className="grid grid-cols-12 items-center gap-2 text-[12px] font-medium text-gray-400">
-                <div className="col-span-4">Mission</div>
-                <div className="col-span-2">Date</div>
-                <div className="col-span-2">Cost (USD)</div>
-                <div className="col-span-2">Clicks</div>
-                <div className="col-span-2 text-right">Status</div>
-              </div>
-            </div>
+                        {/* Header row (smaller + rename Participants → Clicks) */}
+                        <div className="bg-gray-800/60 rounded-md px-3 py-2">
+                            <div className="grid grid-cols-12 items-center gap-2 text-[12px] font-medium text-gray-400">
+                                <div className="col-span-4">Mission</div>
+                                <div className="col-span-2">Date</div>
+                                <div className="col-span-2">Cost (USD)</div>
+                                <div className="col-span-2">Clicks</div>
+                                <div className="col-span-2 text-right">Status</div>
+                            </div>
+                        </div>
 
-            {/* Items */}
-            {filteredMissions.map((m) => (
-              <MissionListItem
-                key={m.id}
-                mission={{
-                  ...m,
-                  // expose computed helper data the row will use
-                  __displayStatus: m.status === 'active' && isEnded(m) ? 'completed' : m.status,
-                  __verifiedClicks: getClicksFromMission(m),   // <-- pass robust clicks
-                }}
-                dense
-                onRefetch={refetch}
-              />
-            ))}
+                        {/* Items */}
+                        {filteredMissions.map((m) => (
+                            <MissionListItem
+                                key={m.id}
+                                mission={{
+                                    ...m,
+                                    // expose computed helper data the row will use
+                                    __displayStatus: m.status === 'active' && isEnded(m) ? 'completed' : m.status,
+                                    __verifiedClicks: getClicksFromMission(m),   // <-- pass robust clicks
+                                }}
+                                dense
+                                onRefetch={refetch}
+                            />
+                        ))}
                     </div>
                 ) : (missions || []).length === 0 ? (
                     <div className="max-w-2xl mx-auto">

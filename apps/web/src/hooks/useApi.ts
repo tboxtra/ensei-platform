@@ -498,7 +498,7 @@ export function useApi() {
                 `/v1/submissions/mission/${missionId}`,
             ];
             for (const url of candidates) {
-                try { return await tryJson(url); } catch {}
+                try { return await tryJson(url); } catch { }
             }
             throw e;
         }
