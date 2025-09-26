@@ -29,52 +29,36 @@ export function useReviewQueue(refreshKey = 0, excludeKeys: string[] = []) {
     return useQuery({
         queryKey: ["review-queue", uid, refreshKey, excludeKeys.join("|")],
         enabled: !!uid,
-        retry: 1,
         staleTime: 0,
         gcTime: 0,
         refetchOnMount: 'always',
         refetchOnWindowFocus: false,
+        retry: 1,
         queryFn: async () => {
             if (!uid) return null;
-
-            try {
-                // Wait until auth "ready": if currentUser is still undefined, retry shortly
-                if (auth.currentUser === undefined) {
-                    await new Promise(r => setTimeout(r, 50)); // one tiny tick
-                }
-
-                const callable = httpsCallable(fns, 'getReviewQueue');
-                const res = await callable({ excludeKeys });
-                const raw = (res.data as any)?.item ?? null;
-                if (!raw) return null;
-
-                // 🔧 normalize server shapes (supports both `submissionLink` and `submissionUrl`)
-                const sUrl = raw.submissionUrl ?? raw.submissionLink ?? null;
-
-                return {
-                    participationId: raw.participationId,
-                    missionId: raw.missionId,
-                    submitterId: raw.submitterUid,        // keep this name for submitReview
-                    taskId: raw.taskId,
-
-                    // Mission
-                    missionUrl: raw.missionUrl ?? null,
-                    missionTweetId: raw.missionTweetId ?? null,
-                    missionHandle: raw.missionHandle ?? null,
-
-                    // Submission
-                    submissionUrl: sUrl,
-                    submissionLink: sUrl,                    // page expects this
-                    submissionTweetId: raw.submissionTweetId ?? null,
-                    submissionHandle: raw.submissionHandle ?? null,
-
-                    // Unique key
-                    submissionKey: `${raw.participationId}:${raw.taskId}:${raw.submitterUid}`,
-                };
-            } catch (error) {
-                console.error('Failed to fetch review queue:', error);
-                return null;
+            if (auth.currentUser === undefined) {
+                await new Promise(r => setTimeout(r, 50));
             }
-        }
+            const callable = httpsCallable(fns, "getReviewQueue");
+            const res = await callable({ excludeKeys });
+            const raw = (res.data as any)?.item ?? null;
+            if (!raw) return null;
+
+            const sUrl = raw.submissionUrl ?? raw.submissionLink ?? null;
+            return {
+                participationId: raw.participationId,
+                missionId: raw.missionId,
+                submitterId: raw.submitterUid,
+                taskId: raw.taskId,
+                missionUrl: raw.missionUrl ?? null,
+                missionTweetId: raw.missionTweetId ?? null,
+                missionHandle: raw.missionHandle ?? null,
+                submissionUrl: sUrl,
+                submissionLink: sUrl,
+                submissionTweetId: raw.submissionTweetId ?? null,
+                submissionHandle: raw.submissionHandle ?? null,
+                submissionKey: `${raw.participationId}:${raw.taskId}:${raw.submitterUid}`,
+            };
+        },
     });
 }

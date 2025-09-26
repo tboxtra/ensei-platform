@@ -38,8 +38,7 @@ export function useUserRatings(userId: string | null) {
                     sum: ratings.sum,
                     avg: Number(avg.toFixed(2))
                 };
-            } catch (error) {
-                console.error('Failed to fetch user ratings:', error);
+            } catch {
                 return null;
             }
         }

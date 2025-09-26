@@ -26,8 +26,8 @@ type Step = 'comment' | 'link' | 'rate' | 'ready';
 function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     const qc = useQueryClient();
     const [refreshKey, setRefreshKey] = useState(0);
-    const skippedRef = useRef<Set<string>>(new Set());
-    const { data: item, isFetching } = useReviewQueue(refreshKey, Array.from(skippedRef.current));
+    const [excluded, setExcluded] = useState<string[]>([]);
+    const { data: item, isFetching } = useReviewQueue(refreshKey, excluded);
     const submitReview = useSubmitReview();
     const { user } = useAuthUser();
     const lastKeyRef = useRef<string | null>(null);
@@ -113,11 +113,10 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         setStep('ready'); // final step visible, complete will work
     };
 
-    const advanceQueue = async () => {
+    const advanceQueue = () => {
         setAdvancing(true);
-        // clear current immediately, then bump the key
-        qc.setQueryData(['review-queue', uid, refreshKey, Array.from(skippedRef.current).join("|")], null);
-        setRefreshKey(k => k + 1);
+        qc.removeQueries({ queryKey: ["review-queue", uid] }); // full clear
+        setRefreshKey(k => k + 1); // forces new fetch
         setAdvancing(false);
     };
 
@@ -148,7 +147,9 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
     const handleSkip = async () => {
         if (item?.submissionKey) {
-            skippedRef.current.add(item.submissionKey);
+            // optimistic local exclude (prevents seeing it again immediately)
+            setExcluded(prev => prev.includes(item.submissionKey) ? prev : [...prev, item.submissionKey]);
+
             try {
                 await httpsCallable(fns, "skipSubmission")({
                     participationId: item.participationId,
@@ -156,12 +157,11 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                     submitterId: item.submitterId,
                 });
             } catch (e) {
-                // non-fatal; the local exclude prevents flashbacks
-                console.warn("skipSubmission failed (continuing):", e);
+                console.warn("skipSubmission failed; continuing with local exclude", e);
             }
         }
         resetUI();
-        await advanceQueue();
+        advanceQueue();
         toast('Skipped');
     };
 
