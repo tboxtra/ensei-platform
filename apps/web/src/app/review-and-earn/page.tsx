@@ -141,7 +141,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
             });
 
             resetUI();
-            await advanceQueue();
+            advanceQueue();
             toast.success(`Review completed! +${HONORS_PER_REVIEW} honors`);
         } catch (e: any) {
             console.error(e);
