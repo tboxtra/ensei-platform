@@ -73,6 +73,11 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         }
     }, [item?.submissionKey]);
 
+    // when the fetch settles (new item OR empty), drop advancing
+    useEffect(() => {
+        if (!isFetching) setAdvancing(false);
+    }, [isFetching]);
+
     // Get reviewer handle for validation - use Twitter username from profile
     const reviewerHandle = normHandle(
         user?.twitter_handle
@@ -115,9 +120,10 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
     const advanceQueue = () => {
         setAdvancing(true);
-        qc.removeQueries({ queryKey: ["review-queue", uid] }); // full clear
+        qc.removeQueries({
+            queryKey: ["review-queue", uid, refreshKey, excluded.join("|")],
+        });
         setRefreshKey(k => k + 1); // forces new fetch
-        setAdvancing(false);
     };
 
     const handleComplete = async () => {
