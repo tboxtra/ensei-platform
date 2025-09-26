@@ -44,35 +44,37 @@ function isEnded(m: any) {
     return false;
 }
 
-// ADD THIS helper near isEnded()
-function getClicksFromMission(m: any): number {
-  // best: total verified tasks aggregated by the API
-  const direct =
-    m.verified_clicks ??
-    m.verifiedCount ??
-    m.verifications_count ??
-    m.stats?.verified_tasks_total ??
-    m.submissions_verified_tasks ??
-    m.tasks_done ??                 // <-- your sidebar shows "Tasks Done"
-    m.clicks;                       // <-- if your API already computes it
-  if (direct != null) return Number(direct) || 0;
+// Robust fallback clicks calculation with multiple data sources
+function fallbackClicks(m: any): number {
+    // 1. Direct mission-level fields (most reliable)
+    if (m.tasks_done != null) return Number(m.tasks_done) || 0;        // your sidebar "Tasks Done"
+    if (m.verified_clicks != null) return Number(m.verified_clicks) || 0;
 
-  // fallback: if API only gave us submission counts + tasks per mission,
-  // estimate (still better than always 0)
-  if (Array.isArray(m.tasks) && m.submissions_count != null) {
-    const perSubmission = Number(m.tasks.length) || 0;
-    return (Number(m.submissions_count) || 0) * perSubmission;
-  }
-  // ✅ NEW: if inline submissions exist on the mission, compute from them
-  if (Array.isArray(m.submissions)) {
-    return m.submissions.reduce((sum: number, s: any) => {
-      const st = (s?.status ?? '').toLowerCase();
-      if (st !== 'verified' && st !== 'approved') return sum;
-      const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
-      return sum + (Number(vt) || 0);
-    }, 0);
-  }
-  return 0;
+    // 2. Inline submissions available in payload – compute immediately
+    if (Array.isArray(m.submissions) && m.submissions.length > 0) {
+        return m.submissions.reduce((sum: number, s: any) => {
+            const st = String(s?.status || '').toLowerCase();
+            if (st !== 'verified' && st !== 'approved') return sum;
+            const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
+            return sum + (Number(vt) || 0);
+        }, 0);
+    }
+
+    // 3. Rough estimate: submissions_count * tasks per mission
+    if (m.submissions_count && Array.isArray(m.tasks)) {
+        return Number(m.submissions_count) * m.tasks.length;
+    }
+
+    // 4. Other fallback fields
+    const direct =
+        m.verifiedCount ??
+        m.verifications_count ??
+        m.stats?.verified_tasks_total ??
+        m.submissions_verified_tasks ??
+        m.clicks;
+    if (direct != null) return Number(direct) || 0;
+
+    return 0;
 }
 
 
@@ -288,7 +290,7 @@ function MyMissionsContent() {
                                     ...m,
                                     // expose computed helper data the row will use
                                     __displayStatus: m.status === 'active' && isEnded(m) ? 'completed' : m.status,
-                                    __verifiedClicks: getClicksFromMission(m),   // <-- pass robust clicks
+                                    __verifiedClicks: fallbackClicks(m),   // <-- pass robust clicks
                                 }}
                                 dense
                                 onRefetch={refetch}

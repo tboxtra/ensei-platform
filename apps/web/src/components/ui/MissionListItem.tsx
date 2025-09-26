@@ -30,25 +30,28 @@ function sumVerifiedClicks(subs: any[]): number {
 }
 
 export function MissionListItem({
-  mission,
-  dense = false,
-  onRefetch,
+    mission,
+    dense = false,
+    onRefetch,
 }: {
-  mission: any;
-  dense?: boolean;
-  onRefetch?: () => void;
+    mission: any;
+    dense?: boolean;
+    onRefetch?: () => void;
 }) {
-  const api = useApi();
-  const [open, setOpen] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
+    const api = useApi();
+    const [open, setOpen] = useState(false);
+    const [busyId, setBusyId] = useState<string | null>(null);
 
-  // ✅ prefer submissions coming with the mission payload
-  const payloadSubs: any[] | null =
-    Array.isArray(mission?.submissions) ? mission.submissions : null;
+    // 1) compute initial subs (only keep payload if it has items)
+    const payloadSubs: any[] | null =
+        Array.isArray(mission?.submissions) && mission.submissions.length > 0
+            ? mission.submissions
+            : null;
 
-  const [subs, setSubs] = useState<any[] | null>(payloadSubs);
-  const [subsLoading, setSubsLoading] = useState(false);
-  const [subsError, setSubsError] = useState<string | null>(null);
+    // IMPORTANT: start as null when payload had [] so we fetch on open
+    const [subs, setSubs] = useState<any[] | null>(payloadSubs);
+    const [subsLoading, setSubsLoading] = useState(false);
+    const [subsError, setSubsError] = useState<string | null>(null);
 
     const displayStatus: string = mission.__displayStatus ?? mission.status ?? 'draft';
     const created = mission.created_at ? new Date(mission.created_at) : null;
@@ -56,47 +59,59 @@ export function MissionListItem({
     // show USD (not honors)
     const usdCost = getUsd(mission);
 
-  // ✅ clicks: prefer whichever subs we currently hold (payload or fetched)
-  const clicks = useMemo(() => {
-    if (Array.isArray(subs)) return sumVerifiedClicks(subs);
-    if (mission?.__verifiedClicks != null) return Number(mission.__verifiedClicks) || 0;
-    return Number(
-      mission?.verified_clicks ??
-      mission?.verifiedCount ??
-      mission?.verifications_count ??
-      mission?.stats?.verified_tasks_total ??
-      mission?.submissions_verified_tasks ??
-      mission?.tasks_done ??
-      mission?.clicks ?? 0
-    ) || 0;
-  }, [subs, mission]);
+    // ✅ clicks: prefer whichever subs we currently hold (payload or fetched)
+    const clicks = useMemo(() => {
+        if (Array.isArray(subs)) return sumVerifiedClicks(subs);
+        if (mission?.__verifiedClicks != null) return Number(mission.__verifiedClicks) || 0;
+        return Number(
+            mission?.verified_clicks ??
+            mission?.verifiedCount ??
+            mission?.verifications_count ??
+            mission?.stats?.verified_tasks_total ??
+            mission?.submissions_verified_tasks ??
+            mission?.tasks_done ??
+            mission?.clicks ?? 0
+        ) || 0;
+    }, [subs, mission]);
 
-  // ✅ lazy fetch ONLY if we don't already have submissions in the payload
-  useEffect(() => {
-    if (!open) return;
-    if (Array.isArray(payloadSubs)) return;      // we already have subs
-    if (subs !== null) return;                   // fetched already
+    // 2) lazy fetch – only when subs is null (we don't have real data yet)
+    useEffect(() => {
+        if (!open) return;
+        if (subs !== null) return; // we already have something (payload with items or fetched)
 
-    (async () => {
-      try {
-        setSubsLoading(true);
-        setSubsError(null);
-        const data = await api.getMissionSubmissions(mission.id);
-        setSubs(Array.isArray(data) ? data : []);
-      } catch (e: any) {
-        console.debug('Submissions fetch error:', { 
-          missionId: mission.id, 
-          status: e?.status, 
-          body: e?.body,
-          message: e?.message 
-        });
-        setSubsError(e?.message || 'Failed to load submissions');
-        setSubs([]);
-      } finally {
-        setSubsLoading(false);
-      }
-    })();
-  }, [open, subs, api, mission?.id, payloadSubs]);
+        (async () => {
+            try {
+                setSubsLoading(true);
+                setSubsError(null);
+                const data = await api.getMissionSubmissions(mission.id);
+                const submissions = Array.isArray(data) ? data : [];
+
+                // Debug logging for submission data structure
+                if (submissions.length > 0) {
+                    console.debug('Submissions loaded successfully:', {
+                        missionId: mission.id,
+                        count: submissions.length,
+                        sampleSubmission: submissions[0],
+                        statuses: submissions.map(s => s?.status),
+                        verifiedTasks: submissions.map(s => s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count)
+                    });
+                }
+
+                setSubs(submissions);
+            } catch (e: any) {
+                console.debug('Submissions fetch error:', {
+                    missionId: mission.id,
+                    status: e?.status,
+                    body: e?.body,
+                    message: e?.message
+                });
+                setSubsError(e?.message || 'Failed to load submissions');
+                setSubs([]); // render graceful empty + error line below
+            } finally {
+                setSubsLoading(false);
+            }
+        })();
+    }, [open, subs, api, mission?.id]);
 
     const onVerify = useCallback(
         async (submissionId: string) => {
@@ -208,9 +223,26 @@ export function MissionListItem({
             {/* Submissions dropdown */}
             {open && (
                 <div className="mt-2 rounded-md border border-white/5 bg-gray-900/60">
-                    <div className="px-3 py-2 border-b border-white/5 text-[11px] text-gray-400 flex items-center">
-                        <div className="w-4 h-4 rounded-full bg-emerald-500/20 mr-2" />
-                        Submissions
+                    <div className="px-3 py-2 border-b border-white/5 text-[11px] text-gray-400 flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-emerald-500/20" />
+                        <span>Submissions</span>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    setSubsLoading(true);
+                                    setSubsError(null);
+                                    const data = await api.getMissionSubmissions(mission.id);
+                                    setSubs(Array.isArray(data) ? data : []);
+                                } catch (e: any) {
+                                    setSubsError(e?.message || 'Failed to load submissions');
+                                } finally {
+                                    setSubsLoading(false);
+                                }
+                            }}
+                            className="ml-auto text-xs px-2 py-1 rounded border border-white/10 hover:border-white/20"
+                        >
+                            Retry
+                        </button>
                     </div>
 
                     {subsLoading && <div className="px-3 py-3 text-[12px] text-gray-400">Loading…</div>}
