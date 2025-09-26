@@ -44,6 +44,18 @@ interface Mission {
     model?: string;
     participants?: number;
     maxParticipants?: number;
+    submissions?: any[]; // Added for inline submissions
+    // Additional fields for clicks calculation
+    tasks_done?: number;
+    verified_clicks?: number;
+    verifiedCount?: number;
+    verifications_count?: number;
+    stats?: {
+        verified_tasks_total?: number;
+    };
+    submissions_verified_tasks?: number;
+    clicks?: number;
+    tasks?: any[];
 }
 
 interface UseMyMissionsReturn {
