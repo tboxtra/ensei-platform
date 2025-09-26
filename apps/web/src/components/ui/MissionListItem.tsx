@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { ModernButton } from './ModernButton';
 import { useApi } from '@/hooks/useApi';
 import clsx from 'clsx';
@@ -8,8 +8,8 @@ import clsx from 'clsx';
 // --- helpers ---
 const fmtDate = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 const fmtUSD = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+const HONOR_TO_USD = 0.0015;
 
-const HONOR_TO_USD = 0.0015; // adjust if your global rate differs
 function getUsd(m: any): number {
     return Number(
         m?.rewards?.usd ??
@@ -42,27 +42,26 @@ export function MissionListItem({
     const [open, setOpen] = useState(false);
     const [busyId, setBusyId] = useState<string | null>(null);
 
-    // 1) compute initial subs (only keep payload if it has items)
+    // 1) Start from payload submissions (ONLY if there are items)
     const payloadSubs: any[] | null =
-        Array.isArray(mission?.submissions) && mission.submissions.length > 0
-            ? mission.submissions
+        Array.isArray(mission?.__submissions ?? mission?.submissions) &&
+            (mission.__submissions ?? mission.submissions).length > 0
+            ? (mission.__submissions ?? mission.submissions)
             : null;
 
-    // IMPORTANT: start as null when payload had [] so we fetch on open
+    // 2) Seed local state with payload items (so UI is instant)
     const [subs, setSubs] = useState<any[] | null>(payloadSubs);
     const [subsLoading, setSubsLoading] = useState(false);
     const [subsError, setSubsError] = useState<string | null>(null);
 
-    const displayStatus: string = mission.__displayStatus ?? mission.status ?? 'draft';
     const created = mission.created_at ? new Date(mission.created_at) : null;
-
-    // show USD (not honors)
+    const displayStatus: string = mission.__displayStatus ?? mission.status ?? 'draft';
     const usdCost = getUsd(mission);
 
-    // ✅ clicks: prefer whichever subs we currently hold (payload or fetched)
+    // 3) Clicks – prefer actual submissions; fall back to mission counters
     const clicks = useMemo(() => {
         if (Array.isArray(subs)) return sumVerifiedClicks(subs);
-        if (mission?.__verifiedClicks != null) return Number(mission.__verifiedClicks) || 0;
+        if (mission?.__verifiedClicks != null) return Number(mission.__verifiedClicks) || 0; // <-- use hint
         return Number(
             mission?.verified_clicks ??
             mission?.verifiedCount ??
@@ -70,86 +69,55 @@ export function MissionListItem({
             mission?.stats?.verified_tasks_total ??
             mission?.submissions_verified_tasks ??
             mission?.tasks_done ??
-            mission?.clicks ?? 0
+            mission?.clicks ??
+            0
         ) || 0;
     }, [subs, mission]);
 
-    // 2) lazy fetch – only when subs is null (we don't have real data yet)
+    // 4) Lazy fetch ONLY if we don't already have submissions
     useEffect(() => {
         if (!open) return;
-        if (subs !== null) return; // we already have something (payload with items or fetched)
-
+        if (subs !== null) return;            // we either have payload items or already fetched
         (async () => {
             try {
                 setSubsLoading(true);
                 setSubsError(null);
                 const data = await api.getMissionSubmissions(mission.id);
-                const submissions = Array.isArray(data) ? data : [];
-
-                // Debug logging for submission data structure
-                if (submissions.length > 0) {
-                    console.debug('Submissions loaded successfully:', {
-                        missionId: mission.id,
-                        count: submissions.length,
-                        sampleSubmission: submissions[0],
-                        statuses: submissions.map(s => s?.status),
-                        verifiedTasks: submissions.map(s => s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count)
-                    });
-                }
-
-                setSubs(submissions);
+                setSubs(Array.isArray(data) && data.length > 0 ? data : []);
             } catch (e: any) {
-                console.debug('Submissions fetch error:', {
-                    missionId: mission.id,
-                    status: e?.status,
-                    body: e?.body,
-                    message: e?.message
-                });
                 setSubsError(e?.message || 'Failed to load submissions');
-                setSubs([]); // render graceful empty + error line below
+                setSubs([]); // show "No submissions yet."
             } finally {
                 setSubsLoading(false);
             }
         })();
     }, [open, subs, api, mission?.id]);
 
-    const onVerify = useCallback(
-        async (submissionId: string) => {
-            try {
-                setBusyId(submissionId);
-                await api.verifySubmission(submissionId);
-                // optimistic update in local list
-                setSubs((prev) =>
-                    Array.isArray(prev)
-                        ? prev.map((s) => (s.id === submissionId ? { ...s, status: 'verified' } : s))
-                        : prev
-                );
-            } finally {
-                setBusyId(null);
-                onRefetch?.();
-            }
-        },
-        [api, onRefetch]
-    );
+    const onVerify = useCallback(async (submissionId: string) => {
+        try {
+            setBusyId(submissionId);
+            await api.verifySubmission(submissionId);
+            setSubs(prev => Array.isArray(prev)
+                ? prev.map(s => s.id === submissionId ? { ...s, status: 'verified' } : s)
+                : prev);
+        } finally {
+            setBusyId(null);
+            onRefetch?.();
+        }
+    }, [api, onRefetch]);
 
-    const onFlag = useCallback(
-        async (submissionId: string) => {
-            try {
-                setBusyId(submissionId);
-                await api.flagSubmission(submissionId);
-                // optional: mark flagged locally
-                setSubs((prev) =>
-                    Array.isArray(prev)
-                        ? prev.map((s) => (s.id === submissionId ? { ...s, status: 'flagged' } : s))
-                        : prev
-                );
-            } finally {
-                setBusyId(null);
-                onRefetch?.();
-            }
-        },
-        [api, onRefetch]
-    );
+    const onFlag = useCallback(async (submissionId: string) => {
+        try {
+            setBusyId(submissionId);
+            await api.flagSubmission(submissionId);
+            setSubs(prev => Array.isArray(prev)
+                ? prev.map(s => s.id === submissionId ? { ...s, status: 'flagged' } : s)
+                : prev);
+        } finally {
+            setBusyId(null);
+            onRefetch?.();
+        }
+    }, [api, onRefetch]);
 
     return (
         <div className={clsx(
@@ -158,22 +126,15 @@ export function MissionListItem({
         )}>
             {/* Row */}
             <div className="grid grid-cols-12 items-center gap-2 text-[12px]">
-                {/* Mission cell with tasks list */}
                 <div className="col-span-4 overflow-hidden">
                     <div className="truncate text-white font-medium">{mission.title || 'Untitled Mission'}</div>
                     <div className="truncate text-[11px] text-gray-400">
                         {[mission.platform, mission.type].filter(Boolean).join(' • ') || '—'}
                     </div>
-
-                    {/* tasks pills (mission.tasks can be array of strings or objects with label/title) */}
                     {Array.isArray(mission.tasks) && mission.tasks.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1">
-                            {mission.tasks.slice(0, 6).map((t: any, idx: number) => (
-                                <span
-                                    key={idx}
-                                    className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300"
-                                    title={typeof t === 'string' ? t : (t?.label ?? t?.title ?? '')}
-                                >
+                            {mission.tasks.slice(0, 6).map((t: any, i: number) => (
+                                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">
                                     {typeof t === 'string' ? t : (t?.label ?? t?.title ?? 'task')}
                                 </span>
                             ))}
@@ -184,18 +145,13 @@ export function MissionListItem({
                     )}
                 </div>
 
-                {/* Date */}
                 <div className="col-span-2 text-gray-200">
                     {created && !isNaN(created.getTime()) ? fmtDate.format(created) : '—'}
                 </div>
 
-                {/* Cost (USD) */}
                 <div className="col-span-2 text-white">{fmtUSD.format(usdCost)}</div>
-
-                {/* Clicks */}
                 <div className="col-span-2 text-white">{clicks}</div>
 
-                {/* Status + dropdown toggle */}
                 <div className="col-span-2 flex items-center justify-end gap-2">
                     <span
                         className={clsx(
@@ -209,12 +165,7 @@ export function MissionListItem({
                         {displayStatus}
                     </span>
 
-                    <ModernButton
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setOpen((v) => !v)}
-                        className="ml-1"
-                    >
+                    <ModernButton size="sm" variant="secondary" onClick={() => setOpen(v => !v)} className="ml-1">
                         {open ? 'Hide' : 'Submissions'}
                     </ModernButton>
                 </div>
@@ -257,7 +208,7 @@ export function MissionListItem({
                             {(subs ?? []).map((s: any) => {
                                 const createdAt = s?.created_at ? new Date(s.created_at) : null;
                                 const status = (s?.status ?? 'pending').toLowerCase();
-                                const isVerified = status === 'verified' || status === 'approved'; // <-- treat approved as verified
+                                const isVerified = status === 'verified' || status === 'approved';
                                 return (
                                     <div key={s.id} className="px-3 py-2 text-[12px] flex items-center gap-2">
                                         <div className="flex-1 min-w-0">

@@ -481,27 +481,34 @@ export function useApi() {
     }, [makeRequest, uploadFile]);
 
     const getMissionSubmissions = useCallback(async (missionId: string): Promise<any[]> => {
-        const tryJson = async (url: string) => {
-            const res = await makeRequest<any[]>(url);
-            return Array.isArray(res) ? res : [];
+        const tryArr = async (url: string) => {
+            const res = await makeRequest<any>(url);
+            if (Array.isArray(res)) return res;
+            if (res?.items && Array.isArray(res.items)) return res.items; // unwrap {items:[]}
+            if (res?.data && Array.isArray(res.data)) return res.data; // unwrap {data:[]}
+            if (res?.submissions && Array.isArray(res.submissions)) return res.submissions; // unwrap {submissions:[]}
+            return [];
         };
 
-        // 1) canonical
-        try { return await tryJson(`/v1/missions/${missionId}/submissions`); } catch (e: any) {
-            // 2) common alternates
-            const q = encodeURIComponent(missionId);
-            const candidates = [
-                `/v1/submissions?missionId=${q}`,
-                `/v1/submissions?mission_id=${q}`,
-                `/v1/submissions?mission=${q}`,
-                `/v1/submissions/by-mission/${missionId}`,
-                `/v1/submissions/mission/${missionId}`,
-            ];
-            for (const url of candidates) {
-                try { return await tryJson(url); } catch { }
+        const q = encodeURIComponent(missionId);
+        const candidates = [
+            `/v1/missions/${missionId}/submissions`,
+            `/v1/submissions?missionId=${q}`,
+            `/v1/submissions?mission_id=${q}`,
+            `/v1/submissions?mission=${q}`,
+            `/v1/submissions/by-mission/${missionId}`,
+            `/v1/submissions/mission/${missionId}`,
+        ];
+
+        let lastErr: any;
+        for (const url of candidates) {
+            try {
+                return await tryArr(url);
+            } catch (e) {
+                lastErr = e;
             }
-            throw e;
         }
+        throw lastErr || new Error('Unable to load submissions');
     }, [makeRequest]);
 
     const getSubmissions = useCallback(async (): Promise<Submission[]> => {

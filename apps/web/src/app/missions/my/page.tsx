@@ -44,29 +44,12 @@ function isEnded(m: any) {
     return false;
 }
 
-// Robust fallback clicks calculation with multiple data sources
-function fallbackClicks(m: any): number {
-    // 1. Direct mission-level fields (most reliable)
-    if (m.tasks_done != null) return Number(m.tasks_done) || 0;        // your sidebar "Tasks Done"
-    if (m.verified_clicks != null) return Number(m.verified_clicks) || 0;
-
-    // 2. Inline submissions available in payload – compute immediately
-    if (Array.isArray(m.submissions) && m.submissions.length > 0) {
-        return m.submissions.reduce((sum: number, s: any) => {
-            const st = String(s?.status || '').toLowerCase();
-            if (st !== 'verified' && st !== 'approved') return sum;
-            const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
-            return sum + (Number(vt) || 0);
-        }, 0);
-    }
-
-    // 3. Rough estimate: submissions_count * tasks per mission
-    if (m.submissions_count && Array.isArray(m.tasks)) {
-        return Number(m.submissions_count) * m.tasks.length;
-    }
-
-    // 4. Other fallback fields
+// Helper to compute clicks from mission data (for instant display)
+function getClicksFromMission(m: any): number {
+    // prefer counters if API provides them
     const direct =
+        m.tasks_done ??
+        m.verified_clicks ??
         m.verifiedCount ??
         m.verifications_count ??
         m.stats?.verified_tasks_total ??
@@ -74,9 +57,17 @@ function fallbackClicks(m: any): number {
         m.clicks;
     if (direct != null) return Number(direct) || 0;
 
+    // else, compute from inline submissions if present
+    if (Array.isArray(m.submissions) && m.submissions.length) {
+        return m.submissions.reduce((sum: number, s: any) => {
+            const st = String(s?.status || '').toLowerCase();
+            if (st !== 'verified' && st !== 'approved') return sum;
+            const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
+            return sum + (Number(vt) || 0);
+        }, 0);
+    }
     return 0;
 }
-
 
 export default function MyMissionsPage() {
     const router = useRouter();
@@ -290,7 +281,8 @@ function MyMissionsContent() {
                                     ...m,
                                     // expose computed helper data the row will use
                                     __displayStatus: m.status === 'active' && isEnded(m) ? 'completed' : m.status,
-                                    __verifiedClicks: fallbackClicks(m),   // <-- pass robust clicks
+                                    __submissions: Array.isArray(m.submissions) ? m.submissions : null, // payload-first
+                                    __verifiedClicks: getClicksFromMission(m),   // <-- add this
                                 }}
                                 dense
                                 onRefetch={refetch}
