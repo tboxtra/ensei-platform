@@ -499,16 +499,34 @@ export function useApi() {
     }, [makeRequest, uploadFile]);
 
     const getMissionSubmissions = useCallback(async (missionId: string): Promise<any[]> => {
-        const tryArr = async (url: string) => {
-            const res = await makeRequest<any>(url);
+        // normalize helpers
+        const toArray = (res: any) => {
             if (Array.isArray(res)) return res;
-            if (res?.items && Array.isArray(res.items)) return res.items; // unwrap {items:[]}
-            if (res?.data && Array.isArray(res.data)) return res.data; // unwrap {data:[]}
-            if (res?.submissions && Array.isArray(res.submissions)) return res.submissions; // unwrap {submissions:[]}
+            if (Array.isArray(res?.items)) return res.items;
+            if (Array.isArray(res?.data)) return res.data;
+            if (Array.isArray(res?.submissions)) return res.submissions;
+            if (Array.isArray(res?.taskCompletions)) return res.taskCompletions;
             return [];
         };
 
+        // maps a taskCompletion doc to the UI's submission shape
+        const mapTC = (t: any) => ({
+            id: t.id ?? t.docId ?? t._id ?? crypto.randomUUID(),
+            // NB: keep fields UI reads:
+            user_handle: t.twitterHandle ?? t.user_handle ?? null,
+            user_id: t.userId ?? t.user_id ?? t.userEmail ?? null,
+            created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
+            status: (t.status ?? 'pending').toLowerCase(),           // "verified"/"approved"/"pending"
+            tasks_count: 1,                                           // one task per completion
+            verified_tasks: (String(t.status ?? '').toLowerCase() === 'verified' || 
+                             String(t.status ?? '').toLowerCase() === 'approved') ? 1 : 0,
+            // keep some raw for debugging if needed
+            _raw: t,
+        });
+
         const q = encodeURIComponent(missionId);
+
+        // Try submissions-style routes first (if your API exposes them)
         const candidates = [
             `/v1/missions/${missionId}/submissions`,
             `/v1/submissions?missionId=${q}`,
@@ -516,17 +534,37 @@ export function useApi() {
             `/v1/submissions?mission=${q}`,
             `/v1/submissions/by-mission/${missionId}`,
             `/v1/submissions/mission/${missionId}`,
+            // NEW: taskCompletions-style routes
+            `/v1/taskCompletions?missionId=${q}`,
+            `/v1/taskcompletions?missionId=${q}`,
+            `/v1/task-completions?missionId=${q}`,
+            `/v1/missions/${missionId}/taskCompletions`,
         ];
 
         let lastErr: any;
         for (const url of candidates) {
             try {
-                return await tryArr(url);
+                const res = await makeRequest<any>(url);
+                const arr = toArray(res);
+
+                // If this array looks like taskCompletions (has missionId/status/etc), normalize it
+                const looksLikeTC = arr.some((x: any) => x?.missionId || x?.taskId || x?.metadata || x?.userEmail);
+                return looksLikeTC ? arr.map(mapTC) : arr;
             } catch (e) {
                 lastErr = e;
             }
         }
-        throw lastErr || new Error('Unable to load submissions');
+
+        // As a final fallback, try a very generic API path if you have a single "api" function
+        try {
+            const res = await makeRequest<any>(`/v1/api/taskCompletions?missionId=${q}`);
+            const arr = toArray(res);
+            return arr.map(mapTC);
+        } catch (e) {
+            lastErr = e;
+        }
+
+        throw lastErr || new Error('Unable to load submissions / task completions');
     }, [makeRequest]);
 
     const getSubmissions = useCallback(async (): Promise<Submission[]> => {
