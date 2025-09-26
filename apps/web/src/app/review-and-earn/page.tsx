@@ -43,6 +43,26 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
 
     const linkRef = useRef<HTMLInputElement | null>(null);
 
+    // helper: same mapping used in the hook
+    function mapQueueItem(raw: any) {
+        if (!raw) return null;
+        const sUrl = raw.submissionUrl ?? raw.submissionLink ?? null;
+        return {
+            participationId: raw.participationId,
+            missionId: raw.missionId,
+            submitterId: raw.submitterUid,
+            taskId: raw.taskId,
+            missionUrl: raw.missionUrl ?? null,
+            missionTweetId: raw.missionTweetId ?? null,
+            missionHandle: raw.missionHandle ?? null,
+            submissionUrl: sUrl,
+            submissionLink: sUrl,
+            submissionTweetId: raw.submissionTweetId ?? null,
+            submissionHandle: raw.submissionHandle ?? null,
+            submissionKey: `${raw.participationId}:${raw.taskId}:${raw.submitterUid}`,
+        };
+    }
+
     const resetUI = () => {
         setStep('comment');
         setLink('');
@@ -118,17 +138,29 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         setStep('ready'); // final step visible, complete will work
     };
 
-    const advanceQueue = (overrideExcluded?: string[]) => {
+    const advanceQueue = (overrideExcluded?: string[], preloaded?: any) => {
         setAdvancing(true);
-        const ex = overrideExcluded ?? excluded; // freshest list
+        const ex = overrideExcluded ?? excluded;
+
+        // place preloaded result (if we have it) under the NEXT key so the UI swaps with data
+        if (preloaded !== undefined) {
+            qc.setQueryData(
+                ["review-queue", uid, refreshKey + 1, ex.join("|")],
+                preloaded
+            );
+        }
+
+        // clear current key
         qc.removeQueries({
             queryKey: ["review-queue", uid, refreshKey, ex.join("|")],
         });
-        setRefreshKey(k => k + 1); // forces new fetch
+
+        // switch to the next key (will use preloaded cache or fetch)
+        setRefreshKey(k => k + 1);
     };
 
     const handleComplete = async () => {
-        if (!item || !linkValid || rating < 1 || submitting) return;
+        if (!item || !linkValid || rating < 1 || submitting || advancing) return;
 
         try {
             setSubmitting(true);
@@ -141,8 +173,17 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                 commentLink: link
             });
 
+            // PRELOAD next item after a successful submit too (same idea)
+            let preloaded: any = null;
+            try {
+                const callable = httpsCallable(fns, "getReviewQueue");
+                const res = await callable({ excludeKeys: excluded });
+                const raw = (res.data as any)?.item ?? null;
+                preloaded = mapQueueItem(raw);
+            } catch {}
+
             resetUI();
-            advanceQueue();
+            advanceQueue(excluded, preloaded);
             toast.success(`Review completed! +${HONORS_PER_REVIEW} honors`);
         } catch (e: any) {
             console.error(e);
@@ -153,33 +194,41 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
     };
 
     const handleSkip = async () => {
-        if (item?.submissionKey) {
-            const nextExcluded =
-                excluded.includes(item.submissionKey)
-                    ? excluded
-                    : [...excluded, item.submissionKey];
+        if (!item || advancing || submitting) return;
 
-            setExcluded(nextExcluded);                 // schedule state update
-            try {
-                await httpsCallable(fns, "skipSubmission")({
-                    participationId: item.participationId,
-                    taskId: item.taskId,
-                    submitterId: item.submitterId,
-                });
-            } catch (e) {
-                console.warn("skipSubmission failed; continuing with local exclude", e);
-            }
+        // build the freshest exclude list
+        const nextExcluded = excluded.includes(item.submissionKey)
+            ? excluded
+            : [...excluded, item.submissionKey];
 
-            resetUI();
-            advanceQueue(nextExcluded);                // <- use freshest list
-            toast('Skipped');
-            return;
+        setExcluded(nextExcluded); // update state
+
+        // best-effort server record (non-blocking)
+        try {
+            await httpsCallable(fns, "skipSubmission")({
+                participationId: item.participationId,
+                taskId: item.taskId,
+                submitterId: item.submitterId,
+            });
+        } catch (e) {
+            console.warn("skipSubmission failed; continuing with local exclude", e);
         }
 
-        // fallback (shouldn't happen)
+        // PRELOAD next item so there's no blank state
+        let preloaded: any = null;
+        try {
+            const callable = httpsCallable(fns, "getReviewQueue");
+            const res = await callable({ excludeKeys: nextExcluded });
+            const raw = (res.data as any)?.item ?? null;
+            preloaded = mapQueueItem(raw); // can be null (empty state), that's OK
+        } catch (e) {
+            // on error, leave preloaded = null → will show empty state then refetch on key bump
+            console.warn("preload next item failed", e);
+        }
+
         resetUI();
-        advanceQueue(excluded);
-        toast('Skipped');
+        advanceQueue(nextExcluded, preloaded);
+        toast("Skipped");
     };
 
     if (!item && !isFetching) {
