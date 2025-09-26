@@ -483,6 +483,19 @@ export function useApi() {
         });
     }, [makeRequest]);
 
+    const verifySubmission = useCallback(async (submissionId: string): Promise<any> => {
+        return makeRequest(`/v1/submissions/${submissionId}/verify`, {
+            method: 'POST',
+        });
+    }, [makeRequest]);
+
+    const flagSubmission = useCallback(async (submissionId: string, reason?: string): Promise<any> => {
+        return makeRequest(`/v1/submissions/${submissionId}/flag`, {
+            method: 'POST',
+            body: JSON.stringify({ reason: reason || 'Inappropriate content' }),
+        });
+    }, [makeRequest]);
+
     // Claim APIs
     const getClaimableRewards = useCallback(async (): Promise<ClaimableReward[]> => {
         return makeRequest<ClaimableReward[]>('/v1/rewards/claimable');
@@ -558,6 +571,8 @@ export function useApi() {
         getSubmissions,
         getMissionSubmissions,
         reviewSubmission,
+        verifySubmission,
+        flagSubmission,
         // File upload methods
         uploadFile,
         // Claim methods
