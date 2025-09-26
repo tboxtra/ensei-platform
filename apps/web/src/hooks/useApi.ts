@@ -52,8 +52,18 @@ interface Mission {
     totalCost?: number;
     endsAt?: string;
     tasks?: string[];
-    submissions?: number;
+    submissions?: any[]; // Changed from number to any[] for inline submissions
     duration_hours?: number;
+    // Additional fields for clicks calculation
+    tasks_done?: number;
+    verified_clicks?: number;
+    verifiedCount?: number;
+    verifications_count?: number;
+    stats?: {
+        verified_tasks_total?: number;
+    };
+    submissions_verified_tasks?: number;
+    clicks?: number;
 }
 
 interface Submission {
