@@ -153,6 +153,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
         // clear current key
         qc.removeQueries({
             queryKey: ["review-queue", uid, refreshKey, ex.join("|")],
+            exact: true,
         });
 
         // switch to the next key (will use preloaded cache or fetch)
@@ -180,7 +181,7 @@ function ReviewAndEarnContent({ uid }: { uid: string | null }) {
                 const res = await callable({ excludeKeys: excluded });
                 const raw = (res.data as any)?.item ?? null;
                 preloaded = mapQueueItem(raw);
-            } catch {}
+            } catch { }
 
             resetUI();
             advanceQueue(excluded, preloaded);
