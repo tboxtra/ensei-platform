@@ -7,268 +7,275 @@ import clsx from 'clsx';
 
 // --- helpers ---
 const fmtDate = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-const fmtUSD  = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+const fmtUSD = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 
+const HONOR_TO_USD = 0.0015; // adjust if your global rate differs
 function getUsd(m: any): number {
-  // prefer explicit USD fields; fall back to reward/totalCost if your API used those before
   return Number(
     m?.rewards?.usd ??
     m?.total_cost_usd ??
     m?.totalCost ??
     m?.reward ??
-    0
+    (m?.total_cost_honors != null ? m.total_cost_honors * HONOR_TO_USD : 0)
   ) || 0;
 }
 
 function sumVerifiedClicks(subs: any[]): number {
-  // count verified *tasks* across verified submissions
-  // - prefer s.verified_tasks (or verifiedTasks)
-  // - else fall back to s.tasks_count (or 1)
-  return subs.reduce((sum, s) => {
-    if ((s?.status ?? '').toLowerCase() !== 'verified') return sum;
-    const vt =
-      s?.verified_tasks ??
-      s?.verifiedTasks ??
-      s?.tasks_count ??
-      1;
-    return sum + (Number(vt) || 0);
-  }, 0);
+    // count verified *tasks* across verified submissions
+    // - prefer s.verified_tasks (or verifiedTasks)
+    // - else fall back to s.tasks_count (or 1)
+    return subs.reduce((sum, s) => {
+        if ((s?.status ?? '').toLowerCase() !== 'verified') return sum;
+        const vt =
+            s?.verified_tasks ??
+            s?.verifiedTasks ??
+            s?.tasks_count ??
+            1;
+        return sum + (Number(vt) || 0);
+    }, 0);
 }
 
 export function MissionListItem({
-  mission,
-  dense = false,
-  onRefetch,
+    mission,
+    dense = false,
+    onRefetch,
 }: {
-  mission: any;
-  dense?: boolean;
-  onRefetch?: () => void;
+    mission: any;
+    dense?: boolean;
+    onRefetch?: () => void;
 }) {
-  const api = useApi();
-  const [open, setOpen] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
+    const api = useApi();
+    const [open, setOpen] = useState(false);
+    const [busyId, setBusyId] = useState<string | null>(null);
 
-  // local submissions state (lazy-loaded)
-  const [subs, setSubs] = useState<any[] | null>(null);
-  const [subsLoading, setSubsLoading] = useState(false);
-  const [subsError, setSubsError] = useState<string | null>(null);
+    // local submissions state (lazy-loaded)
+    const [subs, setSubs] = useState<any[] | null>(null);
+    const [subsLoading, setSubsLoading] = useState(false);
+    const [subsError, setSubsError] = useState<string | null>(null);
 
-  const displayStatus: string = mission.__displayStatus ?? mission.status ?? 'draft';
-  const created = mission.created_at ? new Date(mission.created_at) : null;
+    const displayStatus: string = mission.__displayStatus ?? mission.status ?? 'draft';
+    const created = mission.created_at ? new Date(mission.created_at) : null;
 
-  // show USD (not honors)
-  const usdCost = getUsd(mission);
+    // show USD (not honors)
+    const usdCost = getUsd(mission);
 
   // compute clicks from fetched submissions if we have them;
   // otherwise fall back to a summary value if the mission carries one
   const clicks = useMemo(() => {
     if (Array.isArray(subs)) return sumVerifiedClicks(subs);
-    // fallback from list payload if you store a precomputed count
     return Number(
       mission?.verified_clicks ??
-      mission?.verified_count ??
+      mission?.verifiedCount ??
       mission?.verifications_count ??
+      mission?.stats?.verified_tasks_total ??   // <- extra safe fallback
+      mission?.submissions_verified_tasks ??    // <- another common naming
       0
     ) || 0;
   }, [subs, mission]);
 
-  // lazy fetch when opening
-  useEffect(() => {
-    if (!open) return;
-    if (subs !== null) return; // already loaded this row
-    (async () => {
-      try {
-        setSubsLoading(true);
-        setSubsError(null);
-        const data = await api.getMissionSubmissions(mission.id);
-        setSubs(Array.isArray(data) ? data : []);
+    // lazy fetch when opening
+    useEffect(() => {
+        if (!open) return;
+        if (subs !== null) return; // already loaded this row
+        (async () => {
+            try {
+                setSubsLoading(true);
+                setSubsError(null);
+                const data = await api.getMissionSubmissions(mission.id);
+                setSubs(Array.isArray(data) ? data : []);
       } catch (e: any) {
+        console.debug('Submissions fetch error:', { 
+          missionId: mission.id, 
+          status: e?.status, 
+          body: e?.body,
+          message: e?.message 
+        });
         setSubsError(e?.message || 'Failed to load submissions');
         setSubs([]);
       } finally {
-        setSubsLoading(false);
-      }
-    })();
-  }, [open, subs, api, mission?.id]);
+                setSubsLoading(false);
+            }
+        })();
+    }, [open, subs, api, mission?.id]);
 
-  const onVerify = useCallback(
-    async (submissionId: string) => {
-      try {
-        setBusyId(submissionId);
-        await api.verifySubmission(submissionId);
-        // optimistic update in local list
-        setSubs((prev) =>
-          Array.isArray(prev)
-            ? prev.map((s) => (s.id === submissionId ? { ...s, status: 'verified' } : s))
-            : prev
-        );
-      } finally {
-        setBusyId(null);
-        onRefetch?.();
-      }
-    },
-    [api, onRefetch]
-  );
+    const onVerify = useCallback(
+        async (submissionId: string) => {
+            try {
+                setBusyId(submissionId);
+                await api.verifySubmission(submissionId);
+                // optimistic update in local list
+                setSubs((prev) =>
+                    Array.isArray(prev)
+                        ? prev.map((s) => (s.id === submissionId ? { ...s, status: 'verified' } : s))
+                        : prev
+                );
+            } finally {
+                setBusyId(null);
+                onRefetch?.();
+            }
+        },
+        [api, onRefetch]
+    );
 
-  const onFlag = useCallback(
-    async (submissionId: string) => {
-      try {
-        setBusyId(submissionId);
-        await api.flagSubmission(submissionId);
-        // optional: mark flagged locally
-        setSubs((prev) =>
-          Array.isArray(prev)
-            ? prev.map((s) => (s.id === submissionId ? { ...s, status: 'flagged' } : s))
-            : prev
-        );
-      } finally {
-        setBusyId(null);
-        onRefetch?.();
-      }
-    },
-    [api, onRefetch]
-  );
+    const onFlag = useCallback(
+        async (submissionId: string) => {
+            try {
+                setBusyId(submissionId);
+                await api.flagSubmission(submissionId);
+                // optional: mark flagged locally
+                setSubs((prev) =>
+                    Array.isArray(prev)
+                        ? prev.map((s) => (s.id === submissionId ? { ...s, status: 'flagged' } : s))
+                        : prev
+                );
+            } finally {
+                setBusyId(null);
+                onRefetch?.();
+            }
+        },
+        [api, onRefetch]
+    );
 
-  return (
-    <div className={clsx(
-      'rounded-md bg-gray-800/40 hover:bg-gray-800/60 border border-white/5',
-      dense ? 'px-3 py-2' : 'px-4 py-3'
-    )}>
-      {/* Row */}
-      <div className="grid grid-cols-12 items-center gap-2 text-[12px]">
-        {/* Mission cell with tasks list */}
-        <div className="col-span-4 overflow-hidden">
-          <div className="truncate text-white font-medium">{mission.title || 'Untitled Mission'}</div>
-          <div className="truncate text-[11px] text-gray-400">
-            {[mission.platform, mission.type].filter(Boolean).join(' • ') || '—'}
-          </div>
-
-          {/* tasks pills (mission.tasks can be array of strings or objects with label/title) */}
-          {Array.isArray(mission.tasks) && mission.tasks.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {mission.tasks.slice(0, 6).map((t: any, idx: number) => (
-                <span
-                  key={idx}
-                  className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300"
-                  title={typeof t === 'string' ? t : (t?.label ?? t?.title ?? '')}
-                >
-                  {typeof t === 'string' ? t : (t?.label ?? t?.title ?? 'task')}
-                </span>
-              ))}
-              {mission.tasks.length > 6 && (
-                <span className="text-[10px] px-1 py-0.5 text-gray-400">+{mission.tasks.length - 6} more</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Date */}
-        <div className="col-span-2 text-gray-200">
-          {created && !isNaN(created.getTime()) ? fmtDate.format(created) : '—'}
-        </div>
-
-        {/* Cost (USD) */}
-        <div className="col-span-2 text-white">{fmtUSD.format(usdCost)}</div>
-
-        {/* Clicks */}
-        <div className="col-span-2 text-white">{clicks}</div>
-
-        {/* Status + dropdown toggle */}
-        <div className="col-span-2 flex items-center justify-end gap-2">
-          <span
-            className={clsx(
-              'px-2 py-0.5 rounded-full border text-[11px]',
-              displayStatus === 'active' && 'bg-green-500/15 text-green-300 border-green-500/30',
-              displayStatus === 'completed' && 'bg-blue-500/15 text-blue-300 border-blue-500/30',
-              displayStatus === 'draft' && 'bg-gray-500/15 text-gray-300 border-gray-500/30',
-              displayStatus === 'paused' && 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30'
-            )}
-          >
-            {displayStatus}
-          </span>
-
-          <ModernButton
-            size="sm"
-            variant="secondary"
-            onClick={() => setOpen((v) => !v)}
-            className="ml-1"
-          >
-            {open ? 'Hide' : 'Submissions'}
-          </ModernButton>
-        </div>
-      </div>
-
-      {/* Submissions dropdown */}
-      {open && (
-        <div className="mt-2 rounded-md border border-white/5 bg-gray-900/60">
-          <div className="px-3 py-2 border-b border-white/5 text-[11px] text-gray-400 flex items-center">
-            <div className="w-4 h-4 rounded-full bg-emerald-500/20 mr-2" />
-            Submissions
-          </div>
-
-          {subsLoading && <div className="px-3 py-3 text-[12px] text-gray-400">Loading…</div>}
-          {subsError && <div className="px-3 py-3 text-[12px] text-red-400">{subsError}</div>}
-
-          {!subsLoading && !subsError && (
-            <div className="max-h-64 overflow-auto divide-y divide-white/5">
-              {(subs ?? []).length === 0 && (
-                <div className="px-3 py-3 text-[12px] text-gray-400">No submissions yet.</div>
-              )}
-
-              {(subs ?? []).map((s: any) => {
-                const createdAt = s?.created_at ? new Date(s.created_at) : null;
-                const status = (s?.status ?? 'pending').toLowerCase();
-                const isVerified = status === 'verified';
-                return (
-                  <div key={s.id} className="px-3 py-2 text-[12px] flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate text-white">
-                        {s?.user_handle ? `@${s.user_handle}` : s?.user_id ?? 'unknown'}
-                      </div>
-                      <div className="text-[11px] text-gray-400">
-                        {createdAt && !isNaN(createdAt.getTime()) ? `Submitted ${createdAt.toLocaleString()}` : '—'}
-                        {s?.tasks_count ? ` • tasks: ${s.tasks_count}` : ''}
-                        {s?.verified_tasks ? ` • verified: ${s.verified_tasks}` : ''}
-                      </div>
+    return (
+        <div className={clsx(
+            'rounded-md bg-gray-800/40 hover:bg-gray-800/60 border border-white/5',
+            dense ? 'px-3 py-2' : 'px-4 py-3'
+        )}>
+            {/* Row */}
+            <div className="grid grid-cols-12 items-center gap-2 text-[12px]">
+                {/* Mission cell with tasks list */}
+                <div className="col-span-4 overflow-hidden">
+                    <div className="truncate text-white font-medium">{mission.title || 'Untitled Mission'}</div>
+                    <div className="truncate text-[11px] text-gray-400">
+                        {[mission.platform, mission.type].filter(Boolean).join(' • ') || '—'}
                     </div>
 
+                    {/* tasks pills (mission.tasks can be array of strings or objects with label/title) */}
+                    {Array.isArray(mission.tasks) && mission.tasks.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                            {mission.tasks.slice(0, 6).map((t: any, idx: number) => (
+                                <span
+                                    key={idx}
+                                    className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300"
+                                    title={typeof t === 'string' ? t : (t?.label ?? t?.title ?? '')}
+                                >
+                                    {typeof t === 'string' ? t : (t?.label ?? t?.title ?? 'task')}
+                                </span>
+                            ))}
+                            {mission.tasks.length > 6 && (
+                                <span className="text-[10px] px-1 py-0.5 text-gray-400">+{mission.tasks.length - 6} more</span>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Date */}
+                <div className="col-span-2 text-gray-200">
+                    {created && !isNaN(created.getTime()) ? fmtDate.format(created) : '—'}
+                </div>
+
+                {/* Cost (USD) */}
+                <div className="col-span-2 text-white">{fmtUSD.format(usdCost)}</div>
+
+                {/* Clicks */}
+                <div className="col-span-2 text-white">{clicks}</div>
+
+                {/* Status + dropdown toggle */}
+                <div className="col-span-2 flex items-center justify-end gap-2">
                     <span
-                      className={clsx(
-                        'px-1.5 py-0.5 rounded-full border text-[10px] mr-1',
-                        isVerified
-                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                          : 'bg-gray-600/15 text-gray-300 border-gray-500/30'
-                      )}
+                        className={clsx(
+                            'px-2 py-0.5 rounded-full border text-[11px]',
+                            displayStatus === 'active' && 'bg-green-500/15 text-green-300 border-green-500/30',
+                            displayStatus === 'completed' && 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+                            displayStatus === 'draft' && 'bg-gray-500/15 text-gray-300 border-gray-500/30',
+                            displayStatus === 'paused' && 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30'
+                        )}
                     >
-                      {status}
+                        {displayStatus}
                     </span>
 
                     <ModernButton
-                      size="sm"
-                      variant="danger"
-                      onClick={() => onFlag(s.id)}
-                      disabled={busyId === s.id}
-                      className="border border-white/10 hover:border-red-400/40 hover:bg-red-500/10"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setOpen((v) => !v)}
+                        className="ml-1"
                     >
-                      Flag
+                        {open ? 'Hide' : 'Submissions'}
                     </ModernButton>
-
-                    <ModernButton
-                      size="sm"
-                      variant="success"
-                      onClick={() => onVerify(s.id)}
-                      disabled={busyId === s.id || isVerified}
-                      className={clsx('min-w-[72px]', isVerified && 'opacity-60 cursor-not-allowed')}
-                    >
-                      {isVerified ? 'Verified' : busyId === s.id ? 'Verifying…' : 'Verify'}
-                    </ModernButton>
-                  </div>
-                );
-              })}
+                </div>
             </div>
-          )}
+
+            {/* Submissions dropdown */}
+            {open && (
+                <div className="mt-2 rounded-md border border-white/5 bg-gray-900/60">
+                    <div className="px-3 py-2 border-b border-white/5 text-[11px] text-gray-400 flex items-center">
+                        <div className="w-4 h-4 rounded-full bg-emerald-500/20 mr-2" />
+                        Submissions
+                    </div>
+
+                    {subsLoading && <div className="px-3 py-3 text-[12px] text-gray-400">Loading…</div>}
+                    {subsError && <div className="px-3 py-3 text-[12px] text-red-400">{subsError}</div>}
+
+                    {!subsLoading && !subsError && (
+                        <div className="max-h-64 overflow-auto divide-y divide-white/5">
+                            {(subs ?? []).length === 0 && (
+                                <div className="px-3 py-3 text-[12px] text-gray-400">No submissions yet.</div>
+                            )}
+
+                            {(subs ?? []).map((s: any) => {
+                                const createdAt = s?.created_at ? new Date(s.created_at) : null;
+                                const status = (s?.status ?? 'pending').toLowerCase();
+                                const isVerified = status === 'verified';
+                                return (
+                                    <div key={s.id} className="px-3 py-2 text-[12px] flex items-center gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="truncate text-white">
+                                                {s?.user_handle ? `@${s.user_handle}` : s?.user_id ?? 'unknown'}
+                                            </div>
+                                            <div className="text-[11px] text-gray-400">
+                                                {createdAt && !isNaN(createdAt.getTime()) ? `Submitted ${createdAt.toLocaleString()}` : '—'}
+                                                {s?.tasks_count ? ` • tasks: ${s.tasks_count}` : ''}
+                                                {s?.verified_tasks ? ` • verified: ${s.verified_tasks}` : ''}
+                                            </div>
+                                        </div>
+
+                                        <span
+                                            className={clsx(
+                                                'px-1.5 py-0.5 rounded-full border text-[10px] mr-1',
+                                                isVerified
+                                                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                                    : 'bg-gray-600/15 text-gray-300 border-gray-500/30'
+                                            )}
+                                        >
+                                            {status}
+                                        </span>
+
+                                        <ModernButton
+                                            size="sm"
+                                            variant="danger"
+                                            onClick={() => onFlag(s.id)}
+                                            disabled={busyId === s.id}
+                                            className="border border-white/10 hover:border-red-400/40 hover:bg-red-500/10"
+                                        >
+                                            Flag
+                                        </ModernButton>
+
+                                        <ModernButton
+                                            size="sm"
+                                            variant="success"
+                                            onClick={() => onVerify(s.id)}
+                                            disabled={busyId === s.id || isVerified}
+                                            className={clsx('min-w-[72px]', isVerified && 'opacity-60 cursor-not-allowed')}
+                                        >
+                                            {isVerified ? 'Verified' : busyId === s.id ? 'Verifying…' : 'Verify'}
+                                        </ModernButton>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }

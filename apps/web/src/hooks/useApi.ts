@@ -155,8 +155,17 @@ export function useApi() {
         setError(null);
 
         try {
-            // Get Firebase token from localStorage for authenticated requests
-            const token = typeof window !== 'undefined' ? localStorage.getItem('firebaseToken') : null;
+            // try to get a Firebase ID token if we don't have one
+            const token =
+              (typeof window !== 'undefined' && localStorage.getItem('firebaseToken')) ||
+              (await (async () => {
+                try {
+                  const { getFirebaseAuth } = await import('../lib/firebase');
+                  const a = getFirebaseAuth();
+                  const u = a.currentUser;
+                  return u ? await u.getIdToken(/* forceRefresh */ false) : null;
+                } catch { return null; }
+              })());
 
             // Debug logging
             log('API Request Debug:', {
@@ -191,13 +200,16 @@ export function useApi() {
             });
 
             if (!response.ok) {
-                console.error('API Error Response:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    url: response.url,
-                    hasToken: !!token
-                });
-
+                const raw = await response.text();       // capture raw body
+                let body: any = undefined;
+                try { body = JSON.parse(raw); } catch {}
+                const msg =
+                  body?.error || body?.message || raw || `HTTP ${response.status} ${response.statusText}`;
+                const err = new Error(msg) as any;
+                err.status = response.status;
+                err.body = body ?? raw;
+                
+                // Handle specific status codes
                 if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please wait a moment and try again.');
                 }
@@ -245,8 +257,8 @@ export function useApi() {
                 if (response.status === 0 || !response.status) {
                     throw new Error('Network error: Unable to connect to server. Please check your internet connection.');
                 }
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                
+                throw err;
             }
 
             const data = await response.json();
@@ -469,7 +481,23 @@ export function useApi() {
     }, [makeRequest, uploadFile]);
 
     const getMissionSubmissions = useCallback(async (missionId: string): Promise<any[]> => {
-        return makeRequest(`/v1/missions/${missionId}/submissions`);
+        try {
+            // primary
+            return await makeRequest<any[]>(`/v1/missions/${missionId}/submissions`);
+        } catch (e: any) {
+            // try common alternates if the first fails
+            if (e?.status === 404 || e?.status === 405 || e?.status === 500) {
+                try {
+                    const q = encodeURIComponent(missionId);
+                    const byQuery = await makeRequest<any[]>(`/v1/submissions?missionId=${q}`);
+                    if (Array.isArray(byQuery)) return byQuery;
+                } catch {}
+                try {
+                    return await makeRequest<any[]>(`/v1/submissions/by-mission/${missionId}`);
+                } catch {}
+            }
+            throw e; // bubble up with the improved message from #1
+        }
     }, [makeRequest]);
 
     const getSubmissions = useCallback(async (): Promise<Submission[]> => {
