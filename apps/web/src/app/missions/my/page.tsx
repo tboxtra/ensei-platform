@@ -21,27 +21,49 @@ type Filters = {
 };
 
 function isEnded(m: any) {
-    const model = (m.model || '').toLowerCase();
-    const now = Date.now();
+  const model = (m.model || '').toLowerCase();
+  const now = Date.now();
 
-    if (model === 'degen') {
-        if (!m.deadline) return false;
-        const dl = new Date(m.deadline).getTime();
-        return !Number.isNaN(dl) && dl <= now;
-    }
+  if (model === 'degen') {
+    if (!m.deadline) return false;
+    const dl = new Date(m.deadline).getTime();
+    return !Number.isNaN(dl) && dl <= now;
+  }
 
-    if (model === 'fixed') {
-        const current = m.participants_count ?? m.participants ?? 0;
-        const max = m.max_participants ?? m.cap ?? 0;
-        return max > 0 && current >= max;
-    }
+  if (model === 'fixed') {
+    const current = m.participants_count ?? m.participants ?? 0;
+    const max = m.max_participants ?? m.cap ?? 0;
+    return max > 0 && current >= max;
+  }
 
-    // generic: if deadline exists, use it
-    if (m.deadline) {
-        const dl = new Date(m.deadline).getTime();
-        return !Number.isNaN(dl) && dl <= now;
-    }
-    return false;
+  // generic: if deadline exists, use it
+  if (m.deadline) {
+    const dl = new Date(m.deadline).getTime();
+    return !Number.isNaN(dl) && dl <= now;
+  }
+  return false;
+}
+
+// ADD THIS helper near isEnded()
+function getClicksFromMission(m: any): number {
+  // best: total verified tasks aggregated by the API
+  const direct =
+    m.verified_clicks ??
+    m.verifiedCount ??
+    m.verifications_count ??
+    m.stats?.verified_tasks_total ??
+    m.submissions_verified_tasks ??
+    m.tasks_done ??                 // <-- your sidebar shows "Tasks Done"
+    m.clicks;                       // <-- if your API already computes it
+  if (direct != null) return Number(direct) || 0;
+
+  // fallback: if API only gave us submission counts + tasks per mission,
+  // estimate (still better than always 0)
+  if (Array.isArray(m.tasks) && m.submissions_count != null) {
+    const perSubmission = Number(m.tasks.length) || 0;
+    return (Number(m.submissions_count) || 0) * perSubmission;
+  }
+  return 0;
 }
 
 
@@ -257,6 +279,7 @@ function MyMissionsContent() {
                   ...m,
                   // expose computed helper data the row will use
                   __displayStatus: m.status === 'active' && isEnded(m) ? 'completed' : m.status,
+                  __verifiedClicks: getClicksFromMission(m),   // <-- pass robust clicks
                 }}
                 dense
                 onRefetch={refetch}

@@ -157,15 +157,15 @@ export function useApi() {
         try {
             // try to get a Firebase ID token if we don't have one
             const token =
-              (typeof window !== 'undefined' && localStorage.getItem('firebaseToken')) ||
-              (await (async () => {
-                try {
-                  const { getFirebaseAuth } = await import('../lib/firebase');
-                  const a = getFirebaseAuth();
-                  const u = a.currentUser;
-                  return u ? await u.getIdToken(/* forceRefresh */ false) : null;
-                } catch { return null; }
-              })());
+                (typeof window !== 'undefined' && localStorage.getItem('firebaseToken')) ||
+                (await (async () => {
+                    try {
+                        const { getFirebaseAuth } = await import('../lib/firebase');
+                        const a = getFirebaseAuth();
+                        const u = a.currentUser;
+                        return u ? await u.getIdToken(/* forceRefresh */ false) : null;
+                    } catch { return null; }
+                })());
 
             // Debug logging
             log('API Request Debug:', {
@@ -202,13 +202,13 @@ export function useApi() {
             if (!response.ok) {
                 const raw = await response.text();       // capture raw body
                 let body: any = undefined;
-                try { body = JSON.parse(raw); } catch {}
+                try { body = JSON.parse(raw); } catch { }
                 const msg =
-                  body?.error || body?.message || raw || `HTTP ${response.status} ${response.statusText}`;
+                    body?.error || body?.message || raw || `HTTP ${response.status} ${response.statusText}`;
                 const err = new Error(msg) as any;
                 err.status = response.status;
                 err.body = body ?? raw;
-                
+
                 // Handle specific status codes
                 if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please wait a moment and try again.');
@@ -257,7 +257,7 @@ export function useApi() {
                 if (response.status === 0 || !response.status) {
                     throw new Error('Network error: Unable to connect to server. Please check your internet connection.');
                 }
-                
+
                 throw err;
             }
 
@@ -481,22 +481,26 @@ export function useApi() {
     }, [makeRequest, uploadFile]);
 
     const getMissionSubmissions = useCallback(async (missionId: string): Promise<any[]> => {
-        try {
-            // primary
-            return await makeRequest<any[]>(`/v1/missions/${missionId}/submissions`);
-        } catch (e: any) {
-            // try common alternates if the first fails
-            if (e?.status === 404 || e?.status === 405 || e?.status === 500) {
-                try {
-                    const q = encodeURIComponent(missionId);
-                    const byQuery = await makeRequest<any[]>(`/v1/submissions?missionId=${q}`);
-                    if (Array.isArray(byQuery)) return byQuery;
-                } catch {}
-                try {
-                    return await makeRequest<any[]>(`/v1/submissions/by-mission/${missionId}`);
-                } catch {}
+        const tryJson = async (url: string) => {
+            const res = await makeRequest<any[]>(url);
+            return Array.isArray(res) ? res : [];
+        };
+
+        // 1) canonical
+        try { return await tryJson(`/v1/missions/${missionId}/submissions`); } catch (e: any) {
+            // 2) common alternates
+            const q = encodeURIComponent(missionId);
+            const candidates = [
+                `/v1/submissions?missionId=${q}`,
+                `/v1/submissions?mission_id=${q}`,
+                `/v1/submissions?mission=${q}`,
+                `/v1/submissions/by-mission/${missionId}`,
+                `/v1/submissions/mission/${missionId}`,
+            ];
+            for (const url of candidates) {
+                try { return await tryJson(url); } catch {}
             }
-            throw e; // bubble up with the improved message from #1
+            throw e;
         }
     }, [makeRequest]);
 

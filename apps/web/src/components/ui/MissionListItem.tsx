@@ -11,28 +11,22 @@ const fmtUSD = new Intl.NumberFormat(undefined, { style: 'currency', currency: '
 
 const HONOR_TO_USD = 0.0015; // adjust if your global rate differs
 function getUsd(m: any): number {
-  return Number(
-    m?.rewards?.usd ??
-    m?.total_cost_usd ??
-    m?.totalCost ??
-    m?.reward ??
-    (m?.total_cost_honors != null ? m.total_cost_honors * HONOR_TO_USD : 0)
-  ) || 0;
+    return Number(
+        m?.rewards?.usd ??
+        m?.total_cost_usd ??
+        m?.totalCost ??
+        m?.reward ??
+        (m?.total_cost_honors != null ? m.total_cost_honors * HONOR_TO_USD : 0)
+    ) || 0;
 }
 
 function sumVerifiedClicks(subs: any[]): number {
-    // count verified *tasks* across verified submissions
-    // - prefer s.verified_tasks (or verifiedTasks)
-    // - else fall back to s.tasks_count (or 1)
-    return subs.reduce((sum, s) => {
-        if ((s?.status ?? '').toLowerCase() !== 'verified') return sum;
-        const vt =
-            s?.verified_tasks ??
-            s?.verifiedTasks ??
-            s?.tasks_count ??
-            1;
-        return sum + (Number(vt) || 0);
-    }, 0);
+  return subs.reduce((sum, s) => {
+    const st = (s?.status ?? '').toLowerCase();
+    if (st !== 'verified' && st !== 'approved') return sum;
+    const vt = s?.verified_tasks ?? s?.verifiedTasks ?? s?.tasks_count ?? 1;
+    return sum + (Number(vt) || 0);
+  }, 0);
 }
 
 export function MissionListItem({
@@ -59,16 +53,18 @@ export function MissionListItem({
     // show USD (not honors)
     const usdCost = getUsd(mission);
 
-  // compute clicks from fetched submissions if we have them;
-  // otherwise fall back to a summary value if the mission carries one
+  // clicks: prefer submissions we fetched; else prefer the injected total; else fallbacks
   const clicks = useMemo(() => {
     if (Array.isArray(subs)) return sumVerifiedClicks(subs);
+    if (mission?.__verifiedClicks != null) return Number(mission.__verifiedClicks) || 0;
     return Number(
       mission?.verified_clicks ??
       mission?.verifiedCount ??
       mission?.verifications_count ??
-      mission?.stats?.verified_tasks_total ??   // <- extra safe fallback
-      mission?.submissions_verified_tasks ??    // <- another common naming
+      mission?.stats?.verified_tasks_total ??
+      mission?.submissions_verified_tasks ??
+      mission?.tasks_done ??
+      mission?.clicks ??
       0
     ) || 0;
   }, [subs, mission]);
@@ -83,16 +79,16 @@ export function MissionListItem({
                 setSubsError(null);
                 const data = await api.getMissionSubmissions(mission.id);
                 setSubs(Array.isArray(data) ? data : []);
-      } catch (e: any) {
-        console.debug('Submissions fetch error:', { 
-          missionId: mission.id, 
-          status: e?.status, 
-          body: e?.body,
-          message: e?.message 
-        });
-        setSubsError(e?.message || 'Failed to load submissions');
-        setSubs([]);
-      } finally {
+            } catch (e: any) {
+                console.debug('Submissions fetch error:', {
+                    missionId: mission.id,
+                    status: e?.status,
+                    body: e?.body,
+                    message: e?.message
+                });
+                setSubsError(e?.message || 'Failed to load submissions');
+                setSubs([]);
+            } finally {
                 setSubsLoading(false);
             }
         })();
@@ -222,10 +218,10 @@ export function MissionListItem({
                                 <div className="px-3 py-3 text-[12px] text-gray-400">No submissions yet.</div>
                             )}
 
-                            {(subs ?? []).map((s: any) => {
-                                const createdAt = s?.created_at ? new Date(s.created_at) : null;
-                                const status = (s?.status ?? 'pending').toLowerCase();
-                                const isVerified = status === 'verified';
+              {(subs ?? []).map((s: any) => {
+                const createdAt = s?.created_at ? new Date(s.created_at) : null;
+                const status = (s?.status ?? 'pending').toLowerCase();
+                const isVerified = status === 'verified' || status === 'approved'; // <-- treat approved as verified
                                 return (
                                     <div key={s.id} className="px-3 py-2 text-[12px] flex items-center gap-2">
                                         <div className="flex-1 min-w-0">
