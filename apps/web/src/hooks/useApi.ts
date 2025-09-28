@@ -534,31 +534,36 @@ export function useApi() {
 
         const q = encodeURIComponent(missionId);
 
-        // Try submissions-style routes first (if your API exposes them)
+        // Try taskCompletions routes first (they work without auth)
         const candidates = [
+            `/v1/missions/${missionId}/taskCompletions`,
+            `/v1/taskCompletions?missionId=${q}`,
+            `/v1/taskcompletions?missionId=${q}`,
+            `/v1/task-completions?missionId=${q}`,
+            // Fallback to submissions-style routes (require auth)
             `/v1/missions/${missionId}/submissions`,
             `/v1/submissions?missionId=${q}`,
             `/v1/submissions?mission_id=${q}`,
             `/v1/submissions?mission=${q}`,
             `/v1/submissions/by-mission/${missionId}`,
             `/v1/submissions/mission/${missionId}`,
-            // NEW: taskCompletions-style routes
-            `/v1/taskCompletions?missionId=${q}`,
-            `/v1/taskcompletions?missionId=${q}`,
-            `/v1/task-completions?missionId=${q}`,
-            `/v1/missions/${missionId}/taskCompletions`,
         ];
 
         let lastErr: any;
         for (const url of candidates) {
             try {
+                console.log('🔍 Trying submissions endpoint:', url);
                 const res = await makeRequest<any>(url);
                 const arr = toArray(res);
+                console.log('✅ Success with endpoint:', url, 'items:', arr.length);
 
                 // If this array looks like taskCompletions (has missionId/status/etc), normalize it
                 const looksLikeTC = arr.some((x: any) => x?.missionId || x?.taskId || x?.metadata || x?.userEmail);
-                return looksLikeTC ? arr.map(mapTC) : arr;
+                const result = looksLikeTC ? arr.map(mapTC) : arr;
+                console.log('📊 Final result:', { normalized: looksLikeTC, count: result.length });
+                return result;
             } catch (e) {
+                console.log('❌ Failed endpoint:', url, 'error:', e?.message);
                 lastErr = e;
             }
         }
