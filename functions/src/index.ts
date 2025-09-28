@@ -1292,82 +1292,211 @@ app.get('/v1/missions/:id/submissions', verifyFirebaseToken, async (req: any, re
   }
 });
 
-// Get task completions for a mission (for mission creators)
-app.get('/v1/missions/:missionId/taskCompletions', verifyFirebaseToken, async (req: any, res) => {
+// Normalize a taskCompletion doc to the UI's "submission-like" shape
+const toSubmission = (id: string, t: any) => {
+  const rawStatus = t?.status ?? 'pending';
+  const status = String(rawStatus).toLowerCase();
+
+  return {
+    id,
+    user_handle: t?.twitterHandle ?? null,
+    user_id: t?.userId ?? t?.userEmail ?? null,
+    created_at: t?.completedAt ?? t?.createdAt ?? t?.updatedAt ?? null,
+    status, // <-- show pending, submitted, verified, approved
+    tasks_count: 1,
+    verified_tasks: (status === 'verified' || status === 'approved') ? 1 : 0,
+  };
+};
+
+// URL normalization helper
+const normalizeUrl = (raw?: string | null) => {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    // normalize twitter domains
+    if (u.hostname === 'x.com') u.hostname = 'twitter.com';
+    if (u.hostname === 'www.x.com') u.hostname = 'twitter.com';
+    if (u.hostname === 'www.twitter.com') u.hostname = 'twitter.com';
+
+    // strip query + hash
+    u.search = '';
+    u.hash = '';
+
+    // lower-case hostname + pathname
+    u.hostname = u.hostname.toLowerCase();
+    // (leave pathname case as-is; twitter handles are lowercase anyway)
+
+    // remove trailing slash (keep /status/123)
+    if (u.pathname.endsWith('/') && !/\/status\/\d+\/$/.test(u.pathname)) {
+      u.pathname = u.pathname.replace(/\/+$/, '');
+    }
+    return u.toString();
+  } catch {
+    return raw; // if URL() fails, fall back to raw
+  }
+};
+
+// produce a small set of candidates we can try
+const urlCandidates = (raw?: string | null) => {
+  if (!raw) return [];
+  const cands = new Set<string>();
+  cands.add(raw);
+  const norm = normalizeUrl(raw);
+  if (norm) cands.add(norm);
+
+  // also try swapping x.com <-> twitter.com explicitly
+  for (const v of Array.from(cands)) {
+    if (v.includes('x.com')) cands.add(v.replace('x.com', 'twitter.com'));
+    if (v.includes('twitter.com')) cands.add(v.replace('twitter.com', 'x.com'));
+  }
+  return Array.from(cands).slice(0, 8); // keep under Firestore `in` 10 limit if you decide to use it later
+};
+
+// GET /v1/missions/:missionId/taskCompletions
+app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
   try {
     const { missionId } = req.params;
-    const userId = req.user.uid;
+    if (!missionId) return res.status(400).json({ error: 'Missing missionId' });
 
-    // Check if user is the mission creator
-    const missionDoc = await db.collection('missions').doc(missionId).get();
-    if (!missionDoc.exists) {
-      res.status(404).json({ error: 'Mission not found' });
-      return;
-    }
-
-    const mission = missionDoc.data();
-    if (!mission || mission.created_by !== userId) {
-      res.status(403).json({ error: 'Access denied. Only mission creator can view task completions.' });
-      return;
-    }
-
-    // Get task completions from Firestore
-    const snap = await db
-      .collection('taskCompletions')
+    // 1) try by missionId
+    let snap = await db.collection('taskCompletions')
       .where('missionId', '==', missionId)
-      .orderBy('createdAt', 'desc')
       .limit(500)
       .get();
 
-    const items = snap.docs.map(d => {
-      const t = d.data();
-      const status = String(t.status || 'pending').toLowerCase();
-      return {
-        id: d.id,
-        user_handle: t.twitterHandle ?? null,
-        user_id: t.userId ?? t.userEmail ?? null,
-        created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
-        status,
-        tasks_count: 1,
-        verified_tasks: (status === 'verified' || status === 'approved') ? 1 : 0,
-      };
-    });
+    // 2) if none, try by URL (tweetLink/contentLink) to bridge legacy data
+    if (snap.empty) {
+      const missionDoc = await db.collection('missions').doc(missionId).get();
+      if (missionDoc.exists) {
+        const m = missionDoc.data() as any;
+        const rawUrl = m?.tweetLink || m?.contentLink || null;
+        const tries = urlCandidates(rawUrl);
 
-    res.json({ items });
-  } catch (err: any) {
-    console.error('taskCompletions route error:', err);
-    res.status(500).json({ error: err?.message ?? 'Internal Server Error' });
+        // Try candidates one-by-one so we don't need composite indexes or `in` on nested fields
+        for (const candidate of tries) {
+          console.log('Fallback try:', candidate);
+          const s = await db.collection('taskCompletions')
+            .where('metadata.tweetUrl', '==', candidate)
+            .limit(500)
+            .get();
+          if (!s.empty) {
+            snap = s;
+            break;
+          }
+        }
+      }
+    }
+
+    // Always map all docs (pending, verified, approved, etc.)
+    const items = snap.docs.map(d => toSubmission(d.id, d.data()));
+    console.log('taskCompletions response:', { missionId, count: items.length, statuses: items.map(i => i.status) });
+    return res.json({ items });
+  } catch (e: any) {
+    console.error('taskCompletions route error', e);
+    return res.status(500).json({ error: e?.message ?? 'Internal Server Error' });
   }
 });
 
-// Get task completions count for instant clicks
-app.get('/v1/missions/:missionId/taskCompletions/count', verifyFirebaseToken, async (req: any, res) => {
+// (Optional) clicks shortcut for instant totals
+app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
   try {
     const { missionId } = req.params;
-    const userId = req.user.uid;
 
-    // Check if user is the mission creator
-    const missionDoc = await db.collection('missions').doc(missionId).get();
-    if (!missionDoc.exists) {
-      res.status(404).json({ error: 'Mission not found' });
-      return;
-    }
-
-    const mission = missionDoc.data();
-    if (!mission || mission.created_by !== userId) {
-      res.status(403).json({ error: 'Access denied. Only mission creator can view task completions.' });
-      return;
-    }
-
-    const snap = await db.collection('taskCompletions')
+    // primary
+    let snap = await db.collection('taskCompletions')
       .where('missionId', '==', missionId)
-      .where('status', 'in', ['verified','approved'])
+      .where('status', 'in', ['verified', 'approved'])
       .get();
-    
-    res.json({ count: snap.size });
-  } catch (err: any) {
-    console.error('taskCompletions count route error:', err);
-    res.status(500).json({ error: err?.message ?? 'Internal Server Error' });
+
+    // fallback by URL
+    if (snap.empty) {
+      const missionDoc = await db.collection('missions').doc(missionId).get();
+      if (missionDoc.exists) {
+        const m = missionDoc.data() as any;
+        const rawUrl = m?.tweetLink || m?.contentLink || null;
+        const tries = urlCandidates(rawUrl);
+
+        // Try candidates one-by-one
+        for (const candidate of tries) {
+          console.log('Count fallback try:', candidate);
+          const s = await db.collection('taskCompletions')
+            .where('metadata.tweetUrl', '==', candidate)
+            .where('status', 'in', ['verified', 'approved'])
+            .get();
+          if (!s.empty) {
+            snap = s;
+            break;
+          }
+        }
+      }
+    }
+
+    return res.json({ count: snap.size });
+  } catch (e: any) {
+    console.error('count route error', e);
+    return res.status(500).json({ error: e?.message ?? 'Internal Server Error' });
+  }
+});
+
+// Backfill script to align taskCompletions.missionId with mission document IDs
+app.post('/v1/admin/backfill-mission-ids', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    console.log('Starting missionId backfill by user:', userId);
+
+    // Optional: Add admin check here if you have admin users
+    // const userDoc = await db.collection('users').doc(userId).get();
+    // if (!userDoc.exists || !userDoc.data()?.isAdmin) {
+    //   return res.status(403).json({ error: 'Admin access required' });
+    // }
+
+    const tcSnap = await db.collection('taskCompletions').get();
+    const batch = db.batch();
+    let updated = 0;
+
+    for (const doc of tcSnap.docs) {
+      const t = doc.data() as any;
+      if (t.missionId) continue; // already linked
+
+      const rawUrl = t?.metadata?.tweetUrl || t?.contentUrl || null;
+      if (!rawUrl) continue;
+
+      const tries = urlCandidates(rawUrl);
+      let matched = false;
+
+      // Try candidates one-by-one
+      for (const candidate of tries) {
+        const msnap = await db.collection('missions')
+          .where('tweetLink', '==', candidate)
+          .limit(1)
+          .get();
+
+        if (!msnap.empty) {
+          const mid = msnap.docs[0].id;
+          batch.update(doc.ref, { missionId: mid });
+          updated++;
+          matched = true;
+          console.log(`Linking taskCompletion ${doc.id} to mission ${mid} via URL ${candidate} (from ${rawUrl})`);
+          break;
+        }
+      }
+
+      if (!matched) {
+        console.log(`No mission found for taskCompletion ${doc.id} with URL ${rawUrl}`);
+      }
+    }
+
+    await batch.commit();
+    console.log(`Backfill complete: ${updated} taskCompletions updated by user ${userId}`);
+    return res.json({
+      success: true,
+      updated,
+      total: tcSnap.size,
+      message: `Updated ${updated} out of ${tcSnap.size} taskCompletions`
+    });
+  } catch (e: any) {
+    console.error('backfill error', e);
+    return res.status(500).json({ error: e?.message ?? 'Internal Server Error' });
   }
 });
 

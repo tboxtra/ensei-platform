@@ -179,6 +179,11 @@ export function MissionListItem({
                     <div className="px-3 py-2 border-b border-white/5 text-[11px] text-gray-400 flex items-center gap-2">
                         <div className="w-4 h-4 rounded-full bg-emerald-500/20" />
                         <span>Submissions</span>
+                        {Array.isArray(subs) && subs.length > 0 && (
+                            <span className="text-[10px] text-gray-500">
+                                ({subs.filter(s => s.status === 'verified' || s.status === 'approved').length} verified, {subs.filter(s => s.status === 'pending').length} pending)
+                            </span>
+                        )}
                         <button
                             onClick={async () => {
                                 try {
