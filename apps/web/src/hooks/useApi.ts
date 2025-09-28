@@ -522,36 +522,56 @@ export function useApi() {
 
         const LABELS: Record<string, string> = {
             like: 'like', retweet: 'retweet', comment: 'comment', quote: 'quote', follow: 'follow',
-            // add any others here as needed
         };
 
+        const pickHandle = (t: any) =>
+            t?.twitterHandle ??
+            t?.user_handle ??
+            t?.handle ??
+            t?.metadata?.twitterHandle ??
+            t?.metadata?.handle ??
+            t?.user?.twitterHandle ??
+            null;
+
+        const pickFirstName = (t: any) =>
+            t?.firstName ??
+            t?.first_name ??
+            t?.userFirstName ??
+            t?.user_first_name ??
+            t?.userName ??                // many backends dump first name here
+            t?.user_name ??
+            t?.displayName ??
+            t?.display_name ??
+            t?.profile?.firstName ??
+            null;
+
         const mapTC = (t: any) => {
-            const rawStatus = (t.status ?? 'pending').toString().toLowerCase();
-            // Convert all pending states to verified
-            const normalizedStatus = rawStatus === 'pending' ? 'verified' : rawStatus;
-            
+            const raw = (t.status ?? 'pending').toString().toLowerCase();
+            const status = raw === 'pending' ? 'verified' : raw;   // 🔒 kill pending
+
             const taskId =
                 nice(t.taskId) ||
                 nice(t.actionId) ||
                 nice(t?.metadata?.actionId) ||
-                nice(t?.metadata?.taskId);
+                nice(t?.metadata?.taskId) ||
+                nice(t?.metadata?.task);
 
-            const taskLabel =
+            const task_label =
                 LABELS[taskId] ||
-                LABELS[nice((t?.metadata?.taskName || t?.metadata?.task || ''))] ||
+                LABELS[nice(t?.metadata?.taskName)] ||
                 (taskId || 'task');
 
             return {
                 id: t.id ?? t.docId ?? t._id ?? crypto.randomUUID(),
-                user_handle: t.twitterHandle ?? t.user_handle ?? null,       // <- prefer handle
-                user_id: t.userId ?? t.user_id ?? t.userEmail ?? null,
-                user_name: t.userName ?? t.user_name ?? t.displayName ?? t.display_name ?? null, // <- profile first name
+                user_handle: pickHandle(t),
+                user_name: pickFirstName(t),                           // ✅ first-name fallback
+                user_id: t.userId ?? t.user_id ?? t.userEmail ?? t.email ?? null,
                 created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
-                status: normalizedStatus,                                    // verified | approved | flagged (no pending)
+                status,                                                // verified | approved | flagged
                 tasks_count: 1,
-                verified_tasks: (normalizedStatus === 'verified' || normalizedStatus === 'approved') ? 1 : 0,
+                verified_tasks: (status === 'verified' || status === 'approved') ? 1 : 0,
                 task_id: taskId,
-                task_label: taskLabel,                                       // <- human-readable task name
+                task_label,
                 _raw: t,
             };
         };

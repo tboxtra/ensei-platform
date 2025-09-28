@@ -42,16 +42,51 @@ export function MissionListItem({
     const [open, setOpen] = useState(false);
     const [busyId, setBusyId] = useState<string | null>(null);
 
-    // 1) Start from payload submissions (ONLY if there are items)
+    // Helper functions for normalization
+    const toTaskLabel = (id?: string) => {
+        const k = String(id || '').toLowerCase().replace(/^auto_/, '');
+        return ['like','retweet','comment','quote','follow'].includes(k) ? k : (k || 'task');
+    };
+
+    const normalizeSub = (s: any) => {
+        const raw = String(s?.status ?? 'verified').toLowerCase();
+        const status = raw === 'pending' ? 'verified' : raw; // 🔒 no pending
+
+        const user_handle =
+            s?.user_handle ??
+            s?._raw?.metadata?.twitterHandle ??
+            s?._raw?.twitterHandle ??
+            null;
+
+        const user_name =
+            s?.user_name ??
+            s?._raw?.firstName ??
+            s?._raw?.first_name ??
+            s?._raw?.userFirstName ??
+            s?._raw?.user_first_name ??
+            s?._raw?.userName ??
+            s?._raw?.user_name ??
+            s?._raw?.displayName ??
+            s?._raw?.display_name ??
+            null;
+
+        const task_label =
+            s?.task_label ??
+            toTaskLabel(s?.task_id ?? s?._raw?.taskId ?? s?._raw?.actionId ?? s?._raw?.metadata?.taskId ?? s?._raw?.metadata?.task);
+
+        return { ...s, status, user_handle, user_name, task_label };
+    };
+
+    // 1) Start from payload submissions (ONLY if there are items) - normalize them
     const payloadSubs: any[] | null =
         Array.isArray(mission?.__submissions ?? mission?.submissions) &&
         (mission.__submissions ?? mission.submissions).length > 0
-            ? (mission.__submissions ?? mission.submissions)
+            ? (mission.__submissions ?? mission.submissions).map(normalizeSub) // <-- normalize
             : null;
 
-    // 2) Seed local state with payload items (so UI is instant)
+    // 2) Seed local state with normalized payload items (so UI is instant)
     const [subs, setSubs] = useState<any[] | null>(payloadSubs);
-    
+
     // 3) Auto-fetch submissions on mount to show clicks immediately
     useEffect(() => {
         if (subs !== null) return; // we already have data
@@ -60,7 +95,7 @@ export function MissionListItem({
                 setSubsLoading(true);
                 setSubsError(null);
                 const data = await api.getMissionSubmissions(mission.id);
-                setSubs(Array.isArray(data) && data.length > 0 ? data : []);
+                setSubs(Array.isArray(data) && data.length > 0 ? data.map(normalizeSub) : []);
             } catch (e: any) {
                 const details =
                     e?.body?.error ?? e?.body?.message ?? e?.message ?? 'Failed to load submissions';
@@ -78,10 +113,10 @@ export function MissionListItem({
     const displayStatus: string = mission.__displayStatus ?? mission.status ?? 'draft';
     const usdCost = getUsd(mission);
 
-    // 3) Clicks – prefer actual submissions; fall back to mission counters
+    // 3) Clicks = number of rows shown (not verified sum)
     const clicks = useMemo(() => {
-        if (Array.isArray(subs)) return sumVerifiedClicks(subs);
-        if (mission?.__verifiedClicks != null) return Number(mission.__verifiedClicks) || 0; // <-- use hint
+        if (Array.isArray(subs)) return subs.length; // ✅ match list size
+        if (mission?.__verifiedClicks != null) return Number(mission.__verifiedClicks) || 0;
         return Number(
             mission?.verified_clicks ??
             mission?.verifiedCount ??
@@ -89,8 +124,7 @@ export function MissionListItem({
             mission?.stats?.verified_tasks_total ??
             mission?.submissions_verified_tasks ??
             mission?.tasks_done ??
-            mission?.clicks ??
-            0
+            mission?.clicks ?? 0
         ) || 0;
     }, [subs, mission]);
 
@@ -103,7 +137,7 @@ export function MissionListItem({
                 setSubsLoading(true);
                 setSubsError(null);
                 const data = await api.getMissionSubmissions(mission.id);
-                setSubs(Array.isArray(data) && data.length > 0 ? data : []);
+                setSubs(Array.isArray(data) && data.length > 0 ? data.map(normalizeSub) : []);
             } catch (e: any) {
                 const details =
                     e?.body?.error ?? e?.body?.message ?? e?.message ?? 'Failed to load submissions';
@@ -199,11 +233,15 @@ export function MissionListItem({
                     <div className="px-3 py-2 border-b border-white/5 text-[11px] text-gray-400 flex items-center gap-2">
                         <div className="w-4 h-4 rounded-full bg-emerald-500/20" />
                         <span>Submissions</span>
-                        {Array.isArray(subs) && subs.length > 0 && (
+                    {Array.isArray(subs) && subs.length > 0 && (() => {
+                        const flagged = subs.filter(s => String(s.status).toLowerCase() === 'flagged').length;
+                        const verified = subs.length - flagged; // everything else is verified
+                        return (
                             <span className="text-[10px] text-gray-500">
-                                ({subs.filter(s => s.status === 'verified' || s.status === 'approved').length} verified, {subs.filter(s => s.status === 'pending').length} pending)
+                                ({verified} verified, {flagged} flagged)
                             </span>
-                        )}
+                        );
+                    })()}
                         <button
                             onClick={async () => {
                                 try {
@@ -234,7 +272,8 @@ export function MissionListItem({
                                 <div className="px-3 py-3 text-[12px] text-gray-400">No submissions yet.</div>
                             )}
 
-                            {(subs ?? []).map((s: any) => {
+                            {(subs ?? []).map((raw: any) => {
+                                const s = normalizeSub(raw);
                                 const createdAt = s?.created_at ? new Date(s.created_at) : null;
                                 const status = String(s?.status ?? 'verified').toLowerCase(); // Default to verified
                                 const isVerified = status === 'verified' || status === 'approved';
@@ -247,11 +286,9 @@ export function MissionListItem({
                                     <div key={s.id} className="px-3 py-2 text-[12px] flex items-center gap-2">
                                         <div className="flex-1 min-w-0">
                                             <div className="truncate text-white">
-                                                {s?.user_handle 
-                                                    ? `@${s.user_handle}` 
-                                                    : s?.user_name 
-                                                        ? s.user_name 
-                                                        : (s?.user_id ?? 'unknown')}
+                                                {s?.user_handle
+                                                    ? `@${s.user_handle}`
+                                                    : (s?.user_name ?? (s?.user_id ?? 'unknown'))}
                                             </div>
 
                                             <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
@@ -268,11 +305,10 @@ export function MissionListItem({
 
                                                 {/* status chip */}
                                                 <span
-                                                    className={`${pill} ${
-                                                        isFlagged
-                                                            ? 'bg-red-500/10 text-red-300 border-red-400/30'
-                                                            : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                                                    }`}
+                                                    className={`${pill} ${isFlagged
+                                                        ? 'bg-red-500/10 text-red-300 border-red-400/30'
+                                                        : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                                        }`}
                                                 >
                                                     {status}
                                                 </span>
