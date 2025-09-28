@@ -1298,14 +1298,78 @@ const toSubmission = (id: string, t: any) => {
   const rawStatus = t?.status ?? 'pending';
   const status = String(rawStatus).toLowerCase();
 
+  // Extract user handle from multiple possible fields
+  const user_handle = t?.twitterHandle ?? 
+    t?.user_handle ?? 
+    t?.handle ?? 
+    t?.twitter?.username ?? 
+    t?.twitterUsername ?? 
+    t?.metadata?.twitterHandle ?? 
+    t?.metadata?.handle ?? 
+    t?.metadata?.twitter?.username ?? 
+    t?.metadata?.twitter_username ?? 
+    t?.screen_name ?? 
+    t?.user?.twitterHandle ?? 
+    t?.user?.twitter?.handle ?? 
+    t?.profile?.twitterHandle ?? 
+    t?.profile?.twitter?.handle ?? 
+    null;
+
+  // Extract user name from multiple possible fields
+  const firstFrom = (name?: string) => (name || '').trim().split(/\s+/)[0] || null;
+  const user_name = t?.firstName ?? 
+    t?.first_name ?? 
+    t?.userFirstName ?? 
+    t?.user_first_name ?? 
+    firstFrom(t?.userName) ?? 
+    firstFrom(t?.user_name) ?? 
+    firstFrom(t?.displayName) ?? 
+    firstFrom(t?.display_name) ?? 
+    firstFrom(t?.name) ?? 
+    firstFrom(t?.profile?.name) ?? 
+    t?.profile?.firstName ?? 
+    t?.user?.firstName ?? 
+    t?.user?.profile?.firstName ?? 
+    null;
+
+  // Extract task information
+  const nice = (s: string) => String(s || '').toLowerCase().replace(/^auto_/, '');
+  const taskId = nice(t.taskId) ||
+    nice(t.actionId) ||
+    nice(t.type) ||
+    nice(t.action) ||
+    nice(t.activity) ||
+    nice(t.eventType) ||
+    nice(t?.task?.type) ||
+    nice(t?.task?.action) ||
+    nice(t?.metadata?.taskId) ||
+    nice(t?.metadata?.actionId) ||
+    nice(t?.metadata?.task) ||
+    nice(t?.metadata?.action) ||
+    nice(t?.metadata?.taskName);
+
+  const LABELS: Record<string, string> = {
+    like: 'like', like_tweet: 'like', favorite: 'like',
+    retweet: 'retweet', repost: 'retweet', rt: 'retweet',
+    comment: 'comment', reply: 'comment',
+    quote: 'quote', quote_tweet: 'quote',
+    follow: 'follow', follow_user: 'follow'
+  };
+
+  const task_label = LABELS[taskId] || taskId || 'task';
+
   return {
     id,
-    user_handle: t?.twitterHandle ?? null,
-    user_id: t?.userId ?? t?.userEmail ?? null,
+    user_handle,
+    user_name,
+    user_id: t?.userId ?? t?.user_id ?? t?.userEmail ?? t?.email ?? t?.uid ?? null,
     created_at: t?.completedAt ?? t?.createdAt ?? t?.updatedAt ?? null,
     status, // <-- show pending, submitted, verified, approved
     tasks_count: 1,
     verified_tasks: (status === 'verified' || status === 'approved') ? 1 : 0,
+    task_id: taskId,
+    task_label,
+    _raw: t, // Include raw data for debugging
   };
 };
 

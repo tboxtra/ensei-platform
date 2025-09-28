@@ -44,23 +44,23 @@ export function MissionListItem({
 
     // Helper functions for normalization
     const toTaskLabel = (s: any) => {
-            const id =
-                String((s?.task_id ??
-                    s?._raw?.taskId ??
-                    s?._raw?.actionId ??
-                    s?._raw?.type ??
-                    s?._raw?.action ??
-                    s?._raw?.activity ??
-                    s?._raw?.eventType ??
-                    s?._raw?.task?.type ??
-                    s?._raw?.task?.action ??
-                    s?._raw?.metadata?.taskId ??
-                    s?._raw?.metadata?.actionId ??
-                    s?._raw?.metadata?.task ??
-                    s?._raw?.metadata?.action ??
-                    s?._raw?.metadata?.taskName) ||
-                    ''
-                ).toLowerCase().replace(/^auto_/, '');
+        const id =
+            String((s?.task_id ??
+                s?._raw?.taskId ??
+                s?._raw?.actionId ??
+                s?._raw?.type ??
+                s?._raw?.action ??
+                s?._raw?.activity ??
+                s?._raw?.eventType ??
+                s?._raw?.task?.type ??
+                s?._raw?.task?.action ??
+                s?._raw?.metadata?.taskId ??
+                s?._raw?.metadata?.actionId ??
+                s?._raw?.metadata?.task ??
+                s?._raw?.metadata?.action ??
+                s?._raw?.metadata?.taskName) ||
+                ''
+            ).toLowerCase().replace(/^auto_/, '');
         const LABELS: Record<string, string> = {
             like: 'like', like_tweet: 'like', favorite: 'like',
             retweet: 'retweet', repost: 'retweet', rt: 'retweet',
@@ -122,7 +122,7 @@ export function MissionListItem({
     const payloadSubs: any[] | null =
         Array.isArray(mission?.__submissions ?? mission?.submissions) &&
             (mission.__submissions ?? mission.submissions).length > 0
-            ? (mission.__submissions ?? mission.submissions).map(normalizeSub) // <-- normalize
+            ? (mission.__submissions ?? mission.submissions).map(normalizeSub) // <-- normalize payload data
             : null;
 
     // 2) Seed local state with normalized payload items (so UI is instant)
@@ -136,7 +136,7 @@ export function MissionListItem({
                 setSubsLoading(true);
                 setSubsError(null);
                 const data = await api.getMissionSubmissions(mission.id);
-                setSubs(Array.isArray(data) && data.length > 0 ? data.map(normalizeSub) : []);
+                setSubs(Array.isArray(data) && data.length > 0 ? data : []); // Data is already normalized by useApi
             } catch (e: any) {
                 const details =
                     e?.body?.error ?? e?.body?.message ?? e?.message ?? 'Failed to load submissions';
@@ -289,7 +289,7 @@ export function MissionListItem({
                                     setSubsLoading(true);
                                     setSubsError(null);
                                     const data = await api.getMissionSubmissions(mission.id);
-                                    setSubs(Array.isArray(data) && data.length > 0 ? data.map(normalizeSub) : []);
+                                    setSubs(Array.isArray(data) && data.length > 0 ? data : []); // Data is already normalized by useApi
                                 } catch (e: any) {
                                     const details =
                                         e?.body?.error ?? e?.body?.message ?? e?.message ?? 'Failed to load submissions';
