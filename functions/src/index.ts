@@ -1299,37 +1299,37 @@ const toSubmission = (id: string, t: any) => {
   const status = String(rawStatus).toLowerCase();
 
   // Extract user handle from multiple possible fields
-  const user_handle = t?.twitterHandle ?? 
-    t?.user_handle ?? 
-    t?.handle ?? 
-    t?.twitter?.username ?? 
-    t?.twitterUsername ?? 
-    t?.metadata?.twitterHandle ?? 
-    t?.metadata?.handle ?? 
-    t?.metadata?.twitter?.username ?? 
-    t?.metadata?.twitter_username ?? 
-    t?.screen_name ?? 
-    t?.user?.twitterHandle ?? 
-    t?.user?.twitter?.handle ?? 
-    t?.profile?.twitterHandle ?? 
-    t?.profile?.twitter?.handle ?? 
+  const user_handle = t?.twitterHandle ??
+    t?.user_handle ??
+    t?.handle ??
+    t?.twitter?.username ??
+    t?.twitterUsername ??
+    t?.metadata?.twitterHandle ??
+    t?.metadata?.handle ??
+    t?.metadata?.twitter?.username ??
+    t?.metadata?.twitter_username ??
+    t?.screen_name ??
+    t?.user?.twitterHandle ??
+    t?.user?.twitter?.handle ??
+    t?.profile?.twitterHandle ??
+    t?.profile?.twitter?.handle ??
     null;
 
   // Extract user name from multiple possible fields
   const firstFrom = (name?: string) => (name || '').trim().split(/\s+/)[0] || null;
-  const user_name = t?.firstName ?? 
-    t?.first_name ?? 
-    t?.userFirstName ?? 
-    t?.user_first_name ?? 
-    firstFrom(t?.userName) ?? 
-    firstFrom(t?.user_name) ?? 
-    firstFrom(t?.displayName) ?? 
-    firstFrom(t?.display_name) ?? 
-    firstFrom(t?.name) ?? 
-    firstFrom(t?.profile?.name) ?? 
-    t?.profile?.firstName ?? 
-    t?.user?.firstName ?? 
-    t?.user?.profile?.firstName ?? 
+  const user_name = t?.firstName ??
+    t?.first_name ??
+    t?.userFirstName ??
+    t?.user_first_name ??
+    firstFrom(t?.userName) ??
+    firstFrom(t?.user_name) ??
+    firstFrom(t?.displayName) ??
+    firstFrom(t?.display_name) ??
+    firstFrom(t?.name) ??
+    firstFrom(t?.profile?.name) ??
+    t?.profile?.firstName ??
+    t?.user?.firstName ??
+    t?.user?.profile?.firstName ??
     null;
 
   // Extract task information

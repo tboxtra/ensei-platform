@@ -136,6 +136,8 @@ export function MissionListItem({
                 setSubsLoading(true);
                 setSubsError(null);
                 const data = await api.getMissionSubmissions(mission.id);
+                console.log('🔍 Raw submissions data from API:', data);
+                console.log('🔍 Sample submission structure:', data?.[0]);
                 setSubs(Array.isArray(data) && data.length > 0 ? data : []); // Data is already normalized by useApi
             } catch (e: any) {
                 const details =
@@ -260,13 +262,13 @@ export function MissionListItem({
                         )}
                     >
                         {displayStatus}
-                    </span>
+                        </span>
 
                     <ModernButton size="sm" variant="secondary" onClick={() => setOpen(v => !v)} className="ml-1">
                         {open ? 'Hide' : 'Submissions'}
                     </ModernButton>
                 </div>
-            </div>
+                </div>
 
             {/* Submissions dropdown */}
             {open && (
@@ -289,6 +291,8 @@ export function MissionListItem({
                                     setSubsLoading(true);
                                     setSubsError(null);
                                     const data = await api.getMissionSubmissions(mission.id);
+                                    console.log('🔍 Retry - Raw submissions data from API:', data);
+                                    console.log('🔍 Retry - Sample submission structure:', data?.[0]);
                                     setSubs(Array.isArray(data) && data.length > 0 ? data : []); // Data is already normalized by useApi
                                 } catch (e: any) {
                                     const details =
@@ -315,6 +319,7 @@ export function MissionListItem({
 
                             {(subs ?? []).map((raw: any) => {
                                 const s = normalizeSub(raw);
+                                console.log('🔍 Rendering submission:', { raw, normalized: s });
                                 const createdAt = s?.created_at ? new Date(s.created_at) : null;
                                 const status = String(s?.status ?? 'verified').toLowerCase(); // Default to verified
                                 const isVerified = status === 'verified' || status === 'approved';
@@ -352,8 +357,8 @@ export function MissionListItem({
                                                         }`}
                                                 >
                                                     {status}
-                                                </span>
-                                            </div>
+                                            </span>
+                                        </div>
                                         </div>
 
                                         {/* ONE action only:
