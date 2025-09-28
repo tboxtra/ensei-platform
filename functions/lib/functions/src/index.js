@@ -1198,52 +1198,22 @@ const toSubmission = (id, t) => {
         verified_tasks: (status === 'verified' || status === 'approved') ? 1 : 0,
     };
 };
-// URL normalization helper
+// URL normalization helper (defensive)
 const normalizeUrl = (raw) => {
-    if (!raw)
-        return null;
+    if (!raw || typeof raw !== 'string')
+        return '';
     try {
-        const u = new URL(raw);
-        // normalize twitter domains
-        if (u.hostname === 'x.com')
-            u.hostname = 'twitter.com';
-        if (u.hostname === 'www.x.com')
-            u.hostname = 'twitter.com';
-        if (u.hostname === 'www.twitter.com')
-            u.hostname = 'twitter.com';
-        // strip query + hash
-        u.search = '';
-        u.hash = '';
-        // lower-case hostname + pathname
-        u.hostname = u.hostname.toLowerCase();
-        // (leave pathname case as-is; twitter handles are lowercase anyway)
-        // remove trailing slash (keep /status/123)
-        if (u.pathname.endsWith('/') && !/\/status\/\d+\/$/.test(u.pathname)) {
-            u.pathname = u.pathname.replace(/\/+$/, '');
-        }
-        return u.toString();
+        const u = new URL(raw.trim());
+        // normalize host
+        const host = u.hostname.replace(/^www\./i, '').toLowerCase()
+            .replace(/^x\.com$/i, 'twitter.com'); // x.com -> twitter.com
+        // strip query + trailing slash
+        const path = u.pathname.replace(/\/+$/, '');
+        return `https://${host}${path}`;
     }
     catch {
-        return raw; // if URL() fails, fall back to raw
+        return (raw || '').trim().toLowerCase().replace(/^www\./, '');
     }
-};
-// produce a small set of candidates we can try
-const urlCandidates = (raw) => {
-    if (!raw)
-        return [];
-    const cands = new Set();
-    cands.add(raw);
-    const norm = normalizeUrl(raw);
-    if (norm)
-        cands.add(norm);
-    // also try swapping x.com <-> twitter.com explicitly
-    for (const v of Array.from(cands)) {
-        if (v.includes('x.com'))
-            cands.add(v.replace('x.com', 'twitter.com'));
-        if (v.includes('twitter.com'))
-            cands.add(v.replace('twitter.com', 'x.com'));
-    }
-    return Array.from(cands).slice(0, 8); // keep under Firestore `in` 10 limit if you decide to use it later
 };
 // GET /v1/missions/:missionId/taskCompletions
 app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
@@ -1251,33 +1221,29 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
         const { missionId } = req.params;
         if (!missionId)
             return res.status(400).json({ error: 'Missing missionId' });
-        // 1) try by missionId
-        let snap = await db.collection('taskCompletions')
-            .where('missionId', '==', missionId)
-            .limit(500)
-            .get();
-        // 2) if none, try by URL (tweetLink/contentLink) to bridge legacy data
+        const coll = db.collection('taskCompletions');
+        // 1) direct missionId
+        let snap = await coll.where('missionId', '==', missionId).limit(500).get();
+        // 2) fallback by normalized URL
         if (snap.empty) {
             const missionDoc = await db.collection('missions').doc(missionId).get();
             if (missionDoc.exists) {
                 const m = missionDoc.data();
-                const rawUrl = m?.tweetLink || m?.contentLink || null;
-                const tries = urlCandidates(rawUrl);
-                // Try candidates one-by-one so we don't need composite indexes or `in` on nested fields
-                for (const candidate of tries) {
-                    console.log('Fallback try:', candidate);
-                    const s = await db.collection('taskCompletions')
-                        .where('metadata.tweetUrl', '==', candidate)
-                        .limit(500)
-                        .get();
+                const urlCandidates = [
+                    m?.tweetLink, m?.contentLink,
+                    normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink),
+                ].filter(Boolean);
+                console.log('Fallback try candidates:', urlCandidates);
+                for (const u of urlCandidates) {
+                    const s = await coll.where('metadata.tweetUrl', '==', u).limit(500).get();
                     if (!s.empty) {
                         snap = s;
+                        console.log('Found submissions via URL:', u);
                         break;
                     }
                 }
             }
         }
-        // Always map all docs (pending, verified, approved, etc.)
         const items = snap.docs.map(d => toSubmission(d.id, d.data()));
         console.log('taskCompletions response:', { missionId, count: items.length, statuses: items.map(i => i.status) });
         return res.json({ items });
@@ -1301,13 +1267,13 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
             const missionDoc = await db.collection('missions').doc(missionId).get();
             if (missionDoc.exists) {
                 const m = missionDoc.data();
-                const rawUrl = m?.tweetLink || m?.contentLink || null;
-                const tries = urlCandidates(rawUrl);
-                // Try candidates one-by-one
-                for (const candidate of tries) {
-                    console.log('Count fallback try:', candidate);
+                const urlCandidates = [
+                    m?.tweetLink, m?.contentLink,
+                    normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink),
+                ].filter(Boolean);
+                for (const u of urlCandidates) {
                     const s = await db.collection('taskCompletions')
-                        .where('metadata.tweetUrl', '==', candidate)
+                        .where('metadata.tweetUrl', '==', u)
                         .where('status', 'in', ['verified', 'approved'])
                         .get();
                     if (!s.empty) {
@@ -1344,10 +1310,13 @@ app.post('/v1/admin/backfill-mission-ids', verifyFirebaseToken, async (req, res)
             const rawUrl = t?.metadata?.tweetUrl || t?.contentUrl || null;
             if (!rawUrl)
                 continue;
-            const tries = urlCandidates(rawUrl);
+            const urlCandidates = [
+                rawUrl,
+                normalizeUrl(rawUrl),
+            ].filter(Boolean);
             let matched = false;
             // Try candidates one-by-one
-            for (const candidate of tries) {
+            for (const candidate of urlCandidates) {
                 const msnap = await db.collection('missions')
                     .where('tweetLink', '==', candidate)
                     .limit(1)
