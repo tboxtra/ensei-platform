@@ -1229,10 +1229,10 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
             const missionDoc = await db.collection('missions').doc(missionId).get();
             if (missionDoc.exists) {
                 const m = missionDoc.data();
-                const urlCandidates = [
-                    m?.tweetLink, m?.contentLink,
-                    normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink),
-                ].filter(Boolean);
+                const urlCandidates = [...new Set([
+                        m?.tweetLink, m?.contentLink,
+                        normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
+                    ].filter(v => typeof v === 'string' && v.length > 5))];
                 console.log('Fallback try candidates:', urlCandidates);
                 for (const u of urlCandidates) {
                     const s = await coll.where('metadata.tweetUrl', '==', u).limit(500).get();
@@ -1267,10 +1267,10 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
             const missionDoc = await db.collection('missions').doc(missionId).get();
             if (missionDoc.exists) {
                 const m = missionDoc.data();
-                const urlCandidates = [
-                    m?.tweetLink, m?.contentLink,
-                    normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink),
-                ].filter(Boolean);
+                const urlCandidates = [...new Set([
+                        m?.tweetLink, m?.contentLink,
+                        normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
+                    ].filter(v => typeof v === 'string' && v.length > 5))];
                 for (const u of urlCandidates) {
                     const s = await db.collection('taskCompletions')
                         .where('metadata.tweetUrl', '==', u)
@@ -1310,10 +1310,10 @@ app.post('/v1/admin/backfill-mission-ids', verifyFirebaseToken, async (req, res)
             const rawUrl = t?.metadata?.tweetUrl || t?.contentUrl || null;
             if (!rawUrl)
                 continue;
-            const urlCandidates = [
-                rawUrl,
-                normalizeUrl(rawUrl),
-            ].filter(Boolean);
+            const urlCandidates = [...new Set([
+                    rawUrl,
+                    normalizeUrl(rawUrl)
+                ].filter(v => typeof v === 'string' && v.length > 5))];
             let matched = false;
             // Try candidates one-by-one
             for (const candidate of urlCandidates) {

@@ -1317,10 +1317,10 @@ const normalizeUrl = (raw?: string) => {
     const host = u.hostname.replace(/^www\./i, '').toLowerCase()
       .replace(/^x\.com$/i, 'twitter.com'); // x.com -> twitter.com
     // strip query + trailing slash
-    const path = u.pathname.replace(/\/+$/,'');
+    const path = u.pathname.replace(/\/+$/, '');
     return `https://${host}${path}`;
   } catch {
-    return (raw || '').trim().toLowerCase().replace(/^www\./,'');
+    return (raw || '').trim().toLowerCase().replace(/^www\./, '');
   }
 };
 
@@ -1340,19 +1340,19 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
       const missionDoc = await db.collection('missions').doc(missionId).get();
       if (missionDoc.exists) {
         const m: any = missionDoc.data();
-        const urlCandidates = [
-          m?.tweetLink, m?.contentLink,
-          normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink),
-        ].filter(Boolean);
+        const urlCandidates = [...new Set([
+          m?.tweetLink, m?.contentLink, 
+          normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
+        ].filter(v => typeof v === 'string' && v.length > 5))];
 
         console.log('Fallback try candidates:', urlCandidates);
 
         for (const u of urlCandidates) {
           const s = await coll.where('metadata.tweetUrl', '==', u).limit(500).get();
-          if (!s.empty) { 
-            snap = s; 
+          if (!s.empty) {
+            snap = s;
             console.log('Found submissions via URL:', u);
-            break; 
+            break;
           }
         }
       }
@@ -1383,10 +1383,10 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
       const missionDoc = await db.collection('missions').doc(missionId).get();
       if (missionDoc.exists) {
         const m: any = missionDoc.data();
-        const urlCandidates = [
-          m?.tweetLink, m?.contentLink,
-          normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink),
-        ].filter(Boolean);
+        const urlCandidates = [...new Set([
+          m?.tweetLink, m?.contentLink, 
+          normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
+        ].filter(v => typeof v === 'string' && v.length > 5))];
 
         for (const u of urlCandidates) {
           const s = await db.collection('taskCompletions')
@@ -1431,10 +1431,10 @@ app.post('/v1/admin/backfill-mission-ids', verifyFirebaseToken, async (req: any,
       const rawUrl = t?.metadata?.tweetUrl || t?.contentUrl || null;
       if (!rawUrl) continue;
 
-      const urlCandidates = [
+      const urlCandidates = [...new Set([
         rawUrl,
-        normalizeUrl(rawUrl),
-      ].filter(Boolean);
+        normalizeUrl(rawUrl)
+      ].filter(v => typeof v === 'string' && v.length > 5))];
       let matched = false;
 
       // Try candidates one-by-one
