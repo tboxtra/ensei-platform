@@ -562,8 +562,8 @@ export function useApi() {
                 const result = looksLikeTC ? arr.map(mapTC) : arr;
                 console.log('📊 Final result:', { normalized: looksLikeTC, count: result.length });
                 return result;
-            } catch (e) {
-                console.log('❌ Failed endpoint:', url, 'error:', e?.message);
+            } catch (e: any) {
+                console.log('❌ Failed endpoint:', url, 'error:', e?.message || e);
                 lastErr = e;
             }
         }
