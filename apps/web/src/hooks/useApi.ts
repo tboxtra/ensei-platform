@@ -518,19 +518,39 @@ export function useApi() {
         };
 
         // maps a taskCompletion doc to the UI's submission shape
-        const mapTC = (t: any) => ({
-            id: t.id ?? t.docId ?? t._id ?? crypto.randomUUID(),
-            // NB: keep fields UI reads:
-            user_handle: t.twitterHandle ?? t.user_handle ?? null,
-            user_id: t.userId ?? t.user_id ?? t.userEmail ?? null,
-            created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
-            status: (t.status ?? 'pending').toLowerCase(),           // "verified"/"approved"/"pending"
-            tasks_count: 1,                                           // one task per completion
-            verified_tasks: (String(t.status ?? '').toLowerCase() === 'verified' ||
-                String(t.status ?? '').toLowerCase() === 'approved') ? 1 : 0,
-            // keep some raw for debugging if needed
-            _raw: t,
-        });
+        const nice = (s: string) => String(s || '').toLowerCase().replace(/^auto_/, '');
+
+        const LABELS: Record<string, string> = {
+            like: 'like', retweet: 'retweet', comment: 'comment', quote: 'quote', follow: 'follow',
+            // add any others here as needed
+        };
+
+        const mapTC = (t: any) => {
+            const rawStatus = (t.status ?? 'pending').toString().toLowerCase();
+            const taskId =
+                nice(t.taskId) ||
+                nice(t.actionId) ||
+                nice(t?.metadata?.actionId) ||
+                nice(t?.metadata?.taskId);
+
+            const taskLabel =
+                LABELS[taskId] ||
+                LABELS[nice((t?.metadata?.taskName || t?.metadata?.task || ''))] ||
+                (taskId || 'task');
+
+            return {
+                id: t.id ?? t.docId ?? t._id ?? crypto.randomUUID(),
+                user_handle: t.twitterHandle ?? t.user_handle ?? null,       // <- prefer handle
+                user_id: t.userId ?? t.user_id ?? t.userEmail ?? null,
+                created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
+                status: rawStatus,                                           // pending | verified | approved | flagged
+                tasks_count: 1,
+                verified_tasks: (rawStatus === 'verified' || rawStatus === 'approved') ? 1 : 0,
+                task_id: taskId,
+                task_label: taskLabel,                                       // <- human-readable task name
+                _raw: t,
+            };
+        };
 
         const q = encodeURIComponent(missionId);
 

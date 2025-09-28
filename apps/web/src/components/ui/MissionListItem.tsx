@@ -216,51 +216,72 @@ export function MissionListItem({
 
                             {(subs ?? []).map((s: any) => {
                                 const createdAt = s?.created_at ? new Date(s.created_at) : null;
-                                const status = (s?.status ?? 'pending').toLowerCase();
+                                const status = String(s?.status ?? 'pending').toLowerCase();
                                 const isVerified = status === 'verified' || status === 'approved';
+                                const isFlagged = status === 'flagged';
+
+                                // tiny badge + pill styles (same visual rhythm as Discover & Earn)
+                                const pill = 'text-[10px] px-2 py-0.5 rounded-full border';
+
                                 return (
                                     <div key={s.id} className="px-3 py-2 text-[12px] flex items-center gap-2">
                                         <div className="flex-1 min-w-0">
                                             <div className="truncate text-white">
-                                                {s?.user_handle ? `@${s.user_handle}` : s?.user_id ?? 'unknown'}
+                                                {s?.user_handle ? `@${s.user_handle}` : (s?.user_id ?? 'unknown')}
                                             </div>
-                                            <div className="text-[11px] text-gray-400">
-                                                {createdAt && !isNaN(createdAt.getTime()) ? `Submitted ${createdAt.toLocaleString()}` : '—'}
-                                                {s?.tasks_count ? ` • tasks: ${s.tasks_count}` : ''}
-                                                {s?.verified_tasks ? ` • verified: ${s.verified_tasks}` : ''}
+
+                                            <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
+                                                {createdAt && !isNaN(createdAt.getTime())
+                                                    ? <span>Submitted {createdAt.toLocaleString()}</span>
+                                                    : <span>—</span>}
+
+                                                {/* task pill (like, retweet, …) */}
+                                                {s?.task_label && (
+                                                    <span className={`${pill} bg-white/5 border-white/15 text-gray-300`}>
+                                                        {s.task_label}
+                                                    </span>
+                                                )}
+
+                                                {/* status chip */}
+                                                <span
+                                                    className={`${pill} ${
+                                                        isFlagged
+                                                            ? 'bg-red-500/10 text-red-300 border-red-400/30'
+                                                            : isVerified
+                                                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                                                : 'bg-gray-600/15 text-gray-300 border-gray-500/30'
+                                                    }`}
+                                                >
+                                                    {status}
+                                                </span>
                                             </div>
                                         </div>
 
-                                        <span
-                                            className={clsx(
-                                                'px-1.5 py-0.5 rounded-full border text-[10px] mr-1',
-                                                isVerified
-                                                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                                                    : 'bg-gray-600/15 text-gray-300 border-gray-500/30'
-                                            )}
-                                        >
-                                            {status}
-                                        </span>
+                                        {/* ONE action only:
+                                            - if verified  -> show tiny Flag
+                                            - if flagged   -> show tiny Verify
+                                            - else         -> no actions (creators only flag/unflag verified tasks) */}
+                                        {isVerified && !isFlagged && (
+                                            <button
+                                                onClick={() => onFlag(s.id)}
+                                                disabled={busyId === s.id}
+                                                className={`${pill} bg-white/5 border-white/15 text-red-300 hover:border-red-400/40 hover:bg-red-500/10`}
+                                                title="Flag submission"
+                                            >
+                                                {busyId === s.id ? '…' : 'Flag'}
+                                            </button>
+                                        )}
 
-                                        <ModernButton
-                                            size="sm"
-                                            variant="danger"
-                                            onClick={() => onFlag(s.id)}
-                                            disabled={busyId === s.id}
-                                            className="border border-white/10 hover:border-red-400/40 hover:bg-red-500/10"
-                                        >
-                                            Flag
-                                        </ModernButton>
-
-                                        <ModernButton
-                                            size="sm"
-                                            variant="success"
-                                            onClick={() => onVerify(s.id)}
-                                            disabled={busyId === s.id || isVerified}
-                                            className={clsx('min-w-[72px]', isVerified && 'opacity-60 cursor-not-allowed')}
-                                        >
-                                            {isVerified ? 'Verified' : busyId === s.id ? 'Verifying…' : 'Verify'}
-                                        </ModernButton>
+                                        {isFlagged && (
+                                            <button
+                                                onClick={() => onVerify(s.id)}
+                                                disabled={busyId === s.id}
+                                                className={`${pill} bg-white/5 border-white/15 text-emerald-300 hover:border-emerald-400/40 hover:bg-emerald-500/10`}
+                                                title="Unflag (verify again)"
+                                            >
+                                                {busyId === s.id ? '…' : 'Verify'}
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
