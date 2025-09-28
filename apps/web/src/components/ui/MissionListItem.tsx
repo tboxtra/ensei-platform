@@ -44,23 +44,23 @@ export function MissionListItem({
 
     // Helper functions for normalization
     const toTaskLabel = (s: any) => {
-        const id =
-            String(s?.task_id ??
-                s?._raw?.taskId ??
-                s?._raw?.actionId ??
-                s?._raw?.type ??
-                s?._raw?.action ??
-                s?._raw?.activity ??
-                s?._raw?.eventType ??
-                s?._raw?.task?.type ??
-                s?._raw?.task?.action ??
-                s?._raw?.metadata?.taskId ??
-                s?._raw?.metadata?.actionId ??
-                s?._raw?.metadata?.task ??
-                s?._raw?.metadata?.action ??
-                s?._raw?.metadata?.taskName ||
-                ''
-            ).toLowerCase().replace(/^auto_/, '');
+            const id =
+                String((s?.task_id ??
+                    s?._raw?.taskId ??
+                    s?._raw?.actionId ??
+                    s?._raw?.type ??
+                    s?._raw?.action ??
+                    s?._raw?.activity ??
+                    s?._raw?.eventType ??
+                    s?._raw?.task?.type ??
+                    s?._raw?.task?.action ??
+                    s?._raw?.metadata?.taskId ??
+                    s?._raw?.metadata?.actionId ??
+                    s?._raw?.metadata?.task ??
+                    s?._raw?.metadata?.action ??
+                    s?._raw?.metadata?.taskName) ||
+                    ''
+                ).toLowerCase().replace(/^auto_/, '');
         const LABELS: Record<string, string> = {
             like: 'like', like_tweet: 'like', favorite: 'like',
             retweet: 'retweet', repost: 'retweet', rt: 'retweet',
