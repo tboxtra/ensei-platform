@@ -1260,6 +1260,7 @@ app.get('/v1/missions/:id/submissions', verifyFirebaseToken, async (req: any, re
   try {
     const missionId = req.params.id;
     const userId = req.user.uid;
+    console.log('🔍 OLD submissions endpoint called for missionId:', missionId, 'userId:', userId);
 
     // Check if user is the mission creator
     const missionDoc = await db.collection('missions').doc(missionId).get();
@@ -1328,6 +1329,7 @@ const normalizeUrl = (raw?: string) => {
 app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
   try {
     const { missionId } = req.params;
+    console.log('🔍 taskCompletions endpoint called for missionId:', missionId);
     if (!missionId) return res.status(400).json({ error: 'Missing missionId' });
 
     const coll = db.collection('taskCompletions');
@@ -1341,7 +1343,7 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
       if (missionDoc.exists) {
         const m: any = missionDoc.data();
         const urlCandidates = [...new Set([
-          m?.tweetLink, m?.contentLink, 
+          m?.tweetLink, m?.contentLink,
           normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
         ].filter(v => typeof v === 'string' && v.length > 5))];
 
@@ -1384,7 +1386,7 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
       if (missionDoc.exists) {
         const m: any = missionDoc.data();
         const urlCandidates = [...new Set([
-          m?.tweetLink, m?.contentLink, 
+          m?.tweetLink, m?.contentLink,
           normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
         ].filter(v => typeof v === 'string' && v.length > 5))];
 
@@ -1404,6 +1406,56 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
     return res.json({ count: snap.size });
   } catch (e: any) {
     console.error('count route error', e);
+    return res.status(500).json({ error: e?.message ?? 'Internal Server Error' });
+  }
+});
+
+// Test endpoint to check taskCompletions data
+app.get('/v1/test/taskCompletions', async (req, res) => {
+  try {
+    const snap = await db.collection('taskCompletions').limit(10).get();
+    const items = snap.docs.map(d => ({
+      id: d.id,
+      missionId: d.data().missionId,
+      status: d.data().status,
+      metadata: d.data().metadata,
+      raw: d.data()
+    }));
+
+    console.log('Test taskCompletions:', { count: items.length, sample: items[0] });
+    return res.json({ count: items.length, items });
+  } catch (e: any) {
+    console.error('Test taskCompletions error:', e);
+    return res.status(500).json({ error: e?.message ?? 'Internal Server Error' });
+  }
+});
+
+// Debug endpoint to log request details
+app.get('/v1/debug/request/:missionId', async (req, res) => {
+  try {
+    const { missionId } = req.params;
+    const headers = req.headers;
+    const query = req.query;
+
+    console.log('🔍 DEBUG REQUEST:', {
+      missionId,
+      headers: {
+        authorization: headers.authorization ? 'Present' : 'Missing',
+        'content-type': headers['content-type'],
+        'user-agent': headers['user-agent']
+      },
+      query,
+      url: req.url
+    });
+
+    return res.json({
+      missionId,
+      hasAuth: !!headers.authorization,
+      query,
+      message: 'Debug info logged'
+    });
+  } catch (e: any) {
+    console.error('Debug request error:', e);
     return res.status(500).json({ error: e?.message ?? 'Internal Server Error' });
   }
 });

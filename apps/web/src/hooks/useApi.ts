@@ -190,6 +190,7 @@ export function useApi() {
                 endpoint,
                 hasToken: !!token,
                 tokenLength: token?.length || 0,
+                tokenPreview: token ? token.substring(0, 20) + '...' : 'null',
                 method: options.method || 'GET',
                 version: API_VERSION,
                 cacheBust: CACHE_BUST,
@@ -206,6 +207,13 @@ export function useApi() {
             if (!isFormData) {
                 headers['Content-Type'] = 'application/json';
             }
+
+            // Debug headers
+            log('API Headers Debug:', {
+                hasAuthHeader: !!headers.Authorization,
+                authHeaderPreview: headers.Authorization ? headers.Authorization.substring(0, 30) + '...' : 'none',
+                allHeaders: Object.keys(headers)
+            });
 
             // Add cache-busting query parameter
             const separator = endpoint.includes('?') ? '&' : '?';
