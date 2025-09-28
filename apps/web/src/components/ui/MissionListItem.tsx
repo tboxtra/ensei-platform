@@ -43,20 +43,47 @@ export function MissionListItem({
     const [busyId, setBusyId] = useState<string | null>(null);
 
     // Helper functions for normalization
-    const toTaskLabel = (id?: string) => {
-        const k = String(id || '').toLowerCase().replace(/^auto_/, '');
-        return ['like','retweet','comment','quote','follow'].includes(k) ? k : (k || 'task');
+    const toTaskLabel = (s: any) => {
+        const id =
+            String(s?.task_id ??
+                s?._raw?.taskId ??
+                s?._raw?.actionId ??
+                s?._raw?.type ??
+                s?._raw?.action ??
+                s?._raw?.activity ??
+                s?._raw?.eventType ??
+                s?._raw?.task?.type ??
+                s?._raw?.task?.action ??
+                s?._raw?.metadata?.taskId ??
+                s?._raw?.metadata?.actionId ??
+                s?._raw?.metadata?.task ??
+                s?._raw?.metadata?.action ??
+                s?._raw?.metadata?.taskName ||
+                ''
+            ).toLowerCase().replace(/^auto_/, '');
+        return ['like','retweet','comment','quote','follow'].includes(id) ? id : (id || 'task');
     };
 
     const normalizeSub = (s: any) => {
-        const raw = String(s?.status ?? 'verified').toLowerCase();
-        const status = raw === 'pending' ? 'verified' : raw; // 🔒 no pending
+        const toUiStatus = (raw?: string) => {
+            const v = String(raw || 'verified').toLowerCase();
+            if (['flagged','rejected'].includes(v)) return 'flagged';
+            if (['verified','approved','success','completed','done','ok'].includes(v)) return 'verified';
+            return 'verified';
+        };
+        const status = toUiStatus(s?.status);
 
         const user_handle =
             s?.user_handle ??
             s?._raw?.metadata?.twitterHandle ??
             s?._raw?.twitterHandle ??
+            s?._raw?.user?.twitterHandle ??
+            s?._raw?.user?.twitter?.handle ??
+            s?._raw?.profile?.twitterHandle ??
+            s?._raw?.profile?.twitter?.handle ??
             null;
+
+        const firstFrom = (name?: string) => (name || '').trim().split(/\s+/)[0] || null;
 
         const user_name =
             s?.user_name ??
@@ -64,15 +91,16 @@ export function MissionListItem({
             s?._raw?.first_name ??
             s?._raw?.userFirstName ??
             s?._raw?.user_first_name ??
-            s?._raw?.userName ??
-            s?._raw?.user_name ??
-            s?._raw?.displayName ??
-            s?._raw?.display_name ??
+            firstFrom(s?._raw?.userName) ??
+            firstFrom(s?._raw?.user_name) ??
+            firstFrom(s?._raw?.displayName) ??
+            firstFrom(s?._raw?.display_name) ??
+            firstFrom(s?._raw?.profile?.name) ??
+            s?._raw?.profile?.firstName ??
+            s?._raw?.user?.firstName ??
             null;
 
-        const task_label =
-            s?.task_label ??
-            toTaskLabel(s?.task_id ?? s?._raw?.taskId ?? s?._raw?.actionId ?? s?._raw?.metadata?.taskId ?? s?._raw?.metadata?.task);
+        const task_label = s?.task_label ?? toTaskLabel(s);
 
         return { ...s, status, user_handle, user_name, task_label };
     };
@@ -80,7 +108,7 @@ export function MissionListItem({
     // 1) Start from payload submissions (ONLY if there are items) - normalize them
     const payloadSubs: any[] | null =
         Array.isArray(mission?.__submissions ?? mission?.submissions) &&
-        (mission.__submissions ?? mission.submissions).length > 0
+            (mission.__submissions ?? mission.submissions).length > 0
             ? (mission.__submissions ?? mission.submissions).map(normalizeSub) // <-- normalize
             : null;
 
@@ -233,15 +261,15 @@ export function MissionListItem({
                     <div className="px-3 py-2 border-b border-white/5 text-[11px] text-gray-400 flex items-center gap-2">
                         <div className="w-4 h-4 rounded-full bg-emerald-500/20" />
                         <span>Submissions</span>
-                    {Array.isArray(subs) && subs.length > 0 && (() => {
-                        const flagged = subs.filter(s => String(s.status).toLowerCase() === 'flagged').length;
-                        const verified = subs.length - flagged; // everything else is verified
-                        return (
-                            <span className="text-[10px] text-gray-500">
-                                ({verified} verified, {flagged} flagged)
-                            </span>
-                        );
-                    })()}
+                        {Array.isArray(subs) && subs.length > 0 && (() => {
+                            const flagged = subs.filter(s => String(s.status).toLowerCase() === 'flagged').length;
+                            const verified = subs.length - flagged; // everything else is verified
+                            return (
+                                <span className="text-[10px] text-gray-500">
+                                    ({verified} verified, {flagged} flagged)
+                                </span>
+                            );
+                        })()}
                         <button
                             onClick={async () => {
                                 try {

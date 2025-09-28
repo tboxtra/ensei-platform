@@ -524,6 +524,14 @@ export function useApi() {
             like: 'like', retweet: 'retweet', comment: 'comment', quote: 'quote', follow: 'follow',
         };
 
+        const toUiStatus = (raw?: string) => {
+            const s = String(raw || 'verified').toLowerCase();
+            if (['flagged', 'rejected'].includes(s)) return 'flagged';
+            if (['verified','approved','success','completed','done','ok'].includes(s)) return 'verified';
+            // no pending in UI
+            return 'verified';
+        };
+
         const pickHandle = (t: any) =>
             t?.twitterHandle ??
             t?.user_handle ??
@@ -531,45 +539,59 @@ export function useApi() {
             t?.metadata?.twitterHandle ??
             t?.metadata?.handle ??
             t?.user?.twitterHandle ??
+            t?.user?.twitter?.handle ??
+            t?.profile?.twitterHandle ??
+            t?.profile?.twitter?.handle ??
             null;
+
+        const firstFrom = (name?: string) =>
+            (name || '').trim().split(/\s+/)[0] || null;
 
         const pickFirstName = (t: any) =>
             t?.firstName ??
             t?.first_name ??
             t?.userFirstName ??
             t?.user_first_name ??
-            t?.userName ??                // many backends dump first name here
-            t?.user_name ??
-            t?.displayName ??
-            t?.display_name ??
+            firstFrom(t?.userName) ??
+            firstFrom(t?.user_name) ??
+            firstFrom(t?.displayName) ??
+            firstFrom(t?.display_name) ??
+            firstFrom(t?.profile?.name) ??
             t?.profile?.firstName ??
+            t?.user?.firstName ??
+            t?.user?.profile?.firstName ??
             null;
 
+        const extractTaskId = (t: any) =>
+            nice(t.taskId) ||
+            nice(t.actionId) ||
+            nice(t.type) ||
+            nice(t.action) ||
+            nice(t.activity) ||
+            nice(t.eventType) ||
+            nice(t?.task?.type) ||
+            nice(t?.task?.action) ||
+            nice(t?.metadata?.taskId) ||
+            nice(t?.metadata?.actionId) ||
+            nice(t?.metadata?.task) ||
+            nice(t?.metadata?.action) ||
+            nice(t?.metadata?.taskName);
+
         const mapTC = (t: any) => {
-            const raw = (t.status ?? 'pending').toString().toLowerCase();
-            const status = raw === 'pending' ? 'verified' : raw;   // 🔒 kill pending
+            const status = toUiStatus(t.status);   // 👈 replace previous normalization
 
-            const taskId =
-                nice(t.taskId) ||
-                nice(t.actionId) ||
-                nice(t?.metadata?.actionId) ||
-                nice(t?.metadata?.taskId) ||
-                nice(t?.metadata?.task);
-
-            const task_label =
-                LABELS[taskId] ||
-                LABELS[nice(t?.metadata?.taskName)] ||
-                (taskId || 'task');
+            const taskId = extractTaskId(t);
+            const task_label = LABELS[taskId] || taskId || 'task';
 
             return {
                 id: t.id ?? t.docId ?? t._id ?? crypto.randomUUID(),
                 user_handle: pickHandle(t),
                 user_name: pickFirstName(t),                           // ✅ first-name fallback
-                user_id: t.userId ?? t.user_id ?? t.userEmail ?? t.email ?? null,
+                user_id: t.userId ?? t.user_id ?? t.userEmail ?? t.email ?? t.uid ?? null,
                 created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
-                status,                                                // verified | approved | flagged
+                status,                                                // only 'verified' | 'flagged'
                 tasks_count: 1,
-                verified_tasks: (status === 'verified' || status === 'approved') ? 1 : 0,
+                verified_tasks: status === 'verified' ? 1 : 0,
                 task_id: taskId,
                 task_label,
                 _raw: t,
