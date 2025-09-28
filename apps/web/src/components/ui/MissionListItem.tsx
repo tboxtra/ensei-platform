@@ -124,6 +124,14 @@ export function MissionListItem({
             (mission.__submissions ?? mission.submissions).length > 0
             ? (mission.__submissions ?? mission.submissions).map(normalizeSub) // <-- normalize payload data
             : null;
+    
+    console.log('🔍 Payload submissions check:', {
+        hasSubmissions: Array.isArray(mission?.submissions),
+        submissionsLength: mission?.submissions?.length,
+        hasSubmissionsList: Array.isArray(mission?.submissions_list),
+        submissionsListLength: mission?.submissions_list?.length,
+        payloadSubs: payloadSubs?.length
+    });
 
     // 2) Seed local state with normalized payload items (so UI is instant)
     const [subs, setSubs] = useState<any[] | null>(payloadSubs);
