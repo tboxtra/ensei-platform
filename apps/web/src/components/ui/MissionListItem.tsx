@@ -262,13 +262,13 @@ export function MissionListItem({
                         )}
                     >
                         {displayStatus}
-                        </span>
+                    </span>
 
                     <ModernButton size="sm" variant="secondary" onClick={() => setOpen(v => !v)} className="ml-1">
                         {open ? 'Hide' : 'Submissions'}
                     </ModernButton>
                 </div>
-                </div>
+            </div>
 
             {/* Submissions dropdown */}
             {open && (
@@ -317,11 +317,12 @@ export function MissionListItem({
                                 <div className="px-3 py-3 text-[12px] text-gray-400">No submissions yet.</div>
                             )}
 
-                            {(subs ?? []).map((raw: any) => {
-                                const s = normalizeSub(raw);
-                                console.log('🔍 Rendering submission:', { raw, normalized: s });
+                            {(subs ?? []).map((s: any) => {
+                                console.log('🔍 Rendering submission:', s);
                                 const createdAt = s?.created_at ? new Date(s.created_at) : null;
-                                const status = String(s?.status ?? 'verified').toLowerCase(); // Default to verified
+                                // Map backend statuses to UI statuses
+                                const rawStatus = String(s?.status ?? 'verified').toLowerCase();
+                                const status = ['completed', 'success', 'done', 'ok', 'pending'].includes(rawStatus) ? 'verified' : rawStatus;
                                 const isVerified = status === 'verified' || status === 'approved';
                                 const isFlagged = status === 'flagged';
 
@@ -357,8 +358,8 @@ export function MissionListItem({
                                                         }`}
                                                 >
                                                     {status}
-                                            </span>
-                                        </div>
+                                                </span>
+                                            </div>
                                         </div>
 
                                         {/* ONE action only:

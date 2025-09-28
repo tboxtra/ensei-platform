@@ -633,10 +633,21 @@ export function useApi() {
                 const arr = toArray(res);
                 console.log('✅ Success with endpoint:', url, 'items:', arr.length);
 
-                // If this array looks like taskCompletions (has missionId/status/etc), normalize it
-                const looksLikeTC = arr.some((x: any) => x?.missionId || x?.taskId || x?.metadata || x?.userEmail);
-                const result = looksLikeTC ? arr.map(mapTC) : arr;
-                console.log('📊 Final result:', { normalized: looksLikeTC, count: result.length });
+                // Check if data is already normalized (has user_handle, task_label, etc.) or needs normalization
+                const alreadyNormalized = arr.some((x: any) => x?.user_handle !== undefined || x?.task_label !== undefined);
+                const needsNormalization = arr.some((x: any) => x?.missionId || x?.taskId || x?.metadata || x?.userEmail);
+                
+                let result = arr;
+                if (needsNormalization && !alreadyNormalized) {
+                    result = arr.map(mapTC);
+                    console.log('📊 Applied mapTC normalization');
+                } else if (alreadyNormalized) {
+                    console.log('📊 Data already normalized by backend');
+                } else {
+                    console.log('📊 No normalization needed');
+                }
+                
+                console.log('📊 Final result:', { normalized: needsNormalization && !alreadyNormalized, count: result.length });
                 return result;
             } catch (e: any) {
                 console.log('❌ Failed endpoint:', url, 'error:', e?.message || e);
