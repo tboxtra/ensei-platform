@@ -147,6 +147,49 @@ describe('User Data Integrity', () => {
                 title: 'Test Mission'
             }));
         });
+        it('should set default status to active when not specified', async () => {
+            const mockSet = jest.fn().mockResolvedValue(undefined);
+            const mockDoc = jest.fn(() => ({ set: mockSet }));
+            const mockCollection = jest.fn(() => ({ doc: mockDoc }));
+            Object.assign(mockFirestore, {
+                collection: mockCollection
+            });
+            const missionData = {
+                title: 'Test Mission',
+                platform: 'twitter',
+                type: 'engage'
+            };
+            const result = await (0, user_data_integrity_1.createMissionWithUidReferences)(mockUserId, missionData);
+            expect(result.success).toBe(true);
+            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+                created_by: mockUserId,
+                title: 'Test Mission',
+                status: 'active',
+                created_at: expect.any(Date)
+            }));
+        });
+        it('should preserve custom status when specified', async () => {
+            const mockSet = jest.fn().mockResolvedValue(undefined);
+            const mockDoc = jest.fn(() => ({ set: mockSet }));
+            const mockCollection = jest.fn(() => ({ doc: mockDoc }));
+            Object.assign(mockFirestore, {
+                collection: mockCollection
+            });
+            const missionData = {
+                title: 'Test Mission',
+                platform: 'twitter',
+                type: 'engage',
+                status: 'draft'
+            };
+            const result = await (0, user_data_integrity_1.createMissionWithUidReferences)(mockUserId, missionData);
+            expect(result.success).toBe(true);
+            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+                created_by: mockUserId,
+                title: 'Test Mission',
+                status: 'draft',
+                created_at: expect.any(Date)
+            }));
+        });
         it('should reject mission creation with invalid UID', async () => {
             const result = await (0, user_data_integrity_1.createMissionWithUidReferences)('invalid-uid', { title: 'Test' });
             expect(result.success).toBe(false);

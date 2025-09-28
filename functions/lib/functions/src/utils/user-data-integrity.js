@@ -276,7 +276,9 @@ async function createMissionWithUidReferences(userId, missionData) {
     const mission = {
         ...missionData,
         created_by: userId,
-        id: missionRef.id
+        id: missionRef.id,
+        status: missionData.status || 'active', // Default to 'active' if not specified
+        created_at: new Date() // Ensure created_at is set for proper ordering
     };
     await missionRef.set(mission);
     return {

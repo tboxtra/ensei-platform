@@ -234,12 +234,18 @@ app.get('/v1/missions', async (req, res) => {
       .limit(50)
       .get();
 
-    // Filter out paused missions
+    // Filter out paused missions and serialize timestamps
     const missions = missionsSnapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Convert Firestore timestamps to ISO strings
+          created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+          updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at,
+        };
+      })
       .filter((mission: any) => !mission.isPaused); // Hide paused missions from users
 
     res.json(missions);
@@ -261,9 +267,13 @@ app.get('/v1/missions/:id', async (req, res) => {
       return;
     }
 
+    const data = missionDoc.data();
     const mission: any = {
       id: missionDoc.id,
-      ...missionDoc.data()
+      ...data,
+      // Convert Firestore timestamps to ISO strings
+      created_at: data?.created_at?.toDate?.()?.toISOString() || data?.created_at,
+      updated_at: data?.updated_at?.toDate?.()?.toISOString() || data?.updated_at,
     };
 
     // Check if mission is paused
@@ -1358,12 +1368,20 @@ const toSubmission = (id: string, t: any) => {
 
   const task_label = LABELS[taskId] || taskId || 'task';
 
+  // Helper function to convert Firestore timestamps to ISO strings
+  const toIsoString = (timestamp: any) => {
+    if (!timestamp) return null;
+    if (timestamp?.toDate?.()) return timestamp.toDate().toISOString();
+    if (typeof timestamp === 'string') return timestamp;
+    return null;
+  };
+
   return {
     id,
     user_handle,
     user_name,
     user_id: t?.userId ?? t?.user_id ?? t?.userEmail ?? t?.email ?? t?.uid ?? null,
-    created_at: t?.completedAt ?? t?.createdAt ?? t?.updatedAt ?? null,
+    created_at: toIsoString(t?.completedAt ?? t?.createdAt ?? t?.updatedAt),
     status, // <-- show pending, submitted, verified, approved
     tasks_count: 1,
     verified_tasks: (status === 'verified' || status === 'approved') ? 1 : 0,
@@ -1396,35 +1414,75 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
     console.log('🔍 taskCompletions endpoint called for missionId:', missionId);
     if (!missionId) return res.status(400).json({ error: 'Missing missionId' });
 
-    const coll = db.collection('taskCompletions');
+    let items: any[] = [];
 
-    // 1) direct missionId
-    let snap = await coll.where('missionId', '==', missionId).limit(500).get();
+    // 1) Try new taskCompletions collection first
+    const newColl = db.collection('taskCompletions');
+    let newSnap = await newColl.where('missionId', '==', missionId).limit(500).get();
 
-    // 2) fallback by normalized URL
-    if (snap.empty) {
-      const missionDoc = await db.collection('missions').doc(missionId).get();
-      if (missionDoc.exists) {
-        const m: any = missionDoc.data();
-        const urlCandidates = [...new Set([
-          m?.tweetLink, m?.contentLink,
-          normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
-        ].filter(v => typeof v === 'string' && v.length > 5))];
+    if (!newSnap.empty) {
+      items = newSnap.docs.map(d => toSubmission(d.id, d.data()));
+      console.log('Found submissions in taskCompletions collection:', items.length);
+    } else {
+      // 2) Try legacy mission_participations collection
+      const legacyColl = db.collection('mission_participations');
+      let legacySnap = await legacyColl.where('mission_id', '==', missionId).limit(500).get();
 
-        console.log('Fallback try candidates:', urlCandidates);
+      if (!legacySnap.empty) {
+        // Convert legacy format to new format
+        items = legacySnap.docs.flatMap(doc => {
+          const data = doc.data();
+          const tasksCompleted = data.tasks_completed || [];
+          return tasksCompleted.map((task: any, index: number) => ({
+            id: `${doc.id}_${task.task_id || index}`,
+            missionId: data.mission_id,
+            taskId: task.task_id,
+            userId: data.user_id,
+            userName: data.user_name,
+            userEmail: data.user_email,
+            userSocialHandle: data.user_social_handle,
+            status: task.status === 'completed' ? 'verified' : task.status,
+            completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
+            verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
+            flaggedAt: null,
+            flaggedReason: null,
+            reviewedBy: null,
+            reviewedAt: null,
+            metadata: {
+              taskType: task.task_id,
+              platform: data.platform || 'twitter',
+              url: task.verification_data?.url,
+              ...task.verification_data
+            },
+            createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+            updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
+          }));
+        });
+        console.log('Found submissions in mission_participations collection:', items.length);
+      } else {
+        // 3) Fallback by normalized URL in new collection
+        const missionDoc = await db.collection('missions').doc(missionId).get();
+        if (missionDoc.exists) {
+          const m: any = missionDoc.data();
+          const urlCandidates = [...new Set([
+            m?.tweetLink, m?.contentLink,
+            normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
+          ].filter(v => typeof v === 'string' && v.length > 5))];
 
-        for (const u of urlCandidates) {
-          const s = await coll.where('metadata.tweetUrl', '==', u).limit(500).get();
-          if (!s.empty) {
-            snap = s;
-            console.log('Found submissions via URL:', u);
-            break;
+          console.log('Fallback try candidates:', urlCandidates);
+
+          for (const u of urlCandidates) {
+            const s = await newColl.where('metadata.tweetUrl', '==', u).limit(500).get();
+            if (!s.empty) {
+              items = s.docs.map(d => toSubmission(d.id, d.data()));
+              console.log('Found submissions via URL:', u, items.length);
+              break;
+            }
           }
         }
       }
     }
 
-    const items = snap.docs.map(d => toSubmission(d.id, d.data()));
     console.log('taskCompletions response:', { missionId, count: items.length, statuses: items.map(i => i.status) });
     return res.json({ items });
   } catch (e: any) {

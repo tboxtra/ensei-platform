@@ -229,7 +229,7 @@ export function MissionListItem({
 
     const handleTaskClick = useCallback((submission: any) => {
         // Extract the submitted URL from various possible fields
-        const submittedUrl = 
+        const submittedUrl =
             submission?._raw?.metadata?.tweetUrl ||
             submission?._raw?.metadata?.url ||
             submission?._raw?.tweetUrl ||
@@ -238,7 +238,7 @@ export function MissionListItem({
             submission?._raw?.verificationData?.url ||
             submission?.submittedUrl ||
             submission?.url;
-        
+
         if (submittedUrl) {
             // Open the Twitter/X link in a new tab
             window.open(submittedUrl, '_blank', 'noopener,noreferrer');
@@ -263,37 +263,37 @@ export function MissionListItem({
             dense ? 'px-3 py-2' : 'px-4 py-3'
         )}>
             {/* Row */}
-            <div className="grid grid-cols-12 items-center gap-2 text-[12px]">
+            <div className="grid grid-cols-12 items-center gap-1 sm:gap-2 text-[11px] sm:text-[12px]">
                 <div className="col-span-4 overflow-hidden">
-                    <div className="truncate text-white font-medium">{mission.title || 'Untitled Mission'}</div>
-                    <div className="truncate text-[11px] text-gray-400">
+                    <div className="truncate text-white font-medium text-[11px] sm:text-[12px]">{mission.title || 'Untitled Mission'}</div>
+                    <div className="truncate text-[10px] sm:text-[11px] text-gray-400">
                         {[mission.platform, mission.type].filter(Boolean).join(' • ') || '—'}
                     </div>
                     {Array.isArray(mission.tasks) && mission.tasks.length > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                            {mission.tasks.slice(0, 6).map((t: any, i: number) => (
-                                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">
+                        <div className="mt-1 flex flex-wrap gap-0.5 sm:gap-1">
+                            {mission.tasks.slice(0, 4).map((t: any, i: number) => (
+                                <span key={i} className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">
                                     {typeof t === 'string' ? t : (t?.label ?? t?.title ?? 'task')}
                                 </span>
                             ))}
-                            {mission.tasks.length > 6 && (
-                                <span className="text-[10px] px-1 py-0.5 text-gray-400">+{mission.tasks.length - 6} more</span>
+                            {mission.tasks.length > 4 && (
+                                <span className="text-[9px] sm:text-[10px] px-1 py-0.5 text-gray-400">+{mission.tasks.length - 4}</span>
                             )}
                         </div>
                     )}
                 </div>
 
-                <div className="col-span-2 text-gray-200">
+                <div className="col-span-2 text-gray-200 text-[10px] sm:text-[12px]">
                     {created && !isNaN(created.getTime()) ? fmtDate.format(created) : '—'}
                 </div>
 
-                <div className="col-span-2 text-white">{fmtUSD.format(usdCost)}</div>
-                <div className="col-span-2 text-white">{clicks}</div>
+                <div className="col-span-2 text-white text-[10px] sm:text-[12px]">{fmtUSD.format(usdCost)}</div>
+                <div className="col-span-2 text-white text-[10px] sm:text-[12px]">{clicks}</div>
 
-                <div className="col-span-2 flex items-center justify-end gap-2">
+                <div className="col-span-2 flex items-center justify-end gap-1 sm:gap-2">
                     <span
                         className={clsx(
-                            'px-2 py-0.5 rounded-full border text-[11px]',
+                            'px-1.5 sm:px-2 py-0.5 rounded-full border text-[9px] sm:text-[11px]',
                             displayStatus === 'active' && 'bg-green-500/15 text-green-300 border-green-500/30',
                             displayStatus === 'completed' && 'bg-blue-500/15 text-blue-300 border-blue-500/30',
                             displayStatus === 'draft' && 'bg-gray-500/15 text-gray-300 border-gray-500/30',
@@ -303,9 +303,20 @@ export function MissionListItem({
                         {displayStatus}
                     </span>
 
-                    <ModernButton size="sm" variant="secondary" onClick={() => setOpen(v => !v)} className="ml-1">
-                        {open ? 'Hide' : 'Submissions'}
-                    </ModernButton>
+                    <button 
+                        onClick={() => setOpen(v => !v)} 
+                        className="p-0.5 sm:p-1 rounded border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200"
+                        title={open ? 'Hide submissions' : 'Show submissions'}
+                    >
+                        <svg 
+                            className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-300 transition-transform duration-200 ${open ? 'rotate-90' : 'rotate-0'}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -384,12 +395,11 @@ export function MissionListItem({
 
                                                 {/* task pill (like, retweet, …) */}
                                                 {s?.task_label && (
-                                                    <span 
-                                                        className={`${pill} bg-white/5 border-white/15 text-gray-300 ${
-                                                            ['comment', 'quote'].includes(s.task_label) 
-                                                                ? 'cursor-pointer hover:bg-white/10 hover:border-white/25' 
-                                                                : ''
-                                                        }`}
+                                                    <span
+                                                        className={`${pill} bg-white/5 border-white/15 text-gray-300 ${['comment', 'quote'].includes(s.task_label)
+                                                            ? 'cursor-pointer hover:bg-white/10 hover:border-white/25'
+                                                            : ''
+                                                            }`}
                                                         onClick={() => {
                                                             if (['comment', 'quote'].includes(s.task_label)) {
                                                                 handleTaskClick(s);
