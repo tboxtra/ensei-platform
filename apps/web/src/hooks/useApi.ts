@@ -507,6 +507,7 @@ export function useApi() {
     }, [makeRequest, uploadFile]);
 
     const getMissionSubmissions = useCallback(async (missionId: string): Promise<any[]> => {
+        console.log('🔍 getMissionSubmissions called with missionId:', missionId);
         // normalize helpers
         const toArray = (res: any) => {
             if (Array.isArray(res)) return res;
@@ -632,11 +633,13 @@ export function useApi() {
                 const res = await makeRequest<any>(url);
                 const arr = toArray(res);
                 console.log('✅ Success with endpoint:', url, 'items:', arr.length);
+                console.log('🔍 Raw response structure:', res);
+                console.log('🔍 First item structure:', arr[0]);
 
                 // Check if data is already normalized (has user_handle, task_label, etc.) or needs normalization
                 const alreadyNormalized = arr.some((x: any) => x?.user_handle !== undefined || x?.task_label !== undefined);
                 const needsNormalization = arr.some((x: any) => x?.missionId || x?.taskId || x?.metadata || x?.userEmail);
-                
+
                 let result = arr;
                 if (needsNormalization && !alreadyNormalized) {
                     result = arr.map(mapTC);
@@ -646,7 +649,7 @@ export function useApi() {
                 } else {
                     console.log('📊 No normalization needed');
                 }
-                
+
                 console.log('📊 Final result:', { normalized: needsNormalization && !alreadyNormalized, count: result.length });
                 return result;
             } catch (e: any) {
