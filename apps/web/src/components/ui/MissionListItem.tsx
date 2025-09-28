@@ -41,6 +41,7 @@ export function MissionListItem({
     const api = useApi();
     const [open, setOpen] = useState(false);
     const [busyId, setBusyId] = useState<string | null>(null);
+    const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
 
     // Helper functions for normalization
     const toTaskLabel = (s: any) => {
@@ -124,7 +125,7 @@ export function MissionListItem({
             (mission.__submissions ?? mission.submissions).length > 0
             ? (mission.__submissions ?? mission.submissions).map(normalizeSub) // <-- normalize payload data
             : null;
-    
+
     console.log('🔍 Payload submissions check:', {
         hasSubmissions: Array.isArray(mission?.submissions),
         submissionsLength: mission?.submissions?.length,
@@ -225,6 +226,36 @@ export function MissionListItem({
             onRefetch?.();
         }
     }, [api, onRefetch]);
+
+    const handleTaskClick = useCallback((submission: any) => {
+        // Extract the submitted URL from various possible fields
+        const submittedUrl = 
+            submission?._raw?.metadata?.tweetUrl ||
+            submission?._raw?.metadata?.url ||
+            submission?._raw?.tweetUrl ||
+            submission?._raw?.url ||
+            submission?._raw?.submissionUrl ||
+            submission?._raw?.verificationData?.url ||
+            submission?.submittedUrl ||
+            submission?.url;
+        
+        if (submittedUrl) {
+            // Open the Twitter/X link in a new tab
+            window.open(submittedUrl, '_blank', 'noopener,noreferrer');
+        } else {
+            console.log('No submitted URL found for submission:', submission);
+            console.log('Available URL fields:', {
+                metadata_tweetUrl: submission?._raw?.metadata?.tweetUrl,
+                metadata_url: submission?._raw?.metadata?.url,
+                tweetUrl: submission?._raw?.tweetUrl,
+                url: submission?._raw?.url,
+                submissionUrl: submission?._raw?.submissionUrl,
+                verificationData_url: submission?._raw?.verificationData?.url,
+                submittedUrl: submission?.submittedUrl,
+                url_direct: submission?.url
+            });
+        }
+    }, []);
 
     return (
         <div className={clsx(
@@ -353,7 +384,19 @@ export function MissionListItem({
 
                                                 {/* task pill (like, retweet, …) */}
                                                 {s?.task_label && (
-                                                    <span className={`${pill} bg-white/5 border-white/15 text-gray-300`}>
+                                                    <span 
+                                                        className={`${pill} bg-white/5 border-white/15 text-gray-300 ${
+                                                            ['comment', 'quote'].includes(s.task_label) 
+                                                                ? 'cursor-pointer hover:bg-white/10 hover:border-white/25' 
+                                                                : ''
+                                                        }`}
+                                                        onClick={() => {
+                                                            if (['comment', 'quote'].includes(s.task_label)) {
+                                                                handleTaskClick(s);
+                                                            }
+                                                        }}
+                                                        title={['comment', 'quote'].includes(s.task_label) ? 'Click to view the submitted Twitter/X post' : ''}
+                                                    >
                                                         {s.task_label}
                                                     </span>
                                                 )}
