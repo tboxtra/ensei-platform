@@ -521,13 +521,17 @@ export function useApi() {
         const nice = (s: string) => String(s || '').toLowerCase().replace(/^auto_/, '');
 
         const LABELS: Record<string, string> = {
-            like: 'like', retweet: 'retweet', comment: 'comment', quote: 'quote', follow: 'follow',
+            like: 'like', like_tweet: 'like', favorite: 'like',
+            retweet: 'retweet', repost: 'retweet', rt: 'retweet',
+            comment: 'comment', reply: 'comment',
+            quote: 'quote', quote_tweet: 'quote',
+            follow: 'follow', follow_user: 'follow'
         };
 
         const toUiStatus = (raw?: string) => {
             const s = String(raw || 'verified').toLowerCase();
             if (['flagged', 'rejected'].includes(s)) return 'flagged';
-            if (['verified','approved','success','completed','done','ok'].includes(s)) return 'verified';
+            if (['verified', 'approved', 'success', 'completed', 'done', 'ok'].includes(s)) return 'verified';
             // no pending in UI
             return 'verified';
         };
@@ -536,8 +540,13 @@ export function useApi() {
             t?.twitterHandle ??
             t?.user_handle ??
             t?.handle ??
+            t?.twitter?.username ??
+            t?.twitterUsername ??
             t?.metadata?.twitterHandle ??
             t?.metadata?.handle ??
+            t?.metadata?.twitter?.username ??
+            t?.metadata?.twitter_username ??
+            t?.screen_name ??
             t?.user?.twitterHandle ??
             t?.user?.twitter?.handle ??
             t?.profile?.twitterHandle ??
@@ -556,6 +565,7 @@ export function useApi() {
             firstFrom(t?.user_name) ??
             firstFrom(t?.displayName) ??
             firstFrom(t?.display_name) ??
+            firstFrom(t?.name) ??
             firstFrom(t?.profile?.name) ??
             t?.profile?.firstName ??
             t?.user?.firstName ??

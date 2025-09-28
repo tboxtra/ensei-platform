@@ -61,14 +61,21 @@ export function MissionListItem({
                 s?._raw?.metadata?.taskName ||
                 ''
             ).toLowerCase().replace(/^auto_/, '');
-        return ['like','retweet','comment','quote','follow'].includes(id) ? id : (id || 'task');
+        const LABELS: Record<string, string> = {
+            like: 'like', like_tweet: 'like', favorite: 'like',
+            retweet: 'retweet', repost: 'retweet', rt: 'retweet',
+            comment: 'comment', reply: 'comment',
+            quote: 'quote', quote_tweet: 'quote',
+            follow: 'follow', follow_user: 'follow'
+        };
+        return LABELS[id] || id || 'task';
     };
 
     const normalizeSub = (s: any) => {
         const toUiStatus = (raw?: string) => {
             const v = String(raw || 'verified').toLowerCase();
-            if (['flagged','rejected'].includes(v)) return 'flagged';
-            if (['verified','approved','success','completed','done','ok'].includes(v)) return 'verified';
+            if (['flagged', 'rejected'].includes(v)) return 'flagged';
+            if (['verified', 'approved', 'success', 'completed', 'done', 'ok'].includes(v)) return 'verified';
             return 'verified';
         };
         const status = toUiStatus(s?.status);
@@ -77,6 +84,11 @@ export function MissionListItem({
             s?.user_handle ??
             s?._raw?.metadata?.twitterHandle ??
             s?._raw?.twitterHandle ??
+            s?._raw?.twitter?.username ??
+            s?._raw?.twitterUsername ??
+            s?._raw?.metadata?.twitter?.username ??
+            s?._raw?.metadata?.twitter_username ??
+            s?._raw?.screen_name ??
             s?._raw?.user?.twitterHandle ??
             s?._raw?.user?.twitter?.handle ??
             s?._raw?.profile?.twitterHandle ??
@@ -95,6 +107,7 @@ export function MissionListItem({
             firstFrom(s?._raw?.user_name) ??
             firstFrom(s?._raw?.displayName) ??
             firstFrom(s?._raw?.display_name) ??
+            firstFrom(s?._raw?.name) ??
             firstFrom(s?._raw?.profile?.name) ??
             s?._raw?.profile?.firstName ??
             s?._raw?.user?.firstName ??
@@ -276,7 +289,7 @@ export function MissionListItem({
                                     setSubsLoading(true);
                                     setSubsError(null);
                                     const data = await api.getMissionSubmissions(mission.id);
-                                    setSubs(Array.isArray(data) ? data : []);
+                                    setSubs(Array.isArray(data) && data.length > 0 ? data.map(normalizeSub) : []);
                                 } catch (e: any) {
                                     const details =
                                         e?.body?.error ?? e?.body?.message ?? e?.message ?? 'Failed to load submissions';
