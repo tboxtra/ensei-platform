@@ -45,12 +45,32 @@ export function MissionListItem({
     // 1) Start from payload submissions (ONLY if there are items)
     const payloadSubs: any[] | null =
         Array.isArray(mission?.__submissions ?? mission?.submissions) &&
-            (mission.__submissions ?? mission.submissions).length > 0
+        (mission.__submissions ?? mission.submissions).length > 0
             ? (mission.__submissions ?? mission.submissions)
             : null;
 
     // 2) Seed local state with payload items (so UI is instant)
     const [subs, setSubs] = useState<any[] | null>(payloadSubs);
+    
+    // 3) Auto-fetch submissions on mount to show clicks immediately
+    useEffect(() => {
+        if (subs !== null) return; // we already have data
+        (async () => {
+            try {
+                setSubsLoading(true);
+                setSubsError(null);
+                const data = await api.getMissionSubmissions(mission.id);
+                setSubs(Array.isArray(data) && data.length > 0 ? data : []);
+            } catch (e: any) {
+                const details =
+                    e?.body?.error ?? e?.body?.message ?? e?.message ?? 'Failed to load submissions';
+                setSubsError(String(details));
+                setSubs([]); // show "No submissions yet."
+            } finally {
+                setSubsLoading(false);
+            }
+        })();
+    }, [api, mission?.id]); // Auto-fetch on mount
     const [subsLoading, setSubsLoading] = useState(false);
     const [subsError, setSubsError] = useState<string | null>(null);
 
@@ -216,7 +236,7 @@ export function MissionListItem({
 
                             {(subs ?? []).map((s: any) => {
                                 const createdAt = s?.created_at ? new Date(s.created_at) : null;
-                                const status = String(s?.status ?? 'pending').toLowerCase();
+                                const status = String(s?.status ?? 'verified').toLowerCase(); // Default to verified
                                 const isVerified = status === 'verified' || status === 'approved';
                                 const isFlagged = status === 'flagged';
 
@@ -227,7 +247,11 @@ export function MissionListItem({
                                     <div key={s.id} className="px-3 py-2 text-[12px] flex items-center gap-2">
                                         <div className="flex-1 min-w-0">
                                             <div className="truncate text-white">
-                                                {s?.user_handle ? `@${s.user_handle}` : (s?.user_id ?? 'unknown')}
+                                                {s?.user_handle 
+                                                    ? `@${s.user_handle}` 
+                                                    : s?.user_name 
+                                                        ? s.user_name 
+                                                        : (s?.user_id ?? 'unknown')}
                                             </div>
 
                                             <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
@@ -247,9 +271,7 @@ export function MissionListItem({
                                                     className={`${pill} ${
                                                         isFlagged
                                                             ? 'bg-red-500/10 text-red-300 border-red-400/30'
-                                                            : isVerified
-                                                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                                                                : 'bg-gray-600/15 text-gray-300 border-gray-500/30'
+                                                            : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                                                     }`}
                                                 >
                                                     {status}
@@ -259,8 +281,7 @@ export function MissionListItem({
 
                                         {/* ONE action only:
                                             - if verified  -> show tiny Flag
-                                            - if flagged   -> show tiny Verify
-                                            - else         -> no actions (creators only flag/unflag verified tasks) */}
+                                            - if flagged   -> show tiny Verify */}
                                         {isVerified && !isFlagged && (
                                             <button
                                                 onClick={() => onFlag(s.id)}

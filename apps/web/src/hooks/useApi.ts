@@ -527,6 +527,9 @@ export function useApi() {
 
         const mapTC = (t: any) => {
             const rawStatus = (t.status ?? 'pending').toString().toLowerCase();
+            // Convert all pending states to verified
+            const normalizedStatus = rawStatus === 'pending' ? 'verified' : rawStatus;
+            
             const taskId =
                 nice(t.taskId) ||
                 nice(t.actionId) ||
@@ -542,10 +545,11 @@ export function useApi() {
                 id: t.id ?? t.docId ?? t._id ?? crypto.randomUUID(),
                 user_handle: t.twitterHandle ?? t.user_handle ?? null,       // <- prefer handle
                 user_id: t.userId ?? t.user_id ?? t.userEmail ?? null,
+                user_name: t.userName ?? t.user_name ?? t.displayName ?? t.display_name ?? null, // <- profile first name
                 created_at: t.completedAt ?? t.createdAt ?? t.updatedAt ?? null,
-                status: rawStatus,                                           // pending | verified | approved | flagged
+                status: normalizedStatus,                                    // verified | approved | flagged (no pending)
                 tasks_count: 1,
-                verified_tasks: (rawStatus === 'verified' || rawStatus === 'approved') ? 1 : 0,
+                verified_tasks: (normalizedStatus === 'verified' || normalizedStatus === 'approved') ? 1 : 0,
                 task_id: taskId,
                 task_label: taskLabel,                                       // <- human-readable task name
                 _raw: t,
