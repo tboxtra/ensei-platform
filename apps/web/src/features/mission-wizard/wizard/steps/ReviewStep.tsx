@@ -6,12 +6,14 @@ import { WizardState } from '../types/wizard.types';
 interface ReviewStepProps {
     state: WizardState;
     onSubmit: () => void;
+    onReset?: () => void;
     isLoading?: boolean;
 }
 
 export const ReviewStep: React.FC<ReviewStepProps> = ({
     state,
     onSubmit,
+    onReset,
     isLoading = false,
 }) => {
     const calculateTotalCost = () => {
@@ -132,7 +134,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             )}
 
             {/* Create Button */}
-            <div className="text-center">
+            <div className="text-center space-y-4">
                 <button
                     onClick={onSubmit}
                     disabled={isLoading}
@@ -140,6 +142,18 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                 >
                     {isLoading ? 'Creating Mission...' : '🚀 Create Mission'}
                 </button>
+
+                {onReset && (
+                    <div>
+                        <button
+                            onClick={onReset}
+                            disabled={isLoading}
+                            className="text-gray-400 hover:text-white text-sm underline transition-colors disabled:opacity-50"
+                        >
+                            🔄 Start Over
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

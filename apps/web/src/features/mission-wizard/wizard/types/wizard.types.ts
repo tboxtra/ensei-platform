@@ -48,6 +48,7 @@ export interface WizardContextType {
     goToStep: (step: number) => void;
     nextStep: () => void;
     previousStep: () => void;
+    resetWizard: () => void;
     canGoNext: boolean;
     canGoPrevious: boolean;
     isLastStep: boolean;

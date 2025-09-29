@@ -17,13 +17,7 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
         return INITIAL_WIZARD_STATE;
     });
 
-    const [currentStep, setCurrentStep] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('mission-wizard-step');
-            return saved ? parseInt(saved, 10) : 1;
-        }
-        return 1;
-    });
+    const [currentStep, setCurrentStep] = useState(1); // Always start from step 1
 
     // Save state to localStorage whenever it changes
     useEffect(() => {
@@ -61,6 +55,15 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
         }
     }, [currentStep]);
 
+    const resetWizard = useCallback(() => {
+        setState(INITIAL_WIZARD_STATE);
+        setCurrentStep(1);
+        // Clear localStorage
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('mission-wizard-state');
+            localStorage.removeItem('mission-wizard-step');
+        }
+    }, []);
 
     return {
         state,
@@ -69,6 +72,7 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
         goToStep,
         nextStep,
         previousStep,
+        resetWizard,
         canGoNext: currentStep < totalSteps,
         canGoPrevious: currentStep > 1,
         isLastStep: currentStep === totalSteps,

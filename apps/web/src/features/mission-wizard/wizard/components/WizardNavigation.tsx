@@ -6,6 +6,7 @@ import { ModernButton } from '../../../../components/ui/ModernButton';
 interface WizardNavigationProps {
     onPrevious: () => void;
     onNext: () => void;
+    onReset?: () => void;
     canGoPrevious: boolean;
     canGoNext: boolean;
     isLastStep: boolean;
@@ -17,6 +18,7 @@ interface WizardNavigationProps {
 export const WizardNavigation: React.FC<WizardNavigationProps> = ({
     onPrevious,
     onNext,
+    onReset,
     canGoPrevious,
     canGoNext,
     isLastStep,
@@ -32,7 +34,7 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
 
     return (
         <div className="flex justify-between items-center mt-8">
-            <div>
+            <div className="flex gap-3">
                 {!isFirstStep && (
                     <ModernButton
                         onClick={onPrevious}
@@ -41,6 +43,16 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
                         className="px-6 py-3"
                     >
                         ← Previous
+                    </ModernButton>
+                )}
+                {onReset && !isFirstStep && (
+                    <ModernButton
+                        onClick={onReset}
+                        variant="secondary"
+                        disabled={isLoading}
+                        className="px-4 py-3 text-sm"
+                    >
+                        🔄 Start Over
                     </ModernButton>
                 )}
             </div>

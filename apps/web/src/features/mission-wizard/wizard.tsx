@@ -114,6 +114,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
                     <ReviewStep
                         state={wizard.state}
                         onSubmit={handleMissionSubmit}
+                        onReset={wizard.resetWizard}
                         isLoading={isLoading}
                     />
                 );
@@ -181,6 +182,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
                 <WizardNavigation
                     onPrevious={handleStepPrevious}
                     onNext={handleStepNext}
+                    onReset={wizard.resetWizard}
                     canGoPrevious={wizard.canGoPrevious}
                     canGoNext={wizard.canGoNext}
                     isLastStep={wizard.isLastStep}
