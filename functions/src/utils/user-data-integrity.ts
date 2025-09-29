@@ -1,6 +1,31 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import * as firebaseAdmin from 'firebase-admin';
 
+// Status standardization
+const normalizeStatus = (status: any): string => {
+    if (!status) return 'pending';
+
+    const statusStr = String(status).toLowerCase();
+
+    // Map legacy statuses to standard ones
+    const legacyMap: Record<string, string> = {
+        'verified': 'verified',
+        'VERIFIED': 'verified',
+        'approved': 'approved',
+        'APPROVED': 'approved',
+        'completed': 'completed',
+        'COMPLETED': 'completed',
+        'active': 'active',
+        'ACTIVE': 'active',
+        'paused': 'paused',
+        'PAUSED': 'paused',
+        'expired': 'expired',
+        'EXPIRED': 'expired'
+    };
+
+    return legacyMap[statusStr] || statusStr;
+};
+
 // Guarantees array fields exist even if `data` is null/undefined or partially shaped
 export type MinimalUserData = {
     missions?: any[];
@@ -341,7 +366,7 @@ export async function createMissionWithUidReferences(userId: string, missionData
         ...missionData,
         created_by: userId,
         id: missionRef.id,
-        status: missionData.status || 'active', // Default to 'active' if not specified
+        status: normalizeStatus(missionData.status || 'active'), // Normalize status
         created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(), // Use server timestamp for consistency
         updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(), // Use server timestamp for consistency
         // deadline and expires_at are already calculated in the main endpoint

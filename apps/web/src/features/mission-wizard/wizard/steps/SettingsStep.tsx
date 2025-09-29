@@ -9,12 +9,29 @@ interface SettingsStepProps {
     onNext: () => void;
 }
 
-// Task prices - centralized constant
+// Task prices - centralized constant (should match backend TASK_PRICES)
 const TASK_PRICES: Record<string, number> = {
+    // Twitter tasks
     like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
     meme: 300, thread: 500, article: 400, videoreview: 600,
     pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
-    spaces: 800, community_raid: 400, status_50_views: 300
+    spaces: 800, community_raid: 400, status_50_views: 300,
+
+    // Instagram tasks
+    like_instagram: 50, comment_instagram: 150, follow_instagram: 250,
+    story_instagram: 200, post_instagram: 400,
+
+    // TikTok tasks
+    like_tiktok: 50, comment_tiktok: 150, follow_tiktok: 250, share_tiktok: 200,
+
+    // Facebook tasks
+    like_facebook: 50, comment_facebook: 150, share_facebook: 200, follow_facebook: 250,
+
+    // WhatsApp tasks
+    join_whatsapp: 100, share_whatsapp: 150,
+
+    // Custom tasks
+    custom: 100
 };
 
 // Degen mission presets

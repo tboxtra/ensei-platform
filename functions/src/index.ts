@@ -179,6 +179,136 @@ const toIso = (v: any) =>
   v?.toDate?.() ? v.toDate().toISOString() :
     typeof v === 'string' ? v : null;
 
+// Field normalization utilities
+const normalizeMissionData = (data: any) => {
+  // Normalize field names to canonical snake_case
+  const normalized = { ...data };
+
+  // Duration field normalization
+  if (normalized.durationHours && !normalized.duration_hours) {
+    normalized.duration_hours = normalized.durationHours;
+  }
+  if (normalized.duration && !normalized.duration_hours) {
+    normalized.duration_hours = normalized.duration;
+  }
+
+  // Cap field normalization
+  if (normalized.cap && !normalized.max_participants) {
+    normalized.max_participants = normalized.cap;
+  }
+  if (normalized.winnersCap && !normalized.winners_cap) {
+    normalized.winners_cap = normalized.winnersCap;
+  }
+
+  // Timestamp normalization
+  if (normalized.createdAt && !normalized.created_at) {
+    normalized.created_at = normalized.createdAt;
+  }
+  if (normalized.updatedAt && !normalized.updated_at) {
+    normalized.updated_at = normalized.updatedAt;
+  }
+
+  return normalized;
+};
+
+const serializeMissionResponse = (data: any) => {
+  // Return consistent camelCase for API responses
+  return {
+    ...data,
+    durationHours: data.duration_hours || data.durationHours || data.duration,
+    maxParticipants: data.max_participants || data.maxParticipants || data.cap,
+    winnersCap: data.winners_cap || data.winnersCap,
+    createdAt: toIso(data.created_at),
+    updatedAt: toIso(data.updated_at),
+    deadline: toIso(data.deadline),
+    expiresAt: toIso(data.expires_at),
+  };
+};
+
+// Status standardization
+const STANDARD_STATUSES = {
+  pending: 'pending',
+  submitted: 'submitted',
+  verified: 'verified',
+  approved: 'approved',
+  rejected: 'rejected',
+  completed: 'completed',
+  active: 'active',
+  paused: 'paused',
+  expired: 'expired'
+};
+
+// Centralized task pricing configuration
+const TASK_PRICES: Record<string, number> = {
+  // Twitter tasks
+  like: 50,
+  retweet: 100,
+  comment: 150,
+  quote: 200,
+  follow: 250,
+  meme: 300,
+  thread: 500,
+  article: 400,
+  videoreview: 600,
+  pfp: 250,
+  name_bio_keywords: 200,
+  pinned_tweet: 300,
+  poll: 150,
+  spaces: 800,
+  community_raid: 400,
+  status_50_views: 300,
+
+  // Instagram tasks
+  like_instagram: 50,
+  comment_instagram: 150,
+  follow_instagram: 250,
+  story_instagram: 200,
+  post_instagram: 400,
+
+  // TikTok tasks
+  like_tiktok: 50,
+  comment_tiktok: 150,
+  follow_tiktok: 250,
+  share_tiktok: 200,
+
+  // Facebook tasks
+  like_facebook: 50,
+  comment_facebook: 150,
+  share_facebook: 200,
+  follow_facebook: 250,
+
+  // WhatsApp tasks
+  join_whatsapp: 100,
+  share_whatsapp: 150,
+
+  // Custom tasks
+  custom: 100
+};
+
+const normalizeStatus = (status: any): string => {
+  if (!status) return 'pending';
+
+  const statusStr = String(status).toLowerCase();
+
+  // Map legacy statuses to standard ones
+  const legacyMap: Record<string, string> = {
+    'verified': 'verified',
+    'VERIFIED': 'verified',
+    'approved': 'approved',
+    'APPROVED': 'approved',
+    'completed': 'completed',
+    'COMPLETED': 'completed',
+    'active': 'active',
+    'ACTIVE': 'active',
+    'paused': 'paused',
+    'PAUSED': 'paused',
+    'expired': 'expired',
+    'EXPIRED': 'expired'
+  };
+
+  return legacyMap[statusStr] || statusStr;
+};
+
 // Simple rate limiting middleware
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
@@ -366,15 +496,10 @@ app.get('/v1/missions', async (req, res) => {
     const missions = missionsSnapshot.docs
       .map(doc => {
         const data = doc.data();
-        return {
+        return serializeMissionResponse({
           id: doc.id,
           ...data,
-          // Convert Firestore timestamps to ISO strings
-          created_at: toIso(data.created_at),
-          updated_at: toIso(data.updated_at),
-          deadline: toIso(data.deadline),
-          expires_at: toIso(data.expires_at),
-        };
+        });
       })
       .filter((mission: any) => !mission.isPaused); // Hide paused missions from users
 
@@ -405,15 +530,10 @@ app.get('/v1/missions/:id', async (req, res) => {
     }
 
     const data = missionDoc.data();
-    const mission: any = {
+    const mission = serializeMissionResponse({
       id: missionDoc.id,
       ...data,
-      // Convert Firestore timestamps to ISO strings
-      created_at: toIso(data?.created_at),
-      updated_at: toIso(data?.updated_at),
-      deadline: toIso(data?.deadline),
-      expires_at: toIso(data?.expires_at),
-    };
+    });
 
     // Check if mission is paused
     if (mission.isPaused) {
@@ -447,13 +567,10 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
     const createdMissions = createdMissionsSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
-        id: doc.id,
-        ...data,
-        // Convert Firestore timestamps to ISO strings
-        created_at: toIso(data.created_at),
-        updated_at: toIso(data.updated_at),
-        deadline: toIso(data.deadline),
-        expires_at: toIso(data.expires_at),
+        ...serializeMissionResponse({
+          id: doc.id,
+          ...data,
+        }),
         type: 'created'
       };
     });
@@ -465,13 +582,10 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
         if (missionDoc.exists) {
           const data = missionDoc.data();
           return {
-            id: missionDoc.id,
-            ...data,
-            // Convert Firestore timestamps to ISO strings
-            created_at: toIso(data.created_at),
-            updated_at: toIso(data.updated_at),
-            deadline: toIso(data.deadline),
-            expires_at: toIso(data.expires_at),
+            ...serializeMissionResponse({
+              id: missionDoc.id,
+              ...data,
+            }),
             type: 'participating',
             participation_id: participationDoc.id,
             participation_status: participation.status
@@ -492,7 +606,7 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
 app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) => {
   try {
     const userId = req.user.uid;
-    const missionData = req.body;
+    const missionData = normalizeMissionData(req.body);
 
     // Validate required fields
     if (!missionData.platform) {
@@ -533,7 +647,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
     const systemConfig = configDoc.exists ? configDoc.data() : {
       honorsPerUsd: 450,
       premiumMultiplier: 5,
-      platformFeeRate: 0.1
+      platformFeeRate: 0.25
     };
 
     // Calculate deadline and rewards based on mission model
@@ -546,6 +660,9 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         usd: costUSD,
         honors: costUSD * systemConfig.honorsPerUsd
       };
+
+      // Set winnersPerTask for degen missions (global cap across all tasks)
+      missionData.winnersPerTask = missionData.winners_cap || missionData.winnersCap || 0;
     } else if (missionData.model === 'fixed' && missionData.cap) {
       // Fixed missions expire after 48 hours
       missionData.expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000);
@@ -556,6 +673,9 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         honors: totalHonors,
         usd: totalHonors / systemConfig.honorsPerUsd
       };
+
+      // Set winnersPerTask for fixed missions (1 per task unless specified)
+      missionData.winnersPerTask = 1;
     }
 
     // Validate platform-specific URL patterns and content structure
@@ -683,7 +803,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       return;
     }
 
-    res.status(201).json(result.mission);
+    res.status(201).json(serializeMissionResponse(result.mission));
   } catch (error) {
     console.error('Error creating mission:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -2507,53 +2627,8 @@ const extractPostIdFromUrl = (url: string): string | null => {
 };
 
 const calculateTaskHonors = (platform: string, missionType: string, taskId: string): number => {
-  // This should match the TASK_PRICES from the frontend
-  const taskPrices: { [key: string]: { [key: string]: { [key: string]: number } } } = {
-    twitter: {
-      engage: {
-        like: 50,
-        retweet: 100,
-        comment: 150,
-        quote: 200,
-        follow: 250
-      },
-      content: {
-        meme: 300,
-        thread: 500,
-        article: 400,
-        videoreview: 600
-      },
-      ambassador: {
-        pfp: 250,
-        name_bio_keywords: 200,
-        pinned_tweet: 300,
-        poll: 150,
-        spaces: 800,
-        community_raid: 400
-      }
-    },
-    instagram: {
-      engage: {
-        like: 50,
-        comment: 150,
-        follow: 250,
-        story_repost: 200
-      },
-      content: {
-        feed_post: 300,
-        reel: 500,
-        carousel: 400,
-        meme: 250
-      },
-      ambassador: {
-        pfp: 250,
-        hashtag_in_bio: 200,
-        story_highlight: 300
-      }
-    }
-  };
-
-  return taskPrices[platform]?.[missionType]?.[taskId] || 0;
+  // Use centralized TASK_PRICES configuration
+  return TASK_PRICES[taskId] || 0;
 };
 
 // Export the Express app as a Firebase Function
@@ -3040,8 +3115,8 @@ export const checkExpiredFixedMissions = functions.pubsub
         // Update mission status to completed
         batch.update(doc.ref, {
           status: 'completed',
-          completed_at: now,
-          updated_at: now
+          completed_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+          updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
         });
 
         completedMissionIds.push(missionId);
