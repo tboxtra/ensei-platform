@@ -71,9 +71,9 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             tasks: wizard.state.tasks,
             cap: wizard.state.cap,
             isPremium: wizard.state.isPremium,
-            duration: wizard.state.duration,
-            rewardPerUser: wizard.state.rewardPerUser,
-            contentLink: wizard.state.contentLink,
+            durationHours: wizard.state.duration,
+            winnersCap: wizard.state.winnersCap,
+            tweetLink: wizard.state.contentLink,
             instructions: wizard.state.instructions,
             // Custom platform fields
             customTitle: wizard.state.customTitle,
@@ -83,7 +83,6 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             customApiVerifier: wizard.state.customApiVerifier,
             // Degen specific fields
             selectedDegenPreset: wizard.state.selectedDegenPreset,
-            winnersCap: wizard.state.winnersCap,
         };
 
         onSubmit(missionData);
