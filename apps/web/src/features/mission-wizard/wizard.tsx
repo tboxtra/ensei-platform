@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useWizardState } from './hooks/useWizardState';
-import { StepIndicator } from './components/StepIndicator';
-import { WizardNavigation } from './components/WizardNavigation';
-import { PlatformStep } from './steps/PlatformStep';
-import { ModelStep } from './steps/ModelStep';
-import { TypeStep } from './steps/TypeStep';
-import { TasksStep } from './steps/TasksStep';
-import { SettingsStep } from './steps/SettingsStep';
-import { DetailsStep } from './steps/DetailsStep';
-import { ReviewStep } from './steps/ReviewStep';
-import { WizardState } from './types/wizard.types';
+import { useWizardState } from './wizard/hooks/useWizardState';
+import { StepIndicator } from './wizard/components/StepIndicator';
+import { WizardNavigation } from './wizard/components/WizardNavigation';
+import { PlatformStep } from './wizard/steps/PlatformStep';
+import { ModelStep } from './wizard/steps/ModelStep';
+import { TypeStep } from './wizard/steps/TypeStep';
+import { TasksStep } from './wizard/steps/TasksStep';
+import { SettingsStep } from './wizard/steps/SettingsStep';
+import { DetailsStep } from './wizard/steps/DetailsStep';
+import { ReviewStep } from './wizard/steps/ReviewStep';
+import { WizardState } from './wizard/types/wizard.types';
 
 interface MissionWizardProps {
     onSubmit: (missionData: any) => void;
