@@ -867,10 +867,21 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
 
       // Calculate rewards for fixed missions
       const totalHonors = missionData.rewardPerUser * missionData.cap;
+      
+      // Debug logging for fixed mission cost calculation
+      console.log('=== FIXED MISSION COST DEBUG ===');
+      console.log('rewardPerUser:', missionData.rewardPerUser);
+      console.log('cap:', missionData.cap);
+      console.log('totalHonors:', totalHonors);
+      console.log('systemConfig.honorsPerUsd:', systemConfig.honorsPerUsd);
+      
       missionData.rewards = {
         honors: totalHonors,
         usd: Number((totalHonors / systemConfig.honorsPerUsd).toFixed(2))
       };
+      
+      console.log('calculated rewards:', missionData.rewards);
+      console.log('================================');
 
       // Set winnersPerTask for fixed missions (1 per task unless specified)
       missionData.winnersPerTask = 1;
@@ -2255,6 +2266,16 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         console.log('totalUsd:', totalUsd);
         console.log('totalHonors:', totalHonors);
         console.log('========================================');
+      } else if (model === 'fixed') {
+        console.log('=== ADMIN DASHBOARD FIXED COST DEBUG ===');
+        console.log('Mission ID:', doc.id);
+        console.log('Mission data:', JSON.stringify(data, null, 2));
+        console.log('Rewards object:', data.rewards);
+        console.log('totalUsd:', totalUsd);
+        console.log('totalHonors:', totalHonors);
+        console.log('rewardPerUser:', data.rewardPerUser);
+        console.log('cap:', data.cap);
+        console.log('========================================');
       }
       const winnersPerTask = data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0; // keep for back-compat display
       const winnersPerMission = data.winnersPerMission ?? data.winnersCap ?? data.winners_cap ?? winnersPerTask;
@@ -2283,9 +2304,28 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         approvedCount: data.approved_count || 0,
 
         // ✅ amounts - Use same logic as frontend formatReward
-        totalCostUsd: model === 'degen' && data.selectedDegenPreset?.costUSD 
-          ? data.selectedDegenPreset.costUSD 
-          : totalUsd,
+        totalCostUsd: (() => {
+          // For degen missions, use the preset cost
+          if (model === 'degen' && data.selectedDegenPreset?.costUSD) {
+            return data.selectedDegenPreset.costUSD;
+          }
+          
+          // For fixed missions, calculate from tasks if rewards.usd is 0
+          if (model === 'fixed' && (!totalUsd || totalUsd === 0) && data.tasks?.length) {
+            const taskPrices = getTaskPrices();
+            const total = data.tasks.reduce((sum: number, task: string) => {
+              const basePrice = taskPrices[task] || 0;
+              const multiplier = data.isPremium ? 5 : 1; // Premium multiplier
+              return sum + (basePrice * multiplier);
+            }, 0);
+            const participants = data.cap || data.winnersCap || data.max_participants || 1;
+            const totalHonors = total * participants;
+            return Number((totalHonors / 450).toFixed(2)); // honorsToUsd conversion
+          }
+          
+          // Fallback to stored rewards.usd
+          return totalUsd;
+        })(),
         totalCostHonors: totalHonors,
         perUserHonors: model === 'fixed' ? perUserHonors : 0,
         perWinnerHonors: model === 'degen' ? perWinnerHonors : 0,
