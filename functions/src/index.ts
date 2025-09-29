@@ -779,6 +779,12 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
   try {
     const userId = req.user.uid;
     const missionData = normalizeMissionData(req.body);
+    
+    // Debug logging for mission creation
+    console.log('=== MISSION CREATION DEBUG ===');
+    console.log('Raw request body:', JSON.stringify(req.body, null, 2));
+    console.log('Normalized mission data:', JSON.stringify(missionData, null, 2));
+    console.log('================================');
 
     // Validate required fields
     if (!missionData.platform) {
@@ -831,10 +837,20 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
 
       // Calculate rewards for degen missions
       const costUSD = missionData.selectedDegenPreset?.costUSD || 0;
+      
+      // Debug logging for degen mission cost calculation
+      console.log('=== DEGEN MISSION COST DEBUG ===');
+      console.log('selectedDegenPreset:', missionData.selectedDegenPreset);
+      console.log('costUSD:', costUSD);
+      console.log('systemConfig.honorsPerUsd:', systemConfig.honorsPerUsd);
+      
       missionData.rewards = {
         usd: costUSD,
         honors: Math.round(costUSD * systemConfig.honorsPerUsd)
       };
+      
+      console.log('calculated rewards:', missionData.rewards);
+      console.log('================================');
 
       // ✅ Canonical winners cap for degen missions is mission-wide
       missionData.winnersPerMission =
