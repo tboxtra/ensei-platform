@@ -328,54 +328,105 @@ const normalizeStatus = (status: any): string => {
   return legacyMap[statusStr] || statusStr;
 };
 
-// Simple rate limiting middleware
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+// ✅ RATE LIMITING WITH SHARED STORE - Firestore-based rate limiting
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute
 
-const rateLimit = (req: any, res: any, next: any) => {
-  const clientId = req.user?.uid || req.ip || 'anonymous';
-  const now = Date.now();
+const rateLimit = async (req: any, res: any, next: any) => {
+  try {
+    const clientId = req.user?.uid || req.ip || 'anonymous';
+    const now = Date.now();
+    const windowStart = Math.floor(now / RATE_LIMIT_WINDOW) * RATE_LIMIT_WINDOW;
+    const rateLimitKey = `rate_limit_${clientId}_${windowStart}`;
 
-  const clientData = rateLimitMap.get(clientId);
-
-  if (!clientData || now > clientData.resetTime) {
-    // Reset or create new entry
-    rateLimitMap.set(clientId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    // Use Firestore for distributed rate limiting
+    const rateLimitRef = db.collection('rate_limits').doc(rateLimitKey);
+    
+    // Use transaction to atomically check and increment
+    await db.runTransaction(async (transaction) => {
+      const rateLimitDoc = await transaction.get(rateLimitRef);
+      
+      if (!rateLimitDoc.exists) {
+        // First request in this window
+        transaction.set(rateLimitRef, {
+          count: 1,
+          windowStart,
+          lastRequest: now,
+          clientId
+        });
+      } else {
+        const data = rateLimitDoc.data();
+        const currentCount = data?.count || 0;
+        
+        if (currentCount >= RATE_LIMIT_MAX_REQUESTS) {
+          throw new Error('RATE_LIMIT_EXCEEDED');
+        }
+        
+        // Increment count
+        transaction.update(rateLimitRef, {
+          count: currentCount + 1,
+          lastRequest: now
+        });
+      }
+    });
+    
     next();
-  } else if (clientData.count >= RATE_LIMIT_MAX_REQUESTS) {
-    res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
-  } else {
-    clientData.count++;
-    next();
+  } catch (error) {
+    if (error.message === 'RATE_LIMIT_EXCEEDED') {
+      res.status(429).json({ 
+        error: 'Rate limit exceeded. Please try again later.',
+        retryAfter: Math.ceil(RATE_LIMIT_WINDOW / 1000)
+      });
+    } else {
+      console.error('Rate limiting error:', error);
+      // Allow request to proceed if rate limiting fails
+      next();
+    }
   }
 };
 
 // Idempotency key validation
-const idempotencyKeys = new Set<string>();
-
-const checkIdempotency = (req: any, res: any, next: any) => {
-  const idempotencyKey = req.headers['idempotency-key'];
-
-  if (!idempotencyKey) {
-    return next();
+// ✅ IDEMPOTENCY WITH SHARED STORE - Firestore-based idempotency
+const checkIdempotency = async (req: any, res: any, next: any) => {
+  try {
+    const idempotencyKey = req.headers['idempotency-key'];
+    
+    if (!idempotencyKey) {
+      return next();
+    }
+    
+    // Use Firestore for distributed idempotency checking
+    const idempotencyRef = db.collection('idempotency_keys').doc(idempotencyKey);
+    
+    // Use transaction to atomically check and set
+    await db.runTransaction(async (transaction) => {
+      const idempotencyDoc = await transaction.get(idempotencyRef);
+      
+      if (idempotencyDoc.exists) {
+        throw new Error('IDEMPOTENCY_KEY_EXISTS');
+      }
+      
+      // Set idempotency key with TTL (24 hours)
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      transaction.set(idempotencyRef, {
+        key: idempotencyKey,
+        createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        expiresAt,
+        endpoint: req.path,
+        method: req.method
+      });
+    });
+    
+    next();
+  } catch (error) {
+    if (error.message === 'IDEMPOTENCY_KEY_EXISTS') {
+      res.status(409).json({ error: 'Duplicate request detected' });
+    } else {
+      console.error('Idempotency check error:', error);
+      // Allow request to proceed if idempotency check fails
+      next();
+    }
   }
-
-  if (idempotencyKeys.has(idempotencyKey)) {
-    res.status(409).json({ error: 'Duplicate request detected' });
-    return;
-  }
-
-  idempotencyKeys.add(idempotencyKey);
-
-  // Clean up old keys (simple cleanup - in production, use Redis or similar)
-  if (idempotencyKeys.size > 10000) {
-    const keysArray = Array.from(idempotencyKeys);
-    idempotencyKeys.clear();
-    keysArray.slice(-5000).forEach(key => idempotencyKeys.add(key));
-  }
-
-  next();
 };
 
 // Social Media API Integration Functions
@@ -501,11 +552,24 @@ app.get('/v1/missions', async (req, res) => {
       .orderBy('created_at', 'desc')
       .limit(limitNum);
 
-    // Add pagination if pageToken provided
+    // ✅ PAGINATION IMPROVEMENTS - Opaque cursor system
     if (pageToken) {
-      const lastDoc = await db.collection('missions').doc(pageToken as string).get();
-      if (lastDoc.exists) {
-        query = query.startAfter(lastDoc);
+      try {
+        // Decode opaque cursor: base64 encoded {id, created_at}
+        const cursorData = JSON.parse(Buffer.from(pageToken as string, 'base64').toString());
+        const { id, created_at } = cursorData;
+        
+        if (id && created_at) {
+          // Create a reference document for startAfter
+          const cursorDoc = {
+            id,
+            created_at: new Date(created_at)
+          };
+          query = query.startAfter(cursorDoc);
+        }
+      } catch (error) {
+        console.warn('Invalid pageToken provided:', pageToken, error);
+        // Continue without pagination if token is invalid
       }
     }
 
@@ -522,11 +586,24 @@ app.get('/v1/missions', async (req, res) => {
       })
       .filter((mission: any) => !mission.isPaused); // Hide paused missions from users
 
-    // Prepare pagination response
+    // ✅ PAGINATION RESPONSE - Opaque cursor generation
+    let nextPageToken = null;
+    if (missionsSnapshot.docs.length === limitNum) {
+      const lastDoc = missionsSnapshot.docs[missionsSnapshot.docs.length - 1];
+      const lastDocData = lastDoc.data();
+      
+      // Create opaque cursor: base64 encoded {id, created_at}
+      const cursorData = {
+        id: lastDoc.id,
+        created_at: lastDocData.created_at?.toDate?.()?.toISOString() || lastDocData.created_at
+      };
+      nextPageToken = Buffer.from(JSON.stringify(cursorData)).toString('base64');
+    }
+
     const response: any = {
       missions,
       hasMore: missionsSnapshot.docs.length === limitNum,
-      nextPageToken: missionsSnapshot.docs.length === limitNum ? missionsSnapshot.docs[missionsSnapshot.docs.length - 1].id : null
+      nextPageToken
     };
 
     res.json(response);
@@ -1191,17 +1268,23 @@ app.post('/v1/upload', verifyFirebaseToken, rateLimit, upload.single('file'), as
 
     stream.on('finish', async () => {
       try {
-        // Make file publicly accessible
-        await fileUpload.makePublic();
-
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        // ✅ SECURE FILE UPLOAD - Keep files private, generate signed URLs
+        // Don't make file public - keep it private for security
+        
+        // Generate signed URL for temporary access (1 hour)
+        const [signedUrl] = await fileUpload.getSignedUrl({
+          action: 'read',
+          expires: Date.now() + 60 * 60 * 1000, // 1 hour
+        });
 
         res.json({
           success: true,
-          file_url: publicUrl,
+          file_url: signedUrl,
           file_name: file.originalname,
           file_size: file.size,
-          content_type: file.mimetype
+          content_type: file.mimetype,
+          file_path: fileName, // Store path for future signed URL generation
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString()
         });
       } catch (error) {
         console.error('Error making file public:', error);
@@ -1507,18 +1590,22 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
       }
     });
 
-    // Make file publicly accessible
-    await file.makePublic();
-
-    // Get public URL
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+    // ✅ SECURE FILE UPLOAD - Keep files private, generate signed URLs
+    // Don't make file public - keep it private for security
+    
+    // Generate signed URL for temporary access (1 hour)
+    const [signedUrl] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 60 * 60 * 1000, // 1 hour
+    });
 
     res.json({
       success: true,
-      fileUrl: publicUrl,
+      fileUrl: signedUrl,
       fileName: sanitizedFileName,
       filePath,
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
     });
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -1584,15 +1671,22 @@ app.post('/v1/missions/:id/submit-with-files', verifyFirebaseToken, async (req: 
           }
         });
 
-        await storageFile.makePublic();
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        // ✅ SECURE FILE UPLOAD - Keep files private, generate signed URLs
+        // Don't make file public - keep it private for security
+        
+        // Generate signed URL for temporary access (1 hour)
+        const [signedUrl] = await storageFile.getSignedUrl({
+          action: 'read',
+          expires: Date.now() + 60 * 60 * 1000, // 1 hour
+        });
 
         uploadedFiles.push({
           fileName: sanitizedFileName,
           originalName: fileName,
-          fileUrl: publicUrl,
+          fileUrl: signedUrl,
           filePath,
-          fileType
+          fileType,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
         });
       }
     }
@@ -1773,70 +1867,76 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
 
     let items: any[] = [];
 
-    // 1) Try new taskCompletions collection first
-    const newColl = db.collection('taskCompletions');
-    let newSnap = await newColl.where('missionId', '==', missionId).limit(500).get();
+    // ✅ PRIMARY: Use mission_participations as single source of truth
+    const participationsSnapshot = await db.collection('mission_participations')
+      .where('mission_id', '==', missionId)
+      .orderBy('created_at', 'desc')
+      .limit(500)
+      .get();
 
-    if (!newSnap.empty) {
-      items = newSnap.docs.map(d => toSubmission(d.id, d.data()));
-      console.log('Found submissions in taskCompletions collection:', items.length);
-    } else {
-      // 2) Try legacy mission_participations collection
-      const legacyColl = db.collection('mission_participations');
-      let legacySnap = await legacyColl.where('mission_id', '==', missionId).limit(500).get();
-
-      if (!legacySnap.empty) {
-        // Convert legacy format to new format
-        items = legacySnap.docs.flatMap(doc => {
-          const data = doc.data();
-          const tasksCompleted = data.tasks_completed || [];
-          return tasksCompleted.map((task: any, index: number) => ({
-            id: `${doc.id}_${task.task_id || index}`,
+    if (!participationsSnapshot.empty) {
+      // Convert participation format to submission format
+      items = participationsSnapshot.docs.flatMap(doc => {
+        const data = doc.data();
+        const tasksCompleted = data.tasks_completed || [];
+        
+        // If no tasks completed, return the participation itself as a submission
+        if (tasksCompleted.length === 0) {
+          return [{
+            id: doc.id,
             missionId: data.mission_id,
-            taskId: task.task_id,
             userId: data.user_id,
-            userName: data.user_name,
-            userEmail: data.user_email,
-            userSocialHandle: data.user_social_handle,
-            status: task.status === 'completed' ? 'verified' : task.status,
-            completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
-            verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
-            flaggedAt: null,
-            flaggedReason: null,
-            reviewedBy: null,
-            reviewedAt: null,
+            status: data.status || 'pending',
+            submittedAt: data.submitted_at || data.created_at,
+            reviewedAt: data.reviewed_at,
+            proofs: data.proofs || [],
             metadata: {
-              taskType: task.task_id,
-              platform: data.platform || 'twitter',
-              url: task.verification_data?.url,
-              ...task.verification_data
-            },
-            createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
-            updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
-          }));
-        });
-        console.log('Found submissions in mission_participations collection:', items.length);
-      } else {
-        // 3) Fallback by normalized URL in new collection
-        const missionDoc = await db.collection('missions').doc(missionId).get();
-        if (missionDoc.exists) {
-          const m: any = missionDoc.data();
-          const urlCandidates = [...new Set([
-            m?.tweetLink, m?.contentLink,
-            normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
-          ].filter(v => typeof v === 'string' && v.length > 5))];
-
-          console.log('Fallback try candidates:', urlCandidates);
-
-          for (const u of urlCandidates) {
-            const s = await newColl.where('metadata.tweetUrl', '==', u).limit(500).get();
-            if (!s.empty) {
-              items = s.docs.map(d => toSubmission(d.id, d.data()));
-              console.log('Found submissions via URL:', u, items.length);
-              break;
+              tweetUrl: data.tweet_url || data.tweetLink,
+              taskType: 'participation',
+              completedAt: data.completed_at || data.submitted_at,
+              tasksCompleted: data.tasks_completed || [],
+              totalHonorsEarned: data.total_honors_earned || 0
             }
-          }
+          }];
         }
+        
+        // Convert each completed task to a submission
+        return tasksCompleted.map((task: any, index: number) => ({
+          id: `${doc.id}_${task.task_id || index}`,
+          missionId: data.mission_id,
+          taskId: task.task_id,
+          userId: data.user_id,
+          userName: data.user_name,
+          userEmail: data.user_email,
+          userSocialHandle: data.user_social_handle,
+          status: task.status === 'completed' ? 'verified' : task.status,
+          completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
+          verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
+          flaggedAt: null,
+          flaggedReason: null,
+          reviewedBy: null,
+          reviewedAt: null,
+          metadata: {
+            taskType: task.task_id,
+            platform: data.platform || 'twitter',
+            url: task.verification_data?.url,
+            ...task.verification_data
+          },
+          createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+          updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
+        }));
+      });
+      console.log('Found submissions in mission_participations collection:', items.length);
+    } else {
+      // ✅ FALLBACK: Check taskCompletions for legacy data
+      const taskCompletionsSnapshot = await db.collection('taskCompletions')
+        .where('missionId', '==', missionId)
+        .limit(500)
+        .get();
+
+      if (!taskCompletionsSnapshot.empty) {
+        items = taskCompletionsSnapshot.docs.map(d => toSubmission(d.id, d.data()));
+        console.log('Found legacy submissions in taskCompletions collection:', items.length);
       }
     }
 
@@ -1853,36 +1953,33 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
   try {
     const { missionId } = req.params;
 
-    // primary
-    let snap = await db.collection('taskCompletions')
-      .where('missionId', '==', missionId)
-      .where('status', 'in', ['verified', 'approved'])
+    // ✅ PRIMARY: Count from mission_participations
+    const participationsSnapshot = await db.collection('mission_participations')
+      .where('mission_id', '==', missionId)
       .get();
 
-    // fallback by URL
-    if (snap.empty) {
-      const missionDoc = await db.collection('missions').doc(missionId).get();
-      if (missionDoc.exists) {
-        const m: any = missionDoc.data();
-        const urlCandidates = [...new Set([
-          m?.tweetLink, m?.contentLink,
-          normalizeUrl(m?.tweetLink), normalizeUrl(m?.contentLink)
-        ].filter(v => typeof v === 'string' && v.length > 5))];
-
-        for (const u of urlCandidates) {
-          const s = await db.collection('taskCompletions')
-            .where('metadata.tweetUrl', '==', u)
-            .where('status', 'in', ['verified', 'approved'])
-            .get();
-          if (!s.empty) {
-            snap = s;
-            break;
-          }
-        }
-      }
+    let count = 0;
+    
+    if (!participationsSnapshot.empty) {
+      // Count verified/completed tasks across all participations
+      participationsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const tasksCompleted = data.tasks_completed || [];
+        const verifiedTasks = tasksCompleted.filter((task: any) => 
+          task.status === 'completed' || task.status === 'verified'
+        );
+        count += verifiedTasks.length;
+      });
+    } else {
+      // ✅ FALLBACK: Count from taskCompletions for legacy data
+      const taskCompletionsSnapshot = await db.collection('taskCompletions')
+        .where('missionId', '==', missionId)
+        .where('status', 'in', ['verified', 'approved'])
+        .get();
+      count = taskCompletionsSnapshot.size;
     }
 
-    return res.json({ count: snap.size });
+    return res.json({ count });
   } catch (e: any) {
     console.error('count route error', e);
     return res.status(500).json({ error: e?.message ?? 'Internal Server Error' });
@@ -2608,21 +2705,70 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
       participationId = participationQuery.docs[0].id;
     }
 
+    // ✅ AUTO ACTIONS MAPPING - Explicit auto flag system
+    const AUTO_ACTIONS = {
+      // Twitter auto actions
+      'like': { auto: true, platform: 'twitter', action: 'like' },
+      'retweet': { auto: true, platform: 'twitter', action: 'retweet' },
+      'follow': { auto: true, platform: 'twitter', action: 'follow' },
+      'comment': { auto: false, platform: 'twitter', action: 'comment' },
+      'quote': { auto: false, platform: 'twitter', action: 'quote' },
+      
+      // Instagram auto actions
+      'like_instagram': { auto: true, platform: 'instagram', action: 'like' },
+      'follow_instagram': { auto: true, platform: 'instagram', action: 'follow' },
+      'comment_instagram': { auto: false, platform: 'instagram', action: 'comment' },
+      
+      // TikTok auto actions
+      'like_tiktok': { auto: true, platform: 'tiktok', action: 'like' },
+      'follow_tiktok': { auto: true, platform: 'tiktok', action: 'follow' },
+      'comment_tiktok': { auto: false, platform: 'tiktok', action: 'comment' },
+      
+      // Facebook auto actions
+      'like_facebook': { auto: true, platform: 'facebook', action: 'like' },
+      'follow_facebook': { auto: true, platform: 'facebook', action: 'follow' },
+      'comment_facebook': { auto: false, platform: 'facebook', action: 'comment' },
+      
+      // Manual actions (require user proof)
+      'meme': { auto: false, platform: 'twitter', action: 'meme' },
+      'thread': { auto: false, platform: 'twitter', action: 'thread' },
+      'article': { auto: false, platform: 'twitter', action: 'article' },
+      'videoreview': { auto: false, platform: 'twitter', action: 'videoreview' },
+      'pfp': { auto: false, platform: 'twitter', action: 'pfp' },
+      'name_bio_keywords': { auto: false, platform: 'twitter', action: 'name_bio_keywords' },
+      'pinned_tweet': { auto: false, platform: 'twitter', action: 'pinned_tweet' },
+      'poll': { auto: false, platform: 'twitter', action: 'poll' },
+      'spaces': { auto: false, platform: 'twitter', action: 'spaces' },
+      'community_raid': { auto: false, platform: 'twitter', action: 'community_raid' },
+      'status_50_views': { auto: false, platform: 'twitter', action: 'status_50_views' },
+      
+      // Custom actions
+      'custom': { auto: false, platform: 'custom', action: 'custom' }
+    };
+
     // Handle task completion based on action type
     let taskResult = null;
-    if (actionId.includes('auto_')) {
+    const actionConfig = AUTO_ACTIONS[actionId] || { auto: false, platform: 'unknown', action: actionId };
+    
+    if (actionConfig.auto) {
       // Handle automatic actions (like, retweet, follow)
-      const action = actionId.replace('auto_', '');
-      if (platform === 'twitter') {
+      const action = actionConfig.action;
+      if (actionConfig.platform === 'twitter') {
         const tweetId = extractTweetIdFromUrl(mission.tweetLink || mission.contentLink);
         if (tweetId) {
           taskResult = await handleTwitterAction(action, tweetId, userId);
         }
-      } else if (platform === 'instagram') {
+      } else if (actionConfig.platform === 'instagram') {
         const postId = extractPostIdFromUrl(mission.contentLink);
         if (postId) {
           taskResult = await handleInstagramAction(action, postId, userId);
         }
+      } else if (actionConfig.platform === 'tiktok') {
+        // TODO: Implement TikTok action handling
+        console.log('TikTok actions not yet implemented:', action, mission.contentLink);
+      } else if (actionConfig.platform === 'facebook') {
+        // TODO: Implement Facebook action handling
+        console.log('Facebook actions not yet implemented:', action, mission.contentLink);
       }
     }
 
