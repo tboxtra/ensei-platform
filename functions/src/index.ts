@@ -182,19 +182,41 @@ const validateUrl = (url: string, platform: string): { isValid: boolean; error?:
 
 // Safe timestamp conversion utility
 const toIso = (v: any) => {
+  if (!v) return null;
+  
+  // Handle Firestore Timestamp objects
   if (v?.toDate?.()) {
     return v.toDate().toISOString();
   }
-  if (typeof v === 'string') {
-    return v;
-  }
+  
+  // Handle JavaScript Date objects
   if (v instanceof Date) {
     return v.toISOString();
   }
+  
+  // Handle Firestore Timestamp objects (alternative format)
   if (v && typeof v === 'object' && v.seconds) {
-    // Handle Firestore Timestamp objects
     return new Date(v.seconds * 1000).toISOString();
   }
+  
+  // Handle ISO strings
+  if (typeof v === 'string') {
+    // Validate that it's a proper ISO string
+    const date = new Date(v);
+    if (!isNaN(date.getTime())) {
+      return v;
+    }
+  }
+  
+  // Handle numeric timestamps
+  if (typeof v === 'number') {
+    const date = new Date(v);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+  }
+  
+  console.warn('toIso: Unable to convert value to ISO string:', v, typeof v);
   return null;
 };
 
@@ -230,24 +252,36 @@ const normalizeMissionData = (data: any) => {
   return normalized;
 };
 
-const serializeMissionResponse = (data: any) => ({
-  ...data,
-  durationHours: data.duration_hours || data.durationHours || data.duration,
-  maxParticipants: data.max_participants || data.maxParticipants || data.cap,
-  winnersCap: data.winners_cap || data.winnersCap,
-  winnersPerMission: data.winnersPerMission ?? data.winners_cap ?? data.winnersCap ?? data.winnersPerTask,
-  createdAt: toIso(data.created_at),
-  updatedAt: toIso(data.updated_at),
-  deadline: toIso(data.deadline),
-  expiresAt: toIso(data.expires_at),
+const serializeMissionResponse = (data: any) => {
+  // Debug logging for deadline serialization
+  if (data.model === 'degen') {
+    console.log('=== SERIALIZE DEGEN MISSION DEBUG ===');
+    console.log('Mission ID:', data.id);
+    console.log('Raw deadline:', data.deadline);
+    console.log('Deadline type:', typeof data.deadline);
+    console.log('Serialized deadline:', toIso(data.deadline));
+    console.log('=====================================');
+  }
+  
+  return {
+    ...data,
+    durationHours: data.duration_hours || data.durationHours || data.duration,
+    maxParticipants: data.max_participants || data.maxParticipants || data.cap,
+    winnersCap: data.winners_cap || data.winnersCap,
+    winnersPerMission: data.winnersPerMission ?? data.winners_cap ?? data.winnersCap ?? data.winnersPerTask,
+    createdAt: toIso(data.created_at),
+    updatedAt: toIso(data.updated_at),
+    deadline: toIso(data.deadline),
+    expiresAt: toIso(data.expires_at),
 
-  // ✅ canonical fields the UI expects
-  startAt: toIso(data.created_at),
-  endAt: toIso(data.deadline || data.expires_at),
+    // ✅ canonical fields the UI expects
+    startAt: toIso(data.created_at),
+    endAt: toIso(data.deadline || data.expires_at),
 
-  // keep content link normalization too if you like
-  contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
-});
+    // keep content link normalization too if you like
+    contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
+  };
+};
 
 // Status standardization
 const STANDARD_STATUSES = {
@@ -832,7 +866,15 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
 
     // Calculate deadline and rewards based on mission model
     if (missionData.model === 'degen' && missionData.duration) {
-      missionData.deadline = new Date(Date.now() + missionData.duration * 60 * 60 * 1000);
+      // ✅ FIX: Ensure deadline is properly calculated and stored
+      const deadlineDate = new Date(Date.now() + missionData.duration * 60 * 60 * 1000);
+      missionData.deadline = deadlineDate;
+      
+      console.log('=== DEGEN DEADLINE DEBUG ===');
+      console.log('duration:', missionData.duration);
+      console.log('calculated deadline:', deadlineDate);
+      console.log('deadline ISO:', deadlineDate.toISOString());
+      console.log('============================');
 
       // Calculate rewards for degen missions
       const costUSD = missionData.selectedDegenPreset?.costUSD || 0;
@@ -1348,32 +1390,32 @@ app.post('/v1/upload', verifyFirebaseToken, rateLimit, upload.single('file'), as
     }
 
     const file = req.file;
-    
+
     // ✅ MAGIC BYTES VALIDATION - Validate file type using magic bytes
     const detectedType = await fileTypeFromBuffer(file.buffer);
     if (!detectedType) {
       res.status(400).json({ error: 'Invalid file type - could not detect file format' });
       return;
     }
-    
+
     // Validate against allowed MIME types
     const ALLOWED_MIME_TYPES = [
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
       'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'text/plain', 'video/mp4', 'video/quicktime', 'video/x-msvideo'
     ];
-    
+
     if (!ALLOWED_MIME_TYPES.includes(detectedType.mime)) {
       res.status(400).json({ error: `File type ${detectedType.mime} not allowed` });
       return;
     }
-    
+
     // Verify detected type matches declared type
     if (detectedType.mime !== file.mimetype) {
       console.warn(`MIME type mismatch: declared ${file.mimetype}, detected ${detectedType.mime}`);
       // Use detected type for security
     }
-    
+
     const fileName = `${userId}/${Date.now()}-${file.originalname}`;
     const fileUpload = bucket.file(fileName);
 
@@ -2332,9 +2374,10 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         totalCostUsd: (() => {
           // For degen missions, use the preset cost
           if (model === 'degen' && data.selectedDegenPreset?.costUSD) {
+            console.log('Admin: Using degen preset cost:', data.selectedDegenPreset.costUSD);
             return data.selectedDegenPreset.costUSD;
           }
-
+          
           // For fixed missions, calculate from tasks if rewards.usd is 0
           if (model === 'fixed' && (!totalUsd || totalUsd === 0) && data.tasks?.length) {
             const cfg = readCfg(data.systemConfig || {});
@@ -2345,10 +2388,13 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
             }, 0);
             const participants = data.cap || data.winnersCap || data.max_participants || 1;
             const totalHonors = total * participants;
-            return Number((totalHonors / 450).toFixed(2)); // honorsToUsd conversion
+            const calculatedUsd = Number((totalHonors / 450).toFixed(2)); // honorsToUsd conversion
+            console.log('Admin: Calculated fixed mission cost:', calculatedUsd);
+            return calculatedUsd;
           }
-
+          
           // Fallback to stored rewards.usd
+          console.log('Admin: Using stored rewards.usd:', totalUsd);
           return totalUsd;
         })(),
         totalCostHonors: totalHonors,
