@@ -463,11 +463,11 @@ const getUserStats = async (uid: string): Promise<UserStats> => {
   try {
     const statsRef = db.doc(`users/${uid}/stats/summary`);
     const statsSnap = await statsRef.get();
-    
+
     if (statsSnap.exists) {
       return statsSnap.data() as UserStats;
     }
-    
+
     // Return default stats if none exist
     return {
       missionsCreated: 0,
@@ -1608,7 +1608,6 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
     }
 
     // ✅ MAGIC BYTES VALIDATION - Use file-type for accurate detection
-    const { fileTypeFromBuffer } = await import('file-type');
     const detectedType = await fileTypeFromBuffer(fileBuffer);
 
     // Whitelist of allowed MIME types
@@ -3411,32 +3410,32 @@ export const deriveUserStatsAggregates = functions.pubsub
   .onRun(async (context) => {
     try {
       console.log('Starting user stats aggregation job...');
-      
+
       // Get all users
       const usersSnapshot = await db.collection('users').get();
-      
+
       for (const userDoc of usersSnapshot.docs) {
         const uid = userDoc.id;
-        
+
         // Skip if user has no stats subcollection
         const statsSnapshot = await db.collection(`users/${uid}/stats`).get();
         if (statsSnapshot.empty) continue;
-        
+
         // Calculate aggregates from various sources
         const missionsCreated = await db.collection('missions')
           .where('created_by', '==', uid)
           .get();
-        
+
         const tasksCompleted = await db.collection('mission_participations')
           .where('user_id', '==', uid)
           .where('status', '==', 'verified')
           .get();
-        
+
         const totalEarnings = await db.collection('mission_participations')
           .where('user_id', '==', uid)
           .where('status', '==', 'verified')
           .get();
-        
+
         let earningsSum = 0;
         totalEarnings.forEach(doc => {
           const data = doc.data();
@@ -3444,7 +3443,7 @@ export const deriveUserStatsAggregates = functions.pubsub
             earningsSum += data.rewards.honors;
           }
         });
-        
+
         // Update consolidated stats
         await updateUserStats(uid, {
           missionsCreated: missionsCreated.size,
@@ -3455,7 +3454,7 @@ export const deriveUserStatsAggregates = functions.pubsub
           lastActiveAt: new Date().toISOString()
         });
       }
-      
+
       console.log('User stats aggregation job completed');
     } catch (error) {
       console.error('Error in user stats aggregation job:', error);
