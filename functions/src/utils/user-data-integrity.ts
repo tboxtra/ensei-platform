@@ -375,6 +375,33 @@ export async function createMissionWithUidReferences(userId: string, missionData
 
     await missionRef.set(mission);
 
+    // ✅ DEGEN FLOW COMPLETION - Create task documents for degen missions
+    if (missionData.model === 'degen' && missionData.tasks && missionData.tasks.length > 0) {
+        const batch = getDb().batch();
+        
+        for (const task of missionData.tasks) {
+            const taskRef = missionRef.collection('tasks').doc();
+            const taskDoc = {
+                id: taskRef.id,
+                missionId: missionRef.id,
+                type: task,
+                status: 'active',
+                created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                // Initialize task-specific fields for degen missions
+                winners: [],
+                winnersHash: null,
+                honorsPerTask: missionData.rewards?.honors ? Math.floor(missionData.rewards.honors / missionData.tasks.length) : 0,
+                maxWinners: missionData.winnersPerMission || 0
+            };
+            
+            batch.set(taskRef, taskDoc);
+        }
+        
+        await batch.commit();
+        console.log(`Created ${missionData.tasks.length} task documents for degen mission ${missionRef.id}`);
+    }
+
     return {
         success: true,
         mission

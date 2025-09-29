@@ -6,7 +6,10 @@ type UserStats = {
   missionsCreated: number;
   missionsCompleted: number;
   tasksDone: number;
+  tasksCompleted: number; // Alias for tasksDone for consistency
   totalEarned: number;
+  totalEarnings: number; // Alias for totalEarned for consistency
+  lastActiveAt: string;
 };
 
 type MissionProgress = {
@@ -20,7 +23,10 @@ const emptyStats = (): UserStats => ({
   missionsCreated: 0,
   missionsCompleted: 0,
   tasksDone: 0,
+  tasksCompleted: 0,
   totalEarned: 0,
+  totalEarnings: 0,
+  lastActiveAt: new Date().toISOString(),
 });
 
 const emptyProgress = (req = 1): MissionProgress => ({
@@ -437,6 +443,52 @@ const getUserCreationTime = async (uid: string): Promise<string> => {
   } catch (error) {
     console.error('Error fetching user creation time:', error);
     return new Date().toISOString();
+  }
+};
+
+// ✅ USER STATS CONSOLIDATION - Centralized user statistics management
+const updateUserStats = async (uid: string, updates: Partial<UserStats>) => {
+  try {
+    const statsRef = db.doc(`users/${uid}/stats/summary`);
+    await statsRef.set({
+      ...updates,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error updating user stats:', error);
+  }
+};
+
+const getUserStats = async (uid: string): Promise<UserStats> => {
+  try {
+    const statsRef = db.doc(`users/${uid}/stats/summary`);
+    const statsSnap = await statsRef.get();
+    
+    if (statsSnap.exists) {
+      return statsSnap.data() as UserStats;
+    }
+    
+    // Return default stats if none exist
+    return {
+      missionsCreated: 0,
+      missionsCompleted: 0,
+      tasksDone: 0,
+      tasksCompleted: 0,
+      totalEarned: 0,
+      totalEarnings: 0,
+      lastActiveAt: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    return {
+      missionsCreated: 0,
+      missionsCompleted: 0,
+      tasksDone: 0,
+      tasksCompleted: 0,
+      totalEarned: 0,
+      totalEarnings: 0,
+      lastActiveAt: new Date().toISOString()
+    };
   }
 };
 
@@ -1558,12 +1610,12 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
     // ✅ MAGIC BYTES VALIDATION - Use file-type for accurate detection
     const { fileTypeFromBuffer } = await import('file-type');
     const detectedType = await fileTypeFromBuffer(fileBuffer);
-    
+
     // Whitelist of allowed MIME types
     const ALLOWED_MIME_TYPES = [
       // Images
       'image/jpeg',
-      'image/png', 
+      'image/png',
       'image/gif',
       'image/webp',
       'image/svg+xml',
@@ -1586,7 +1638,7 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
 
     // Validate against detected type (source of truth)
     if (detectedType && !ALLOWED_MIME_TYPES.includes(detectedType.mime)) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: `Unsupported file type: ${detectedType.mime}`,
         detectedType: detectedType.mime,
         allowedTypes: ALLOWED_MIME_TYPES
@@ -1596,7 +1648,7 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
 
     // Validate against provided type (should match detected)
     if (detectedType && detectedType.mime !== fileType) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: 'File type mismatch',
         providedType: fileType,
         detectedType: detectedType.mime
@@ -2441,8 +2493,13 @@ app.get('/v1/admin/analytics/overview', requireAdmin, async (req, res) => {
       }
     });
 
-    // Calculate platform fee (25% of total revenue)
-    const platformFee = totalRevenue * 0.25;
+    // ✅ PLATFORM FEE CONFIG - Read from system_config instead of hardcoding
+    const configDoc = await db.collection('system_config').doc('main').get();
+    const systemConfig = configDoc.exists ? configDoc.data() : {
+      platformFeeRate: 0.25 // fallback
+    };
+    const platformFeeRate = systemConfig.platformFeeRate || 0.25;
+    const platformFee = totalRevenue * platformFeeRate;
 
     // Calculate average completion rate (mock for now)
     const averageCompletionRate = totalSubmissions > 0 ? 75 : 0;
@@ -2455,6 +2512,7 @@ app.get('/v1/admin/analytics/overview', requireAdmin, async (req, res) => {
       activeMissions,
       averageCompletionRate,
       platformFee,
+      platformFeeRate, // Include the rate used for transparency
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -2980,6 +3038,7 @@ export const updateMissionAggregates = functions.firestore
         return null;
       }
       const winnersPerTask = missionData.winnersPerTask || null;
+      const winnersPerMission = missionData.winnersPerMission || null;
       const taskCount = Array.isArray(missionData.tasks) ? missionData.tasks.length : 0;
 
       // Calculate delta based on state change
@@ -2991,6 +3050,7 @@ export const updateMissionAggregates = functions.firestore
           taskCounts: {},
           totalCompletions: 0,
           winnersPerTask,
+          winnersPerMission,
           taskCount
         };
 
@@ -2999,12 +3059,22 @@ export const updateMissionAggregates = functions.firestore
           return;
         }
 
-        // Race condition protection: check if we're at cap before incrementing
-        if (delta > 0 && missionData.model === 'fixed' && winnersPerTask) {
-          const currentCount = agg.taskCounts[taskId] || 0;
-          if (currentCount >= winnersPerTask) {
-            console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);
-            return; // Skip this update - task is already full
+        // ✅ COUNTING LOGIC VS CAPS - Handle both fixed (per-task) and degen (per-mission) caps
+        if (delta > 0) {
+          if (missionData.model === 'fixed' && winnersPerTask) {
+            // Fixed missions: check per-task cap
+            const currentCount = agg.taskCounts[taskId] || 0;
+            if (currentCount >= winnersPerTask) {
+              console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);
+              return; // Skip this update - task is already full
+            }
+          } else if (missionData.model === 'degen' && winnersPerMission) {
+            // Degen missions: check mission-wide cap
+            const currentTotal = agg.totalCompletions || 0;
+            if (currentTotal >= winnersPerMission) {
+              console.log(`Mission ${missionId} already at cap (${currentTotal}/${winnersPerMission}), skipping increment`);
+              return; // Skip this update - mission is already full
+            }
           }
         }
 
@@ -3014,6 +3084,7 @@ export const updateMissionAggregates = functions.firestore
         agg.taskCounts[taskId] = newCount;
         agg.totalCompletions = Math.max(0, agg.totalCompletions + delta);
         agg.winnersPerTask = winnersPerTask;
+        agg.winnersPerMission = winnersPerMission;
         agg.taskCount = taskCount;
         agg.updatedAt = firebaseAdmin.firestore.FieldValue.serverTimestamp();
 
@@ -3021,8 +3092,10 @@ export const updateMissionAggregates = functions.firestore
         console.log(`Aggregate mutation: mission=${missionId}, task=${taskId}, prev=${prevCount}, next=${newCount}, delta=${delta}, cause=verification`);
 
         // Alert if count exceeds cap (should be impossible with race protection)
-        if (newCount > winnersPerTask && winnersPerTask) {
+        if (missionData.model === 'fixed' && newCount > winnersPerTask && winnersPerTask) {
           console.error(`🚨 ALERT: Task ${taskId} count (${newCount}) exceeds cap (${winnersPerTask})!`);
+        } else if (missionData.model === 'degen' && agg.totalCompletions > winnersPerMission && winnersPerMission) {
+          console.error(`🚨 ALERT: Mission ${missionId} total count (${agg.totalCompletions}) exceeds cap (${winnersPerMission})!`);
         }
 
         // Alert if aggregates drift detected
@@ -3095,7 +3168,10 @@ export const onVerificationWrite = functions.firestore
           missionsCreated: stats.missionsCreated ?? 0,
           missionsCompleted: stats.missionsCompleted ?? 0,
           tasksDone: (stats.tasksDone ?? 0) + 1,
+          tasksCompleted: (stats.tasksCompleted ?? 0) + 1,
           totalEarned: stats.totalEarned ?? 0,
+          totalEarnings: stats.totalEarnings ?? 0,
+          lastActiveAt: new Date().toISOString(),
         };
 
         // 2) Check if this is a new task completion for this user
@@ -3326,6 +3402,66 @@ export const syncMissionProgress = functions.firestore
   });
 
 // Scheduled function to check for expired fixed missions and mark them as completed
+/**
+ * ✅ USER STATS CONSOLIDATION - Hourly job to derive user aggregates
+ */
+export const deriveUserStatsAggregates = functions.pubsub
+  .schedule('every 1 hours')
+  .timeZone('UTC')
+  .onRun(async (context) => {
+    try {
+      console.log('Starting user stats aggregation job...');
+      
+      // Get all users
+      const usersSnapshot = await db.collection('users').get();
+      
+      for (const userDoc of usersSnapshot.docs) {
+        const uid = userDoc.id;
+        
+        // Skip if user has no stats subcollection
+        const statsSnapshot = await db.collection(`users/${uid}/stats`).get();
+        if (statsSnapshot.empty) continue;
+        
+        // Calculate aggregates from various sources
+        const missionsCreated = await db.collection('missions')
+          .where('created_by', '==', uid)
+          .get();
+        
+        const tasksCompleted = await db.collection('mission_participations')
+          .where('user_id', '==', uid)
+          .where('status', '==', 'verified')
+          .get();
+        
+        const totalEarnings = await db.collection('mission_participations')
+          .where('user_id', '==', uid)
+          .where('status', '==', 'verified')
+          .get();
+        
+        let earningsSum = 0;
+        totalEarnings.forEach(doc => {
+          const data = doc.data();
+          if (data.rewards?.honors) {
+            earningsSum += data.rewards.honors;
+          }
+        });
+        
+        // Update consolidated stats
+        await updateUserStats(uid, {
+          missionsCreated: missionsCreated.size,
+          tasksDone: tasksCompleted.size,
+          tasksCompleted: tasksCompleted.size,
+          totalEarned: earningsSum,
+          totalEarnings: earningsSum,
+          lastActiveAt: new Date().toISOString()
+        });
+      }
+      
+      console.log('User stats aggregation job completed');
+    } catch (error) {
+      console.error('Error in user stats aggregation job:', error);
+    }
+  });
+
 export const checkExpiredFixedMissions = functions.pubsub
   .schedule('every 1 hours') // Run every hour
   .timeZone('UTC')
