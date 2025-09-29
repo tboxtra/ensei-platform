@@ -3,7 +3,7 @@
 ## Overview
 This document outlines critical inconsistencies and fixes needed across the Ensei Platform codebase. Each issue is categorized, explained, and includes specific implementation steps.
 
-## Status: 🔄 IN PROGRESS
+## Status: ✅ PHASE 1 & 2 COMPLETE
 
 ---
 
@@ -36,8 +36,11 @@ This document outlines critical inconsistencies and fixes needed across the Ense
 ### 1.4 Collections Overlap
 **Issue:** Three submission sources: `mission_submissions`, `mission_participations`, `taskCompletions`. Different code reads different ones.
 
-**Status:** 🔄 TODO
-**Fix:** Define single source of truth (taskCompletions) and migrate others.
+**Status:** ✅ FIXED
+- Unified submission system using `mission_participations` as single source of truth
+- Updated taskCompletions endpoint to prioritize `mission_participations`
+- Added fallback support for legacy `taskCompletions` data
+- Consistent data flow across all submission endpoints
 
 ### 1.5 Aggregates Expect Missing Fields
 **Issue:** `updateMissionAggregates` reads `missionData.winnersPerTask`, but missions don't set it.
@@ -108,14 +111,20 @@ This document outlines critical inconsistencies and fixes needed across the Ense
 ### 4.2 Auto Actions Naming
 **Issue:** Completion logic looks for `actionId` starting with `auto_`, but frontend tasks don't follow convention.
 
-**Status:** 🔄 TODO
-**Fix:** Add explicit `auto: true` flag per task or mapping table.
+**Status:** ✅ FIXED
+- Created explicit AUTO_ACTIONS mapping with `auto: true/false` flags
+- Replaced string-based auto_ prefix detection with structured config
+- Added support for Twitter, Instagram, TikTok, Facebook platforms
+- Clear distinction between auto and manual actions
 
 ### 4.3 Pagination Token Type Leak
 **Issue:** `/v1/missions` uses `pageToken` as document ID; invalid IDs fail silently.
 
-**Status:** 🔄 TODO
-**Fix:** Return opaque cursor or encode `{id, created_at}` as token.
+**Status:** ✅ FIXED
+- Implemented opaque cursor system using base64 encoded `{id, created_at}`
+- Replaced direct document ID tokens with secure cursor format
+- Added proper error handling for invalid tokens
+- Enhanced security by preventing data leakage through pagination
 
 ---
 
@@ -124,26 +133,40 @@ This document outlines critical inconsistencies and fixes needed across the Ense
 ### 5.1 Rate Limit & Idempotency In-Memory
 **Issue:** In Cloud Functions, limits/keys won't hold under scale or cold starts.
 
-**Status:** 🔄 TODO
-**Fix:** Move to shared store (Redis/Memorystore/Firestore).
+**Status:** ✅ FIXED
+- Migrated from in-memory Map to Firestore-based rate limiting
+- Distributed rate limiting across Cloud Function instances
+- Atomic transaction-based request counting
+- Persistent rate limiting that survives cold starts
 
 ### 5.2 Public File Uploads by Default
 **Issue:** `makePublic()` on storage is risky.
 
-**Status:** 🔄 TODO
-**Fix:** Keep private by default, generate signed URLs when needed.
+**Status:** ✅ FIXED
+- Removed makePublic() calls - files now private by default
+- Implemented signed URL generation for temporary access
+- 1-hour expiration for signed URLs
+- Enhanced security by keeping files private
 
 ### 5.3 Base64 Upload Type Check Loose
 **Issue:** Regex patterns aren't precise, could pass unintended types.
 
-**Status:** 🔄 TODO
-**Fix:** Use magic-bytes detection as source of truth, whitelist exact mimes.
+**Status:** ✅ FIXED
+- Implemented file-type package for accurate MIME type detection
+- Added comprehensive whitelist of allowed MIME types
+- Validates against detected type as source of truth
+- Prevents MIME spoofing attacks
+- Enhanced error messages with detected vs provided types
 
 ### 5.4 Auth "joinedAt" from iat
 **Issue:** Using token issue time, not account creation.
 
-**Status:** 🔄 TODO
-**Fix:** Fetch `userRecord.metadata.creationTime` from Admin Auth.
+**Status:** ✅ FIXED
+- Replaced token.iat (issued at time) with actual account creation time
+- Created getUserCreationTime() function using Firebase Admin Auth
+- Fetches userRecord.metadata.creationTime for accurate join dates
+- Applied to all user authentication endpoints
+- Proper error handling with fallback to current time
 
 ---
 
@@ -185,14 +208,16 @@ This document outlines critical inconsistencies and fixes needed across the Ense
 1. ✅ Timestamp standardization
 2. ✅ Deadline calculation
 3. ✅ Rewards calculation
-4. 🔄 Field name normalization
-5. 🔄 Status enum standardization
+4. ✅ Field name normalization
+5. ✅ Status enum standardization
 
 ### Phase 2: Security & Performance (Medium Priority)
-1. 🔄 Rate limiting with shared store
-2. 🔄 File upload security
-3. 🔄 Pagination improvements
-4. 🔄 URL validation consolidation
+1. ✅ Rate limiting with shared store
+2. ✅ File upload security
+3. ✅ Pagination improvements
+4. ✅ URL validation consolidation
+5. ✅ Base64 upload validation
+6. ✅ Auth joinedAt accuracy
 
 ### Phase 3: Admin & Analytics (Lower Priority)
 1. 🔄 Platform fee configuration
@@ -215,12 +240,12 @@ This document outlines critical inconsistencies and fixes needed across the Ense
 
 ## Progress Tracking
 
-- ✅ Completed: 8/25 issues
+- ✅ Completed: 15/25 issues
 - 🔄 In Progress: 0/25 issues  
-- ⏳ Pending: 17/25 issues
+- ⏳ Pending: 10/25 issues
 
 **Last Updated:** December 2024
-**Next Review:** After Phase 2 completion
+**Next Review:** After Phase 3 completion
 
 ### Phase 1 Complete ✅
 - ✅ Timestamp standardization
@@ -232,11 +257,18 @@ This document outlines critical inconsistencies and fixes needed across the Ense
 - ✅ Deadline calculation
 - ✅ Scheduled job timestamp fixes
 
-### Phase 2 Next 🔄
-- 🔄 Collections overlap resolution
-- 🔄 Auto actions naming
-- 🔄 Pagination improvements
-- 🔄 Rate limiting with shared store
-- 🔄 File upload security
-- 🔄 Base64 upload validation
-- 🔄 Auth joinedAt accuracy
+### Phase 2 Complete ✅
+- ✅ Collections overlap resolution
+- ✅ Auto actions naming
+- ✅ Pagination improvements
+- ✅ Rate limiting with shared store
+- ✅ File upload security
+- ✅ Base64 upload validation
+- ✅ Auth joinedAt accuracy
+
+### Phase 3 Pending ⏳
+- ⏳ Platform fee configuration
+- ⏳ User stats consolidation
+- ⏳ Degen flow completion
+- ⏳ Winners lifecycle wiring
+- ⏳ Counting logic vs caps
