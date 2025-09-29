@@ -144,6 +144,7 @@ export const FIELD_NAMES = {
     MISSION_IS_PREMIUM: 'isPremium',
     MISSION_REWARDS: 'rewards',
     MISSION_WINNERS_PER_TASK: 'winnersPerTask',
+    MISSION_WINNERS_PER_MISSION: 'winnersPerMission', // ✅ add this
 
     // User fields
     USER_ID: 'id',
@@ -247,6 +248,16 @@ export const normalizeMissionData = (data: any): any => {
         normalized.contentLink = normalized.postUrl;
     }
 
+    // ✅ Winners normalization (canonical mission-wide winners)
+    if (normalized.winnersPerMission == null) {
+        normalized.winnersPerMission =
+            normalized.winnersPerMission ??
+            normalized.winners_cap ??
+            normalized.winnersCap ??
+            normalized.winnersPerTask ??
+            null;
+    }
+
     // Status normalization
     if (normalized.status) {
         normalized.status = normalizeStatus(normalized.status);
@@ -257,17 +268,17 @@ export const normalizeMissionData = (data: any): any => {
 
 // Response serialization function
 export const serializeMissionResponse = (data: any): any => ({
-  ...data,
-  durationHours: data.duration_hours || data.durationHours || data.duration,
-  maxParticipants: data.max_participants || data.maxParticipants || data.cap,
-  winnersCap: data.winners_cap || data.winnersCap,
-  winnersPerMission: data.winnersPerMission || data.winners_cap || data.winnersCap || data.winnersPerTask,
-  createdAt: data.created_at,
-  updatedAt: data.updated_at,
-  deadline: data.deadline,
-  expiresAt: data.expires_at,
-  // ✅ add canonical fields for components that use startAt/endAt
-  startAt: data.startAt || data.created_at,
-  endAt: data.endAt || data.deadline || data.expires_at,
-  contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
+    ...data,
+    durationHours: data.duration_hours || data.durationHours || data.duration,
+    maxParticipants: data.max_participants || data.maxParticipants || data.cap,
+    winnersCap: data.winners_cap || data.winnersCap,
+    winnersPerMission: data.winnersPerMission || data.winners_cap || data.winnersCap || data.winnersPerTask,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+    deadline: data.deadline,
+    expiresAt: data.expires_at,
+    // ✅ add canonical fields for components that use startAt/endAt
+    startAt: data.startAt || data.created_at,
+    endAt: data.endAt || data.deadline || data.expires_at,
+    contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
 });

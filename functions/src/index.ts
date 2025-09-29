@@ -211,24 +211,24 @@ const normalizeMissionData = (data: any) => {
   return normalized;
 };
 
- const serializeMissionResponse = (data: any) => ({
-   ...data,
-   durationHours: data.duration_hours || data.durationHours || data.duration,
-   maxParticipants: data.max_participants || data.maxParticipants || data.cap,
-   winnersCap: data.winners_cap || data.winnersCap,
-   winnersPerMission: data.winnersPerMission ?? data.winners_cap ?? data.winnersCap ?? data.winnersPerTask,
-   createdAt: toIso(data.created_at),
-   updatedAt: toIso(data.updated_at),
-   deadline: toIso(data.deadline),
-   expiresAt: toIso(data.expires_at),
+const serializeMissionResponse = (data: any) => ({
+  ...data,
+  durationHours: data.duration_hours || data.durationHours || data.duration,
+  maxParticipants: data.max_participants || data.maxParticipants || data.cap,
+  winnersCap: data.winners_cap || data.winnersCap,
+  winnersPerMission: data.winnersPerMission ?? data.winners_cap ?? data.winnersCap ?? data.winnersPerTask,
+  createdAt: toIso(data.created_at),
+  updatedAt: toIso(data.updated_at),
+  deadline: toIso(data.deadline),
+  expiresAt: toIso(data.expires_at),
 
-   // ✅ canonical fields the UI expects
-   startAt: toIso(data.created_at),
-   endAt: toIso(data.deadline || data.expires_at),
+  // ✅ canonical fields the UI expects
+  startAt: toIso(data.created_at),
+  endAt: toIso(data.deadline || data.expires_at),
 
-   // keep content link normalization too if you like
-   contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
- });
+  // keep content link normalization too if you like
+  contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
+});
 
 // Status standardization
 const STANDARD_STATUSES = {
@@ -683,15 +683,15 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         honors: Math.round(costUSD * systemConfig.honorsPerUsd)
       };
 
-             // ✅ Canonical winners cap for degen missions is mission-wide
-             missionData.winnersPerMission =
-               missionData.winnersPerMission ??
-               missionData.winners_cap ??
-               missionData.winnersCap ??
-               0;
+      // ✅ Canonical winners cap for degen missions is mission-wide
+      missionData.winnersPerMission =
+        missionData.winnersPerMission ??
+        missionData.winners_cap ??
+        missionData.winnersCap ??
+        0;
 
-             // (optional back-compat write so legacy readers don't break)
-             missionData.winnersPerTask = undefined; // we no longer use this for degen; leave undefined
+      // (optional back-compat write so legacy readers don't break)
+      missionData.winnersPerTask = undefined; // we no longer use this for degen; leave undefined
     } else if (missionData.model === 'fixed' && missionData.cap) {
       // Fixed missions expire after 48 hours
       missionData.expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000);
