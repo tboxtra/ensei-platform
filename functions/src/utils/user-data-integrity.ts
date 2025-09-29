@@ -362,15 +362,23 @@ export async function createMissionWithUidReferences(userId: string, missionData
 
     const missionRef = getDb().collection('missions').doc();
 
+    // ✅ FIX: Ensure calculated fields persist and timestamps are properly set
+    const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+    
     const mission = {
         ...missionData,
         created_by: userId,
         id: missionRef.id,
         status: normalizeStatus(missionData.status || 'active'), // Normalize status
-        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(), // Use server timestamp for consistency
-        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(), // Use server timestamp for consistency
-        // deadline and expires_at are already calculated in the main endpoint
-        // rewards are already calculated in the main endpoint
+        created_at: missionData.created_at ?? now, // Preserve existing or use server timestamp
+        updated_at: now, // Always use server timestamp for updates
+        
+        // ✅ CRITICAL: Ensure calculated fields are preserved
+        rewards: missionData.rewards, // Preserve calculated rewards (usd, honors)
+        selectedDegenPreset: missionData.selectedDegenPreset, // Preserve degen preset
+        winnersPerMission: missionData.winnersPerMission, // Preserve winners cap
+        deadline: missionData.deadline, // Preserve calculated deadline
+        expires_at: missionData.expires_at, // Preserve calculated expiration
     };
 
     await missionRef.set(mission);
