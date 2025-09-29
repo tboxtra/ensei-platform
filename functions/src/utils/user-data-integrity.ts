@@ -364,7 +364,7 @@ export async function createMissionWithUidReferences(userId: string, missionData
 
     // ✅ FIX: Ensure calculated fields persist and timestamps are properly set
     const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
-    
+
     const mission = {
         ...missionData,
         created_by: userId,
@@ -372,7 +372,7 @@ export async function createMissionWithUidReferences(userId: string, missionData
         status: normalizeStatus(missionData.status || 'active'), // Normalize status
         created_at: missionData.created_at ?? now, // Preserve existing or use server timestamp
         updated_at: now, // Always use server timestamp for updates
-        
+
         // ✅ CRITICAL: Ensure calculated fields are preserved
         rewards: missionData.rewards, // Preserve calculated rewards (usd, honors)
         selectedDegenPreset: missionData.selectedDegenPreset, // Preserve degen preset
