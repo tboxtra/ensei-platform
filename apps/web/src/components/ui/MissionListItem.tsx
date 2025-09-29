@@ -303,15 +303,15 @@ export function MissionListItem({
                         {displayStatus}
                     </span>
 
-                    <button 
-                        onClick={() => setOpen(v => !v)} 
+                    <button
+                        onClick={() => setOpen(v => !v)}
                         className="p-0.5 sm:p-1 rounded border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-200"
                         title={open ? 'Hide submissions' : 'Show submissions'}
                     >
-                        <svg 
+                        <svg
                             className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-300 transition-transform duration-200 ${open ? 'rotate-90' : 'rotate-0'}`}
-                            fill="none" 
-                            stroke="currentColor" 
+                            fill="none"
+                            stroke="currentColor"
                             viewBox="0 0 24 24"
                         >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

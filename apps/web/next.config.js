@@ -9,10 +9,6 @@ const nextConfig = {
     experimental: {
         esmExternals: false,
     },
-    // Environment variables
-    env: {
-        NEXT_PUBLIC_MISSION_WIZARD: process.env.NEXT_PUBLIC_MISSION_WIZARD || '0',
-    },
 }
 
 module.exports = nextConfig
