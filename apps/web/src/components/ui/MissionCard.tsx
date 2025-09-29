@@ -61,17 +61,39 @@ export function MissionCard({
         return 'Reward TBD';
     };
 
-    const formatDeadline = (deadline: string) => {
-        if (!deadline) return 'No deadline';
-        const date = new Date(deadline);
-        const now = new Date();
-        const diffTime = date.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const formatDeadline = (deadline: string, missionModel?: string) => {
+        if (!deadline || deadline === 'null' || deadline === 'undefined') return 'No deadline';
 
-        if (diffDays < 0) return 'Expired';
-        if (diffDays === 0) return 'Today';
-        if (diffDays === 1) return 'Tomorrow';
-        return `${diffDays} days left`;
+        try {
+            const date = new Date(deadline);
+            if (isNaN(date.getTime())) return 'No deadline';
+
+            const now = new Date();
+            const diffTime = date.getTime() - now.getTime();
+            const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffTime < 0) return 'Expired';
+
+            // For degen missions, show hours until >24 hours, then show days
+            if (missionModel?.toLowerCase() === 'degen') {
+                if (diffHours <= 1) return '1h';
+                if (diffHours < 24) return `${diffHours}h`;
+                if (diffDays === 1) return '1d';
+                if (diffDays < 7) return `${diffDays}d`;
+                if (diffDays < 30) return `${Math.ceil(diffDays / 7)}w`;
+                return `${Math.ceil(diffDays / 30)}mo`;
+            }
+
+            // For fixed missions, use the original logic
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Tomorrow';
+            if (diffDays < 7) return `${diffDays}d`;
+            if (diffDays < 30) return `${Math.ceil(diffDays / 7)}w`;
+            return `${Math.ceil(diffDays / 30)}mo`;
+        } catch (error) {
+            return 'No deadline';
+        }
     };
 
     if (variant === 'compact') {
@@ -168,7 +190,7 @@ export function MissionCard({
                     </div>
                 </div>
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-400">{formatDeadline(mission.deadline)}</div>
+                    <div className="text-2xl font-bold text-yellow-400">{formatDeadline(mission.deadline, mission.model)}</div>
                     <div className="text-gray-500 text-sm">Deadline</div>
                 </div>
             </div>

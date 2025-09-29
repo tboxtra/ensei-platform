@@ -17,16 +17,40 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     isLoading = false,
 }) => {
     const calculateTotalCost = () => {
-        // This would integrate with the existing pricing logic
-        // For now, using a simple calculation
-        const baseCost = 25.00; // Base cost in USD
-        const totalCost = state.isPremium ? baseCost * 5 : baseCost;
-        const totalHonors = Math.round(totalCost * 450);
+        if (state.model === 'degen') {
+            // For degen missions, use the selected preset cost
+            const presetCost = state.selectedDegenPreset?.costUSD || 0;
+            const totalHonors = Math.round(presetCost * 450);
 
-        return {
-            totalUsd: totalCost,
-            totalHonors,
-        };
+            return {
+                totalUsd: presetCost,
+                totalHonors,
+            };
+        } else {
+            // For fixed missions, calculate based on tasks and participants
+            const prices: Record<string, number> = {
+                like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
+                meme: 300, thread: 500, article: 400, videoreview: 600,
+                pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
+                spaces: 800, community_raid: 400, status_50_views: 300
+            };
+
+            const baseTaskCost = state.tasks.reduce((sum: number, task: string) => {
+                return sum + (prices[task as keyof typeof prices] || 0);
+            }, 0);
+
+            // Apply premium multiplier if applicable
+            const rewardPerUser = state.isPremium ? baseTaskCost * 2 : baseTaskCost;
+
+            const participants = state.cap || 1;
+            const totalHonors = rewardPerUser * participants;
+            const totalUsd = totalHonors / 450;
+
+            return {
+                totalUsd: totalUsd,
+                totalHonors,
+            };
+        }
     };
 
     const pricing = calculateTotalCost();
@@ -84,17 +108,27 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                         </span>
                     </div>
                     {state.model === 'degen' && (
+                        <>
+                            <div>
+                                <span className="text-gray-400">Duration:</span>
+                                <span className="ml-2 text-white">
+                                    {state.selectedDegenPreset?.hours || state.duration} hours (inclusive)
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-gray-400">Number of Winners:</span>
+                                <span className="ml-2 text-white">
+                                    {state.winnersCap || state.selectedDegenPreset?.maxWinners || 0}
+                                </span>
+                            </div>
+                        </>
+                    )}
+                    {state.model === 'fixed' && (
                         <div>
-                            <span className="text-gray-400">Duration:</span>
-                            <span className="ml-2 text-white">
-                                {state.selectedDegenPreset?.hours || state.duration} hours (inclusive)
-                            </span>
+                            <span className="text-gray-400">Audience:</span>
+                            <span className="ml-2 text-white">{state.isPremium ? 'Premium' : 'All Users'}</span>
                         </div>
                     )}
-                    <div>
-                        <span className="text-gray-400">Audience:</span>
-                        <span className="ml-2 text-white">{state.isPremium ? 'Premium' : 'All Users'}</span>
-                    </div>
                 </div>
             </div>
 

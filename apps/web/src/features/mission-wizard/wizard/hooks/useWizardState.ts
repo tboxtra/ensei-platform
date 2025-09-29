@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { WizardState, WizardContextType, INITIAL_WIZARD_STATE } from '../types/wizard.types';
+import { WizardState, WizardContextType, INITIAL_WIZARD_STATE, validateStep } from '../types/wizard.types';
 
 export const useWizardState = (totalSteps: number): WizardContextType => {
     const [state, setState] = useState<WizardState>(() => {
@@ -65,6 +65,10 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
         }
     }, []);
 
+    const validateCurrentStep = useCallback(() => {
+        return validateStep(currentStep, state);
+    }, [currentStep, state]);
+
     return {
         state,
         updateState,
@@ -78,5 +82,6 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
         isLastStep: currentStep === totalSteps,
         isFirstStep: currentStep === 1,
         totalSteps,
+        validateCurrentStep,
     } as WizardContextType;
 };
