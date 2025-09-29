@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ModernButton } from '../../../ui/ModernButton';
+import { ModernButton } from '../../../../components/ui/ModernButton';
 
 interface WizardNavigationProps {
     onPrevious: () => void;
