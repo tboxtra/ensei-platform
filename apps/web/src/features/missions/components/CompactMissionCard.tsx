@@ -749,8 +749,12 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                         <div className="text-gray-400">
                             {(() => {
                                 if (mission.model?.toLowerCase() === 'degen') {
-                                    const winnersCap = mission.winnersCap || mission.winners_cap || 0;
-                                    return `${winnersCap} winners`;
+                                    const winners = mission.winnersPerMission
+                                      ?? mission.winnersCap
+                                      ?? mission.winners_cap
+                                      ?? mission.winnersPerTask
+                                      ?? 0;
+                                    return `${winners} winners`;
                                 }
                                 const count =
                                     mission.max_participants ||

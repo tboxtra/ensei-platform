@@ -211,23 +211,24 @@ const normalizeMissionData = (data: any) => {
   return normalized;
 };
 
-const serializeMissionResponse = (data: any) => ({
-  ...data,
-  durationHours: data.duration_hours || data.durationHours || data.duration,
-  maxParticipants: data.max_participants || data.maxParticipants || data.cap,
-  winnersCap: data.winners_cap || data.winnersCap,
-  createdAt: toIso(data.created_at),
-  updatedAt: toIso(data.updated_at),
-  deadline: toIso(data.deadline),
-  expiresAt: toIso(data.expires_at),
+ const serializeMissionResponse = (data: any) => ({
+   ...data,
+   durationHours: data.duration_hours || data.durationHours || data.duration,
+   maxParticipants: data.max_participants || data.maxParticipants || data.cap,
+   winnersCap: data.winners_cap || data.winnersCap,
+   winnersPerMission: data.winnersPerMission ?? data.winners_cap ?? data.winnersCap ?? data.winnersPerTask,
+   createdAt: toIso(data.created_at),
+   updatedAt: toIso(data.updated_at),
+   deadline: toIso(data.deadline),
+   expiresAt: toIso(data.expires_at),
 
-  // ✅ canonical fields the UI expects
-  startAt: toIso(data.created_at),
-  endAt: toIso(data.deadline || data.expires_at),
+   // ✅ canonical fields the UI expects
+   startAt: toIso(data.created_at),
+   endAt: toIso(data.deadline || data.expires_at),
 
-  // keep content link normalization too if you like
-  contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
-});
+   // keep content link normalization too if you like
+   contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
+ });
 
 // Status standardization
 const STANDARD_STATUSES = {
@@ -682,8 +683,15 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         honors: Math.round(costUSD * systemConfig.honorsPerUsd)
       };
 
-      // Set winnersPerTask for degen missions (global cap across all tasks)
-      missionData.winnersPerTask = missionData.winners_cap || missionData.winnersCap || 0;
+             // ✅ Canonical winners cap for degen missions is mission-wide
+             missionData.winnersPerMission =
+               missionData.winnersPerMission ??
+               missionData.winners_cap ??
+               missionData.winnersCap ??
+               0;
+
+             // (optional back-compat write so legacy readers don't break)
+             missionData.winnersPerTask = undefined; // we no longer use this for degen; leave undefined
     } else if (missionData.model === 'fixed' && missionData.cap) {
       // Fixed missions expire after 48 hours
       missionData.expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000);
@@ -2021,11 +2029,13 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const model = data.model;
       const totalHonors = data.rewards?.honors ?? 0;
       const totalUsd = data.rewards?.usd ?? 0;
-      const winnersPerTask = data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0;
+      const winnersPerTask = data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0; // keep for back-compat display
+      const winnersPerMission = data.winnersPerMission ?? data.winnersCap ?? data.winners_cap ?? winnersPerTask;
       const cap = data.cap ?? data.max_participants ?? 0;
       const perUserHonors = data.rewardPerUser ?? 0;
-      const perWinnerHonors =
-        model === 'degen' && winnersPerTask > 0 ? Math.floor(totalHonors / winnersPerTask) : 0;
+      const perWinnerHonors = model === 'degen' && winnersPerMission > 0
+        ? Math.floor(totalHonors / winnersPerMission)
+        : 0;
 
       return {
         id: doc.id,
@@ -2051,7 +2061,8 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         perUserHonors: model === 'fixed' ? perUserHonors : 0,
         perWinnerHonors: model === 'degen' ? perWinnerHonors : 0,
 
-        winnersPerTask,
+        winnersPerMission,
+        winnersPerTask, // (legacy/back-compat)
         winnersCap: data.winnersCap ?? data.winners_cap,
         cap,
         durationHours: data.duration_hours ?? data.durationHours ?? data.duration,
