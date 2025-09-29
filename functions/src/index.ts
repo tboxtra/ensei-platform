@@ -779,7 +779,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
   try {
     const userId = req.user.uid;
     const missionData = normalizeMissionData(req.body);
-    
+
     // Debug logging for mission creation
     console.log('=== MISSION CREATION DEBUG ===');
     console.log('Raw request body:', JSON.stringify(req.body, null, 2));
@@ -837,18 +837,18 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
 
       // Calculate rewards for degen missions
       const costUSD = missionData.selectedDegenPreset?.costUSD || 0;
-      
+
       // Debug logging for degen mission cost calculation
       console.log('=== DEGEN MISSION COST DEBUG ===');
       console.log('selectedDegenPreset:', missionData.selectedDegenPreset);
       console.log('costUSD:', costUSD);
       console.log('systemConfig.honorsPerUsd:', systemConfig.honorsPerUsd);
-      
+
       missionData.rewards = {
         usd: costUSD,
         honors: Math.round(costUSD * systemConfig.honorsPerUsd)
       };
-      
+
       console.log('calculated rewards:', missionData.rewards);
       console.log('================================');
 
@@ -2245,6 +2245,17 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const model = data.model;
       const totalHonors = data.rewards?.honors ?? 0;
       const totalUsd = data.rewards?.usd ?? 0;
+      
+      // Debug logging for admin dashboard cost calculation
+      if (model === 'degen') {
+        console.log('=== ADMIN DASHBOARD DEGEN COST DEBUG ===');
+        console.log('Mission ID:', doc.id);
+        console.log('Mission data:', JSON.stringify(data, null, 2));
+        console.log('Rewards object:', data.rewards);
+        console.log('totalUsd:', totalUsd);
+        console.log('totalHonors:', totalHonors);
+        console.log('========================================');
+      }
       const winnersPerTask = data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0; // keep for back-compat display
       const winnersPerMission = data.winnersPerMission ?? data.winnersCap ?? data.winners_cap ?? winnersPerTask;
       const cap = data.cap ?? data.max_participants ?? 0;
@@ -2271,8 +2282,10 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         submissionsCount: data.submissions_count || 0,
         approvedCount: data.approved_count || 0,
 
-        // ✅ amounts
-        totalCostUsd: totalUsd,
+        // ✅ amounts - Use same logic as frontend formatReward
+        totalCostUsd: model === 'degen' && data.selectedDegenPreset?.costUSD 
+          ? data.selectedDegenPreset.costUSD 
+          : totalUsd,
         totalCostHonors: totalHonors,
         perUserHonors: model === 'fixed' ? perUserHonors : 0,
         perWinnerHonors: model === 'degen' ? perWinnerHonors : 0,
@@ -2293,6 +2306,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         tweetLink: data.tweetLink,
         tasks: data.tasks,
         isPaused: data.isPaused || false,
+        selectedDegenPreset: data.selectedDegenPreset, // Include degen preset for frontend
         ...data
       };
     });
