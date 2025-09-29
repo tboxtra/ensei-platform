@@ -50,7 +50,7 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
     };
 
     const handleDegenPresetSelect = (preset: any) => {
-        updateState({ 
+        updateState({
             selectedDegenPreset: preset,
             duration: preset.hours,
             winnersCap: Math.min(state.winnersCap, preset.maxWinners)
@@ -66,11 +66,11 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
 
     const calculateDegenCosts = () => {
         if (!state.selectedDegenPreset) return { totalUSD: 0, totalHonors: 0 };
-        
+
         const baseCost = state.selectedDegenPreset.costUSD;
         const totalUSD = state.isPremium ? baseCost * 5 : baseCost;
         const totalHonors = Math.round(totalUSD * 450);
-        
+
         return { totalUSD, totalHonors };
     };
 
@@ -104,8 +104,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                             <button
                                 onClick={() => handleAudienceSelect(false)}
                                 className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
-                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                        : 'bg-gray-700/50 text-gray-300'
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                    : 'bg-gray-700/50 text-gray-300'
                                     }`}
                             >
                                 🌍 All Users
@@ -113,8 +113,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                             <button
                                 onClick={() => handleAudienceSelect(true)}
                                 className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
-                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                        : 'bg-gray-700/50 text-gray-300'
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                    : 'bg-gray-700/50 text-gray-300'
                                     }`}
                             >
                                 👑 Premium Users
@@ -143,11 +143,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                     <button
                                         key={preset.hours}
                                         onClick={() => handleDegenPresetSelect(preset)}
-                                        className={`p-3 rounded-xl text-center transition-all ${
-                                            isSelected
+                                        className={`p-3 rounded-xl text-center transition-all ${isSelected
                                                 ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg'
                                                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                                        }`}
+                                            }`}
                                     >
                                         <div className="font-semibold text-sm">{preset.label}</div>
                                         <div className="text-xs opacity-75">Max {preset.maxWinners} winners</div>
@@ -180,8 +179,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                 <button
                                     onClick={() => handleAudienceSelect(false)}
                                     className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
-                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                            : 'bg-gray-700/50 text-gray-300'
+                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                        : 'bg-gray-700/50 text-gray-300'
                                         }`}
                                 >
                                     🌍 All Users
@@ -189,8 +188,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                 <button
                                     onClick={() => handleAudienceSelect(true)}
                                     className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
-                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                            : 'bg-gray-700/50 text-gray-300'
+                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                        : 'bg-gray-700/50 text-gray-300'
                                         }`}
                                 >
                                     👑 Premium Users

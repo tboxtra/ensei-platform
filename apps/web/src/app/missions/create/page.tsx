@@ -23,10 +23,10 @@ export default function CreateMissionPage() {
             setSuccess(true);
             setCreatedMissionId(result.id);
 
-            // Redirect to missions page after 3 seconds
+            // Redirect to Discover & Earn page after 2 seconds
             setTimeout(() => {
                 window.location.href = '/missions';
-            }, 3000);
+            }, 2000);
 
         } catch (err) {
             console.error('Mission creation failed:', err);
@@ -41,7 +41,7 @@ export default function CreateMissionPage() {
                         <div className="text-6xl mb-6">🎉</div>
                         <h1 className="text-3xl font-bold text-green-400 mb-4">Mission Created Successfully!</h1>
                         <p className="text-gray-300 mb-6">
-                            Your mission has been created and is now live. You'll be redirected to the missions page in a few seconds.
+                            Your mission has been created and is now live. You'll be redirected to Discover & Earn in a few seconds.
                         </p>
                         {createdMissionId && (
                             <p className="text-sm text-gray-400 mb-6">

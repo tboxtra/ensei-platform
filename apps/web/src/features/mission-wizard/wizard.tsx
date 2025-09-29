@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useWizardState } from './wizard/hooks/useWizardState';
-import { StepIndicator } from './wizard/components/StepIndicator';
-import { WizardNavigation } from './wizard/components/WizardNavigation';
-import { PlatformStep } from './wizard/steps/PlatformStep';
-import { ModelStep } from './wizard/steps/ModelStep';
-import { TypeStep } from './wizard/steps/TypeStep';
-import { TasksStep } from './wizard/steps/TasksStep';
-import { SettingsStep } from './wizard/steps/SettingsStep';
-import { DetailsStep } from './wizard/steps/DetailsStep';
-import { ReviewStep } from './wizard/steps/ReviewStep';
-import { WizardState } from './wizard/types/wizard.types';
+import { useWizardState } from './hooks/useWizardState';
+import { StepIndicator } from './components/StepIndicator';
+import { WizardNavigation } from './components/WizardNavigation';
+import { PlatformStep } from './steps/PlatformStep';
+import { ModelStep } from './steps/ModelStep';
+import { TypeStep } from './steps/TypeStep';
+import { TasksStep } from './steps/TasksStep';
+import { SettingsStep } from './steps/SettingsStep';
+import { DetailsStep } from './steps/DetailsStep';
+import { ReviewStep } from './steps/ReviewStep';
+import { WizardState } from './types/wizard.types';
 
 interface MissionWizardProps {
     onSubmit: (missionData: any) => void;
@@ -71,9 +71,9 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             tasks: wizard.state.tasks,
             cap: wizard.state.cap,
             isPremium: wizard.state.isPremium,
-            durationHours: wizard.state.duration,
-            winnersCap: wizard.state.winnersCap,
-            tweetLink: wizard.state.contentLink,
+            duration: wizard.state.duration,
+            rewardPerUser: wizard.state.rewardPerUser,
+            contentLink: wizard.state.contentLink,
             instructions: wizard.state.instructions,
             // Custom platform fields
             customTitle: wizard.state.customTitle,
@@ -83,6 +83,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             customApiVerifier: wizard.state.customApiVerifier,
             // Degen specific fields
             selectedDegenPreset: wizard.state.selectedDegenPreset,
+            winnersCap: wizard.state.winnersCap,
         };
 
         onSubmit(missionData);
@@ -154,7 +155,6 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
                 <h1 className="text-2xl font-bold gradient-text mb-2">
                     Create New Mission
                 </h1>
-                <p className="text-gray-400">Step-by-step mission creation wizard</p>
             </div>
 
             {/* Progress Steps */}
@@ -189,17 +189,6 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
                 />
             )}
 
-            {/* Demo Info */}
-            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <h4 className="text-sm font-bold text-blue-400 mb-2">Wizard Interface Features</h4>
-                <ul className="text-xs text-gray-300 space-y-1">
-                    <li>• Step-by-step guided experience with clear progress</li>
-                    <li>• Visual progress indicator showing completion status</li>
-                    <li>• Professional enterprise-grade UX</li>
-                    <li>• Clear navigation with next/previous buttons</li>
-                    <li>• Focused attention on each step</li>
-                </ul>
-            </div>
         </div>
     );
 };

@@ -2793,6 +2793,67 @@ export const syncMissionProgress = functions.firestore
     }
   });
 
+// Scheduled function to check for expired fixed missions and mark them as completed
+export const checkExpiredFixedMissions = functions.pubsub
+  .schedule('every 1 hours') // Run every hour
+  .timeZone('UTC')
+  .onRun(async (context) => {
+    try {
+      console.log('Checking for expired fixed missions...');
+
+      const now = new Date();
+
+      // Query for active fixed missions that have expired
+      const expiredMissionsQuery = db.collection('missions')
+        .where('model', '==', 'fixed')
+        .where('status', '==', 'active')
+        .where('expires_at', '<=', now);
+
+      const expiredMissionsSnapshot = await expiredMissionsQuery.get();
+
+      if (expiredMissionsSnapshot.empty) {
+        console.log('No expired fixed missions found');
+        return null;
+      }
+
+      console.log(`Found ${expiredMissionsSnapshot.size} expired fixed missions`);
+
+      const batch = db.batch();
+      const completedMissionIds: string[] = [];
+
+      expiredMissionsSnapshot.docs.forEach((doc) => {
+        const missionId = doc.id;
+        const missionData = doc.data();
+
+        console.log(`Marking mission ${missionId} as completed (expired at: ${missionData.expires_at})`);
+
+        // Update mission status to completed
+        batch.update(doc.ref, {
+          status: 'completed',
+          completed_at: now,
+          updated_at: now
+        });
+
+        completedMissionIds.push(missionId);
+      });
+
+      // Commit all updates
+      await batch.commit();
+
+      console.log(`Successfully marked ${completedMissionIds.length} missions as completed`);
+
+      // Log completed mission IDs for monitoring
+      if (completedMissionIds.length > 0) {
+        console.log('Completed mission IDs:', completedMissionIds);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error checking expired fixed missions:', error);
+      return null;
+    }
+  });
+
 // ---- V2 public API (no local declarations with the same names) ----
 
 import {

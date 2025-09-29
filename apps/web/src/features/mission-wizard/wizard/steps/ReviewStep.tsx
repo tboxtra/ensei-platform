@@ -72,17 +72,23 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                         <span className="ml-2 text-white capitalize">{state.model}</span>
                     </div>
                     <div>
-                        <span className="text-gray-400">Type:</span>
-                        <span className="ml-2 text-white">{getTypeName(state.type)}</span>
-                    </div>
-                    <div>
                         <span className="text-gray-400">Tasks:</span>
                         <span className="ml-2 text-white">{state.tasks.length} selected</span>
                     </div>
                     <div>
                         <span className="text-gray-400">Participants:</span>
-                        <span className="ml-2 text-white">{state.cap}</span>
+                        <span className="ml-2 text-white">
+                            {state.model === 'degen' ? '∞ (Unlimited)' : state.cap}
+                        </span>
                     </div>
+                    {state.model === 'degen' && (
+                        <div>
+                            <span className="text-gray-400">Duration:</span>
+                            <span className="ml-2 text-white">
+                                {state.selectedDegenPreset?.hours || state.duration} hours (inclusive)
+                            </span>
+                        </div>
+                    )}
                     <div>
                         <span className="text-gray-400">Audience:</span>
                         <span className="ml-2 text-white">{state.isPremium ? 'Premium' : 'All Users'}</span>

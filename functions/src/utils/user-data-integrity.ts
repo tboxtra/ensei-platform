@@ -335,12 +335,21 @@ export async function createMissionWithUidReferences(userId: string, missionData
     }
 
     const missionRef = getDb().collection('missions').doc();
+    const now = new Date();
+
+    // For fixed missions, set expiration to 48 hours from creation
+    let expires_at = null;
+    if (missionData.model === 'fixed') {
+        expires_at = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // 48 hours in milliseconds
+    }
+
     const mission = {
         ...missionData,
         created_by: userId,
         id: missionRef.id,
         status: missionData.status || 'active', // Default to 'active' if not specified
-        created_at: new Date() // Ensure created_at is set for proper ordering
+        created_at: now, // Ensure created_at is set for proper ordering
+        expires_at: expires_at // Set expiration for fixed missions
     };
 
     await missionRef.set(mission);
