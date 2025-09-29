@@ -3,6 +3,7 @@ import { EmbeddedContent } from '../../../components/ui/EmbeddedContent';
 import { MissionTwitterIntents, TwitterIntents } from '@/lib/twitter-intents';
 import { getTasksForMission } from '@/lib/taskTypes';
 import { useAuth } from '../../../contexts/UserAuthContext';
+import { getConfig, calculateTotalReward, honorsToUsd, normalizeStatus } from '../../../lib/config';
 import {
     useUserMissionTaskCompletions,
     useMissionTaskCompletions,
@@ -160,7 +161,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             // userCompletions already filtered to this user and mission
 
             // must be verified
-            if ((c.status ?? '').toLowerCase() !== 'verified') continue;
+            if (normalizeStatus(c.status) !== 'verified') continue;
 
             // normalize task id and ensure it belongs to this mission's tasks
             const tid = norm(getTaskIdFromCompletion(c));
@@ -194,7 +195,13 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             id: mission.id,
             type: mission.model === 'fixed' ? 'fixed' : 'degen',
             startAt: new Date(mission.startAt || mission.createdAt),
-            endAt: mission.endAt ? new Date(mission.endAt) : null,
+            endAt: mission.endAt
+                ? new Date(mission.endAt)
+                : mission.deadline
+                    ? new Date(mission.deadline)
+                    : mission.expiresAt
+                        ? new Date(mission.expiresAt)
+                        : null,
             maxDurationHours: mission.maxDurationHours,
             winnersPerTask: mission.winnersPerTask,
             tasks: taskIds.map((id: string) => ({ id, label: 'Like' as const })),
@@ -226,7 +233,13 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 id: mission.id,
                 type: 'fixed',
                 startAt: new Date(mission.startAt || mission.createdAt),
-                endAt: mission.endAt ? new Date(mission.endAt) : null,
+                endAt: mission.endAt
+                    ? new Date(mission.endAt)
+                    : mission.deadline
+                        ? new Date(mission.deadline)
+                        : mission.expiresAt
+                            ? new Date(mission.expiresAt)
+                            : null,
                 winnersPerTask: mission.winnersPerTask,
                 tasks: taskIds.map((id: string) => ({ id, label: 'Like' as const })),
                 created_by: mission.created_by
@@ -317,41 +330,20 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
         // For fixed missions, calculate from tasks
         if (m.tasks?.length) {
-            const prices: Record<string, number> = {
-                // Twitter tasks
-                like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
-                meme: 300, thread: 500, article: 400, videoreview: 600,
-                pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
-                spaces: 800, community_raid: 400, status_50_views: 300,
-
-                // Instagram tasks
-                like_instagram: 50, comment_instagram: 150, follow_instagram: 250,
-                story_instagram: 200, post_instagram: 400,
-
-                // TikTok tasks
-                like_tiktok: 50, comment_tiktok: 150, follow_tiktok: 250, share_tiktok: 200,
-
-                // Facebook tasks
-                like_facebook: 50, comment_facebook: 150, share_facebook: 200, follow_facebook: 250,
-
-                // WhatsApp tasks
-                join_whatsapp: 100, share_whatsapp: 150,
-
-                // Custom tasks
-                custom: 100
-            };
-            const total = m.tasks.reduce((sum: number, t: string) => sum + (prices[t as keyof typeof prices] || 0), 0);
-
+            const total = calculateTotalReward(m.tasks, m.isPremium || false);
             // For fixed missions, multiply by participant count
             const participants = m.cap || m.winnersCap || m.max_participants || 1;
-            return `$${(total * participants / 450).toFixed(2)}`;
+            const totalHonors = total * participants;
+            return `$${honorsToUsd(totalHonors).toFixed(2)}`;
         }
         return 'Cost TBD';
     };
 
     const formatDeadline = (deadline: string, model?: string) => {
-        if (!deadline || deadline === 'null' || deadline === 'undefined') return 'No deadline';
-        const date = new Date(deadline);
+        // Check both deadline and expires_at fields for consistency
+        const deadlineValue = deadline || mission.expires_at;
+        if (!deadlineValue || deadlineValue === 'null' || deadlineValue === 'undefined') return 'No deadline';
+        const date = new Date(deadlineValue);
         if (Number.isNaN(date.getTime())) return 'No deadline';
 
         const diffMs = date.getTime() - Date.now();

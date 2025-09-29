@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { WizardState } from '../types/wizard.types';
+import { getConfig, calculateTotalReward, honorsToUsd, usdToHonors } from '../../../../lib/config';
 
 interface ReviewStepProps {
     state: WizardState;
@@ -17,14 +18,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     isLoading = false,
 }) => {
     const calculateTotalCost = () => {
-        // Centralized configuration - should match backend
-        const HONORS_PER_USD = 450;
-        const PREMIUM_MULTIPLIER = 5; // Match backend system config
+        const config = getConfig();
 
         if (state.model === 'degen') {
             // For degen missions, use the selected preset cost
             const presetCost = state.selectedDegenPreset?.costUSD || 0;
-            const totalHonors = Math.round(presetCost * HONORS_PER_USD);
+            const totalHonors = Math.round(usdToHonors(presetCost));
 
             return {
                 totalUsd: presetCost,
@@ -32,40 +31,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             };
         } else {
             // For fixed missions, calculate based on tasks and participants
-            const prices: Record<string, number> = {
-                // Twitter tasks
-                like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
-                meme: 300, thread: 500, article: 400, videoreview: 600,
-                pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
-                spaces: 800, community_raid: 400, status_50_views: 300,
-
-                // Instagram tasks
-                like_instagram: 50, comment_instagram: 150, follow_instagram: 250,
-                story_instagram: 200, post_instagram: 400,
-
-                // TikTok tasks
-                like_tiktok: 50, comment_tiktok: 150, follow_tiktok: 250, share_tiktok: 200,
-
-                // Facebook tasks
-                like_facebook: 50, comment_facebook: 150, share_facebook: 200, follow_facebook: 250,
-
-                // WhatsApp tasks
-                join_whatsapp: 100, share_whatsapp: 150,
-
-                // Custom tasks
-                custom: 100
-            };
-
-            const baseTaskCost = state.tasks.reduce((sum: number, task: string) => {
-                return sum + (prices[task as keyof typeof prices] || 0);
-            }, 0);
-
-            // Apply premium multiplier if applicable
-            const rewardPerUser = state.isPremium ? baseTaskCost * PREMIUM_MULTIPLIER : baseTaskCost;
-
+            const rewardPerUser = calculateTotalReward(state.tasks, state.isPremium);
             const participants = state.cap || 1;
             const totalHonors = rewardPerUser * participants;
-            const totalUsd = Number((totalHonors / HONORS_PER_USD).toFixed(2));
+            const totalUsd = Number(honorsToUsd(totalHonors).toFixed(2));
 
             return {
                 totalUsd: totalUsd,

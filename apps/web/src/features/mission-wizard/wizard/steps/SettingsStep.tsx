@@ -9,30 +9,7 @@ interface SettingsStepProps {
     onNext: () => void;
 }
 
-// Task prices - centralized constant (should match backend TASK_PRICES)
-const TASK_PRICES: Record<string, number> = {
-    // Twitter tasks
-    like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
-    meme: 300, thread: 500, article: 400, videoreview: 600,
-    pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
-    spaces: 800, community_raid: 400, status_50_views: 300,
-
-    // Instagram tasks
-    like_instagram: 50, comment_instagram: 150, follow_instagram: 250,
-    story_instagram: 200, post_instagram: 400,
-
-    // TikTok tasks
-    like_tiktok: 50, comment_tiktok: 150, follow_tiktok: 250, share_tiktok: 200,
-
-    // Facebook tasks
-    like_facebook: 50, comment_facebook: 150, share_facebook: 200, follow_facebook: 250,
-
-    // WhatsApp tasks
-    join_whatsapp: 100, share_whatsapp: 150,
-
-    // Custom tasks
-    custom: 100
-};
+import { getConfig, calculateTaskReward, calculateTotalReward, honorsToUsd } from '../../../../lib/config';
 
 // Degen mission presets
 type DegenPreset = { hours: number; costUSD: number; maxWinners: number; label: string };
@@ -60,9 +37,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
     updateState,
     onNext,
 }) => {
-    // System config values - TODO: read from system-config
-    const honorsPerUsd = 450;
-    const premiumMultiplier = 5;
+    // Get system config values
+    const config = getConfig();
+    const honorsPerUsd = config.pricing.honorsPerUsd;
+    const premiumMultiplier = config.pricing.premiumMultiplier;
 
     // Clamp utility function
     const clamp = (n: number, min: number, max = Number.MAX_SAFE_INTEGER) =>
@@ -96,9 +74,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
 
     const rewardPerUser = useMemo(() => {
         if (!state?.tasks?.length) return 0;
-        const base = state.tasks.reduce((sum, t) => sum + (TASK_PRICES[t] || 0), 0);
-        return state.isPremium ? base * premiumMultiplier : base;
-    }, [state.tasks, state.isPremium, premiumMultiplier]);
+        return calculateTotalReward(state.tasks, state.isPremium);
+    }, [state.tasks, state.isPremium]);
 
     // Update rewardPerUser in wizard state when tasks or premium status changes
     useEffect(() => {
@@ -167,18 +144,18 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                         <label className="block text-sm font-medium mb-3">Reward per User</label>
                         <div className="p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl">
                             <div className="text-xl font-bold text-green-400">{rewardPerUser} Honors</div>
-                            <div className="text-sm text-gray-400">≈ ${(rewardPerUser / honorsPerUsd).toFixed(2)} USD</div>
+                            <div className="text-sm text-gray-400">≈ ${honorsToUsd(rewardPerUser).toFixed(2)} USD</div>
                             {(!state.tasks || state.tasks.length === 0) && (
                                 <div className="text-xs text-gray-400 mt-1">Select at least one task to compute rewards</div>
                             )}
                             {state.tasks && state.tasks.length > 0 && (
                                 <div className="mt-2 text-xs text-gray-500">
                                     <div>Based on {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''}</div>
-                                    {state.isPremium && <div className="text-yellow-400">Premium 5x multiplier applied</div>}
+                                    {state.isPremium && <div className="text-yellow-400">Premium {premiumMultiplier}x multiplier applied</div>}
                                     <div className="mt-1 text-gray-600">
                                         {state.tasks?.map((task, idx) => (
                                             <span key={idx} className="inline-block mr-2 text-xs">
-                                                {task}: {TASK_PRICES[task] ?? 0}H
+                                                {task}: {calculateTaskReward(task, false)}H
                                             </span>
                                         ))}
                                     </div>

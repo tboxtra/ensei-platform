@@ -222,6 +222,10 @@ const serializeMissionResponse = (data: any) => {
     updatedAt: toIso(data.updated_at),
     deadline: toIso(data.deadline),
     expiresAt: toIso(data.expires_at),
+
+    // Canonical date fields for frontend consistency
+    startAt: toIso(data.created_at),
+    endAt: toIso(data.deadline || data.expires_at),
   };
 };
 
@@ -238,8 +242,8 @@ const STANDARD_STATUSES = {
   expired: 'expired'
 };
 
-// Centralized task pricing configuration
-const TASK_PRICES: Record<string, number> = {
+// Centralized configuration - should match frontend config
+const DEFAULT_TASK_PRICES: Record<string, number> = {
   // Twitter tasks
   like: 50,
   retweet: 100,
@@ -283,6 +287,20 @@ const TASK_PRICES: Record<string, number> = {
 
   // Custom tasks
   custom: 100
+};
+
+// Get task prices from system config or use defaults
+const getTaskPrices = async (): Promise<Record<string, number>> => {
+  try {
+    const configDoc = await db.collection('system_config').doc('main').get();
+    if (configDoc.exists) {
+      const config = configDoc.data();
+      return config?.pricing?.taskPrices || DEFAULT_TASK_PRICES;
+    }
+  } catch (error) {
+    console.error('Error fetching task prices from config:', error);
+  }
+  return DEFAULT_TASK_PRICES;
 };
 
 const normalizeStatus = (status: any): string => {
@@ -647,7 +665,10 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
     const systemConfig = configDoc.exists ? configDoc.data() : {
       honorsPerUsd: 450,
       premiumMultiplier: 5,
-      platformFeeRate: 0.25
+      platformFeeRate: 0.25,
+      pricing: {
+        taskPrices: DEFAULT_TASK_PRICES
+      }
     };
 
     // Calculate deadline and rewards based on mission model
@@ -658,7 +679,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       const costUSD = missionData.selectedDegenPreset?.costUSD || 0;
       missionData.rewards = {
         usd: costUSD,
-        honors: costUSD * systemConfig.honorsPerUsd
+        honors: Math.round(costUSD * systemConfig.honorsPerUsd)
       };
 
       // Set winnersPerTask for degen missions (global cap across all tasks)
@@ -671,7 +692,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       const totalHonors = missionData.rewardPerUser * missionData.cap;
       missionData.rewards = {
         honors: totalHonors,
-        usd: totalHonors / systemConfig.honorsPerUsd
+        usd: Number((totalHonors / systemConfig.honorsPerUsd).toFixed(2))
       };
 
       // Set winnersPerTask for fixed missions (1 per task unless specified)
@@ -2008,13 +2029,16 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         creatorEmail: creator?.email || '',
         createdAt: toIso(data.created_at),
         deadline: toIso(data.deadline),
-        expires_at: toIso(data.expires_at),
+        expiresAt: toIso(data.expires_at),
+        updatedAt: toIso(data.updated_at),
         submissionsCount: data.submissions_count || 0,
         approvedCount: data.approved_count || 0,
         totalCostUsd: data.rewards?.usd ?? 0,
         totalCostHonors: data.rewards?.honors ?? 0,
-        perUserHonors: data.rewards?.honors || 0,
-        perWinnerHonors: data.rewards?.honors || 0,
+        perUserHonors: data.rewardPerUser || 0,
+        perWinnerHonors: data.model === 'degen'
+          ? Math.round((data.rewards?.honors ?? 0) / (data.winners_cap || data.winnersCap || 1))
+          : data.rewardPerUser || 0,
         winnersCap: data.winnersCap,
         cap: data.cap,
         durationHours: data.durationHours,
@@ -2121,7 +2145,10 @@ app.get('/v1/admin/missions/:missionId/submissions', requireAdmin, async (req, r
         userName: user?.name || 'Unknown',
         userEmail: user?.email || '',
         status: data.status || 'pending',
-        submittedAt: data.submitted_at,
+        submittedAt: toIso(data.submitted_at),
+        reviewedAt: toIso(data.reviewed_at),
+        createdAt: toIso(data.created_at),
+        updatedAt: toIso(data.updated_at),
         proofs: data.proofs || [],
         rating: data.rating || 0,
         ratingCount: data.rating_count || 0,
@@ -2199,10 +2226,17 @@ app.get('/v1/submissions', async (req, res) => {
       .limit(parseInt(limit as string))
       .get();
 
-    const submissions = submissionsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const submissions = submissionsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        submittedAt: toIso(data.submitted_at),
+        createdAt: toIso(data.created_at),
+        updatedAt: toIso(data.updated_at),
+        reviewedAt: toIso(data.reviewed_at)
+      };
+    });
 
     res.json({
       data: submissions,
@@ -2431,7 +2465,8 @@ app.get('/v1/admin/system-config', requireAdmin, async (req, res) => {
           honorsPerUsd: 450,
           premiumMultiplier: 5,
           platformFeeRate: 0.25,
-          userPoolFactor: 1.2
+          userPoolFactor: 1.2,
+          taskPrices: DEFAULT_TASK_PRICES
         },
         limits: {
           maxMissionsPerUser: 20,
@@ -2591,7 +2626,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
     tasksCompleted.push(taskCompletion);
 
     // Calculate honors earned for this task
-    const taskHonors = calculateTaskHonors(platform, missionType, taskId);
+    const taskHonors = await calculateTaskHonors(platform, missionType, taskId);
     const totalHonors = (currentData?.total_honors_earned || 0) + taskHonors;
 
     await db.collection('mission_participations').doc(participationId).update({
@@ -2626,9 +2661,10 @@ const extractPostIdFromUrl = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
-const calculateTaskHonors = (platform: string, missionType: string, taskId: string): number => {
-  // Use centralized TASK_PRICES configuration
-  return TASK_PRICES[taskId] || 0;
+const calculateTaskHonors = async (platform: string, missionType: string, taskId: string): Promise<number> => {
+  // Use centralized task prices from system config
+  const taskPrices = await getTaskPrices();
+  return taskPrices[taskId] || 0;
 };
 
 // Export the Express app as a Firebase Function
@@ -2806,8 +2842,10 @@ export const onVerificationWrite = functions.firestore
       const after = change.after.exists ? change.after.data() : null;
       const before = change.before.exists ? change.before.data() : null;
 
-      // Only act when moving into a VERIFIED state the first time
-      const becameVerified = after?.status === 'VERIFIED' && before?.status !== 'VERIFIED';
+      // Only act when moving into a verified state the first time
+      const afterStatus = normalizeStatus(after?.status);
+      const beforeStatus = normalizeStatus(before?.status);
+      const becameVerified = afterStatus === 'verified' && beforeStatus !== 'verified';
       if (!becameVerified) return;
 
       const { uid, missionId, taskId, missionType, honorsPerTask, tasksRequired } = after as {
