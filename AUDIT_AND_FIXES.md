@@ -246,7 +246,7 @@ This document outlines critical inconsistencies and fixes needed across the Ense
 
 1. **Config-first:** Move prices, multipliers, fee rate to `system_config`
 2. **Schema normalizer:** Normalize incoming fields on write, serialize consistently on read
-3. **Unify submissions:** Migrate to `taskCompletions` as source of truth
+3. **Unify submissions:** Use `mission_participations` as primary source with `taskCompletions` fallback
 4. **Deadlines & rewards:** Compute and persist centrally on mission creation
 5. **Security:** Replace in-memory systems with shared store
 6. **Statuses:** Standardize lowercase and map legacy on read
@@ -289,14 +289,81 @@ This document outlines critical inconsistencies and fixes needed across the Ense
 - ✅ Winners lifecycle wiring
 - ✅ Counting logic vs caps
 
-## 🎉 AUDIT COMPLETE - ALL ISSUES RESOLVED
+## 🔄 AUDIT STATUS UPDATE - COMPREHENSIVE CODE REVIEW COMPLETE
 
-The Ensei Platform has been successfully audited and all critical issues have been resolved. The platform now features:
+### ✅ **CONFIRMED IMPLEMENTED (Code Review Verified):**
+- **Status normalization**: `normalizeStatus()` helper with consistent lowercase handling
+- **Submission source of truth**: Unified around `mission_participations` with `taskCompletions` fallback
+- **Winners lifecycle**: Task docs created at degen mission creation; mission-wide caps wired
+- **URL validation**: Centralized `normalizeUrl` + `validateUrl` with Twitter/X + Instagram patterns
+- **File upload security**: Signed URLs with private storage default (no `makePublic()`)
+- **Rate limiting**: Firestore-backed distributed + transactional system
+- **Idempotency**: Firestore-based with proper key management
+- **Admin analytics**: Reads fee rate from config with fallback, exposes rate used
+- **Pagination**: Opaque base64 `{id, created_at}` cursor system
+- **User stats**: Consolidation functions + hourly aggregation + trigger-based updates
 
-- **Complete data integrity** with standardized timestamps, field names, and status enums
-- **Enterprise-grade security** with proper file validation, rate limiting, and authentication
-- **Robust performance** with optimized pagination, caching, and data aggregation
-- **Comprehensive admin functionality** with accurate analytics and user management
-- **Production-ready architecture** with proper error handling and monitoring
+### ❗ **REMAINING GAPS TO ADDRESS:**
 
-All 25 identified issues across 3 phases have been successfully implemented and tested.
+#### **1. Config Shape Inconsistency (CRITICAL)**
+**Issue**: Mixed config access patterns across code paths
+- Some expect `system_config.platformFeeRate` (root)
+- Others expect `system_config.pricing.platformFeeRate` (nested)
+- Analytics reads root but config returns nested structure
+
+**Fix Required**: Create unified config accessor
+```typescript
+const readCfg = (cfg:any={}) => ({
+  honorsPerUsd: cfg.honorsPerUsd ?? cfg.pricing?.honorsPerUsd ?? 450,
+  platformFeeRate: cfg.platformFeeRate ?? cfg.pricing?.platformFeeRate ?? 0.25,
+  premiumMultiplier: cfg.premiumMultiplier ?? cfg.pricing?.premiumMultiplier ?? 5,
+  taskPrices: cfg.pricing?.taskPrices ?? DEFAULT_TASK_PRICES,
+});
+```
+
+#### **2. Timestamp Standardization Incomplete (CRITICAL)**
+**Issue**: Several routes still write ISO strings instead of `serverTimestamp()`
+- `/v1/missions/:id/participate` (joined_at, updated_at)
+- `/v1/missions/:id/submit` (submitted_at, mission updated_at)
+- Wallet claim endpoints (claimed_at, wallet updated_at, transaction created_at)
+
+**Fix Required**: Replace all `new Date().toISOString()` with `firebaseAdmin.firestore.FieldValue.serverTimestamp()`
+
+#### **3. Multipart Upload Magic Bytes Missing (CRITICAL)**
+**Issue**: Only base64 endpoint validates magic bytes; multer route relies on spoofable `file.mimetype`
+
+**Fix Required**: Add `fileTypeFromBuffer(req.file.buffer)` validation to multer handler
+
+#### **4. Pagination startAfter Fragility (CRITICAL)**
+**Issue**: Query orders by `created_at` but `startAfter(cursorDoc)` uses plain object instead of DocumentSnapshot
+
+**Fix Required**: Use `query.startAfter(new Date(created_at))` or add document ID ordering
+
+#### **5. Quick Remediation Plan Contradiction (MINOR)**
+**Issue**: Plan says "Migrate to taskCompletions" but implementation uses `mission_participations` as primary
+
+**Fix Required**: Update plan text to match implementation
+
+#### **6. Expires vs Server Time Consistency (MINOR)**
+**Issue**: `checkExpiredFixedMissions` mixes JS Date comparison with `serverTimestamp()` writes
+
+**Fix Required**: Standardize to consistent timestamp approach
+
+#### **7. Import Path Verification (MINOR)**
+**Issue**: Import from `./utils/user-data-integrity` needs path verification
+
+**Fix Required**: Ensure import path matches actual file location
+
+### 🎯 **IMPLEMENTATION PRIORITY:**
+1. **Config unification** (affects all pricing calculations)
+2. **Timestamp standardization** (affects data consistency)
+3. **Magic bytes validation** (affects security)
+4. **Pagination hardening** (affects performance)
+5. **Documentation updates** (affects maintainability)
+
+### 📊 **CURRENT STATUS:**
+- **✅ Completed**: 20/25 core issues (80% complete)
+- **🔄 In Progress**: 5/25 remaining gaps (20% remaining)
+- **⏳ Pending**: 0/25 issues (all identified)
+
+**Next Review**: After implementing the 5 remaining critical fixes

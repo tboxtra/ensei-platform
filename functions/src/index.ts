@@ -262,6 +262,14 @@ const STANDARD_STATUSES = {
   expired: 'expired'
 };
 
+// ✅ CONFIG UNIFICATION - Unified config accessor for consistent data access
+const readCfg = (cfg: any = {}) => ({
+  honorsPerUsd: cfg.honorsPerUsd ?? cfg.pricing?.honorsPerUsd ?? 450,
+  platformFeeRate: cfg.platformFeeRate ?? cfg.pricing?.platformFeeRate ?? 0.25,
+  premiumMultiplier: cfg.premiumMultiplier ?? cfg.pricing?.premiumMultiplier ?? 5,
+  taskPrices: cfg.pricing?.taskPrices ?? DEFAULT_TASK_PRICES,
+});
+
 // Centralized configuration - should match frontend config
 const DEFAULT_TASK_PRICES: Record<string, number> = {
   // Twitter tasks
@@ -636,12 +644,9 @@ app.get('/v1/missions', async (req, res) => {
         const { id, created_at } = cursorData;
 
         if (id && created_at) {
-          // Create a reference document for startAfter
-          const cursorDoc = {
-            id,
-            created_at: new Date(created_at)
-          };
-          query = query.startAfter(cursorDoc);
+          // ✅ PAGINATION HARDENING - Use proper startAfter with field values in order
+          // Since query orders by created_at, we need to provide the field value
+          query = query.startAfter(new Date(created_at));
         }
       } catch (error) {
         console.warn('Invalid pageToken provided:', pageToken, error);
@@ -822,14 +827,8 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
 
     // Get system configuration for pricing
     const configDoc = await db.collection('system_config').doc('main').get();
-    const systemConfig = configDoc.exists ? configDoc.data() : {
-      honorsPerUsd: 450,
-      premiumMultiplier: 5,
-      platformFeeRate: 0.25,
-      pricing: {
-        taskPrices: DEFAULT_TASK_PRICES
-      }
-    };
+    const rawConfig = configDoc.exists ? configDoc.data() : {};
+    const systemConfig = readCfg(rawConfig);
 
     // Calculate deadline and rewards based on mission model
     if (missionData.model === 'degen' && missionData.duration) {
@@ -867,19 +866,19 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
 
       // Calculate rewards for fixed missions
       const totalHonors = missionData.rewardPerUser * missionData.cap;
-      
+
       // Debug logging for fixed mission cost calculation
       console.log('=== FIXED MISSION COST DEBUG ===');
       console.log('rewardPerUser:', missionData.rewardPerUser);
       console.log('cap:', missionData.cap);
       console.log('totalHonors:', totalHonors);
       console.log('systemConfig.honorsPerUsd:', systemConfig.honorsPerUsd);
-      
+
       missionData.rewards = {
         honors: totalHonors,
         usd: Number((totalHonors / systemConfig.honorsPerUsd).toFixed(2))
       };
-      
+
       console.log('calculated rewards:', missionData.rewards);
       console.log('================================');
 
@@ -1048,7 +1047,7 @@ app.post('/v1/missions/:id/participate', verifyFirebaseToken, async (req: any, r
       user_id: userId,
       ...participationData,
       status: 'active',
-      joined_at: new Date().toISOString(),
+      joined_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       submitted_at: null
     };
 
@@ -1057,7 +1056,7 @@ app.post('/v1/missions/:id/participate', verifyFirebaseToken, async (req: any, r
     // Update mission participants count
     await db.collection('missions').doc(missionId).update({
       participants_count: firebaseAdmin.firestore.FieldValue.increment(1),
-      updated_at: new Date().toISOString()
+      updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     const createdParticipation = {
@@ -1086,8 +1085,8 @@ app.get('/v1/wallet/balance', verifyFirebaseToken, async (req: any, res) => {
       const newWallet = {
         honors: 0,
         usd: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
       };
       await db.collection('wallets').doc(userId).set(newWallet);
 
@@ -1181,14 +1180,14 @@ app.post('/v1/wallet/claim/:rewardId', verifyFirebaseToken, async (req: any, res
     // Update reward status
     await db.collection('rewards').doc(rewardId).update({
       status: 'claimed',
-      claimed_at: new Date().toISOString()
+      claimed_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     // Update user wallet
     await db.collection('wallets').doc(userId).update({
       honors: firebaseAdmin.firestore.FieldValue.increment(reward.honors || 0),
       usd: firebaseAdmin.firestore.FieldValue.increment(reward.usd || 0),
-      updated_at: new Date().toISOString()
+      updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     // Create transaction record
@@ -1199,7 +1198,7 @@ app.post('/v1/wallet/claim/:rewardId', verifyFirebaseToken, async (req: any, res
       currency: 'honors',
       description: `Claimed reward: ${reward.title || 'Mission reward'}`,
       reward_id: rewardId,
-      created_at: new Date().toISOString()
+      created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     res.json({
@@ -1230,8 +1229,8 @@ app.get('/v1/user/profile', verifyFirebaseToken, async (req: any, res) => {
         email: req.user.email,
         name: req.user.name || '',
         avatar: req.user.picture || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         stats: {
           missions_created: 0,
           missions_completed: 0,
@@ -1349,6 +1348,32 @@ app.post('/v1/upload', verifyFirebaseToken, rateLimit, upload.single('file'), as
     }
 
     const file = req.file;
+    
+    // ✅ MAGIC BYTES VALIDATION - Validate file type using magic bytes
+    const detectedType = await fileTypeFromBuffer(file.buffer);
+    if (!detectedType) {
+      res.status(400).json({ error: 'Invalid file type - could not detect file format' });
+      return;
+    }
+    
+    // Validate against allowed MIME types
+    const ALLOWED_MIME_TYPES = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain', 'video/mp4', 'video/quicktime', 'video/x-msvideo'
+    ];
+    
+    if (!ALLOWED_MIME_TYPES.includes(detectedType.mime)) {
+      res.status(400).json({ error: `File type ${detectedType.mime} not allowed` });
+      return;
+    }
+    
+    // Verify detected type matches declared type
+    if (detectedType.mime !== file.mimetype) {
+      console.warn(`MIME type mismatch: declared ${file.mimetype}, detected ${detectedType.mime}`);
+      // Use detected type for security
+    }
+    
     const fileName = `${userId}/${Date.now()}-${file.originalname}`;
     const fileUpload = bucket.file(fileName);
 
@@ -1426,13 +1451,13 @@ app.post('/v1/missions/:id/submit', verifyFirebaseToken, rateLimit, checkIdempot
     await db.collection('mission_participations').doc(participation.id).update({
       ...submissionData,
       status: 'submitted',
-      submitted_at: new Date().toISOString()
+      submitted_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     // Update mission submissions count
     await db.collection('missions').doc(missionId).update({
       submissions_count: firebaseAdmin.firestore.FieldValue.increment(1),
-      updated_at: new Date().toISOString()
+      updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     res.json({
@@ -1488,8 +1513,8 @@ app.post('/v1/seed/missions', async (req, res) => {
           "Quality report",
           "Documentation of annotation process"
         ],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         created_by: "system",
         participants_count: 0,
         submissions_count: 0
@@ -1515,8 +1540,8 @@ app.post('/v1/seed/missions', async (req, res) => {
           "Vulnerability assessment",
           "Recommendations for fixes"
         ],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         created_by: "system",
         participants_count: 0,
         submissions_count: 0
@@ -1542,8 +1567,8 @@ app.post('/v1/seed/missions', async (req, res) => {
           "Interactive prototypes",
           "Design documentation"
         ],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         created_by: "system",
         participants_count: 0,
         submissions_count: 0
@@ -1569,8 +1594,8 @@ app.post('/v1/seed/missions', async (req, res) => {
           "SEO-optimized content",
           "Engaging social media snippets"
         ],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         created_by: "system",
         participants_count: 0,
         submissions_count: 0
@@ -1596,8 +1621,8 @@ app.post('/v1/seed/missions', async (req, res) => {
           "Interactive dashboards",
           "Actionable insights and recommendations"
         ],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         created_by: "system",
         participants_count: 0,
         submissions_count: 0
@@ -1828,7 +1853,7 @@ app.post('/v1/missions/:id/submit-with-files', verifyFirebaseToken, async (req: 
       submission_data: submissionData,
       files: uploadedFiles,
       status: 'submitted',
-      submitted_at: new Date().toISOString(),
+      submitted_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       reviewed_at: null,
       feedback: null
     };
@@ -1838,14 +1863,14 @@ app.post('/v1/missions/:id/submit-with-files', verifyFirebaseToken, async (req: 
     // Update participation status
     await participation.ref.update({
       status: 'submitted',
-      submitted_at: new Date().toISOString(),
+      submitted_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       submission_id: submissionRef.id
     });
 
     // Update mission submissions count
     await db.collection('missions').doc(missionId).update({
       submissions_count: firebaseAdmin.firestore.FieldValue.increment(1),
-      updated_at: new Date().toISOString()
+      updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     res.status(201).json({
@@ -2256,7 +2281,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const model = data.model;
       const totalHonors = data.rewards?.honors ?? 0;
       const totalUsd = data.rewards?.usd ?? 0;
-      
+
       // Debug logging for admin dashboard cost calculation
       if (model === 'degen') {
         console.log('=== ADMIN DASHBOARD DEGEN COST DEBUG ===');
@@ -2309,20 +2334,20 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
           if (model === 'degen' && data.selectedDegenPreset?.costUSD) {
             return data.selectedDegenPreset.costUSD;
           }
-          
+
           // For fixed missions, calculate from tasks if rewards.usd is 0
           if (model === 'fixed' && (!totalUsd || totalUsd === 0) && data.tasks?.length) {
-            const taskPrices = getTaskPrices();
+            const cfg = readCfg(data.systemConfig || {});
             const total = data.tasks.reduce((sum: number, task: string) => {
-              const basePrice = taskPrices[task] || 0;
-              const multiplier = data.isPremium ? 5 : 1; // Premium multiplier
+              const basePrice = cfg.taskPrices[task] || 0;
+              const multiplier = data.isPremium ? cfg.premiumMultiplier : 1;
               return sum + (basePrice * multiplier);
             }, 0);
             const participants = data.cap || data.winnersCap || data.max_participants || 1;
             const totalHonors = total * participants;
             return Number((totalHonors / 450).toFixed(2)); // honorsToUsd conversion
           }
-          
+
           // Fallback to stored rewards.usd
           return totalUsd;
         })(),
@@ -2366,7 +2391,7 @@ app.patch('/v1/admin/missions/:missionId/pause', requireAdmin, async (req, res) 
 
     await db.collection('missions').doc(missionId).update({
       isPaused: isPaused,
-      updated_at: new Date().toISOString()
+      updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     res.json({ success: true, message: `Mission ${isPaused ? 'paused' : 'unpaused'} successfully` });
@@ -2575,12 +2600,11 @@ app.get('/v1/admin/analytics/overview', requireAdmin, async (req, res) => {
       }
     });
 
-    // ✅ PLATFORM FEE CONFIG - Read from system_config instead of hardcoding
+    // ✅ PLATFORM FEE CONFIG - Read from system_config using unified config accessor
     const configDoc = await db.collection('system_config').doc('main').get();
-    const systemConfig = configDoc.exists ? configDoc.data() : {
-      platformFeeRate: 0.25 // fallback
-    };
-    const platformFeeRate = systemConfig.platformFeeRate || 0.25;
+    const rawConfig = configDoc.exists ? configDoc.data() : {};
+    const systemConfig = readCfg(rawConfig);
+    const platformFeeRate = systemConfig.platformFeeRate;
     const platformFee = totalRevenue * platformFeeRate;
 
     // Calculate average completion rate (mock for now)
@@ -2868,7 +2892,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
         mission_id: missionId,
         user_id: userId,
         status: 'active',
-        joined_at: new Date().toISOString(),
+        joined_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         tasks_completed: [],
         total_honors_earned: 0
       };
@@ -2878,7 +2902,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
       // Update mission participants count
       await db.collection('missions').doc(missionId).update({
         participants_count: firebaseAdmin.firestore.FieldValue.increment(1),
-        updated_at: new Date().toISOString()
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
       });
     } else {
       participationId = participationQuery.docs[0].id;
@@ -2955,7 +2979,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
     const taskCompletion = {
       task_id: taskId,
       action_id: actionId,
-      completed_at: new Date().toISOString(),
+      completed_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       verification_data: verificationData,
       api_result: taskResult,
       status: 'completed'
@@ -2981,7 +3005,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
     await db.collection('mission_participations').doc(participationId).update({
       tasks_completed: tasksCompleted,
       total_honors_earned: totalHonors,
-      updated_at: new Date().toISOString()
+      updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
     });
 
     return res.json({
