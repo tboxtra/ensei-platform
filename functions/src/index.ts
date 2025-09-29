@@ -211,23 +211,23 @@ const normalizeMissionData = (data: any) => {
   return normalized;
 };
 
-const serializeMissionResponse = (data: any) => {
-  // Return consistent camelCase for API responses
-  return {
-    ...data,
-    durationHours: data.duration_hours || data.durationHours || data.duration,
-    maxParticipants: data.max_participants || data.maxParticipants || data.cap,
-    winnersCap: data.winners_cap || data.winnersCap,
-    createdAt: toIso(data.created_at),
-    updatedAt: toIso(data.updated_at),
-    deadline: toIso(data.deadline),
-    expiresAt: toIso(data.expires_at),
+const serializeMissionResponse = (data: any) => ({
+  ...data,
+  durationHours: data.duration_hours || data.durationHours || data.duration,
+  maxParticipants: data.max_participants || data.maxParticipants || data.cap,
+  winnersCap: data.winners_cap || data.winnersCap,
+  createdAt: toIso(data.created_at),
+  updatedAt: toIso(data.updated_at),
+  deadline: toIso(data.deadline),
+  expiresAt: toIso(data.expires_at),
 
-    // Canonical date fields for frontend consistency
-    startAt: toIso(data.created_at),
-    endAt: toIso(data.deadline || data.expires_at),
-  };
-};
+  // ✅ canonical fields the UI expects
+  startAt: toIso(data.created_at),
+  endAt: toIso(data.deadline || data.expires_at),
+
+  // keep content link normalization too if you like
+  contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
+});
 
 // Status standardization
 const STANDARD_STATUSES = {
@@ -2015,34 +2015,47 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
     });
 
     const missions = missionsSnapshot.docs.map(doc => {
-      const data = doc.data();
+      const data: any = doc.data();
       const creator = usersMap.get(data.created_by);
+
+      const model = data.model;
+      const totalHonors = data.rewards?.honors ?? 0;
+      const totalUsd = data.rewards?.usd ?? 0;
+      const winnersPerTask = data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0;
+      const cap = data.cap ?? data.max_participants ?? 0;
+      const perUserHonors = data.rewardPerUser ?? 0;
+      const perWinnerHonors =
+        model === 'degen' && winnersPerTask > 0 ? Math.floor(totalHonors / winnersPerTask) : 0;
+
       return {
         id: doc.id,
         title: data.title,
         platform: data.platform,
         type: data.type,
-        model: data.model,
+        model,
         status: data.status,
         creatorId: data.created_by,
         creatorName: creator?.name || 'Unknown',
         creatorEmail: creator?.email || '',
         createdAt: toIso(data.created_at),
         deadline: toIso(data.deadline),
-        expiresAt: toIso(data.expires_at),
-        updatedAt: toIso(data.updated_at),
+        expires_at: toIso(data.expires_at),
+        startAt: toIso(data.created_at),
+        endAt: toIso(data.deadline || data.expires_at),
         submissionsCount: data.submissions_count || 0,
         approvedCount: data.approved_count || 0,
-        totalCostUsd: data.rewards?.usd ?? 0,
-        totalCostHonors: data.rewards?.honors ?? 0,
-        perUserHonors: data.rewardPerUser || 0,
-        perWinnerHonors: data.model === 'degen'
-          ? Math.round((data.rewards?.honors ?? 0) / (data.winners_cap || data.winnersCap || 1))
-          : data.rewardPerUser || 0,
-        winnersCap: data.winnersCap,
-        cap: data.cap,
-        durationHours: data.durationHours,
-        maxParticipants: data.max_participants,
+
+        // ✅ amounts
+        totalCostUsd: totalUsd,
+        totalCostHonors: totalHonors,
+        perUserHonors: model === 'fixed' ? perUserHonors : 0,
+        perWinnerHonors: model === 'degen' ? perWinnerHonors : 0,
+
+        winnersPerTask,
+        winnersCap: data.winnersCap ?? data.winners_cap,
+        cap,
+        durationHours: data.duration_hours ?? data.durationHours ?? data.duration,
+        maxParticipants: data.max_participants ?? data.cap,
         participantsCount: data.participants_count || 0,
         isPremium: data.isPremium || false,
         category: data.category,
@@ -2053,7 +2066,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         tweetLink: data.tweetLink,
         tasks: data.tasks,
         isPaused: data.isPaused || false,
-        ...data // Include all other fields
+        ...data
       };
     });
 
@@ -2227,14 +2240,14 @@ app.get('/v1/submissions', async (req, res) => {
       .get();
 
     const submissions = submissionsSnapshot.docs.map(doc => {
-      const data = doc.data();
+      const d: any = doc.data();
       return {
         id: doc.id,
-        ...data,
-        submittedAt: toIso(data.submitted_at),
-        createdAt: toIso(data.created_at),
-        updatedAt: toIso(data.updated_at),
-        reviewedAt: toIso(data.reviewed_at)
+        ...d,
+        submitted_at: toIso(d.submitted_at),
+        created_at: toIso(d.created_at),
+        updated_at: toIso(d.updated_at),
+        reviewed_at: toIso(d.reviewed_at),
       };
     });
 

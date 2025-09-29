@@ -195,13 +195,9 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
             id: mission.id,
             type: mission.model === 'fixed' ? 'fixed' : 'degen',
             startAt: new Date(mission.startAt || mission.createdAt),
-            endAt: mission.endAt
-                ? new Date(mission.endAt)
-                : mission.deadline
-                    ? new Date(mission.deadline)
-                    : mission.expiresAt
-                        ? new Date(mission.expiresAt)
-                        : null,
+            endAt: new Date(
+                mission.endAt || mission.deadline || mission.expiresAt || mission.expires_at || 0
+            ) || null,
             maxDurationHours: mission.maxDurationHours,
             winnersPerTask: mission.winnersPerTask,
             tasks: taskIds.map((id: string) => ({ id, label: 'Like' as const })),
@@ -233,13 +229,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 id: mission.id,
                 type: 'fixed',
                 startAt: new Date(mission.startAt || mission.createdAt),
-                endAt: mission.endAt
-                    ? new Date(mission.endAt)
-                    : mission.deadline
-                        ? new Date(mission.deadline)
-                        : mission.expiresAt
-                            ? new Date(mission.expiresAt)
-                            : null,
+                endAt: new Date(mission.endAt || mission.deadline || mission.expiresAt || mission.expires_at || 0) || null,
                 winnersPerTask: mission.winnersPerTask,
                 tasks: taskIds.map((id: string) => ({ id, label: 'Like' as const })),
                 created_by: mission.created_by
@@ -341,13 +331,13 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
     const formatDeadline = (deadline: string, model?: string) => {
         // Check both deadline and expires_at fields for consistency
-        const deadlineValue = deadline || mission.expires_at;
-        if (!deadlineValue || deadlineValue === 'null' || deadlineValue === 'undefined') return 'No deadline';
-        const date = new Date(deadlineValue);
+        const raw = deadline || mission.deadline || mission.endAt || mission.expiresAt || mission.expires_at;
+        if (!raw) return 'No deadline';
+        const date = new Date(raw);
         if (Number.isNaN(date.getTime())) return 'No deadline';
 
         const diffMs = date.getTime() - Date.now();
-        if (diffMs < 0) return 'Expired';
+        if (diffMs <= 0) return 'Expired';
 
         const h = Math.ceil(diffMs / 36e5);
         const d = Math.ceil(diffMs / 864e5);
