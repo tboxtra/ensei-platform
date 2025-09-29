@@ -341,11 +341,11 @@ const rateLimit = async (req: any, res: any, next: any) => {
 
     // Use Firestore for distributed rate limiting
     const rateLimitRef = db.collection('rate_limits').doc(rateLimitKey);
-    
+
     // Use transaction to atomically check and increment
     await db.runTransaction(async (transaction) => {
       const rateLimitDoc = await transaction.get(rateLimitRef);
-      
+
       if (!rateLimitDoc.exists) {
         // First request in this window
         transaction.set(rateLimitRef, {
@@ -357,11 +357,11 @@ const rateLimit = async (req: any, res: any, next: any) => {
       } else {
         const data = rateLimitDoc.data();
         const currentCount = data?.count || 0;
-        
+
         if (currentCount >= RATE_LIMIT_MAX_REQUESTS) {
           throw new Error('RATE_LIMIT_EXCEEDED');
         }
-        
+
         // Increment count
         transaction.update(rateLimitRef, {
           count: currentCount + 1,
@@ -369,11 +369,11 @@ const rateLimit = async (req: any, res: any, next: any) => {
         });
       }
     });
-    
+
     next();
   } catch (error) {
     if (error.message === 'RATE_LIMIT_EXCEEDED') {
-      res.status(429).json({ 
+      res.status(429).json({
         error: 'Rate limit exceeded. Please try again later.',
         retryAfter: Math.ceil(RATE_LIMIT_WINDOW / 1000)
       });
@@ -390,22 +390,22 @@ const rateLimit = async (req: any, res: any, next: any) => {
 const checkIdempotency = async (req: any, res: any, next: any) => {
   try {
     const idempotencyKey = req.headers['idempotency-key'];
-    
+
     if (!idempotencyKey) {
       return next();
     }
-    
+
     // Use Firestore for distributed idempotency checking
     const idempotencyRef = db.collection('idempotency_keys').doc(idempotencyKey);
-    
+
     // Use transaction to atomically check and set
     await db.runTransaction(async (transaction) => {
       const idempotencyDoc = await transaction.get(idempotencyRef);
-      
+
       if (idempotencyDoc.exists) {
         throw new Error('IDEMPOTENCY_KEY_EXISTS');
       }
-      
+
       // Set idempotency key with TTL (24 hours)
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       transaction.set(idempotencyRef, {
@@ -416,7 +416,7 @@ const checkIdempotency = async (req: any, res: any, next: any) => {
         method: req.method
       });
     });
-    
+
     next();
   } catch (error) {
     if (error.message === 'IDEMPOTENCY_KEY_EXISTS') {
@@ -426,6 +426,17 @@ const checkIdempotency = async (req: any, res: any, next: any) => {
       // Allow request to proceed if idempotency check fails
       next();
     }
+  }
+};
+
+// ✅ AUTH JOINEDAT ACCURACY - Fetch actual account creation time
+const getUserCreationTime = async (uid: string): Promise<string> => {
+  try {
+    const userRecord = await firebaseAdmin.auth().getUser(uid);
+    return userRecord.metadata.creationTime || new Date().toISOString();
+  } catch (error) {
+    console.error('Error fetching user creation time:', error);
+    return new Date().toISOString();
   }
 };
 
@@ -464,7 +475,7 @@ app.post('/v1/auth/login', async (req, res): Promise<void> => {
       firstName: decodedToken.name?.split(' ')[0] || decodedToken.email?.split('@')[0] || 'User',
       lastName: decodedToken.name?.split(' ').slice(1).join(' ') || 'User',
       avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
-      joinedAt: new Date(decodedToken.iat * 1000).toISOString()
+      joinedAt: await getUserCreationTime(decodedToken.uid)
     };
 
     res.json({
@@ -497,7 +508,7 @@ app.post('/v1/auth/register', async (req, res): Promise<void> => {
       firstName: decodedToken.name?.split(' ')[0] || decodedToken.email?.split('@')[0] || 'User',
       lastName: decodedToken.name?.split(' ').slice(1).join(' ') || 'User',
       avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
-      joinedAt: new Date(decodedToken.iat * 1000).toISOString()
+      joinedAt: await getUserCreationTime(decodedToken.uid)
     };
 
     res.json({
@@ -521,7 +532,7 @@ app.get('/v1/auth/me', verifyFirebaseToken, async (req: any, res) => {
       firstName: decodedToken.name?.split(' ')[0] || decodedToken.email?.split('@')[0] || 'User',
       lastName: decodedToken.name?.split(' ').slice(1).join(' ') || 'User',
       avatar: decodedToken.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${decodedToken.email}`,
-      joinedAt: new Date(decodedToken.iat * 1000).toISOString()
+      joinedAt: await getUserCreationTime(decodedToken.uid)
     };
 
     res.json(user);
@@ -558,7 +569,7 @@ app.get('/v1/missions', async (req, res) => {
         // Decode opaque cursor: base64 encoded {id, created_at}
         const cursorData = JSON.parse(Buffer.from(pageToken as string, 'base64').toString());
         const { id, created_at } = cursorData;
-        
+
         if (id && created_at) {
           // Create a reference document for startAfter
           const cursorDoc = {
@@ -591,7 +602,7 @@ app.get('/v1/missions', async (req, res) => {
     if (missionsSnapshot.docs.length === limitNum) {
       const lastDoc = missionsSnapshot.docs[missionsSnapshot.docs.length - 1];
       const lastDocData = lastDoc.data();
-      
+
       // Create opaque cursor: base64 encoded {id, created_at}
       const cursorData = {
         id: lastDoc.id,
@@ -1270,7 +1281,7 @@ app.post('/v1/upload', verifyFirebaseToken, rateLimit, upload.single('file'), as
       try {
         // ✅ SECURE FILE UPLOAD - Keep files private, generate signed URLs
         // Don't make file public - keep it private for security
-        
+
         // Generate signed URL for temporary access (1 hour)
         const [signedUrl] = await fileUpload.getSignedUrl({
           action: 'read',
@@ -1544,33 +1555,58 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
       return;
     }
 
-    // MIME type validation
-    if (!/^image\/|^video\/|^application\/pdf|officedocument/.test(fileType)) {
-      res.status(400).json({ error: 'Unsupported file type' });
+    // ✅ MAGIC BYTES VALIDATION - Use file-type for accurate detection
+    const { fileTypeFromBuffer } = await import('file-type');
+    const detectedType = await fileTypeFromBuffer(fileBuffer);
+    
+    // Whitelist of allowed MIME types
+    const ALLOWED_MIME_TYPES = [
+      // Images
+      'image/jpeg',
+      'image/png', 
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+      // Videos
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+      // Documents
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      // Text
+      'text/plain',
+      'text/csv'
+    ];
+
+    // Validate against detected type (source of truth)
+    if (detectedType && !ALLOWED_MIME_TYPES.includes(detectedType.mime)) {
+      res.status(400).json({ 
+        error: `Unsupported file type: ${detectedType.mime}`,
+        detectedType: detectedType.mime,
+        allowedTypes: ALLOWED_MIME_TYPES
+      });
       return;
     }
 
-    // Magic bytes validation to prevent MIME spoofing
-    try {
-      const detectedType = await fileTypeFromBuffer(fileBuffer);
-      if (!detectedType) {
-        res.status(400).json({ error: 'Unable to detect file type' });
-        return;
-      }
-
-      // Verify detected type matches declared type
-      const declaredMime = fileType.toLowerCase();
-      const detectedMime = detectedType.mime.toLowerCase();
-
-      if (!detectedMime.includes(declaredMime.split('/')[0])) {
-        res.status(400).json({ error: 'File type mismatch detected' });
-        return;
-      }
-    } catch (error) {
-      console.error('File type detection error:', error);
-      res.status(400).json({ error: 'Invalid file format' });
+    // Validate against provided type (should match detected)
+    if (detectedType && detectedType.mime !== fileType) {
+      res.status(400).json({ 
+        error: 'File type mismatch',
+        providedType: fileType,
+        detectedType: detectedType.mime
+      });
       return;
     }
+
+    // Use detected type if available, fallback to provided
+    const finalMimeType = detectedType?.mime || fileType;
+
 
     // Generate unique filename
     const timestamp = Date.now();
@@ -1581,18 +1617,19 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
     const file = bucket.file(filePath);
     await file.save(fileBuffer, {
       metadata: {
-        contentType: fileType,
+        contentType: finalMimeType, // Use validated MIME type
         metadata: {
           uploadedBy: userId,
           originalName: fileName,
-          uploadedAt: new Date().toISOString()
+          uploadedAt: new Date().toISOString(),
+          detectedType: detectedType?.mime || 'unknown'
         }
       }
     });
 
     // ✅ SECURE FILE UPLOAD - Keep files private, generate signed URLs
     // Don't make file public - keep it private for security
-    
+
     // Generate signed URL for temporary access (1 hour)
     const [signedUrl] = await file.getSignedUrl({
       action: 'read',
@@ -1604,6 +1641,8 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
       fileUrl: signedUrl,
       fileName: sanitizedFileName,
       filePath,
+      fileType: finalMimeType,
+      detectedType: detectedType?.mime || 'unknown',
       uploadedAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
     });
@@ -1673,7 +1712,7 @@ app.post('/v1/missions/:id/submit-with-files', verifyFirebaseToken, async (req: 
 
         // ✅ SECURE FILE UPLOAD - Keep files private, generate signed URLs
         // Don't make file public - keep it private for security
-        
+
         // Generate signed URL for temporary access (1 hour)
         const [signedUrl] = await storageFile.getSignedUrl({
           action: 'read',
@@ -1879,7 +1918,7 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
       items = participationsSnapshot.docs.flatMap(doc => {
         const data = doc.data();
         const tasksCompleted = data.tasks_completed || [];
-        
+
         // If no tasks completed, return the participation itself as a submission
         if (tasksCompleted.length === 0) {
           return [{
@@ -1899,7 +1938,7 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
             }
           }];
         }
-        
+
         // Convert each completed task to a submission
         return tasksCompleted.map((task: any, index: number) => ({
           id: `${doc.id}_${task.task_id || index}`,
@@ -1959,13 +1998,13 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
       .get();
 
     let count = 0;
-    
+
     if (!participationsSnapshot.empty) {
       // Count verified/completed tasks across all participations
       participationsSnapshot.docs.forEach(doc => {
         const data = doc.data();
         const tasksCompleted = data.tasks_completed || [];
-        const verifiedTasks = tasksCompleted.filter((task: any) => 
+        const verifiedTasks = tasksCompleted.filter((task: any) =>
           task.status === 'completed' || task.status === 'verified'
         );
         count += verifiedTasks.length;
@@ -2713,22 +2752,22 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
       'follow': { auto: true, platform: 'twitter', action: 'follow' },
       'comment': { auto: false, platform: 'twitter', action: 'comment' },
       'quote': { auto: false, platform: 'twitter', action: 'quote' },
-      
+
       // Instagram auto actions
       'like_instagram': { auto: true, platform: 'instagram', action: 'like' },
       'follow_instagram': { auto: true, platform: 'instagram', action: 'follow' },
       'comment_instagram': { auto: false, platform: 'instagram', action: 'comment' },
-      
+
       // TikTok auto actions
       'like_tiktok': { auto: true, platform: 'tiktok', action: 'like' },
       'follow_tiktok': { auto: true, platform: 'tiktok', action: 'follow' },
       'comment_tiktok': { auto: false, platform: 'tiktok', action: 'comment' },
-      
+
       // Facebook auto actions
       'like_facebook': { auto: true, platform: 'facebook', action: 'like' },
       'follow_facebook': { auto: true, platform: 'facebook', action: 'follow' },
       'comment_facebook': { auto: false, platform: 'facebook', action: 'comment' },
-      
+
       // Manual actions (require user proof)
       'meme': { auto: false, platform: 'twitter', action: 'meme' },
       'thread': { auto: false, platform: 'twitter', action: 'thread' },
@@ -2741,7 +2780,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
       'spaces': { auto: false, platform: 'twitter', action: 'spaces' },
       'community_raid': { auto: false, platform: 'twitter', action: 'community_raid' },
       'status_50_views': { auto: false, platform: 'twitter', action: 'status_50_views' },
-      
+
       // Custom actions
       'custom': { auto: false, platform: 'custom', action: 'custom' }
     };
@@ -2749,7 +2788,7 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
     // Handle task completion based on action type
     let taskResult = null;
     const actionConfig = AUTO_ACTIONS[actionId] || { auto: false, platform: 'unknown', action: actionId };
-    
+
     if (actionConfig.auto) {
       // Handle automatic actions (like, retweet, follow)
       const action = actionConfig.action;
