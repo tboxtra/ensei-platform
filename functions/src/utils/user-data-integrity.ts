@@ -336,19 +336,6 @@ export async function createMissionWithUidReferences(userId: string, missionData
     }
 
     const missionRef = getDb().collection('missions').doc();
-    const now = new Date();
-
-    // For fixed missions, set expiration to 48 hours from creation
-    let expires_at = null;
-    if (missionData.model === 'fixed') {
-        expires_at = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // 48 hours in milliseconds
-    }
-
-    // For degen missions, calculate deadline based on duration
-    let deadline = null;
-    if (missionData.model === 'degen' && missionData.durationHours) {
-        deadline = new Date(now.getTime() + (missionData.durationHours * 60 * 60 * 1000));
-    }
 
     const mission = {
         ...missionData,
@@ -356,8 +343,9 @@ export async function createMissionWithUidReferences(userId: string, missionData
         id: missionRef.id,
         status: missionData.status || 'active', // Default to 'active' if not specified
         created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(), // Use server timestamp for consistency
-        expires_at: expires_at, // Set expiration for fixed missions
-        deadline: deadline // Set deadline for degen missions
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(), // Use server timestamp for consistency
+        // deadline and expires_at are already calculated in the main endpoint
+        // rewards are already calculated in the main endpoint
     };
 
     await missionRef.set(mission);

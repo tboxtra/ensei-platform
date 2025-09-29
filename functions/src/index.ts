@@ -49,6 +49,7 @@ const bucket = firebaseAdmin.storage().bucket();
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
+import { fileTypeFromBuffer } from 'file-type';
 
 const app = express();
 app.use(cors({
@@ -132,6 +133,100 @@ const requireAdmin = async (req: any, res: any, next: any) => {
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
+};
+
+// Centralized URL validation and normalization
+const normalizeUrl = (url: string): string => {
+  if (!url) return '';
+  // Convert x.com to twitter.com for consistency
+  let normalized = url.replace(/x\.com/g, 'twitter.com');
+  // Remove query parameters and fragments for consistency
+  normalized = normalized.split('?')[0].split('#')[0];
+  return normalized.trim();
+};
+
+const validateUrl = (url: string, platform: string): { isValid: boolean; error?: string } => {
+  if (!url || url.trim() === '') {
+    return { isValid: false, error: 'URL is required' };
+  }
+
+  const normalized = normalizeUrl(url);
+
+  try {
+    new URL(normalized);
+  } catch {
+    return { isValid: false, error: 'Invalid URL format' };
+  }
+
+  // Platform-specific validation
+  if (platform === 'twitter') {
+    const twitterRegex = /(?:https?:\/\/)?(?:www\.|mobile\.)?(?:x\.com|twitter\.com)\/[^/]+\/status\/(\d+)/i;
+    if (!twitterRegex.test(normalized)) {
+      return { isValid: false, error: 'Invalid Twitter/X URL format' };
+    }
+  } else if (platform === 'instagram') {
+    const instagramRegex = /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:p|reel)\/[A-Za-z0-9_-]+\/?/i;
+    if (!instagramRegex.test(normalized)) {
+      return { isValid: false, error: 'Invalid Instagram URL format' };
+    }
+  }
+
+  return { isValid: true };
+};
+
+// Safe timestamp conversion utility
+const toIso = (v: any) =>
+  v?.toDate?.() ? v.toDate().toISOString() :
+    typeof v === 'string' ? v : null;
+
+// Simple rate limiting middleware
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute
+
+const rateLimit = (req: any, res: any, next: any) => {
+  const clientId = req.user?.uid || req.ip || 'anonymous';
+  const now = Date.now();
+
+  const clientData = rateLimitMap.get(clientId);
+
+  if (!clientData || now > clientData.resetTime) {
+    // Reset or create new entry
+    rateLimitMap.set(clientId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    next();
+  } else if (clientData.count >= RATE_LIMIT_MAX_REQUESTS) {
+    res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+  } else {
+    clientData.count++;
+    next();
+  }
+};
+
+// Idempotency key validation
+const idempotencyKeys = new Set<string>();
+
+const checkIdempotency = (req: any, res: any, next: any) => {
+  const idempotencyKey = req.headers['idempotency-key'];
+
+  if (!idempotencyKey) {
+    return next();
+  }
+
+  if (idempotencyKeys.has(idempotencyKey)) {
+    res.status(409).json({ error: 'Duplicate request detected' });
+    return;
+  }
+
+  idempotencyKeys.add(idempotencyKey);
+
+  // Clean up old keys (simple cleanup - in production, use Redis or similar)
+  if (idempotencyKeys.size > 10000) {
+    const keysArray = Array.from(idempotencyKeys);
+    idempotencyKeys.clear();
+    keysArray.slice(-5000).forEach(key => idempotencyKeys.add(key));
+  }
+
+  next();
 };
 
 // Social Media API Integration Functions
@@ -249,11 +344,23 @@ app.post('/v1/auth/logout', async (req, res) => {
 // Missions endpoints
 app.get('/v1/missions', async (req, res) => {
   try {
-    const missionsSnapshot = await db.collection('missions')
+    const { limit = 20, pageToken } = req.query;
+    const limitNum = Math.min(parseInt(limit as string, 10) || 20, 100); // Max 100 per page
+
+    let query = db.collection('missions')
       .where('status', '==', 'active')
       .orderBy('created_at', 'desc')
-      .limit(50)
-      .get();
+      .limit(limitNum);
+
+    // Add pagination if pageToken provided
+    if (pageToken) {
+      const lastDoc = await db.collection('missions').doc(pageToken as string).get();
+      if (lastDoc.exists) {
+        query = query.startAfter(lastDoc);
+      }
+    }
+
+    const missionsSnapshot = await query.get();
 
     // Filter out paused missions and serialize timestamps
     const missions = missionsSnapshot.docs
@@ -263,14 +370,22 @@ app.get('/v1/missions', async (req, res) => {
           id: doc.id,
           ...data,
           // Convert Firestore timestamps to ISO strings
-          created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at,
-          updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at,
-          deadline: data.deadline?.toDate?.()?.toISOString() || data.deadline,
+          created_at: toIso(data.created_at),
+          updated_at: toIso(data.updated_at),
+          deadline: toIso(data.deadline),
+          expires_at: toIso(data.expires_at),
         };
       })
       .filter((mission: any) => !mission.isPaused); // Hide paused missions from users
 
-    res.json(missions);
+    // Prepare pagination response
+    const response: any = {
+      missions,
+      hasMore: missionsSnapshot.docs.length === limitNum,
+      nextPageToken: missionsSnapshot.docs.length === limitNum ? missionsSnapshot.docs[missionsSnapshot.docs.length - 1].id : null
+    };
+
+    res.json(response);
   } catch (error) {
     console.error('Error fetching missions:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -294,9 +409,10 @@ app.get('/v1/missions/:id', async (req, res) => {
       id: missionDoc.id,
       ...data,
       // Convert Firestore timestamps to ISO strings
-      created_at: data?.created_at?.toDate?.()?.toISOString() || data?.created_at,
-      updated_at: data?.updated_at?.toDate?.()?.toISOString() || data?.updated_at,
-      deadline: data?.deadline?.toDate?.()?.toISOString() || data?.deadline,
+      created_at: toIso(data?.created_at),
+      updated_at: toIso(data?.updated_at),
+      deadline: toIso(data?.deadline),
+      expires_at: toIso(data?.expires_at),
     };
 
     // Check if mission is paused
@@ -334,9 +450,10 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
         id: doc.id,
         ...data,
         // Convert Firestore timestamps to ISO strings
-        created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at,
-        updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at,
-        deadline: data.deadline?.toDate?.()?.toISOString() || data.deadline,
+        created_at: toIso(data.created_at),
+        updated_at: toIso(data.updated_at),
+        deadline: toIso(data.deadline),
+        expires_at: toIso(data.expires_at),
         type: 'created'
       };
     });
@@ -351,9 +468,10 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
             id: missionDoc.id,
             ...data,
             // Convert Firestore timestamps to ISO strings
-            created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at,
-            updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at,
-            deadline: data.deadline?.toDate?.()?.toISOString() || data.deadline,
+            created_at: toIso(data.created_at),
+            updated_at: toIso(data.updated_at),
+            deadline: toIso(data.deadline),
+            expires_at: toIso(data.expires_at),
             type: 'participating',
             participation_id: participationDoc.id,
             participation_status: participation.status
@@ -371,7 +489,7 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
   }
 });
 
-app.post('/v1/missions', verifyFirebaseToken, async (req: any, res) => {
+app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) => {
   try {
     const userId = req.user.uid;
     const missionData = req.body;
@@ -380,6 +498,19 @@ app.post('/v1/missions', verifyFirebaseToken, async (req: any, res) => {
     if (!missionData.platform) {
       res.status(400).json({ error: 'Platform is required' });
       return;
+    }
+
+    // Validate and normalize content link
+    if (missionData.contentLink || missionData.tweetLink) {
+      const url = missionData.contentLink || missionData.tweetLink;
+      const validation = validateUrl(url, missionData.platform);
+      if (!validation.isValid) {
+        res.status(400).json({ error: validation.error });
+        return;
+      }
+      // Normalize and store the URL
+      missionData.contentLink = normalizeUrl(url);
+      missionData.tweetLink = normalizeUrl(url);
     }
 
     if (!missionData.type) {
@@ -397,16 +528,38 @@ app.post('/v1/missions', verifyFirebaseToken, async (req: any, res) => {
       return;
     }
 
-    // Validate URL format
-    const contentLink = missionData.tweetLink || missionData.contentLink;
-    try {
-      new URL(contentLink);
-    } catch (urlError) {
-      res.status(400).json({ error: 'Invalid URL format for content link' });
-      return;
+    // Get system configuration for pricing
+    const configDoc = await db.collection('system_config').doc('main').get();
+    const systemConfig = configDoc.exists ? configDoc.data() : {
+      honorsPerUsd: 450,
+      premiumMultiplier: 5,
+      platformFeeRate: 0.1
+    };
+
+    // Calculate deadline and rewards based on mission model
+    if (missionData.model === 'degen' && missionData.duration) {
+      missionData.deadline = new Date(Date.now() + missionData.duration * 60 * 60 * 1000);
+
+      // Calculate rewards for degen missions
+      const costUSD = missionData.selectedDegenPreset?.costUSD || 0;
+      missionData.rewards = {
+        usd: costUSD,
+        honors: costUSD * systemConfig.honorsPerUsd
+      };
+    } else if (missionData.model === 'fixed' && missionData.cap) {
+      // Fixed missions expire after 48 hours
+      missionData.expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+      // Calculate rewards for fixed missions
+      const totalHonors = missionData.rewardPerUser * missionData.cap;
+      missionData.rewards = {
+        honors: totalHonors,
+        usd: totalHonors / systemConfig.honorsPerUsd
+      };
     }
 
     // Validate platform-specific URL patterns and content structure
+    const contentLink = missionData.tweetLink || missionData.contentLink;
     const url = new URL(contentLink);
     const hostname = url.hostname.toLowerCase();
     const pathname = url.pathname;
@@ -857,7 +1010,7 @@ app.post('/v1/user/verify-data-integrity', verifyFirebaseToken, async (req: any,
 });
 
 // File upload endpoint (for mission proofs)
-app.post('/v1/upload', verifyFirebaseToken, upload.single('file'), async (req: any, res) => {
+app.post('/v1/upload', verifyFirebaseToken, rateLimit, upload.single('file'), async (req: any, res) => {
   try {
     const userId = req.user.uid;
 
@@ -915,7 +1068,7 @@ app.post('/v1/upload', verifyFirebaseToken, upload.single('file'), async (req: a
 });
 
 // Mission submission endpoint
-app.post('/v1/missions/:id/submit', verifyFirebaseToken, async (req: any, res) => {
+app.post('/v1/missions/:id/submit', verifyFirebaseToken, rateLimit, checkIdempotency, async (req: any, res) => {
   try {
     const missionId = req.params.id;
     const userId = req.user.uid;
@@ -1139,7 +1292,7 @@ app.post('/v1/seed/missions', async (req, res) => {
 });
 
 // File upload endpoints
-app.post('/v1/upload/base64', verifyFirebaseToken, async (req: any, res) => {
+app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, res) => {
   try {
     const userId = req.user.uid;
     const { fileName, fileType, base64Data } = req.body;
@@ -1162,6 +1315,28 @@ app.post('/v1/upload/base64', verifyFirebaseToken, async (req: any, res) => {
     // MIME type validation
     if (!/^image\/|^video\/|^application\/pdf|officedocument/.test(fileType)) {
       res.status(400).json({ error: 'Unsupported file type' });
+      return;
+    }
+
+    // Magic bytes validation to prevent MIME spoofing
+    try {
+      const detectedType = await fileTypeFromBuffer(fileBuffer);
+      if (!detectedType) {
+        res.status(400).json({ error: 'Unable to detect file type' });
+        return;
+      }
+
+      // Verify detected type matches declared type
+      const declaredMime = fileType.toLowerCase();
+      const detectedMime = detectedType.mime.toLowerCase();
+
+      if (!detectedMime.includes(declaredMime.split('/')[0])) {
+        res.status(400).json({ error: 'File type mismatch detected' });
+        return;
+      }
+    } catch (error) {
+      console.error('File type detection error:', error);
+      res.status(400).json({ error: 'Invalid file format' });
       return;
     }
 
@@ -1439,21 +1614,6 @@ const toSubmission = (id: string, t: any) => {
   };
 };
 
-// URL normalization helper (defensive)
-const normalizeUrl = (raw?: string) => {
-  if (!raw || typeof raw !== 'string') return '';
-  try {
-    const u = new URL(raw.trim());
-    // normalize host
-    const host = u.hostname.replace(/^www\./i, '').toLowerCase()
-      .replace(/^x\.com$/i, 'twitter.com'); // x.com -> twitter.com
-    // strip query + trailing slash
-    const path = u.pathname.replace(/\/+$/, '');
-    return `https://${host}${path}`;
-  } catch {
-    return (raw || '').trim().toLowerCase().replace(/^www\./, '');
-  }
-};
 
 // GET /v1/missions/:missionId/taskCompletions
 app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
@@ -1726,10 +1886,13 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         creatorId: data.created_by,
         creatorName: creator?.name || 'Unknown',
         creatorEmail: creator?.email || '',
-        createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+        createdAt: toIso(data.created_at),
+        deadline: toIso(data.deadline),
+        expires_at: toIso(data.expires_at),
         submissionsCount: data.submissions_count || 0,
         approvedCount: data.approved_count || 0,
-        totalCostUsd: data.rewards?.usd || 0,
+        totalCostUsd: data.rewards?.usd ?? 0,
+        totalCostHonors: data.rewards?.honors ?? 0,
         perUserHonors: data.rewards?.honors || 0,
         perWinnerHonors: data.rewards?.honors || 0,
         winnersCap: data.winnersCap,
@@ -1744,9 +1907,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         requirements: data.requirements,
         deliverables: data.deliverables,
         tweetLink: data.tweetLink,
-        deadline: data.deadline?.toDate?.()?.toISOString() || data.deadline,
         tasks: data.tasks,
-        totalCostHonors: data.total_cost_honors,
         isPaused: data.isPaused || false,
         ...data // Include all other fields
       };

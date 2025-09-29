@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { WizardState } from '../types/wizard.types';
 
 interface SettingsStepProps {
@@ -8,6 +8,14 @@ interface SettingsStepProps {
     updateState: (updates: Partial<WizardState>) => void;
     onNext: () => void;
 }
+
+// Task prices - centralized constant
+const TASK_PRICES: Record<string, number> = {
+    like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
+    meme: 300, thread: 500, article: 400, videoreview: 600,
+    pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
+    spaces: 800, community_raid: 400, status_50_views: 300
+};
 
 // Degen mission presets
 type DegenPreset = { hours: number; costUSD: number; maxWinners: number; label: string };
@@ -35,19 +43,25 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
     updateState,
     onNext,
 }) => {
+    // System config values - TODO: read from system-config
+    const honorsPerUsd = 450;
+    const premiumMultiplier = 5;
+
+    // Clamp utility function
+    const clamp = (n: number, min: number, max = Number.MAX_SAFE_INTEGER) =>
+        Math.min(Math.max(n, min), max);
+
     const handleCapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = parseInt(e.target.value, 10);
-        if (!isNaN(value) && value > 0) {
-            updateState({ cap: value });
-        }
+        const parsed = parseInt(e.target.value, 10);
+        if (!Number.isFinite(parsed)) return;
+        updateState({ cap: clamp(parsed, 1) });
     };
 
     const handleWinnersCapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = parseInt(e.target.value, 10);
-        const maxWinners = state.selectedDegenPreset?.maxWinners || 10;
-        if (!isNaN(value) && value > 0 && value <= maxWinners) {
-            updateState({ winnersCap: value });
-        }
+        const parsed = parseInt(e.target.value, 10);
+        if (!Number.isFinite(parsed)) return;
+        const maxW = state.selectedDegenPreset?.maxWinners ?? 10;
+        updateState({ winnersCap: clamp(parsed, 1, maxW) });
     };
 
     const handleAudienceSelect = (isPremium: boolean) => {
@@ -55,46 +69,33 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
     };
 
     const handleDegenPresetSelect = (preset: DegenPreset) => {
+        const maxW = preset.maxWinners;
         updateState({
             selectedDegenPreset: preset,
             duration: preset.hours,
-            winnersCap: Math.min(state.winnersCap || preset.maxWinners, preset.maxWinners)
+            winnersCap: clamp(state.winnersCap ?? maxW, 1, maxW)
         });
     };
 
-    const calculateRewardPerUser = () => {
-        // Calculate reward based on selected tasks
-        if (state.tasks && state.tasks.length > 0) {
-            const prices: Record<string, number> = {
-                like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
-                meme: 300, thread: 500, article: 400, videoreview: 600,
-                pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
-                spaces: 800, community_raid: 400, status_50_views: 300
-            };
-
-            const totalHonors = state.tasks.reduce((sum: number, task: string) => {
-                return sum + (prices[task as keyof typeof prices] || 0);
-            }, 0);
-
-            // Apply premium multiplier if applicable (match backend system config)
-            return state.isPremium ? totalHonors * 5 : totalHonors;
-        }
-
-        // Fallback if no tasks selected
-        return 0;
-    };
-
-    const rewardPerUser = calculateRewardPerUser();
+    const rewardPerUser = useMemo(() => {
+        if (!state?.tasks?.length) return 0;
+        const base = state.tasks.reduce((sum, t) => sum + (TASK_PRICES[t] || 0), 0);
+        return state.isPremium ? base * premiumMultiplier : base;
+    }, [state.tasks, state.isPremium, premiumMultiplier]);
 
     // Update rewardPerUser in wizard state when tasks or premium status changes
     useEffect(() => {
-        if (state.model === 'fixed') {
-            if (state.rewardPerUser !== rewardPerUser) {
-                updateState({ rewardPerUser });
-            }
+        if (state.model === 'fixed' && state.rewardPerUser !== rewardPerUser) {
+            updateState({ rewardPerUser });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [state.tasks, state.isPremium, state.model, rewardPerUser]);
+    }, [state.tasks, state.isPremium, state.model]); // rewardPerUser excluded intentionally
+
+    // Validation for Continue button
+    const canContinue =
+        state.model === 'fixed'
+            ? (state.cap ?? 0) >= 1 && rewardPerUser > 0
+            : !!state.selectedDegenPreset && (state.winnersCap ?? 0) >= 1;
 
     return (
         <div className="space-y-8">
@@ -119,9 +120,11 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
 
                     <div>
                         <label className="block text-sm font-medium mb-3">Target Audience</label>
-                        <div className="space-y-3">
+                        <div className="space-y-3" role="radiogroup" aria-label="Target audience selection">
                             <button
                                 onClick={() => handleAudienceSelect(false)}
+                                role="radio"
+                                aria-pressed={!state.isPremium}
                                 className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
                                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                                     : 'bg-gray-700/50 text-gray-300'
@@ -131,8 +134,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                             </button>
                             <button
                                 onClick={() => handleAudienceSelect(true)}
+                                role="radio"
+                                aria-pressed={state.isPremium}
                                 className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white'
                                     : 'bg-gray-700/50 text-gray-300'
                                     }`}
                             >
@@ -145,7 +150,7 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                         <label className="block text-sm font-medium mb-3">Reward per User</label>
                         <div className="p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl">
                             <div className="text-xl font-bold text-green-400">{rewardPerUser} Honors</div>
-                            <div className="text-sm text-gray-400">≈ ${(rewardPerUser / 450).toFixed(2)} USD</div>
+                            <div className="text-sm text-gray-400">≈ ${(rewardPerUser / honorsPerUsd).toFixed(2)} USD</div>
                             {(!state.tasks || state.tasks.length === 0) && (
                                 <div className="text-xs text-gray-400 mt-1">Select at least one task to compute rewards</div>
                             )}
@@ -154,20 +159,11 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                     <div>Based on {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''}</div>
                                     {state.isPremium && <div className="text-yellow-400">Premium 5x multiplier applied</div>}
                                     <div className="mt-1 text-gray-600">
-                                        {state.tasks.map((task, index) => {
-                                            const prices: Record<string, number> = {
-                                                like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
-                                                meme: 300, thread: 500, article: 400, videoreview: 600,
-                                                pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
-                                                spaces: 800, community_raid: 400, status_50_views: 300
-                                            };
-                                            const taskPrice = prices[task as keyof typeof prices] || 0;
-                                            return (
-                                                <span key={index} className="inline-block mr-2">
-                                                    {task}: {taskPrice}H
-                                                </span>
-                                            );
-                                        })}
+                                        {state.tasks?.map((task, idx) => (
+                                            <span key={idx} className="inline-block mr-2 text-xs">
+                                                {task}: {TASK_PRICES[task] ?? 0}H
+                                            </span>
+                                        ))}
                                     </div>
                                 </div>
                             )}
@@ -224,9 +220,11 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
 
                         <div>
                             <label className="block text-sm font-medium mb-3">Target Audience</label>
-                            <div className="space-y-3">
+                            <div className="space-y-3" role="radiogroup" aria-label="Target audience selection">
                                 <button
                                     onClick={() => handleAudienceSelect(false)}
+                                    role="radio"
+                                    aria-pressed={!state.isPremium}
                                     className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
                                         ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                                         : 'bg-gray-700/50 text-gray-300'
@@ -236,8 +234,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                 </button>
                                 <button
                                     onClick={() => handleAudienceSelect(true)}
+                                    role="radio"
+                                    aria-pressed={state.isPremium}
                                     className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
-                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                        ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white'
                                         : 'bg-gray-700/50 text-gray-300'
                                         }`}
                                 >
@@ -253,7 +253,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
             <div className="text-center">
                 <button
                     onClick={onNext}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                    disabled={!canContinue}
+                    className={`bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg ${!canContinue ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                     Continue to Details →
                 </button>
