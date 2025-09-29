@@ -181,9 +181,22 @@ const validateUrl = (url: string, platform: string): { isValid: boolean; error?:
 };
 
 // Safe timestamp conversion utility
-const toIso = (v: any) =>
-  v?.toDate?.() ? v.toDate().toISOString() :
-    typeof v === 'string' ? v : null;
+const toIso = (v: any) => {
+  if (v?.toDate?.()) {
+    return v.toDate().toISOString();
+  }
+  if (typeof v === 'string') {
+    return v;
+  }
+  if (v instanceof Date) {
+    return v.toISOString();
+  }
+  if (v && typeof v === 'object' && v.seconds) {
+    // Handle Firestore Timestamp objects
+    return new Date(v.seconds * 1000).toISOString();
+  }
+  return null;
+};
 
 // Field normalization utilities
 const normalizeMissionData = (data: any) => {
