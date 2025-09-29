@@ -7,6 +7,7 @@ import { ModernButton } from '../../../components/ui/ModernButton';
 import { ModernInput } from '../../../components/ui/ModernInput';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import CustomMissionForm from '../../../components/missions/CustomMissionForm';
+import { MissionWizard } from '../../../features/mission-wizard/MissionWizard';
 
 // Constants
 const TASK_PRICES = {
@@ -332,7 +333,8 @@ const PLATFORM_CONTENT_PLACEHOLDERS = {
   }
 };
 
-export default function CreateMissionPage() {
+// Legacy Create Mission Component (renamed for clarity)
+function LegacyCreateMission() {
   const { createMission, loading, error } = useApi();
 
   // Check if user is authenticated
@@ -1060,4 +1062,14 @@ export default function CreateMissionPage() {
       </div>
     </ModernLayout>
   );
+}
+
+// Main Create Mission Page with Feature Flag
+export default function CreateMissionPage() {
+  // Check for feature flag and URL override
+  const useWizard = process.env.NEXT_PUBLIC_MISSION_WIZARD === '1' &&
+    typeof window !== 'undefined' &&
+    !new URLSearchParams(window.location.search).has('mode');
+
+  return useWizard ? <MissionWizard /> : <LegacyCreateMission />;
 }
