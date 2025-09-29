@@ -262,7 +262,13 @@ const serializeMissionResponse = (data: any) => {
     console.log('Serialized deadline:', toIso(data.deadline));
     console.log('=====================================');
   }
-
+  
+  // Helper: limit used by the UI progress bar
+  const deriveSubmissionsLimit = (d: any) =>
+    d.model === 'degen'
+      ? (d.winnersPerMission ?? d.winnersCap ?? d.maxWinners ?? 0)
+      : (d.cap ?? d.max_participants ?? 0);
+  
   return {
     ...data,
     durationHours: data.duration_hours || data.durationHours || data.duration,
@@ -277,6 +283,9 @@ const serializeMissionResponse = (data: any) => {
     // ✅ canonical fields the UI expects
     startAt: toIso(data.created_at),
     endAt: toIso(data.deadline || data.expires_at),
+
+    // ✅ submissionsLimit for UI progress bars
+    submissionsLimit: deriveSubmissionsLimit(data),
 
     // keep content link normalization too if you like
     contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
@@ -1070,7 +1079,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
     // ✅ VERIFICATION: Read the saved doc and assert critical fields exist
     const savedDoc = await db.collection('missions').doc(result.mission.id).get();
     const savedData = savedDoc.data();
-    
+
     console.log('=== MISSION CREATION VERIFICATION ===');
     console.log('Mission ID:', result.mission.id);
     console.log('Model:', savedData?.model);
@@ -1080,40 +1089,45 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
     console.log('WinnersPerMission:', savedData?.winnersPerMission);
     console.log('CreatedAt:', savedData?.created_at);
     console.log('=====================================');
-    
+
     // ✅ FIX 2A: Ensure rewards are persisted on the mission doc (idempotent)
     const mref = db.collection('missions').doc(result.mission.id);
     await db.runTransaction(async tx => {
       const snap = await tx.get(mref);
       if (!snap.exists) return;
       const d = snap.data() || {};
-      const cfgSnap = await db.collection('system_config').doc('main').get();
-      const cfg = readCfg(cfgSnap.exists ? cfgSnap.data() : {});
 
-      if (d.model === 'fixed') {
-        const perUserHonors = d.rewardPerUser ?? (
-          Array.isArray(d.tasks)
-            ? d.tasks.reduce((sum: number, t: string) =>
-                sum + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
-            : 0
-        );
-        const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
-        const honors = perUserHonors * participants;
-        const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
-        if (!d.rewards?.usd && !d.rewards?.honors) {
-          tx.set(mref, { rewards: { honors, usd } }, { merge: true });
-          console.log('✅ Persisted fixed mission rewards:', { honors, usd });
+      const cfgDoc = await db.collection('system_config').doc('main').get();
+      const cfg = readCfg(cfgDoc.exists ? cfgDoc.data() : {});
+
+      if (!d.rewards) {
+        if (d.model === 'degen') {
+          const usd = Number(d.selectedDegenPreset?.costUSD ?? 0);
+          const honors = Math.round(usd * cfg.honorsPerUsd);
+          tx.set(mref, { rewards: { usd, honors } }, { merge: true });
+          console.log('✅ Persisted degen mission rewards:', { usd, honors });
+        } else {
+          const perUserHonors =
+            d.rewardPerUser ??
+            (Array.isArray(d.tasks)
+              ? d.tasks.reduce((s: number, t: string) =>
+                  s + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
+              : 0);
+          const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
+          const honors = perUserHonors * participants;
+          const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
+          tx.set(mref, { rewards: { usd, honors } }, { merge: true });
+          console.log('✅ Persisted fixed mission rewards:', { usd, honors });
         }
       }
 
-      if (d.model === 'degen' && d.selectedDegenPreset?.costUSD && !d.rewards) {
-        const usd = Number(d.selectedDegenPreset.costUSD);
-        const honors = Math.round(usd * cfg.honorsPerUsd);
-        tx.set(mref, { rewards: { honors, usd } }, { merge: true });
-        console.log('✅ Persisted degen mission rewards:', { honors, usd });
+      // also normalize winners field for degen back-compat
+      if (d.model === 'degen' && !d.winnersPerMission) {
+        const w = d.winnersCap ?? d.maxWinners ?? null;
+        if (w != null) tx.set(mref, { winnersPerMission: w }, { merge: true });
       }
     });
-    
+
     // If critical fields are missing, log and potentially correct
     if (savedData?.model === 'degen') {
       if (!savedData?.rewards?.usd || savedData?.rewards?.usd === 0) {
@@ -2390,84 +2404,61 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       });
     });
 
+    // Get system config once for all missions
+    const cfgDoc = await db.collection('system_config').doc('main').get();
+    const cfg = readCfg(cfgDoc.exists ? cfgDoc.data() : {});
+
+    // Helper: derive rewards from the saved document (no side effects)
+    const deriveRewards = (d: any, cfg: ReturnType<typeof readCfg>) => {
+      if (d.model === 'degen') {
+        const usd = Number(d.selectedDegenPreset?.costUSD ?? 0);
+        const honors = Math.round(usd * cfg.honorsPerUsd);
+        return { usd, honors };
+      }
+      // fixed
+      const perUserHonors =
+        d.rewardPerUser ??
+        (Array.isArray(d.tasks)
+          ? d.tasks.reduce((sum: number, t: string) =>
+              sum + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
+          : 0);
+
+      const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
+      const honors = perUserHonors * participants;
+      const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
+      return { usd, honors, perUserHonors };
+    };
+
+    // Helper: limit used by the UI progress bar
+    const deriveSubmissionsLimit = (d: any) =>
+      d.model === 'degen'
+        ? (d.winnersPerMission ?? d.winnersCap ?? d.maxWinners ?? 0)
+        : (d.cap ?? d.max_participants ?? 0);
+
     const missions = missionsSnapshot.docs.map(doc => {
-      const data: any = doc.data();
+      const data = doc.data();
       const creator = usersMap.get(data.created_by);
 
-      const model = data.model;
-      const totalHonors = data.rewards?.honors ?? 0;
-      const totalUsd = data.rewards?.usd ?? 0;
-
-      // Debug logging for admin dashboard cost calculation
-      if (model === 'degen') {
-        console.log('=== ADMIN DASHBOARD DEGEN COST DEBUG ===');
-        console.log('Mission ID:', doc.id);
-        console.log('Mission data:', JSON.stringify(data, null, 2));
-        console.log('Rewards object:', data.rewards);
-        console.log('totalUsd:', totalUsd);
-        console.log('totalHonors:', totalHonors);
-        console.log('========================================');
-      } else if (model === 'fixed') {
-        console.log('=== ADMIN DASHBOARD FIXED COST DEBUG ===');
-        console.log('Mission ID:', doc.id);
-        console.log('Mission data:', JSON.stringify(data, null, 2));
-        console.log('Rewards object:', data.rewards);
-        console.log('totalUsd:', totalUsd);
-        console.log('totalHonors:', totalHonors);
-        console.log('rewardPerUser:', data.rewardPerUser);
-        console.log('cap:', data.cap);
-        console.log('========================================');
-      }
-      const winnersPerTask = data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0; // keep for back-compat display
-      const winnersPerMission = data.winnersPerMission ?? data.winnersCap ?? data.winners_cap ?? winnersPerTask;
-      const cap = data.cap ?? data.max_participants ?? 0;
-      const perUserHonors = data.rewardPerUser ?? 0;
-      const perWinnerHonors = model === 'degen' && winnersPerMission > 0
-        ? Math.floor(totalHonors / winnersPerMission)
-        : 0;
-
-      // ✅ FIX 1: Normalize dates FIRST, then spread to avoid overwriting
+      // normalize dates BEFORE spreading raw data so we don't overwrite
       const createdAt = toIso(data.created_at);
       const deadline = toIso(data.deadline);
       const expiresAt = toIso(data.expires_at);
-      
-      // ⛳ Put spread FIRST so our normalized fields win later
-      const base = { id: doc.id, ...data };
-      
-      // ✅ FIX 2: Synthesize rewards when missing (for UI display)
-      const cfg = readCfg(data.systemConfig || {});
-      const perUserHonorsFixed = 
-        data.rewardPerUser ??
-        (Array.isArray(data.tasks)
-          ? data.tasks.reduce((s: number, t: string) =>
-              s + ((cfg.taskPrices?.[t] ?? 0) * (data.isPremium ? cfg.premiumMultiplier : 1)), 0)
-          : 0);
-      
-      const participants = data.cap ?? data.max_participants ?? data.winnersCap ?? 0;
-      const derivedHonorsFixed = perUserHonorsFixed * participants;
-      const derivedUsdFixed = Number((derivedHonorsFixed / cfg.honorsPerUsd).toFixed(2));
-      
-      const presetUsd = Number(data.selectedDegenPreset?.costUSD ?? 0);
-      const derivedHonorsDegen = Math.round(presetUsd * cfg.honorsPerUsd);
-      
-      const rewards = 
-        data.rewards ??
-        (data.model === 'fixed'
-          ? { honors: derivedHonorsFixed, usd: derivedUsdFixed }
-          : presetUsd ? { honors: derivedHonorsDegen, usd: presetUsd } : { honors: 0, usd: 0 });
-      
-      // ✅ FIX 3: Explicit submissions limit for UI
-      const limitForUi = data.model === 'degen'
-        ? (data.winnersPerMission ?? data.winnersCap ?? 0)
-        : (data.cap ?? data.max_participants ?? 0);
 
+      // synthesize rewards if missing
+      const computed = deriveRewards(data, cfg);
+      const rewards = data.rewards ?? { usd: computed.usd, honors: computed.honors };
+
+      const submissionsLimit = deriveSubmissionsLimit(data);
+
+      // spread FIRST, then put normalized fields so they win
       return {
-        ...base,                    // <-- spread first
-        model,
+        id: doc.id,
+        ...data,                   // ⬅️ spread first
+        model: data.model,
         creatorId: data.created_by,
         creatorName: creator?.name || 'Unknown',
         creatorEmail: creator?.email || '',
-        createdAt,                  // normalized ISO strings
+        createdAt,                 // ISO strings for UI
         deadline,
         expires_at: expiresAt,
         startAt: createdAt,
@@ -2475,17 +2466,20 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         submissionsCount: data.submissions_count || 0,
         approvedCount: data.approved_count || 0,
 
-        // ✅ amounts - Use synthesized rewards
-        rewards,
+        rewards,                   // ensure UI always sees non-zero values
         totalCostUsd: rewards.usd,
         totalCostHonors: rewards.honors,
-        perUserHonors: model === 'fixed' ? perUserHonorsFixed : 0,
-        perWinnerHonors: model === 'degen' ? perWinnerHonors : 0,
+        perUserHonors: data.model === 'fixed' ? (computed.perUserHonors ?? 0) : 0,
+        perWinnerHonors: data.model === 'degen' && submissionsLimit > 0
+          ? Math.floor(rewards.honors / submissionsLimit)
+          : 0,
 
-        winnersPerMission,
-        winnersPerTask, // (legacy/back-compat)
+        // make the list card progress correct:
+        submissionsLimit,          // UI should render "0 / submissionsLimit"
+        winnersPerMission: data.winnersPerMission ?? data.winnersCap ?? data.maxWinners ?? null,
+        winnersPerTask: data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0, // keep for back-compat display
         winnersCap: data.winnersCap ?? data.winners_cap,
-        cap,
+        cap: data.cap ?? data.max_participants ?? 0,
         durationHours: data.duration_hours ?? data.durationHours ?? data.duration,
         maxParticipants: data.max_participants ?? data.cap,
         participantsCount: data.participants_count || 0,
@@ -2499,7 +2493,6 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         tasks: data.tasks,
         isPaused: data.isPaused || false,
         selectedDegenPreset: data.selectedDegenPreset, // Include degen preset for frontend
-        submissionsLimit: limitForUi,     // <-- UI should render "0 / submissionsLimit"
       };
     });
 
