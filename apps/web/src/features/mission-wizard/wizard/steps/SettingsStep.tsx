@@ -10,7 +10,8 @@ interface SettingsStepProps {
 }
 
 // Degen mission presets
-const DEGEN_PRESETS = [
+type DegenPreset = { hours: number; costUSD: number; maxWinners: number; label: string };
+const DEGEN_PRESETS: Readonly<DegenPreset[]> = [
     { hours: 1, costUSD: 15, maxWinners: 1, label: '1h - $15' },
     { hours: 3, costUSD: 30, maxWinners: 2, label: '3h - $30' },
     { hours: 6, costUSD: 80, maxWinners: 3, label: '6h - $80' },
@@ -53,11 +54,11 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
         updateState({ isPremium });
     };
 
-    const handleDegenPresetSelect = (preset: any) => {
+    const handleDegenPresetSelect = (preset: DegenPreset) => {
         updateState({
             selectedDegenPreset: preset,
             duration: preset.hours,
-            winnersCap: Math.min(state.winnersCap, preset.maxWinners)
+            winnersCap: Math.min(state.winnersCap || preset.maxWinners, preset.maxWinners)
         });
     };
 
@@ -75,33 +76,25 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                 return sum + (prices[task as keyof typeof prices] || 0);
             }, 0);
 
-            // Apply premium multiplier if applicable
-            return state.isPremium ? totalHonors * 2 : totalHonors;
+            // Apply premium multiplier if applicable (match backend system config)
+            return state.isPremium ? totalHonors * 5 : totalHonors;
         }
 
         // Fallback if no tasks selected
         return 0;
     };
 
-    const calculateDegenCosts = () => {
-        if (!state.selectedDegenPreset) return { totalUSD: 0, totalHonors: 0 };
-
-        const baseCost = state.selectedDegenPreset.costUSD;
-        const totalUSD = state.isPremium ? baseCost * 5 : baseCost;
-        const totalHonors = Math.round(totalUSD * 450);
-
-        return { totalUSD, totalHonors };
-    };
-
     const rewardPerUser = calculateRewardPerUser();
-    const degenCosts = calculateDegenCosts();
 
     // Update rewardPerUser in wizard state when tasks or premium status changes
     useEffect(() => {
         if (state.model === 'fixed') {
-            updateState({ rewardPerUser });
+            if (state.rewardPerUser !== rewardPerUser) {
+                updateState({ rewardPerUser });
+            }
         }
-    }, [state.tasks, state.isPremium, state.model, rewardPerUser, updateState]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state.tasks, state.isPremium, state.model, rewardPerUser]);
 
     return (
         <div className="space-y-8">
@@ -117,7 +110,7 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                         <label className="block text-sm font-medium mb-3">Participant Cap</label>
                         <input
                             type="number"
-                            value={state.cap}
+                            value={state.cap ?? ''}
                             onChange={handleCapChange}
                             className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
                             min="1"
@@ -153,10 +146,13 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                         <div className="p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl">
                             <div className="text-xl font-bold text-green-400">{rewardPerUser} Honors</div>
                             <div className="text-sm text-gray-400">≈ ${(rewardPerUser / 450).toFixed(2)} USD</div>
+                            {(!state.tasks || state.tasks.length === 0) && (
+                                <div className="text-xs text-gray-400 mt-1">Select at least one task to compute rewards</div>
+                            )}
                             {state.tasks && state.tasks.length > 0 && (
                                 <div className="mt-2 text-xs text-gray-500">
                                     <div>Based on {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''}</div>
-                                    {state.isPremium && <div className="text-yellow-400">Premium 2x multiplier applied</div>}
+                                    {state.isPremium && <div className="text-yellow-400">Premium 5x multiplier applied</div>}
                                     <div className="mt-1 text-gray-600">
                                         {state.tasks.map((task, index) => {
                                             const prices: Record<string, number> = {
@@ -210,7 +206,7 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                             <label className="block text-sm font-medium mb-3">Winners Cap</label>
                             <input
                                 type="number"
-                                value={state.winnersCap}
+                                value={state.winnersCap ?? ''}
                                 onChange={handleWinnersCapChange}
                                 className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
                                 min="1"
@@ -251,29 +247,6 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                         </div>
                     </div>
 
-                    {/* Cost Preview */}
-                    {state.selectedDegenPreset && (
-                        <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
-                            <h3 className="text-lg font-semibold text-purple-400 mb-4">Cost Preview</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <span className="text-gray-400">Total Cost:</span>
-                                    <p className="text-2xl font-bold text-white">${degenCosts.totalUSD.toFixed(2)} USD</p>
-                                </div>
-                                <div>
-                                    <span className="text-gray-400">Total Honors:</span>
-                                    <p className="text-2xl font-bold text-white">{degenCosts.totalHonors.toLocaleString()}</p>
-                                </div>
-                            </div>
-                            {state.isPremium && (
-                                <div className="mt-4 p-3 bg-blue-500/20 rounded-lg border border-blue-500/30">
-                                    <p className="text-blue-300 text-sm">
-                                        <strong>Premium Mission:</strong> 5x cost multiplier applied
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
             )}
 

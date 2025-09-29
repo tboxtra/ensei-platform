@@ -192,7 +192,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
 
         const missionData: MissionType = {
             id: mission.id,
-            type: mission.type === 'fixed' ? 'fixed' : 'degen',
+            type: mission.model === 'fixed' ? 'fixed' : 'degen',
             startAt: new Date(mission.startAt || mission.createdAt),
             endAt: mission.endAt ? new Date(mission.endAt) : null,
             maxDurationHours: mission.maxDurationHours,
@@ -221,7 +221,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
     // Check if task is disabled due to winners cap (fixed missions only)
     const isTaskDisabled = useCallback(
         (taskId: string): boolean => {
-            if (!aggregates || mission.type !== 'fixed') return false;
+            if (!aggregates || mission.model !== 'fixed') return false;
             return isTaskFull(taskId, {
                 id: mission.id,
                 type: 'fixed',
@@ -303,6 +303,19 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
         if (m.cost) return `$${m.cost.toFixed(2)}`;
         if (m.total_cost_honors) return `$${(m.total_cost_honors / 450).toFixed(2)}`;
 
+        // For degen missions, use the preset cost
+        if (m.model?.toLowerCase() === 'degen') {
+            if (m.selectedDegenPreset?.costUSD) {
+                return `$${m.selectedDegenPreset.costUSD.toFixed(2)}`;
+            }
+            // Fallback to any cost field
+            if (m.total_cost_usd) return `$${m.total_cost_usd.toFixed(2)}`;
+            if (m.total_cost) return `$${m.total_cost.toFixed(2)}`;
+            if (m.cost_usd) return `$${m.cost_usd.toFixed(2)}`;
+            if (m.cost) return `$${m.cost.toFixed(2)}`;
+        }
+
+        // For fixed missions, calculate from tasks
         if (m.tasks?.length) {
             const prices: Record<string, number> = {
                 like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
@@ -311,11 +324,6 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 spaces: 800, community_raid: 400, status_50_views: 300
             };
             const total = m.tasks.reduce((sum: number, t: string) => sum + (prices[t as keyof typeof prices] || 0), 0);
-
-            // For degen missions, use the total cost directly
-            if (m.model?.toLowerCase() === 'degen') {
-                return `$${(total / 450).toFixed(2)}`;
-            }
 
             // For fixed missions, multiply by participant count
             const participants = m.cap || m.winnersCap || m.max_participants || 1;
@@ -752,7 +760,7 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                                     mission.participants_needed ||
                                     mission.target_participants ||
                                     0;
-                                return `${count} winners`;
+                                return `${count} max`;
                             })()}
                         </div>
                     </div>

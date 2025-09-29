@@ -62,6 +62,7 @@ app.use(cors({
   ],
   credentials: true
 }));
+app.options('*', cors()); // Handle preflight requests
 app.use(express.json());
 
 // Configure multer for file uploads
@@ -71,12 +72,18 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Allow common file types
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
-    const extname = allowedTypes.test(file.originalname.toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    // Strict file type validation
+    const allowedExt = /\.(jpe?g|png|gif|pdf|docx?|txt|mp4|mov|avi)$/i;
+    const allowedMime = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+      'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain', 'video/mp4', 'video/quicktime', 'video/x-msvideo'
+    ];
 
-    if (mimetype && extname) {
+    const extOk = allowedExt.test(file.originalname);
+    const mimeOk = allowedMime.includes(file.mimetype);
+
+    if (extOk && mimeOk) {
       return cb(null, true);
     } else {
       cb(new Error('Invalid file type. Only images, documents, and videos are allowed.'));
@@ -109,6 +116,20 @@ const verifyFirebaseToken = async (req: any, res: any, next: any) => {
     next();
   } catch (error) {
     console.error('Token verification error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Middleware to require admin access
+const requireAdmin = async (req: any, res: any, next: any) => {
+  try {
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const decoded = await firebaseAdmin.auth().verifyIdToken(token);
+    if (!decoded.admin) return res.status(403).json({ error: 'Admin access required' });
+    req.user = decoded;
+    next();
+  } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -244,6 +265,7 @@ app.get('/v1/missions', async (req, res) => {
           // Convert Firestore timestamps to ISO strings
           created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at,
           updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at,
+          deadline: data.deadline?.toDate?.()?.toISOString() || data.deadline,
         };
       })
       .filter((mission: any) => !mission.isPaused); // Hide paused missions from users
@@ -274,6 +296,7 @@ app.get('/v1/missions/:id', async (req, res) => {
       // Convert Firestore timestamps to ISO strings
       created_at: data?.created_at?.toDate?.()?.toISOString() || data?.created_at,
       updated_at: data?.updated_at?.toDate?.()?.toISOString() || data?.updated_at,
+      deadline: data?.deadline?.toDate?.()?.toISOString() || data?.deadline,
     };
 
     // Check if mission is paused
@@ -305,20 +328,32 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
       .where('user_id', '==', userId)
       .get();
 
-    const createdMissions = createdMissionsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      type: 'created'
-    }));
+    const createdMissions = createdMissionsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Convert Firestore timestamps to ISO strings
+        created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+        updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at,
+        deadline: data.deadline?.toDate?.()?.toISOString() || data.deadline,
+        type: 'created'
+      };
+    });
 
     const participationMissions = await Promise.all(
       participationsSnapshot.docs.map(async (participationDoc) => {
         const participation = participationDoc.data();
         const missionDoc = await db.collection('missions').doc(participation.mission_id).get();
         if (missionDoc.exists) {
+          const data = missionDoc.data();
           return {
             id: missionDoc.id,
-            ...missionDoc.data(),
+            ...data,
+            // Convert Firestore timestamps to ISO strings
+            created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+            updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at,
+            deadline: data.deadline?.toDate?.()?.toISOString() || data.deadline,
             type: 'participating',
             participation_id: participationDoc.id,
             participation_status: participation.status
@@ -950,7 +985,7 @@ app.post('/v1/seed/missions', async (req, res) => {
         category: "AI/ML",
         difficulty: "intermediate",
         total_cost_honors: 500,
-        model: "GPT-4",
+        model: "fixed",
         duration_hours: 24,
         participants: 0,
         cap: 50,
@@ -977,7 +1012,7 @@ app.post('/v1/seed/missions', async (req, res) => {
         category: "Blockchain",
         difficulty: "expert",
         total_cost_honors: 2000,
-        model: "Claude-3",
+        model: "fixed",
         duration_hours: 72,
         participants: 0,
         cap: 5,
@@ -1004,7 +1039,7 @@ app.post('/v1/seed/missions', async (req, res) => {
         category: "Design",
         difficulty: "intermediate",
         total_cost_honors: 800,
-        model: "DALL-E-3",
+        model: "fixed",
         duration_hours: 48,
         participants: 0,
         cap: 10,
@@ -1031,7 +1066,7 @@ app.post('/v1/seed/missions', async (req, res) => {
         category: "Writing",
         difficulty: "beginner",
         total_cost_honors: 300,
-        model: "GPT-4",
+        model: "fixed",
         duration_hours: 16,
         participants: 0,
         cap: 20,
@@ -1058,7 +1093,7 @@ app.post('/v1/seed/missions', async (req, res) => {
         category: "Analytics",
         difficulty: "intermediate",
         total_cost_honors: 600,
-        model: "GPT-4",
+        model: "fixed",
         duration_hours: 32,
         participants: 0,
         cap: 8,
@@ -1104,7 +1139,7 @@ app.post('/v1/seed/missions', async (req, res) => {
 });
 
 // File upload endpoints
-app.post('/v1/upload', verifyFirebaseToken, async (req: any, res) => {
+app.post('/v1/upload/base64', verifyFirebaseToken, async (req: any, res) => {
   try {
     const userId = req.user.uid;
     const { fileName, fileType, base64Data } = req.body;
@@ -1114,13 +1149,26 @@ app.post('/v1/upload', verifyFirebaseToken, async (req: any, res) => {
       return;
     }
 
+    // Convert base64 to buffer
+    const fileBuffer = Buffer.from(base64Data, 'base64');
+
+    // File validation
+    const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+    if (fileBuffer.length > MAX_BYTES) {
+      res.status(400).json({ error: 'File too large (10MB max)' });
+      return;
+    }
+
+    // MIME type validation
+    if (!/^image\/|^video\/|^application\/pdf|officedocument/.test(fileType)) {
+      res.status(400).json({ error: 'Unsupported file type' });
+      return;
+    }
+
     // Generate unique filename
     const timestamp = Date.now();
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filePath = `uploads/${userId}/${timestamp}_${sanitizedFileName}`;
-
-    // Convert base64 to buffer
-    const fileBuffer = Buffer.from(base64Data, 'base64');
 
     // Upload to Firebase Storage
     const file = bucket.file(filePath);
@@ -1155,7 +1203,7 @@ app.post('/v1/upload', verifyFirebaseToken, async (req: any, res) => {
 });
 
 // Mission submission with file upload
-app.post('/v1/missions/:id/submit', verifyFirebaseToken, async (req: any, res) => {
+app.post('/v1/missions/:id/submit-with-files', verifyFirebaseToken, async (req: any, res) => {
   try {
     const missionId = req.params.id;
     const userId = req.user.uid;
@@ -1648,7 +1696,7 @@ app.post('/v1/admin/backfill-mission-ids', verifyFirebaseToken, async (req: any,
 });
 
 // Admin API endpoints
-app.get('/v1/admin/missions', async (req, res) => {
+app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
   try {
     // Get all missions for admin view
     const missionsSnapshot = await db.collection('missions')
@@ -1712,7 +1760,7 @@ app.get('/v1/admin/missions', async (req, res) => {
 });
 
 // Pause/Unpause mission
-app.patch('/v1/admin/missions/:missionId/pause', async (req, res) => {
+app.patch('/v1/admin/missions/:missionId/pause', requireAdmin, async (req, res) => {
   try {
     const { missionId } = req.params;
     const { isPaused } = req.body;
@@ -1730,7 +1778,7 @@ app.patch('/v1/admin/missions/:missionId/pause', async (req, res) => {
 });
 
 // Cancel/Delete mission permanently
-app.delete('/v1/admin/missions/:missionId', async (req, res) => {
+app.delete('/v1/admin/missions/:missionId', requireAdmin, async (req, res) => {
   try {
     const { missionId } = req.params;
 
@@ -1756,7 +1804,7 @@ app.delete('/v1/admin/missions/:missionId', async (req, res) => {
 });
 
 // Get mission submissions and reviews
-app.get('/v1/admin/missions/:missionId/submissions', async (req, res) => {
+app.get('/v1/admin/missions/:missionId/submissions', requireAdmin, async (req, res) => {
   try {
     const { missionId } = req.params;
 
@@ -1814,7 +1862,7 @@ app.get('/v1/admin/missions/:missionId/submissions', async (req, res) => {
   }
 });
 
-app.get('/v1/admin/users', async (req, res) => {
+app.get('/v1/admin/users', requireAdmin, async (req, res) => {
   try {
     // Get all users from Firebase Auth
     const listUsersResult = await firebaseAdmin.auth().listUsers();
@@ -1890,7 +1938,7 @@ app.get('/v1/submissions', async (req, res) => {
   }
 });
 
-app.get('/v1/admin/analytics/overview', async (req, res) => {
+app.get('/v1/admin/analytics/overview', requireAdmin, async (req, res) => {
   try {
     // Get analytics overview for admin
     const missionsSnapshot = await db.collection('missions').get();
@@ -1940,7 +1988,7 @@ app.get('/v1/admin/analytics/overview', async (req, res) => {
   }
 });
 
-app.get('/v1/admin/analytics/revenue', async (req, res) => {
+app.get('/v1/admin/analytics/revenue', requireAdmin, async (req, res) => {
   try {
     const { period = '30d' } = req.query;
 
@@ -1987,7 +2035,7 @@ app.get('/v1/admin/analytics/revenue', async (req, res) => {
   }
 });
 
-app.get('/v1/admin/analytics/user-growth', async (req, res) => {
+app.get('/v1/admin/analytics/user-growth', requireAdmin, async (req, res) => {
   try {
     // const { period = '30d' } = req.query;
 
@@ -2016,7 +2064,7 @@ app.get('/v1/admin/analytics/user-growth', async (req, res) => {
   }
 });
 
-app.get('/v1/admin/analytics/platform-performance', async (req, res) => {
+app.get('/v1/admin/analytics/platform-performance', requireAdmin, async (req, res) => {
   try {
     // Get platform performance data from missions
     const missionsSnapshot = await db.collection('missions').get();
@@ -2054,7 +2102,7 @@ app.get('/v1/admin/analytics/platform-performance', async (req, res) => {
   }
 });
 
-app.get('/v1/admin/analytics/mission-performance', async (req, res) => {
+app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res) => {
   try {
     // const { period = '30d' } = req.query;
 
@@ -2084,7 +2132,7 @@ app.get('/v1/admin/analytics/mission-performance', async (req, res) => {
   }
 });
 
-app.get('/v1/admin/system-config', async (req, res) => {
+app.get('/v1/admin/system-config', requireAdmin, async (req, res) => {
   try {
     // Get system configuration
     const configDoc = await db.collection('system_config').doc('main').get();
@@ -2128,7 +2176,7 @@ app.get('/v1/admin/system-config', async (req, res) => {
   }
 });
 
-app.post('/v1/admin/system-config', async (req, res) => {
+app.post('/v1/admin/system-config', requireAdmin, async (req, res) => {
   try {
     // Update system configuration
     const configData = req.body;
@@ -2287,8 +2335,8 @@ app.post('/v1/missions/:id/tasks/:taskId/complete', verifyFirebaseToken, async (
 // Helper functions
 const extractTweetIdFromUrl = (url: string): string | null => {
   if (!url) return null;
-  const match = url.match(/twitter\.com\/\w+\/status\/(\d+)/);
-  return match ? match[1] : null;
+  const m = url.match(/(?:https?:\/\/)?(?:www\.|mobile\.)?(?:x\.com|twitter\.com)\/[^/]+\/status\/(\d+)/i);
+  return m ? m[1] : null;
 };
 
 const extractPostIdFromUrl = (url: string): string | null => {
@@ -2430,9 +2478,10 @@ export const updateMissionAggregates = functions.firestore
       const before = change.before.exists ? change.before.data() : null;
       const after = change.after.exists ? change.after.data() : null;
 
-      // Only process verified completions
-      if (after && after.status !== 'verified') return null;
-      if (before && before.status !== 'verified') return null;
+      // Only process state changes
+      const was = before?.status === 'verified';
+      const now = after?.status === 'verified';
+      if (was === now) return null; // only act on changes
 
       const taskId = after?.taskId || before?.taskId;
       if (!taskId) return null;
@@ -2452,8 +2501,8 @@ export const updateMissionAggregates = functions.firestore
       const winnersPerTask = missionData.winnersPerTask || null;
       const taskCount = Array.isArray(missionData.tasks) ? missionData.tasks.length : 0;
 
-      // Calculate delta
-      const delta = (after && !before) ? 1 : (!after && before) ? -1 : 0;
+      // Calculate delta based on state change
+      const delta = now ? +1 : -1;
 
       await db.runTransaction(async (tx) => {
         const aggDoc = await tx.get(aggRef);
@@ -2470,7 +2519,7 @@ export const updateMissionAggregates = functions.firestore
         }
 
         // Race condition protection: check if we're at cap before incrementing
-        if (delta > 0 && missionData.type === 'fixed' && winnersPerTask) {
+        if (delta > 0 && missionData.model === 'fixed' && winnersPerTask) {
           const currentCount = agg.taskCounts[taskId] || 0;
           if (currentCount >= winnersPerTask) {
             console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);

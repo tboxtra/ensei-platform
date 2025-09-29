@@ -37,6 +37,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
     const wizard = useWizardState(WIZARD_STEPS.length);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authLoading, setAuthLoading] = useState(true);
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
     // Check authentication
     useEffect(() => {
@@ -51,8 +52,14 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
     }, []);
 
     const handleStepNext = () => {
-        if (wizard.canGoNext) {
+        // Validate current step before proceeding
+        const validation = wizard.validateCurrentStep();
+        if (validation.isValid && wizard.canGoNext) {
+            setValidationErrors([]);
             wizard.nextStep();
+        } else {
+            // Show validation errors
+            setValidationErrors(validation.errors);
         }
     };
 

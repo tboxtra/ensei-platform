@@ -17,7 +17,14 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
         return INITIAL_WIZARD_STATE;
     });
 
-    const [currentStep, setCurrentStep] = useState(1); // Always start from step 1
+    const [currentStep, setCurrentStep] = useState<number>(() => {
+        // Try to restore from localStorage
+        if (typeof window !== 'undefined') {
+            const saved = Number(localStorage.getItem('mission-wizard-step'));
+            if (!Number.isNaN(saved) && saved >= 1 && saved <= totalSteps) return saved;
+        }
+        return 1;
+    });
 
     // Save state to localStorage whenever it changes
     useEffect(() => {

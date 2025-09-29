@@ -49,6 +49,18 @@ export function FeedMissionCard({
     };
 
     const formatReward = (mission: any) => {
+        // For degen missions, use the preset cost
+        if (mission.model?.toLowerCase() === 'degen') {
+            if (mission.selectedDegenPreset?.costUSD) {
+                return `$${mission.selectedDegenPreset.costUSD.toFixed(2)}`;
+            }
+            if (mission.total_cost_usd) return `$${mission.total_cost_usd.toFixed(2)}`;
+            if (mission.total_cost) return `$${mission.total_cost.toFixed(2)}`;
+            if (mission.cost_usd) return `$${mission.cost_usd.toFixed(2)}`;
+            if (mission.cost) return `$${mission.cost.toFixed(2)}`;
+        }
+
+        // For fixed missions or fallback
         if (mission.total_cost_honors) {
             return `${mission.total_cost_honors} Honors`;
         }
@@ -98,19 +110,6 @@ export function FeedMissionCard({
 
     const hasContentLink = mission.tweetLink || mission.contentLink || mission.link || mission.tweet_link || mission.content_link;
 
-    // Debug logging
-    console.log('FeedMissionCard: Mission link fields:', {
-        id: mission.id,
-        title: mission.title,
-        platform: mission.platform,
-        tweetLink: mission.tweetLink,
-        contentLink: mission.contentLink,
-        link: mission.link,
-        tweet_link: mission.tweet_link,
-        content_link: mission.content_link,
-        hasContentLink,
-        allFields: Object.keys(mission)
-    });
 
     return (
         <div className="bg-black/40 backdrop-blur-lg rounded-2xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 group overflow-hidden">

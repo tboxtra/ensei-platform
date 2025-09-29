@@ -49,6 +49,18 @@ export function MissionCard({
     };
 
     const formatReward = (mission: any) => {
+        // For degen missions, use the preset cost
+        if (mission.model?.toLowerCase() === 'degen') {
+            if (mission.selectedDegenPreset?.costUSD) {
+                return `$${mission.selectedDegenPreset.costUSD.toFixed(2)}`;
+            }
+            if (mission.total_cost_usd) return `$${mission.total_cost_usd.toFixed(2)}`;
+            if (mission.total_cost) return `$${mission.total_cost.toFixed(2)}`;
+            if (mission.cost_usd) return `$${mission.cost_usd.toFixed(2)}`;
+            if (mission.cost) return `$${mission.cost.toFixed(2)}`;
+        }
+
+        // For fixed missions or fallback
         if (mission.total_cost_honors) {
             return `${mission.total_cost_honors} Honors`;
         }

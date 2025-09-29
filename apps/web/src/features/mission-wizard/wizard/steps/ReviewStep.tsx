@@ -17,10 +17,14 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     isLoading = false,
 }) => {
     const calculateTotalCost = () => {
+        // Centralized configuration - should match backend
+        const HONORS_PER_USD = 450;
+        const PREMIUM_MULTIPLIER = 5; // Match backend system config
+
         if (state.model === 'degen') {
             // For degen missions, use the selected preset cost
             const presetCost = state.selectedDegenPreset?.costUSD || 0;
-            const totalHonors = Math.round(presetCost * 450);
+            const totalHonors = Math.round(presetCost * HONORS_PER_USD);
 
             return {
                 totalUsd: presetCost,
@@ -40,11 +44,11 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             }, 0);
 
             // Apply premium multiplier if applicable
-            const rewardPerUser = state.isPremium ? baseTaskCost * 2 : baseTaskCost;
+            const rewardPerUser = state.isPremium ? baseTaskCost * PREMIUM_MULTIPLIER : baseTaskCost;
 
             const participants = state.cap || 1;
             const totalHonors = rewardPerUser * participants;
-            const totalUsd = totalHonors / 450;
+            const totalUsd = Number((totalHonors / HONORS_PER_USD).toFixed(2));
 
             return {
                 totalUsd: totalUsd,
@@ -69,14 +73,6 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         return names[platform] || platform;
     };
 
-    const getTypeName = (type: string) => {
-        const names: Record<string, string> = {
-            engage: 'Engage',
-            content: 'Content Creation',
-            ambassador: 'Ambassador',
-        };
-        return names[type] || type;
-    };
 
     return (
         <div className="space-y-8">
