@@ -71,6 +71,6 @@ export const INITIAL_WIZARD_STATE: WizardState = {
     customTimeMinutes: 30,
     customProofMode: 'social-post',
     customApiVerifier: '',
-    selectedDegenPreset: null,
+    selectedDegenPreset: { hours: 8, costUSD: 150, maxWinners: 3, label: '8h - $150' },
     winnersCap: 3,
 };

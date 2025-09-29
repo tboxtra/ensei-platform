@@ -14,20 +14,20 @@ export default function CreateMissionPage() {
         try {
             const result = await createMission(missionData);
             console.log('Mission created successfully:', result);
-            
+
             // Clear wizard state on successful creation
             localStorage.removeItem('mission-wizard-state');
             localStorage.removeItem('mission-wizard-step');
-            
+
             // Set success state
             setSuccess(true);
             setCreatedMissionId(result.id);
-            
+
             // Redirect to missions page after 3 seconds
             setTimeout(() => {
                 window.location.href = '/missions';
             }, 3000);
-            
+
         } catch (err) {
             console.error('Mission creation failed:', err);
         }

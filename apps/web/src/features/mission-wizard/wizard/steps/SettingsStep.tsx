@@ -9,6 +9,23 @@ interface SettingsStepProps {
     onNext: () => void;
 }
 
+// Degen mission presets
+const DEGEN_PRESETS = [
+    { hours: 1, costUSD: 15, maxWinners: 1, label: '1h - $15' },
+    { hours: 3, costUSD: 30, maxWinners: 2, label: '3h - $30' },
+    { hours: 6, costUSD: 80, maxWinners: 3, label: '6h - $80' },
+    { hours: 8, costUSD: 150, maxWinners: 3, label: '8h - $150' },
+    { hours: 12, costUSD: 180, maxWinners: 5, label: '12h - $180' },
+    { hours: 18, costUSD: 300, maxWinners: 5, label: '18h - $300' },
+    { hours: 24, costUSD: 400, maxWinners: 5, label: '24h - $400' },
+    { hours: 36, costUSD: 500, maxWinners: 10, label: '36h - $500' },
+    { hours: 48, costUSD: 600, maxWinners: 10, label: '48h - $600' },
+    { hours: 72, costUSD: 800, maxWinners: 10, label: '3d - $800' },
+    { hours: 96, costUSD: 1000, maxWinners: 10, label: '4d - $1000' },
+    { hours: 168, costUSD: 1500, maxWinners: 10, label: '7d - $1500' },
+    { hours: 240, costUSD: 2000, maxWinners: 10, label: '10d - $2000' }
+];
+
 export const SettingsStep: React.FC<SettingsStepProps> = ({
     state,
     updateState,
@@ -21,8 +38,23 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
         }
     };
 
+    const handleWinnersCapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = parseInt(e.target.value, 10);
+        if (!isNaN(value) && value > 0) {
+            updateState({ winnersCap: value });
+        }
+    };
+
     const handleAudienceSelect = (isPremium: boolean) => {
         updateState({ isPremium });
+    };
+
+    const handleDegenPresetSelect = (preset: any) => {
+        updateState({ 
+            selectedDegenPreset: preset,
+            duration: preset.hours,
+            winnersCap: Math.min(state.winnersCap, preset.maxWinners)
+        });
     };
 
     const calculateRewardPerUser = () => {
@@ -32,7 +64,18 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
         return state.isPremium ? baseReward * 2 : baseReward;
     };
 
+    const calculateDegenCosts = () => {
+        if (!state.selectedDegenPreset) return { totalUSD: 0, totalHonors: 0 };
+        
+        const baseCost = state.selectedDegenPreset.costUSD;
+        const totalUSD = state.isPremium ? baseCost * 5 : baseCost;
+        const totalHonors = Math.round(totalUSD * 450);
+        
+        return { totalUSD, totalHonors };
+    };
+
     const rewardPerUser = calculateRewardPerUser();
+    const degenCosts = calculateDegenCosts();
 
     return (
         <div className="space-y-8">
@@ -41,50 +84,146 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                 <p className="text-gray-400">Configure your mission parameters</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                    <label className="block text-sm font-medium mb-3">Participant Cap</label>
-                    <input
-                        type="number"
-                        value={state.cap}
-                        onChange={handleCapChange}
-                        className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
-                        min="1"
-                    />
-                </div>
+            {state.model === 'fixed' ? (
+                // Fixed Mission Settings
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div>
+                        <label className="block text-sm font-medium mb-3">Participant Cap</label>
+                        <input
+                            type="number"
+                            value={state.cap}
+                            onChange={handleCapChange}
+                            className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
+                            min="1"
+                        />
+                    </div>
 
-                <div>
-                    <label className="block text-sm font-medium mb-3">Target Audience</label>
-                    <div className="space-y-3">
-                        <button
-                            onClick={() => handleAudienceSelect(false)}
-                            className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                    : 'bg-gray-700/50 text-gray-300'
-                                }`}
-                        >
-                            🌍 All Users
-                        </button>
-                        <button
-                            onClick={() => handleAudienceSelect(true)}
-                            className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                    : 'bg-gray-700/50 text-gray-300'
-                                }`}
-                        >
-                            👑 Premium Users
-                        </button>
+                    <div>
+                        <label className="block text-sm font-medium mb-3">Target Audience</label>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handleAudienceSelect(false)}
+                                className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
+                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                        : 'bg-gray-700/50 text-gray-300'
+                                    }`}
+                            >
+                                🌍 All Users
+                            </button>
+                            <button
+                                onClick={() => handleAudienceSelect(true)}
+                                className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
+                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                        : 'bg-gray-700/50 text-gray-300'
+                                    }`}
+                            >
+                                👑 Premium Users
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-3">Reward per User</label>
+                        <div className="p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl">
+                            <div className="text-xl font-bold text-green-400">{rewardPerUser} Honors</div>
+                            <div className="text-sm text-gray-400">≈ ${(rewardPerUser / 450).toFixed(2)} USD</div>
+                        </div>
                     </div>
                 </div>
-
-                <div>
-                    <label className="block text-sm font-medium mb-3">Reward per User</label>
-                    <div className="p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl">
-                        <div className="text-xl font-bold text-green-400">{rewardPerUser} Honors</div>
-                        <div className="text-sm text-gray-400">≈ ${(rewardPerUser / 450).toFixed(2)} USD</div>
+            ) : (
+                // Degen Mission Settings
+                <div className="space-y-8">
+                    {/* Duration Preset Selection */}
+                    <div>
+                        <label className="block text-sm font-medium mb-4">Duration Preset</label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                            {DEGEN_PRESETS.map((preset) => {
+                                const isSelected = state.selectedDegenPreset?.hours === preset.hours;
+                                return (
+                                    <button
+                                        key={preset.hours}
+                                        onClick={() => handleDegenPresetSelect(preset)}
+                                        className={`p-3 rounded-xl text-center transition-all ${
+                                            isSelected
+                                                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg'
+                                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                                        }`}
+                                    >
+                                        <div className="font-semibold text-sm">{preset.label}</div>
+                                        <div className="text-xs opacity-75">Max {preset.maxWinners} winners</div>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
+
+                    {/* Winners Cap and Target Audience */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <label className="block text-sm font-medium mb-3">Winners Cap</label>
+                            <input
+                                type="number"
+                                value={state.winnersCap}
+                                onChange={handleWinnersCapChange}
+                                className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
+                                min="1"
+                                max={state.selectedDegenPreset?.maxWinners || 10}
+                            />
+                            <p className="text-xs text-gray-400 mt-2">
+                                Max: {state.selectedDegenPreset?.maxWinners || 10} winners
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-3">Target Audience</label>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => handleAudienceSelect(false)}
+                                    className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
+                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                            : 'bg-gray-700/50 text-gray-300'
+                                        }`}
+                                >
+                                    🌍 All Users
+                                </button>
+                                <button
+                                    onClick={() => handleAudienceSelect(true)}
+                                    className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
+                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                            : 'bg-gray-700/50 text-gray-300'
+                                        }`}
+                                >
+                                    👑 Premium Users
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Cost Preview */}
+                    {state.selectedDegenPreset && (
+                        <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
+                            <h3 className="text-lg font-semibold text-purple-400 mb-4">Cost Preview</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <span className="text-gray-400">Total Cost:</span>
+                                    <p className="text-2xl font-bold text-white">${degenCosts.totalUSD.toFixed(2)} USD</p>
+                                </div>
+                                <div>
+                                    <span className="text-gray-400">Total Honors:</span>
+                                    <p className="text-2xl font-bold text-white">{degenCosts.totalHonors.toLocaleString()}</p>
+                                </div>
+                            </div>
+                            {state.isPremium && (
+                                <div className="mt-4 p-3 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                                    <p className="text-blue-300 text-sm">
+                                        <strong>Premium Mission:</strong> 5x cost multiplier applied
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
-            </div>
+            )}
 
             <div className="text-center">
                 <button
