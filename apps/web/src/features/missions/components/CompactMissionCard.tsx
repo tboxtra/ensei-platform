@@ -311,6 +311,13 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                 spaces: 800, community_raid: 400, status_50_views: 300
             };
             const total = m.tasks.reduce((sum: number, t: string) => sum + (prices[t as keyof typeof prices] || 0), 0);
+
+            // For degen missions, use the total cost directly
+            if (m.model?.toLowerCase() === 'degen') {
+                return `$${(total / 450).toFixed(2)}`;
+            }
+
+            // For fixed missions, multiply by participant count
             const participants = m.cap || m.winnersCap || m.max_participants || 1;
             return `$${(total * participants / 450).toFixed(2)}`;
         }
@@ -734,6 +741,10 @@ export function CompactMissionCard({ mission, userCompletion }: CompactMissionCa
                         <div className="text-green-400 font-semibold">{formatReward(mission)}</div>
                         <div className="text-gray-400">
                             {(() => {
+                                if (mission.model?.toLowerCase() === 'degen') {
+                                    const winnersCap = mission.winnersCap || mission.winners_cap || 0;
+                                    return `${winnersCap} winners`;
+                                }
                                 const count =
                                     mission.max_participants ||
                                     mission.cap ||

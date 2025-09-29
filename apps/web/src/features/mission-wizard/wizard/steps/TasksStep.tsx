@@ -120,11 +120,20 @@ export const TasksStep: React.FC<TasksStepProps> = ({
 
     const handleTaskToggle = (taskId: string) => {
         const currentTasks = state.tasks || [];
-        const newTasks = currentTasks.includes(taskId)
-            ? currentTasks.filter(id => id !== taskId)
-            : [...currentTasks, taskId];
 
-        updateState({ tasks: newTasks });
+        if (currentTasks.includes(taskId)) {
+            // Remove task if already selected
+            const newTasks = currentTasks.filter(id => id !== taskId);
+            updateState({ tasks: newTasks });
+        } else {
+            // Add task if not selected, but check limit for degen missions
+            if (state.model === 'degen' && currentTasks.length >= 3) {
+                // Don't allow more than 3 tasks for degen missions
+                return;
+            }
+            const newTasks = [...currentTasks, taskId];
+            updateState({ tasks: newTasks });
+        }
     };
 
     const handleContinue = () => {
@@ -135,9 +144,15 @@ export const TasksStep: React.FC<TasksStepProps> = ({
 
     const getTaskButtonClass = (taskId: string) => {
         const isSelected = state.tasks.includes(taskId);
-        return isSelected
-            ? 'p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-            : 'p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50';
+        const isDisabled = state.model === 'degen' && !isSelected && state.tasks.length >= 3;
+
+        if (isSelected) {
+            return 'p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg';
+        } else if (isDisabled) {
+            return 'p-6 rounded-xl text-left transition-all duration-300 bg-gray-800/30 text-gray-500 border border-gray-700/30 cursor-not-allowed opacity-50';
+        } else {
+            return 'p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50';
+        }
     };
 
     return (
@@ -145,17 +160,29 @@ export const TasksStep: React.FC<TasksStepProps> = ({
             <div className="text-center">
                 <h2 className="text-2xl font-bold mb-2">Select Tasks</h2>
                 <p className="text-gray-400">Choose which tasks participants need to complete</p>
+                {state.model === 'degen' && (
+                    <div className="mt-3 p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg">
+                        <p className="text-purple-300 text-sm">
+                            <strong>Degen Mission:</strong> You can select up to 3 different tasks
+                        </p>
+                        <p className="text-purple-200 text-xs mt-1">
+                            Selected: {state.tasks.length}/3 tasks
+                        </p>
+                    </div>
+                )}
             </div>
 
             {availableTasks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {availableTasks.map((task) => {
                         const isSelected = state.tasks.includes(task.id);
+                        const isDisabled = state.model === 'degen' && !isSelected && state.tasks.length >= 3;
 
                         return (
                             <button
                                 key={task.id}
                                 onClick={() => handleTaskToggle(task.id)}
+                                disabled={isDisabled}
                                 className={getTaskButtonClass(task.id)}
                             >
                                 <div className="flex justify-between items-center">

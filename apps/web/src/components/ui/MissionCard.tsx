@@ -158,9 +158,14 @@ export function MissionCard({
                 </div>
                 <div className="text-center">
                     <div className="text-2xl font-bold text-purple-400">
-                        {mission.cap || mission.max_participants || '∞'}
+                        {mission.model?.toLowerCase() === 'degen'
+                            ? (mission.winnersCap || mission.winners_cap || 0)
+                            : (mission.cap || mission.max_participants || '∞')
+                        }
                     </div>
-                    <div className="text-gray-500 text-sm">Max</div>
+                    <div className="text-gray-500 text-sm">
+                        {mission.model?.toLowerCase() === 'degen' ? 'Winners' : 'Max'}
+                    </div>
                 </div>
                 <div className="text-center">
                     <div className="text-2xl font-bold text-yellow-400">{formatDeadline(mission.deadline)}</div>

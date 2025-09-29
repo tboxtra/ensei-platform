@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { WizardState } from '../types/wizard.types';
 
 interface SettingsStepProps {
@@ -23,7 +23,10 @@ const DEGEN_PRESETS = [
     { hours: 72, costUSD: 800, maxWinners: 10, label: '3d - $800' },
     { hours: 96, costUSD: 1000, maxWinners: 10, label: '4d - $1000' },
     { hours: 168, costUSD: 1500, maxWinners: 10, label: '7d - $1500' },
-    { hours: 240, costUSD: 2000, maxWinners: 10, label: '10d - $2000' }
+    { hours: 240, costUSD: 2000, maxWinners: 10, label: '10d - $2000' },
+    { hours: 336, costUSD: 3000, maxWinners: 15, label: '14d - $3000' },
+    { hours: 480, costUSD: 4000, maxWinners: 20, label: '20d - $4000' },
+    { hours: 720, costUSD: 5000, maxWinners: 25, label: '30d - $5000' }
 ];
 
 export const SettingsStep: React.FC<SettingsStepProps> = ({
@@ -40,7 +43,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
 
     const handleWinnersCapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = parseInt(e.target.value, 10);
-        if (!isNaN(value) && value > 0) {
+        const maxWinners = state.selectedDegenPreset?.maxWinners || 10;
+        if (!isNaN(value) && value > 0 && value <= maxWinners) {
             updateState({ winnersCap: value });
         }
     };
@@ -58,10 +62,25 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
     };
 
     const calculateRewardPerUser = () => {
-        // This would integrate with the existing pricing logic
-        // For now, using a simple calculation
-        const baseReward = 250; // Base reward
-        return state.isPremium ? baseReward * 2 : baseReward;
+        // Calculate reward based on selected tasks
+        if (state.tasks && state.tasks.length > 0) {
+            const prices: Record<string, number> = {
+                like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
+                meme: 300, thread: 500, article: 400, videoreview: 600,
+                pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
+                spaces: 800, community_raid: 400, status_50_views: 300
+            };
+
+            const totalHonors = state.tasks.reduce((sum: number, task: string) => {
+                return sum + (prices[task as keyof typeof prices] || 0);
+            }, 0);
+
+            // Apply premium multiplier if applicable
+            return state.isPremium ? totalHonors * 2 : totalHonors;
+        }
+
+        // Fallback if no tasks selected
+        return 0;
     };
 
     const calculateDegenCosts = () => {
@@ -76,6 +95,13 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
 
     const rewardPerUser = calculateRewardPerUser();
     const degenCosts = calculateDegenCosts();
+
+    // Update rewardPerUser in wizard state when tasks or premium status changes
+    useEffect(() => {
+        if (state.model === 'fixed') {
+            updateState({ rewardPerUser });
+        }
+    }, [state.tasks, state.isPremium, state.model, rewardPerUser, updateState]);
 
     return (
         <div className="space-y-8">
@@ -127,6 +153,28 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                         <div className="p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl">
                             <div className="text-xl font-bold text-green-400">{rewardPerUser} Honors</div>
                             <div className="text-sm text-gray-400">≈ ${(rewardPerUser / 450).toFixed(2)} USD</div>
+                            {state.tasks && state.tasks.length > 0 && (
+                                <div className="mt-2 text-xs text-gray-500">
+                                    <div>Based on {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''}</div>
+                                    {state.isPremium && <div className="text-yellow-400">Premium 2x multiplier applied</div>}
+                                    <div className="mt-1 text-gray-600">
+                                        {state.tasks.map((task, index) => {
+                                            const prices: Record<string, number> = {
+                                                like: 50, retweet: 100, comment: 150, quote: 200, follow: 250,
+                                                meme: 300, thread: 500, article: 400, videoreview: 600,
+                                                pfp: 250, name_bio_keywords: 200, pinned_tweet: 300, poll: 150,
+                                                spaces: 800, community_raid: 400, status_50_views: 300
+                                            };
+                                            const taskPrice = prices[task as keyof typeof prices] || 0;
+                                            return (
+                                                <span key={index} className="inline-block mr-2">
+                                                    {task}: {taskPrice}H
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -144,8 +192,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                         key={preset.hours}
                                         onClick={() => handleDegenPresetSelect(preset)}
                                         className={`p-3 rounded-xl text-center transition-all ${isSelected
-                                                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg'
-                                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                                            ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg'
+                                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                                             }`}
                                     >
                                         <div className="font-semibold text-sm">{preset.label}</div>
@@ -171,6 +219,11 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                             <p className="text-xs text-gray-400 mt-2">
                                 Max: {state.selectedDegenPreset?.maxWinners || 10} winners
                             </p>
+                            {state.winnersCap > (state.selectedDegenPreset?.maxWinners || 10) && (
+                                <p className="text-xs text-red-400 mt-1">
+                                    ⚠️ Winners cap cannot exceed {state.selectedDegenPreset?.maxWinners || 10}
+                                </p>
+                            )}
                         </div>
 
                         <div>

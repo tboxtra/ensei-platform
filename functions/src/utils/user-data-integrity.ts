@@ -1,4 +1,5 @@
 import { getFirestore } from 'firebase-admin/firestore';
+import * as firebaseAdmin from 'firebase-admin';
 
 // Guarantees array fields exist even if `data` is null/undefined or partially shaped
 export type MinimalUserData = {
@@ -343,13 +344,20 @@ export async function createMissionWithUidReferences(userId: string, missionData
         expires_at = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // 48 hours in milliseconds
     }
 
+    // For degen missions, calculate deadline based on duration
+    let deadline = null;
+    if (missionData.model === 'degen' && missionData.durationHours) {
+        deadline = new Date(now.getTime() + (missionData.durationHours * 60 * 60 * 1000));
+    }
+
     const mission = {
         ...missionData,
         created_by: userId,
         id: missionRef.id,
         status: missionData.status || 'active', // Default to 'active' if not specified
-        created_at: now, // Ensure created_at is set for proper ordering
-        expires_at: expires_at // Set expiration for fixed missions
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(), // Use server timestamp for consistency
+        expires_at: expires_at, // Set expiration for fixed missions
+        deadline: deadline // Set deadline for degen missions
     };
 
     await missionRef.set(mission);
