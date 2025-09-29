@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
@@ -1067,9 +1067,23 @@ function LegacyCreateMission() {
 // Main Create Mission Page with Feature Flag
 export default function CreateMissionPage() {
   // Check for feature flag and URL override
-  const useWizard = process.env.NEXT_PUBLIC_MISSION_WIZARD === '1' &&
-    typeof window !== 'undefined' &&
-    !new URLSearchParams(window.location.search).has('mode');
-
+  const [useWizard, setUseWizard] = React.useState(false);
+  
+  React.useEffect(() => {
+    const shouldUseWizard = process.env.NEXT_PUBLIC_MISSION_WIZARD === '1' && 
+                           !new URLSearchParams(window.location.search).has('mode');
+    console.log('Mission Wizard Debug:', {
+      envVar: process.env.NEXT_PUBLIC_MISSION_WIZARD,
+      shouldUseWizard,
+      url: window.location.href
+    });
+    setUseWizard(shouldUseWizard);
+  }, []);
+  
+  // Temporary: Force wizard for testing
+  if (process.env.NEXT_PUBLIC_MISSION_WIZARD === '1') {
+    return <MissionWizard />;
+  }
+  
   return useWizard ? <MissionWizard /> : <LegacyCreateMission />;
 }
