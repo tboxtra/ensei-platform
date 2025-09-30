@@ -1136,7 +1136,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
         rewards = { usd, honors, perUserHonors };
       }
-      
+
       // Always update rewards to ensure consistency
       tx.set(mref, { rewards }, { merge: true });
       console.log('✅ Persisted mission rewards:', { model: d.model, rewards });
@@ -2953,23 +2953,23 @@ app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res
 app.post('/v1/admin/fix-mission-rewards', requireAdmin, async (req, res) => {
   try {
     const { missionId } = req.body;
-    
+
     if (!missionId) {
       return res.status(400).json({ error: 'Mission ID is required' });
     }
-    
+
     const missionDoc = await db.collection('missions').doc(missionId).get();
     if (!missionDoc.exists) {
       return res.status(404).json({ error: 'Mission not found' });
     }
-    
+
     const data = missionDoc.data();
-    
+
     // Get system config
     const configDoc = await db.collection('system_config').doc('main').get();
     const config = configDoc.exists ? configDoc.data() : {};
     const cfg = readCfg(config);
-    
+
     // Calculate rewards
     let rewards;
     if (data.model === 'degen') {
@@ -2983,15 +2983,15 @@ app.post('/v1/admin/fix-mission-rewards', requireAdmin, async (req, res) => {
       const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
       rewards = { usd, honors, perUserHonors };
     }
-    
+
     // Update the mission with rewards
     await missionDoc.ref.update({ rewards });
-    
-    res.json({ 
-      success: true, 
-      missionId, 
+
+    res.json({
+      success: true,
+      missionId,
       rewards,
-      message: 'Mission rewards updated successfully' 
+      message: 'Mission rewards updated successfully'
     });
   } catch (error) {
     console.error('Fix mission rewards error:', error);

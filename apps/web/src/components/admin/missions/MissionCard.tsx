@@ -42,6 +42,14 @@ export const MissionCard: React.FC<MissionCardProps> = ({
   onViewSubmissions,
   onViewUser
 }) => {
+  // ✅ DEBUG: Log mission data to see what we're receiving
+  React.useEffect(() => {
+    console.log('🎯 MissionCard received mission data:', mission);
+    console.log('💰 Total Cost USD:', mission.totalCostUsd);
+    console.log('🏆 Per User Honors:', mission.perUserHonors);
+    console.log('👑 Per Winner Honors:', mission.perWinnerHonors);
+    console.log('📅 Created At:', mission.createdAt);
+  }, [mission]);
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':

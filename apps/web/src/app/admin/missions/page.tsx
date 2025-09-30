@@ -67,13 +67,18 @@ export default function MissionsPage() {
       setLoading(true);
       setError(null);
 
+      console.log('🔍 Loading admin missions...');
       const response = await apiClient.getMissions({
         page: pagination.page,
         limit: pagination.limit,
         ...filters
       });
 
+      console.log('📊 Admin missions response:', response);
+
       if (response.success && response.data) {
+        console.log('✅ Admin missions loaded:', response.data.length, 'missions');
+        console.log('📋 First mission data:', response.data[0]);
         setMissions(response.data);
         // Note: API should return pagination info in response
         setPagination(prev => ({
@@ -82,6 +87,7 @@ export default function MissionsPage() {
           totalPages: Math.ceil((response.data?.length || 0) / pagination.limit)
         }));
       } else {
+        console.log('❌ Admin missions failed:', response.message);
         setMissions([]);
         setPagination(prev => ({
           ...prev,
@@ -90,6 +96,7 @@ export default function MissionsPage() {
         }));
       }
     } catch (err) {
+      console.error('❌ Admin missions error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load missions');
       setMissions([]);
     } finally {
