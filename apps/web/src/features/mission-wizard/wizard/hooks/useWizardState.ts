@@ -79,7 +79,7 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
     // ✅ FIX: Keep canGoNext consistent with validation for the active step
     const { isValid } = validateCurrentStep();
     const canGoNext = isValid && currentStep < totalSteps;
-    
+
     // Debug logging to help troubleshoot validation sync issues
     console.log('=== WIZARD STATE DEBUG ===');
     console.log('currentStep:', currentStep);

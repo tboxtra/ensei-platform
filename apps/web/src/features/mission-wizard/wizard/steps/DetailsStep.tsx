@@ -23,7 +23,7 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
 }) => {
     // ✅ FIX: Use the same validation as the step validator for consistency
     const { isValid: stepValid } = validateStep(6, state); // Details is step 6
-    
+
     // Debug logging to help troubleshoot validation issues
     React.useEffect(() => {
         console.log('=== DETAILS STEP DEBUG ===');

@@ -362,26 +362,56 @@ export async function createMissionWithUidReferences(userId: string, missionData
 
     const missionRef = getDb().collection('missions').doc();
 
-    // ✅ FIX: Ensure calculated fields persist and timestamps are properly set
+    // ✅ FIX A: Ensure mission document persists all computed fields
     const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
 
-    const mission = {
-        ...missionData,
+    const canonical: any = {
+        // Base fields
+        platform: missionData.platform,
+        model: missionData.model,
+        type: missionData.type,
+        tasks: missionData.tasks,
+        isPremium: !!missionData.isPremium,
+        contentLink: missionData.contentLink,
+        tweetLink: missionData.contentLink,        // keep normalized twin for back-compat
+        instructions: missionData.instructions,
+        status: normalizeStatus(missionData.status || 'active'),
         created_by: userId,
         id: missionRef.id,
-        status: normalizeStatus(missionData.status || 'active'), // Normalize status
-        created_at: missionData.created_at ?? now, // Preserve existing or use server timestamp
-        updated_at: now, // Always use server timestamp for updates
 
-        // ✅ CRITICAL: Ensure calculated fields are preserved
-        rewards: missionData.rewards, // Preserve calculated rewards (usd, honors)
-        selectedDegenPreset: missionData.selectedDegenPreset, // Preserve degen preset
-        winnersPerMission: missionData.winnersPerMission, // Preserve winners cap
-        deadline: missionData.deadline, // Preserve calculated deadline
-        expires_at: missionData.expires_at, // Preserve calculated expiration
+        // Timestamps
+        created_at: now,
+        updated_at: now,
+
+        // Fixed mission fields
+        ...(missionData.model === 'fixed' && {
+            cap: missionData.cap,
+            rewardPerUser: missionData.rewardPerUser,
+            winnersPerTask: 1,                    // as designed
+            expires_at: missionData.expires_at ?? null,
+            deadline: missionData.deadline ?? null,
+            rewards: missionData.rewards ?? {         // PERSIST!
+                honors: Math.round(missionData.rewardPerUser * missionData.cap),
+                usd: Number(((missionData.rewardPerUser * missionData.cap) / 450).toFixed(2)),
+            },
+        }),
+
+        // Degen mission fields
+        ...(missionData.model === 'degen' && {
+            duration: missionData.duration,           // hours
+            selectedDegenPreset: missionData.selectedDegenPreset,
+            winnersPerMission: missionData.winnersPerMission ?? missionData.winnersCap ?? missionData.maxWinners ?? 0,
+            winnersCap: missionData.winnersPerMission ?? missionData.winnersCap ?? missionData.maxWinners ?? 0, // back-compat mirror
+            deadline: missionData.deadline ?? null,
+            rewards: missionData.rewards ?? {         // PERSIST!
+                usd: missionData.selectedDegenPreset?.costUSD ?? 0,
+                honors: Math.round((missionData.selectedDegenPreset?.costUSD ?? 0) * 450),
+            },
+        }),
     };
 
-    await missionRef.set(mission);
+    // IMPORTANT: write all of the above; don't drop unknown keys
+    await missionRef.set(canonical, { merge: true });
 
     // ✅ DEGEN FLOW COMPLETION - Create task documents for degen missions
     if (missionData.model === 'degen' && missionData.tasks && missionData.tasks.length > 0) {
@@ -412,7 +442,7 @@ export async function createMissionWithUidReferences(userId: string, missionData
 
     return {
         success: true,
-        mission
+        mission: canonical
     };
 }
 
