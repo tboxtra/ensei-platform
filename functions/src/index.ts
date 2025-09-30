@@ -201,6 +201,18 @@ const toIso = (v: any) => {
 
   // Handle ISO strings
   if (typeof v === 'string') {
+    // Handle Firestore date strings like "September 30, 2025 at 1:08:34 PM UTC+1"
+    if (v.includes('at') && v.includes('UTC')) {
+      try {
+        const date = new Date(v);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString();
+        }
+      } catch (e) {
+        console.warn('toIso: Failed to parse Firestore date string:', v);
+      }
+    }
+    
     // Validate that it's a proper ISO string
     const date = new Date(v);
     if (!isNaN(date.getTime())) {
@@ -788,10 +800,10 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
       const data = doc.data();
       return {
         ...serializeMissionResponse({
-      id: doc.id,
+          id: doc.id,
           ...data,
         }),
-      type: 'created'
+        type: 'created'
       };
     });
 
@@ -803,7 +815,7 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
           const data = missionDoc.data();
           return {
             ...serializeMissionResponse({
-            id: missionDoc.id,
+              id: missionDoc.id,
               ...data,
             }),
             type: 'participating',
@@ -2162,8 +2174,8 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
     if (!participationsSnapshot.empty) {
       // Convert participation format to submission format
       items = participationsSnapshot.docs.flatMap(doc => {
-          const data = doc.data();
-          const tasksCompleted = data.tasks_completed || [];
+        const data = doc.data();
+        const tasksCompleted = data.tasks_completed || [];
 
         // If no tasks completed, return the participation itself as a submission
         if (tasksCompleted.length === 0) {
@@ -2186,33 +2198,33 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
         }
 
         // Convert each completed task to a submission
-          return tasksCompleted.map((task: any, index: number) => ({
-            id: `${doc.id}_${task.task_id || index}`,
-            missionId: data.mission_id,
-            taskId: task.task_id,
-            userId: data.user_id,
-            userName: data.user_name,
-            userEmail: data.user_email,
-            userSocialHandle: data.user_social_handle,
-            status: task.status === 'completed' ? 'verified' : task.status,
-            completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
-            verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
-            flaggedAt: null,
-            flaggedReason: null,
-            reviewedBy: null,
-            reviewedAt: null,
-            metadata: {
-              taskType: task.task_id,
-              platform: data.platform || 'twitter',
-              url: task.verification_data?.url,
-              ...task.verification_data
-            },
-            createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
-            updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
-          }));
-        });
-        console.log('Found submissions in mission_participations collection:', items.length);
-      } else {
+        return tasksCompleted.map((task: any, index: number) => ({
+          id: `${doc.id}_${task.task_id || index}`,
+          missionId: data.mission_id,
+          taskId: task.task_id,
+          userId: data.user_id,
+          userName: data.user_name,
+          userEmail: data.user_email,
+          userSocialHandle: data.user_social_handle,
+          status: task.status === 'completed' ? 'verified' : task.status,
+          completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
+          verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
+          flaggedAt: null,
+          flaggedReason: null,
+          reviewedBy: null,
+          reviewedAt: null,
+          metadata: {
+            taskType: task.task_id,
+            platform: data.platform || 'twitter',
+            url: task.verification_data?.url,
+            ...task.verification_data
+          },
+          createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+          updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
+        }));
+      });
+      console.log('Found submissions in mission_participations collection:', items.length);
+    } else {
       // ✅ FALLBACK: Check taskCompletions for legacy data
       const taskCompletionsSnapshot = await db.collection('taskCompletions')
         .where('missionId', '==', missionId)
@@ -2259,8 +2271,8 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
       // ✅ FALLBACK: Count from taskCompletions for legacy data
       const taskCompletionsSnapshot = await db.collection('taskCompletions')
         .where('missionId', '==', missionId)
-            .where('status', 'in', ['verified', 'approved'])
-            .get();
+        .where('status', 'in', ['verified', 'approved'])
+        .get();
       count = taskCompletionsSnapshot.size;
     }
 
@@ -2434,6 +2446,15 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       d.model === 'degen'
         ? (d.winnersPerMission ?? d.winnersCap ?? d.maxWinners ?? 0)
         : (d.cap ?? d.max_participants ?? 0);
+    
+    // ✅ FIX: Consistent winners count for display (prefer winnersPerMission for degen)
+    const deriveWinnersCount = (d: any) => {
+      if (d.model === 'degen') {
+        // For degen, prefer winnersPerMission (actual winners) over maxWinners (cap)
+        return d.winnersPerMission ?? d.winnersCap ?? d.maxWinners ?? 0;
+      }
+      return d.cap ?? d.max_participants ?? 0;
+    };
 
     const missions = missionsSnapshot.docs.map(doc => {
       const data = doc.data();
@@ -2443,21 +2464,36 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const createdAt = toIso(data.created_at);
       const deadline = toIso(data.deadline);
       const expiresAt = toIso(data.expires_at);
+      
+      // ✅ FIX: Calculate deadline for degen missions if missing
+      let calculatedDeadline = deadline;
+      if (data.model === 'degen' && !deadline && data.duration && createdAt) {
+        try {
+          const startDate = new Date(createdAt);
+          const endDate = new Date(startDate.getTime() + (data.duration * 60 * 60 * 1000));
+          calculatedDeadline = endDate.toISOString();
+        } catch (e) {
+          console.warn('Failed to calculate deadline for degen mission:', doc.id);
+        }
+      }
 
       // ✅ FIX B: Strengthen the Admin API fallback so it still shows $$$ even if old docs lack rewards
       const totalHonors = data.rewards?.honors ?? 0;
       const totalUsd = data.rewards?.usd ?? 0;
 
+      // ✅ FIX: Handle both nested and root-level costUSD (from Firestore screenshots)
+      const degenCostUsd = data.selectedDegenPreset?.costUSD ?? data.costUSD ?? 0;
+      
       const fallbackUsd =
         data.model === 'degen'
-          ? (data.selectedDegenPreset?.costUSD ?? 0)
+          ? degenCostUsd
           : (data.rewardPerUser && data.cap
-              ? Number(((data.rewardPerUser * data.cap) / 450).toFixed(2))
-              : 0);
+            ? Number(((data.rewardPerUser * data.cap) / 450).toFixed(2))
+            : 0);
 
       const fallbackHonors =
         data.model === 'degen'
-          ? Math.round((data.selectedDegenPreset?.costUSD ?? 0) * 450)
+          ? Math.round(degenCostUsd * 450)
           : (data.rewardPerUser && data.cap ? data.rewardPerUser * data.cap : 0);
 
       const displayUsd = totalUsd || fallbackUsd;
@@ -2477,10 +2513,10 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         creatorEmail: creator?.email || '',
         // ✅ FIX C: Fix "Invalid Date" once and for all - send clean ISO fields
         createdAt,                 // ISO strings for UI
-        deadline,
+        deadline: calculatedDeadline,
         expires_at: expiresAt,
         startAt: createdAt,
-        endAt: deadline || expiresAt,
+        endAt: calculatedDeadline || expiresAt,
         // Additional fallback fields for admin UI
         created_at: createdAt,     // back-compat
         created_at_iso: createdAt, // explicit ISO field
@@ -2497,7 +2533,8 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
 
         // ✅ FIX D: Winners label consistency (degen) - prefer winnersPerMission everywhere
         submissionsLimit,          // UI should render "0 / submissionsLimit"
-        winnersPerMission: data.winnersPerMission ?? data.winnersCap ?? data.maxWinners ?? data.winners_per_mission ?? 0,
+        winnersPerMission: deriveWinnersCount(data),
+        winnersCount: deriveWinnersCount(data), // Explicit field for UI display
         winnersPerTask: data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0, // keep for back-compat display
         winnersCap: data.winnersCap ?? data.winners_cap,
         cap: data.cap ?? data.max_participants ?? 0,
@@ -2689,7 +2726,7 @@ app.get('/v1/submissions', async (req, res) => {
     const submissions = submissionsSnapshot.docs.map(doc => {
       const d: any = doc.data();
       return {
-      id: doc.id,
+        id: doc.id,
         ...d,
         submitted_at: toIso(d.submitted_at),
         created_at: toIso(d.created_at),
@@ -3310,10 +3347,10 @@ export const updateMissionAggregates = functions.firestore
         if (delta > 0) {
           if (missionData.model === 'fixed' && winnersPerTask) {
             // Fixed missions: check per-task cap
-          const currentCount = agg.taskCounts[taskId] || 0;
-          if (currentCount >= winnersPerTask) {
-            console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);
-            return; // Skip this update - task is already full
+            const currentCount = agg.taskCounts[taskId] || 0;
+            if (currentCount >= winnersPerTask) {
+              console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);
+              return; // Skip this update - task is already full
             }
           } else if (missionData.model === 'degen' && winnersPerMission) {
             // Degen missions: check mission-wide cap
