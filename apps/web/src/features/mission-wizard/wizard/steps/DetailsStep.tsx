@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { WizardState } from '../types/wizard.types';
+import { WizardState, canContinueToReview } from '../types/wizard.types';
 
 interface DetailsStepProps {
     state: WizardState;
@@ -9,13 +9,32 @@ interface DetailsStepProps {
     onNext: () => void;
 }
 
+// URL normalization helper to match backend
+const normalizeUrl = (url: string) =>
+  (url || '')
+    .replace(/x\.com/gi, 'twitter.com')
+    .split(/[?#]/)[0]
+    .trim();
+
 export const DetailsStep: React.FC<DetailsStepProps> = ({
     state,
     updateState,
     onNext,
 }) => {
+    // Debug logging to help troubleshoot validation issues
+    React.useEffect(() => {
+        console.log('=== DETAILS STEP DEBUG ===');
+        console.log('canContinueToReview:', canContinueToReview(state));
+        console.log('Mission state:', state);
+        console.log('==========================');
+    }, [state]);
     const handleContentLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         updateState({ contentLink: e.target.value });
+    };
+
+    const handleContentLinkBlur = () => {
+        // Normalize URL on blur to match backend expectations
+        updateState({ contentLink: normalizeUrl(state.contentLink) });
     };
 
     const handleInstructionsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -51,6 +70,7 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
                         type="url"
                         value={state.contentLink}
                         onChange={handleContentLinkChange}
+                        onBlur={handleContentLinkBlur}
                         className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
                         placeholder={getPlaceholder()}
                     />
@@ -70,11 +90,21 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
 
             <div className="text-center">
                 <button
+                    disabled={!canContinueToReview(state)}
                     onClick={onNext}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                    className={`font-bold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg ${
+                        canContinueToReview(state)
+                            ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
+                            : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    }`}
                 >
                     Review Mission →
                 </button>
+                {!canContinueToReview(state) && (
+                    <p className="text-sm text-gray-400 mt-2">
+                        Please complete all required fields to continue
+                    </p>
+                )}
             </div>
         </div>
     );

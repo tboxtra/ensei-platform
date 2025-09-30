@@ -68,7 +68,8 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
         updateState({
             selectedDegenPreset: preset,
             duration: preset.hours,
-            winnersCap: clamp(state.winnersCap ?? maxW, 1, maxW)
+            winnersCap: clamp(state.winnersCap ?? maxW, 1, maxW),
+            winnersPerMission: clamp(state.winnersCap ?? maxW, 1, maxW) // Ensure winnersPerMission is set
         });
     };
 

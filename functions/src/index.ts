@@ -262,13 +262,13 @@ const serializeMissionResponse = (data: any) => {
     console.log('Serialized deadline:', toIso(data.deadline));
     console.log('=====================================');
   }
-  
+
   // Helper: limit used by the UI progress bar
   const deriveSubmissionsLimit = (d: any) =>
     d.model === 'degen'
       ? (d.winnersPerMission ?? d.winnersCap ?? d.maxWinners ?? 0)
       : (d.cap ?? d.max_participants ?? 0);
-  
+
   return {
     ...data,
     durationHours: data.duration_hours || data.durationHours || data.duration,
@@ -1111,7 +1111,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
             d.rewardPerUser ??
             (Array.isArray(d.tasks)
               ? d.tasks.reduce((s: number, t: string) =>
-                  s + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
+                s + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
               : 0);
           const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
           const honors = perUserHonors * participants;
@@ -2420,7 +2420,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         d.rewardPerUser ??
         (Array.isArray(d.tasks)
           ? d.tasks.reduce((sum: number, t: string) =>
-              sum + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
+            sum + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
           : 0);
 
       const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;

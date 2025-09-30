@@ -31,6 +31,8 @@ export interface WizardState {
     // Degen specific fields
     selectedDegenPreset: any;
     winnersCap: number;
+    winnersPerMission: number;
+    maxWinners: number;
 }
 
 export interface WizardStep {
@@ -75,6 +77,48 @@ export const INITIAL_WIZARD_STATE: WizardState = {
     customApiVerifier: '',
     selectedDegenPreset: { hours: 8, costUSD: 150, maxWinners: 3, label: '8h - $150' },
     winnersCap: 3,
+    winnersPerMission: 3,
+    maxWinners: 3,
+};
+
+// URL validation helpers to match backend
+const normalizeUrl = (url: string) =>
+  (url || '')
+    .replace(/x\.com/gi, 'twitter.com')
+    .split(/[?#]/)[0]
+    .trim();
+
+const isValidTweet = (url: string) =>
+  /^(https?:\/\/)?(www\.|mobile\.)?(twitter\.com)\/[^/]+\/status\/\d+$/i.test(normalizeUrl(url));
+
+const hasTasks = (platform: string, tasks: string[] | undefined) =>
+  platform === 'custom' ? true : Array.isArray(tasks) && tasks.length > 0;
+
+// Main validation function that matches backend requirements
+export const canContinueToReview = (m: WizardState) => {
+  const baseOk =
+    !!m.platform &&
+    !!m.type &&
+    !!m.instructions?.trim() &&
+    !!m.contentLink &&
+    isValidTweet(m.contentLink) &&
+    hasTasks(m.platform, m.tasks);
+
+  if (!baseOk) return false;
+
+  if (m.model === 'fixed') {
+    return Number.isFinite(m.cap) && m.cap > 0 &&
+           Number.isFinite(m.rewardPerUser) && m.rewardPerUser > 0;
+  }
+
+  if (m.model === 'degen') {
+    // allow either preset with costUSD or explicit winners
+    const winners = m.winnersPerMission ?? m.winnersCap ?? m.maxWinners;
+    const hasPresetCost = Number.isFinite(m?.selectedDegenPreset?.costUSD) && m.selectedDegenPreset.costUSD > 0;
+    return (Number.isFinite(winners) && winners! > 0) && hasPresetCost;
+  }
+
+  return false;
 };
 
 // Validation functions for each step
@@ -101,7 +145,7 @@ export const validateStep = (step: number, state: WizardState): { isValid: boole
             break;
 
         case 4: // Tasks
-            if (!state.tasks || state.tasks.length === 0) {
+            if (!hasTasks(state.platform, state.tasks)) {
                 errors.push('Please select at least one task');
             }
             if (state.model === 'degen' && state.tasks.length > 3) {
@@ -111,21 +155,26 @@ export const validateStep = (step: number, state: WizardState): { isValid: boole
 
         case 5: // Settings
             if (state.model === 'fixed') {
-                if (!state.cap || state.cap <= 0) {
+                if (!Number.isFinite(state.cap) || state.cap <= 0) {
                     errors.push('Please set a valid participant cap');
                 }
                 if (state.cap > 1000) {
                     errors.push('Participant cap cannot exceed 1000');
                 }
+                if (!Number.isFinite(state.rewardPerUser) || state.rewardPerUser <= 0) {
+                    errors.push('Please set a valid reward per user');
+                }
             } else if (state.model === 'degen') {
                 if (!state.selectedDegenPreset) {
                     errors.push('Please select a duration preset');
                 }
-                if (!state.winnersCap || state.winnersCap <= 0) {
+                const winners = state.winnersPerMission ?? state.winnersCap ?? state.maxWinners;
+                if (!Number.isFinite(winners) || winners! <= 0) {
                     errors.push('Please set a valid winners cap');
                 }
-                if (state.winnersCap > (state.selectedDegenPreset?.maxWinners || 10)) {
-                    errors.push(`Winners cap cannot exceed ${state.selectedDegenPreset?.maxWinners || 10}`);
+                const hasPresetCost = Number.isFinite(state?.selectedDegenPreset?.costUSD) && state.selectedDegenPreset.costUSD > 0;
+                if (!hasPresetCost) {
+                    errors.push('Please select a valid duration preset with cost');
                 }
             }
             break;
@@ -140,23 +189,16 @@ export const validateStep = (step: number, state: WizardState): { isValid: boole
             if (state.instructions && state.instructions.trim().length < 10) {
                 errors.push('Instructions must be at least 10 characters long');
             }
-            // Validate URL format
-            if (state.contentLink) {
-                try {
-                    new URL(state.contentLink);
-                } catch {
-                    errors.push('Please provide a valid URL for the content link');
-                }
+            // Validate URL format using backend-compatible validation
+            if (state.contentLink && !isValidTweet(state.contentLink)) {
+                errors.push('Please provide a valid Twitter/X URL (e.g., https://twitter.com/user/status/1234567890)');
             }
             break;
 
         case 7: // Review
-            // Final validation - all previous steps should be valid
-            for (let i = 1; i <= 6; i++) {
-                const stepValidation = validateStep(i, state);
-                if (!stepValidation.isValid) {
-                    errors.push(...stepValidation.errors);
-                }
+            // Use the main validation function
+            if (!canContinueToReview(state)) {
+                errors.push('Please complete all required fields to review your mission');
             }
             break;
 

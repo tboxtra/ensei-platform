@@ -70,28 +70,44 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
     };
 
     const handleMissionSubmit = () => {
-        // Transform wizard state to match API expectations
+        // Transform wizard state to match API expectations exactly
         const missionData = {
             platform: wizard.state.platform,
             model: wizard.state.model,
             type: wizard.state.type,
             tasks: wizard.state.tasks,
-            cap: wizard.state.cap,
             isPremium: wizard.state.isPremium,
-            duration: wizard.state.duration,
-            rewardPerUser: wizard.state.rewardPerUser,
-            contentLink: wizard.state.contentLink,
+            contentLink: wizard.state.contentLink, // Always send contentLink
             instructions: wizard.state.instructions,
-            // Custom platform fields
-            customTitle: wizard.state.customTitle,
-            customDescription: wizard.state.customDescription,
-            customTimeMinutes: wizard.state.customTimeMinutes,
-            customProofMode: wizard.state.customProofMode,
-            customApiVerifier: wizard.state.customApiVerifier,
-            // Degen specific fields
-            selectedDegenPreset: wizard.state.selectedDegenPreset,
-            winnersCap: wizard.state.winnersCap,
+            
+            // Fixed mission fields
+            ...(wizard.state.model === 'fixed' && {
+                cap: wizard.state.cap,
+                rewardPerUser: wizard.state.rewardPerUser,
+            }),
+            
+            // Degen mission fields
+            ...(wizard.state.model === 'degen' && {
+                selectedDegenPreset: wizard.state.selectedDegenPreset,
+                winnersPerMission: wizard.state.winnersPerMission ?? wizard.state.winnersCap,
+                duration: wizard.state.duration,
+            }),
+            
+            // Custom platform fields (if needed)
+            ...(wizard.state.platform === 'custom' && {
+                customTitle: wizard.state.customTitle,
+                customDescription: wizard.state.customDescription,
+                customTimeMinutes: wizard.state.customTimeMinutes,
+                customProofMode: wizard.state.customProofMode,
+                customApiVerifier: wizard.state.customApiVerifier,
+            }),
         };
+
+        // Debug logging to help troubleshoot
+        console.log('=== MISSION SUBMISSION DEBUG ===');
+        console.log('Wizard state:', wizard.state);
+        console.log('Transformed mission data:', missionData);
+        console.log('===============================');
 
         onSubmit(missionData);
     };
