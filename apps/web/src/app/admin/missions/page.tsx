@@ -67,18 +67,13 @@ export default function MissionsPage() {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 Loading admin missions...');
       const response = await apiClient.getMissions({
         page: pagination.page,
         limit: pagination.limit,
         ...filters
       });
 
-      console.log('📊 Admin missions response:', response);
-
       if (response.success && response.data) {
-        console.log('✅ Admin missions loaded:', response.data.length, 'missions');
-        console.log('📋 First mission data:', response.data[0]);
         setMissions(response.data);
         // Note: API should return pagination info in response
         setPagination(prev => ({

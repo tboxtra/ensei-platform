@@ -184,19 +184,27 @@ const validateUrl = (url: string, platform: string): { isValid: boolean; error?:
 const toIso = (v: any) => {
   if (!v) return null;
 
-  // Handle Firestore Timestamp objects
-  if (v?.toDate?.()) {
-    return v.toDate().toISOString();
+  // Handle Firestore Timestamp objects (primary method)
+  if (v && typeof v === 'object' && v.toDate && typeof v.toDate === 'function') {
+    try {
+      return v.toDate().toISOString();
+    } catch (e) {
+      console.warn('toIso: Failed to convert Firestore Timestamp:', v, e);
+    }
+  }
+
+  // Handle Firestore Timestamp objects (alternative format with seconds)
+  if (v && typeof v === 'object' && typeof v.seconds === 'number') {
+    try {
+      return new Date(v.seconds * 1000).toISOString();
+    } catch (e) {
+      console.warn('toIso: Failed to convert Firestore Timestamp with seconds:', v, e);
+    }
   }
 
   // Handle JavaScript Date objects
   if (v instanceof Date) {
     return v.toISOString();
-  }
-
-  // Handle Firestore Timestamp objects (alternative format)
-  if (v && typeof v === 'object' && v.seconds) {
-    return new Date(v.seconds * 1000).toISOString();
   }
 
   // Handle ISO strings
@@ -212,7 +220,7 @@ const toIso = (v: any) => {
         console.warn('toIso: Failed to parse Firestore date string:', v);
       }
     }
-
+    
     // Validate that it's a proper ISO string
     const date = new Date(v);
     if (!isNaN(date.getTime())) {
@@ -276,14 +284,15 @@ const serializeMissionResponse = (data: any) => {
   const createdAt = toIso(data.created_at);
   const rawDeadline = toIso(data.deadline);
   let calculatedDeadline = rawDeadline;
-
+  
   if (data.model === 'degen' && !rawDeadline && data.duration && createdAt) {
     try {
       const startDate = new Date(createdAt);
       const endDate = new Date(startDate.getTime() + (data.duration * 60 * 60 * 1000));
       calculatedDeadline = endDate.toISOString();
+      console.log('🔧 Calculated deadline for degen mission:', data.id, 'deadline:', calculatedDeadline);
     } catch (e) {
-      console.warn('Failed to calculate deadline for degen mission in serializeMissionResponse:', data.id);
+      console.warn('Failed to calculate deadline for degen mission in serializeMissionResponse:', data.id, e);
     }
   }
 
@@ -2488,17 +2497,32 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         }
       }
 
-      // ✅ FIX B: Use the deriveRewards function instead of hardcoded values
+      // ✅ FIX B: Always ensure rewards are calculated and present
       const storedRewards = data.rewards;
       const derivedRewards = deriveRewards(data, cfg);
 
-
-      // Use stored rewards if available, otherwise use derived rewards
+      // Use stored rewards if they exist and are valid, otherwise use derived rewards
       const rewards = {
-        usd: storedRewards?.usd ?? derivedRewards.usd,
-        honors: storedRewards?.honors ?? derivedRewards.honors,
+        usd: (storedRewards?.usd && storedRewards.usd > 0) ? storedRewards.usd : derivedRewards.usd,
+        honors: (storedRewards?.honors && storedRewards.honors > 0) ? storedRewards.honors : derivedRewards.honors,
         ...(derivedRewards.perUserHonors && { perUserHonors: derivedRewards.perUserHonors })
       };
+      
+      // ✅ CRITICAL FIX: If rewards are still 0, force update the mission document
+      if (rewards.usd === 0 && rewards.honors === 0 && (data.costUSD || data.selectedDegenPreset?.costUSD || data.rewardPerUser)) {
+        console.log('🔧 CRITICAL: Mission has 0 rewards but has cost data, forcing update:', doc.id);
+        // Update the mission document with correct rewards
+        const updateData: any = { rewards };
+        if (data.model === 'degen' && !data.winnersPerMission) {
+          updateData.winnersPerMission = data.winnersCap ?? data.maxWinners ?? 0;
+        }
+        // Note: This update will happen asynchronously, but we'll continue with the response
+        doc.ref.update(updateData).then(() => {
+          console.log('✅ Updated mission with correct rewards:', updateData);
+        }).catch((error) => {
+          console.error('❌ Failed to update mission rewards:', error);
+        });
+      }
 
       const submissionsLimit = deriveSubmissionsLimit(data);
 
