@@ -185,70 +185,37 @@ const validateUrl = (url: string, platform: string): { isValid: boolean; error?:
 const toIso = (v: any) => {
   if (!v) return null;
 
-  // Handle Firestore Timestamp objects (primary method)
-  if (v && typeof v === 'object' && v.toDate && typeof v.toDate === 'function') {
-    try {
-      return v.toDate().toISOString();
-    } catch (e) {
-      console.warn('toIso: Failed to convert Firestore Timestamp:', v, e);
-    }
+  // Firestore Timestamp
+  if (v?.toDate && typeof v.toDate === 'function') {
+    try { return v.toDate().toISOString(); } catch {}
   }
 
-  // Handle Firestore Timestamp objects (alternative format with seconds)
-  if (v && typeof v === 'object' && typeof v.seconds === 'number') {
-    try {
-      return new Date(v.seconds * 1000).toISOString();
-    } catch (e) {
-      console.warn('toIso: Failed to convert Firestore Timestamp with seconds:', v, e);
-    }
+  // {seconds: number}
+  if (typeof v === 'object' && typeof v.seconds === 'number') {
+    try { return new Date(v.seconds * 1000).toISOString(); } catch {}
   }
 
-  // Handle JavaScript Date objects
-  if (v instanceof Date) {
-    return v.toISOString();
-  }
+  // Native Date
+  if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString();
 
-  // Handle ISO strings
+  // Firestore Console-style string: "September 30, 2025 at 1:08:34 PM UTC+1"
   if (typeof v === 'string') {
-    // Handle Firestore date strings like "September 30, 2025 at 1:08:34 PM UTC+1"
-    if (v.includes('at') && v.includes('UTC')) {
-      try {
-        // Try to parse the specific Firestore format
-        const m = v.match(/^([A-Za-z]+ \d{1,2}, \d{4}) at (\d{1,2}:\d{2}:\d{2} [AP]M) UTC([+-]\d+)/);
-        if (m) {
-          const [_, d, t, offset] = m;
-          // Build ISO-like string without "at" and with numeric TZ
-          const s = `${d} ${t} GMT${offset}`;
-          const dt = new Date(s);
-          if (!isNaN(dt.getTime())) return dt.toISOString();
-        }
-        
-        // Fallback to direct parsing
-        const date = new Date(v);
-        if (!isNaN(date.getTime())) {
-          return date.toISOString();
-        }
-      } catch (e) {
-        console.warn('toIso: Failed to parse Firestore date string:', v);
-      }
+    const m = v.match(/^([A-Za-z]+ \d{1,2}, \d{4}) at (\d{1,2}:\d{2}:\d{2} [AP]M) UTC([+-]\d+)/);
+    if (m) {
+      const [, d, t, off] = m;
+      const candidate = new Date(`${d} ${t} GMT${off}`);
+      if (!isNaN(candidate.getTime())) return candidate.toISOString();
     }
-    
-    // Final fallback for any string
     const dt = new Date(v);
-    if (!isNaN(dt.getTime())) {
-      return dt.toISOString();
-    }
+    if (!isNaN(dt.getTime())) return dt.toISOString();
   }
 
-  // Handle numeric timestamps
   if (typeof v === 'number') {
-    const date = new Date(v);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString();
-    }
+    const dt = new Date(v);
+    if (!isNaN(dt.getTime())) return dt.toISOString();
   }
 
-  console.warn('toIso: Unable to convert value to ISO string:', v, typeof v);
+  console.warn('toIso: Unable to convert', v);
   return null;
 };
 
@@ -331,6 +298,24 @@ const serializeMissionResponse = (data: any) => {
     ...(derivedRewards.perUserHonors && { perUserHonors: derivedRewards.perUserHonors })
   };
 
+  // derive rewards if missing or zero (best-effort, no I/O here)
+  try {
+    const hasRewards = data?.rewards && ((data.rewards.usd ?? 0) > 0 || (data.rewards.honors ?? 0) > 0);
+    if (!hasRewards) {
+      const costUSD = data?.selectedDegenPreset?.costUSD ?? data?.costUSD ?? 0;
+      if (data.model === 'degen' && costUSD > 0) {
+        const honorsPerUsd = 450; // keep in sync or pass in via cfg if available here
+        data.rewards = { usd: Number(costUSD), honors: Math.round(costUSD * honorsPerUsd) };
+      }
+      if (data.model === 'fixed' && (data.rewardPerUser ?? 0) > 0) {
+        const participants = data.cap ?? data.max_participants ?? data.winnersCap ?? 0;
+        const honors = (data.rewardPerUser ?? 0) * participants;
+        const honorsPerUsd = 450;
+        data.rewards = { usd: Number((honors / honorsPerUsd).toFixed(2)), honors, perUserHonors: data.rewardPerUser };
+      }
+    }
+  } catch {}
+
   return {
     ...data,
     durationHours: data.duration_hours || data.durationHours || data.duration,
@@ -350,9 +335,9 @@ const serializeMissionResponse = (data: any) => {
     submissionsLimit: deriveSubmissionsLimit(data),
 
     // ✅ rewards for public cards
-    rewards,
-    totalCostUsd: rewards.usd,
-    totalCostHonors: rewards.honors,
+    rewards: data.rewards,
+    totalCostUsd: data.rewards?.usd ?? 0,
+    totalCostHonors: data.rewards?.honors ?? 0,
 
     // keep content link normalization too if you like
     contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
@@ -855,10 +840,10 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
       const data = doc.data();
       return {
         ...serializeMissionResponse({
-      id: doc.id,
+          id: doc.id,
           ...data,
         }),
-      type: 'created'
+        type: 'created'
       };
     });
 
@@ -870,7 +855,7 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
           const data = missionDoc.data();
           return {
             ...serializeMissionResponse({
-            id: missionDoc.id,
+              id: missionDoc.id,
               ...data,
             }),
             type: 'participating',
@@ -1198,6 +1183,36 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         if (w != null) tx.set(mref, { winnersPerMission: w }, { merge: true });
       }
     });
+
+    // ✅ Normalize timestamps & deadline after creation (idempotent)
+    {
+      const mref = db.collection('missions').doc(result.mission.id);
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(mref);
+        if (!snap.exists) return;
+        const d: any = snap.data() || {};
+
+        const updates: any = {};
+
+        const createdAtIso = toIso(d.created_at);
+        if (!createdAtIso || typeof d.created_at === 'string') {
+          updates.created_at = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+        }
+        updates.updated_at = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+
+        // Degen: compute deadline if missing and we have a duration
+        const hasDeadline = !!toIso(d.deadline);
+        const durationH = Number(d.duration_hours ?? d.durationHours ?? d.duration ?? 0);
+        if (d.model === 'degen' && !hasDeadline && durationH > 0 && createdAtIso) {
+          const start = new Date(createdAtIso);
+          updates.deadline = new Date(start.getTime() + durationH * 3600 * 1000);
+        }
+
+        if (Object.keys(updates).length) {
+          tx.set(mref, updates, { merge: true });
+        }
+      });
+    }
 
     // If critical fields are missing, log and potentially correct
     if (savedData?.model === 'degen') {
@@ -2233,8 +2248,8 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
     if (!participationsSnapshot.empty) {
       // Convert participation format to submission format
       items = participationsSnapshot.docs.flatMap(doc => {
-          const data = doc.data();
-          const tasksCompleted = data.tasks_completed || [];
+        const data = doc.data();
+        const tasksCompleted = data.tasks_completed || [];
 
         // If no tasks completed, return the participation itself as a submission
         if (tasksCompleted.length === 0) {
@@ -2257,33 +2272,33 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
         }
 
         // Convert each completed task to a submission
-          return tasksCompleted.map((task: any, index: number) => ({
-            id: `${doc.id}_${task.task_id || index}`,
-            missionId: data.mission_id,
-            taskId: task.task_id,
-            userId: data.user_id,
-            userName: data.user_name,
-            userEmail: data.user_email,
-            userSocialHandle: data.user_social_handle,
-            status: task.status === 'completed' ? 'verified' : task.status,
-            completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
-            verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
-            flaggedAt: null,
-            flaggedReason: null,
-            reviewedBy: null,
-            reviewedAt: null,
-            metadata: {
-              taskType: task.task_id,
-              platform: data.platform || 'twitter',
-              url: task.verification_data?.url,
-              ...task.verification_data
-            },
-            createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
-            updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
-          }));
-        });
-        console.log('Found submissions in mission_participations collection:', items.length);
-      } else {
+        return tasksCompleted.map((task: any, index: number) => ({
+          id: `${doc.id}_${task.task_id || index}`,
+          missionId: data.mission_id,
+          taskId: task.task_id,
+          userId: data.user_id,
+          userName: data.user_name,
+          userEmail: data.user_email,
+          userSocialHandle: data.user_social_handle,
+          status: task.status === 'completed' ? 'verified' : task.status,
+          completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
+          verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
+          flaggedAt: null,
+          flaggedReason: null,
+          reviewedBy: null,
+          reviewedAt: null,
+          metadata: {
+            taskType: task.task_id,
+            platform: data.platform || 'twitter',
+            url: task.verification_data?.url,
+            ...task.verification_data
+          },
+          createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+          updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
+        }));
+      });
+      console.log('Found submissions in mission_participations collection:', items.length);
+    } else {
       // ✅ FALLBACK: Check taskCompletions for legacy data
       const taskCompletionsSnapshot = await db.collection('taskCompletions')
         .where('missionId', '==', missionId)
@@ -2330,8 +2345,8 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
       // ✅ FALLBACK: Count from taskCompletions for legacy data
       const taskCompletionsSnapshot = await db.collection('taskCompletions')
         .where('missionId', '==', missionId)
-            .where('status', 'in', ['verified', 'approved'])
-            .get();
+        .where('status', 'in', ['verified', 'approved'])
+        .get();
       count = taskCompletionsSnapshot.size;
     }
 
@@ -2792,7 +2807,7 @@ app.get('/v1/submissions', async (req, res) => {
     const submissions = submissionsSnapshot.docs.map(doc => {
       const d: any = doc.data();
       return {
-      id: doc.id,
+        id: doc.id,
         ...d,
         submitted_at: toIso(d.submitted_at),
         created_at: toIso(d.created_at),
@@ -3015,119 +3030,52 @@ app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res
   }
 });
 
-// ✅ BACKFILL SCRIPT - Convert string dates to Timestamps and fix missing data
-app.post('/v1/admin/backfill-missions', requireAdmin, async (req, res) => {
-  try {
-    const { limit = 50 } = req.body;
-    
-    console.log('🔧 Starting mission backfill...');
-    
-    // Get missions with potential issues
-    const missionsSnapshot = await db.collection('missions')
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .get();
-    
-    const results = [];
-    
-    for (const doc of missionsSnapshot.docs) {
-      const data = doc.data();
-      const updates: any = {};
-      let needsUpdate = false;
-      
-      // Fix string created_at to Timestamp
-      if (typeof data.created_at === 'string') {
-        try {
-          const date = new Date(data.created_at);
-          if (!isNaN(date.getTime())) {
-            updates.created_at = firebaseAdmin.firestore.Timestamp.fromDate(date);
-            needsUpdate = true;
-            console.log(`🔧 Converting created_at for mission ${doc.id}: ${data.created_at} -> Timestamp`);
-          }
-        } catch (e) {
-          console.warn(`Failed to convert created_at for mission ${doc.id}:`, e);
-        }
-      }
-      
-      // Fix string updated_at to Timestamp
-      if (typeof data.updated_at === 'string') {
-        try {
-          const date = new Date(data.updated_at);
-          if (!isNaN(date.getTime())) {
-            updates.updated_at = firebaseAdmin.firestore.Timestamp.fromDate(date);
-            needsUpdate = true;
-            console.log(`🔧 Converting updated_at for mission ${doc.id}: ${data.updated_at} -> Timestamp`);
-          }
-        } catch (e) {
-          console.warn(`Failed to convert updated_at for mission ${doc.id}:`, e);
-        }
-      }
-      
-      // Fix missing rewards
-      if (!data.rewards || (data.rewards.usd === 0 && data.rewards.honors === 0)) {
-        if (data.model === 'degen' && (data.selectedDegenPreset?.costUSD || data.costUSD)) {
-          const usd = Number(data.selectedDegenPreset?.costUSD ?? data.costUSD ?? 0);
-          const honors = Math.round(usd * 450);
-          updates.rewards = { usd, honors };
-          needsUpdate = true;
-          console.log(`🔧 Adding rewards for degen mission ${doc.id}: ${usd} USD, ${honors} honors`);
-        } else if (data.model === 'fixed' && data.rewardPerUser && data.cap) {
-          const honors = data.rewardPerUser * data.cap;
-          const usd = Number((honors / 450).toFixed(2));
-          updates.rewards = { usd, honors, perUserHonors: data.rewardPerUser };
-          needsUpdate = true;
-          console.log(`🔧 Adding rewards for fixed mission ${doc.id}: ${usd} USD, ${honors} honors`);
-        }
-      }
-      
-      // Fix missing deadline for degen missions
-      if (data.model === 'degen' && !data.deadline && data.duration && data.created_at) {
-        try {
-          const createdAt = typeof data.created_at === 'string' 
-            ? new Date(data.created_at) 
-            : data.created_at.toDate();
-          const deadlineDate = new Date(createdAt.getTime() + (data.duration * 60 * 60 * 1000));
-          updates.deadline = firebaseAdmin.firestore.Timestamp.fromDate(deadlineDate);
-          needsUpdate = true;
-          console.log(`🔧 Adding deadline for degen mission ${doc.id}: ${deadlineDate.toISOString()}`);
-        } catch (e) {
-          console.warn(`Failed to calculate deadline for mission ${doc.id}:`, e);
-        }
-      }
-      
-      // Fix missing expires_at for fixed missions
-      if (data.model === 'fixed' && !data.expires_at && data.created_at) {
-        try {
-          const createdAt = typeof data.created_at === 'string' 
-            ? new Date(data.created_at) 
-            : data.created_at.toDate();
-          const expiresDate = new Date(createdAt.getTime() + (48 * 60 * 60 * 1000));
-          updates.expires_at = firebaseAdmin.firestore.Timestamp.fromDate(expiresDate);
-          needsUpdate = true;
-          console.log(`🔧 Adding expires_at for fixed mission ${doc.id}: ${expiresDate.toISOString()}`);
-        } catch (e) {
-          console.warn(`Failed to calculate expires_at for mission ${doc.id}:`, e);
-        }
-      }
-      
-      if (needsUpdate) {
-        await doc.ref.update(updates);
-        results.push({ missionId: doc.id, updates });
+// Admin: backfill timestamps, deadlines, and rewards for legacy missions
+app.post('/v1/admin/backfill-timestamps', requireAdmin, async (_req, res) => {
+  const cfgDoc = await db.collection('system_config').doc('main').get();
+  const honorsPerUsd = cfgDoc.exists ? (cfgDoc.data()?.pricing?.honorsPerUsd ?? 450) : 450;
+
+  const snap = await db.collection('missions').get();
+  let fixed = 0;
+
+  for (const doc of snap.docs) {
+    const d: any = doc.data() || {};
+    const upd: any = {};
+    const createdAtIso = toIso(d.created_at);
+    if (!createdAtIso) {
+      upd.created_at = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+    }
+    if (!d.updated_at) {
+      upd.updated_at = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+    }
+    // Degen deadline
+    const durationH = Number(d.duration_hours ?? d.durationHours ?? d.duration ?? 0);
+    if (d.model === 'degen' && !toIso(d.deadline) && durationH > 0 && createdAtIso) {
+      const start = new Date(createdAtIso);
+      upd.deadline = new Date(start.getTime() + durationH * 3600 * 1000);
+    }
+    // Rewards
+    const hasRewards = d?.rewards && ((d.rewards.usd ?? 0) > 0 || (d.rewards.honors ?? 0) > 0);
+    if (!hasRewards) {
+      if (d.model === 'degen') {
+        const usd = Number(d.selectedDegenPreset?.costUSD ?? d.costUSD ?? 0);
+        if (usd > 0) upd.rewards = { usd, honors: Math.round(usd * honorsPerUsd) };
+      } else {
+        const perUserHonors = d.rewardPerUser ?? 0;
+        const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
+        const honors = perUserHonors * participants;
+        const usd = Number((honors / honorsPerUsd).toFixed(2));
+        if (honors > 0) upd.rewards = { usd, honors, perUserHonors };
       }
     }
-    
-    console.log(`✅ Backfill completed. Updated ${results.length} missions.`);
-    
-    res.json({ 
-      success: true, 
-      updated: results.length,
-      results,
-      message: `Backfill completed. Updated ${results.length} missions.` 
-    });
-  } catch (error) {
-    console.error('Backfill error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+
+    if (Object.keys(upd).length) {
+      await doc.ref.set(upd, { merge: true });
+      fixed++;
+    }
   }
+
+  res.json({ success: true, fixed, total: snap.size });
 });
 
 app.get('/v1/admin/system-config', requireAdmin, async (req, res) => {
@@ -3402,6 +3350,16 @@ const calculateTaskHonors = async (platform: string, missionType: string, taskId
 // Export the Express app as a Firebase Function
 export const api = functions.https.onRequest(app);
 
+export const setAdminClaim = functions.https.onCall(async (data, context) => {
+  // Protect this (allow only existing admins)
+  if (!context.auth?.token?.admin) {
+    throw new functions.https.HttpsError('permission-denied', 'Admin only');
+  }
+  const { uid, admin } = data as { uid: string; admin: boolean };
+  await firebaseAdmin.auth().setCustomUserClaims(uid, { admin });
+  return { success: true };
+});
+
 // Export migration function (admin only)
 export const migrateToUidBasedKeys = functions.https.onCall(async (data, context) => {
   // Only allow admin users to run migration
@@ -3528,10 +3486,10 @@ export const updateMissionAggregates = functions.firestore
         if (delta > 0) {
           if (missionData.model === 'fixed' && winnersPerTask) {
             // Fixed missions: check per-task cap
-          const currentCount = agg.taskCounts[taskId] || 0;
-          if (currentCount >= winnersPerTask) {
-            console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);
-            return; // Skip this update - task is already full
+            const currentCount = agg.taskCounts[taskId] || 0;
+            if (currentCount >= winnersPerTask) {
+              console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);
+              return; // Skip this update - task is already full
             }
           } else if (missionData.model === 'degen' && winnersPerMission) {
             // Degen missions: check mission-wide cap
