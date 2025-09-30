@@ -82,11 +82,11 @@ export const MissionCard: React.FC<MissionCardProps> = ({
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown date';
-    
+
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'Invalid date';
-      
+
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -129,7 +129,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({
               <span>•</span>
               <span className="capitalize">{mission.model}</span>
             </div>
-            
+
             {/* Mission Tasks */}
             {mission.tasks && mission.tasks.length > 0 && (
               <div className="mt-2">
