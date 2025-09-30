@@ -1129,10 +1129,10 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
 
       if (!d.rewards) {
         if (d.model === 'degen') {
-          const usd = Number(d.selectedDegenPreset?.costUSD ?? 0);
+          const usd = Number(d.selectedDegenPreset?.costUSD ?? d.costUSD ?? 0);
           const honors = Math.round(usd * cfg.honorsPerUsd);
           tx.set(mref, { rewards: { usd, honors } }, { merge: true });
-          console.log('✅ Persisted degen mission rewards:', { usd, honors });
+          console.log('✅ Persisted degen mission rewards:', { usd, honors, selectedDegenPreset: d.selectedDegenPreset, costUSD: d.costUSD });
         } else {
           const perUserHonors =
             d.rewardPerUser ??
@@ -2434,6 +2434,13 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
     // Get system config once for all missions
     const cfgDoc = await db.collection('system_config').doc('main').get();
     const cfg = readCfg(cfgDoc.exists ? cfgDoc.data() : {});
+    
+    // ✅ DEBUG: Log system config
+    console.log('=== SYSTEM CONFIG DEBUG ===');
+    console.log('Config doc exists:', cfgDoc.exists);
+    console.log('Raw config data:', cfgDoc.exists ? cfgDoc.data() : 'No config document');
+    console.log('Processed config:', cfg);
+    console.log('===========================');
 
     // Helper: derive rewards from the saved document (no side effects)
     const deriveRewards = (d: any, cfg: ReturnType<typeof readCfg>) => {
