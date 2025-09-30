@@ -2591,6 +2591,19 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       console.log('=====================================');
     }
 
+    // ✅ TEMPORARY FIX: Force update the specific mission with rewards if missing
+    const missionToFix = missionsSnapshot.docs.find(doc => doc.id === 'vb4ycovDru4j1Plq93GS');
+    if (missionToFix) {
+      const missionData = missionToFix.data();
+      if (!missionData.rewards && missionData.costUSD) {
+        console.log('🔧 FIXING MISSING REWARDS FOR MISSION vb4ycovDru4j1Plq93GS');
+        const usd = Number(missionData.costUSD);
+        const honors = Math.round(usd * cfg.honorsPerUsd);
+        await missionToFix.ref.update({ rewards: { usd, honors } });
+        console.log('✅ Fixed mission rewards:', { usd, honors });
+      }
+    }
+
     res.json(missions);
   } catch (error) {
     console.error('Error fetching admin missions:', error);
