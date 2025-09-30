@@ -2434,7 +2434,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
     // Get system config once for all missions
     const cfgDoc = await db.collection('system_config').doc('main').get();
     const cfg = readCfg(cfgDoc.exists ? cfgDoc.data() : {});
-    
+
     // ✅ DEBUG: Log system config
     console.log('=== SYSTEM CONFIG DEBUG ===');
     console.log('Config doc exists:', cfgDoc.exists);
@@ -2482,7 +2482,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
     const missions = missionsSnapshot.docs.map(doc => {
       const data = doc.data();
       const creator = usersMap.get(data.created_by);
-      
+
       // ✅ DEBUG: Log the raw Firestore data for the first mission
       if (doc.id === 'vb4ycovDru4j1Plq93GS') {
         console.log('=== ADMIN API DEBUG - MISSION vb4ycovDru4j1Plq93GS ===');
@@ -2511,7 +2511,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       // ✅ FIX B: Use the deriveRewards function instead of hardcoded values
       const storedRewards = data.rewards;
       const derivedRewards = deriveRewards(data, cfg);
-      
+
       // ✅ DEBUG: Log rewards calculation for the specific mission
       if (doc.id === 'vb4ycovDru4j1Plq93GS') {
         console.log('=== REWARDS CALCULATION DEBUG ===');
@@ -2522,7 +2522,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         console.log('CostUSD:', data.costUSD);
         console.log('================================');
       }
-      
+
       // Use stored rewards if available, otherwise use derived rewards
       const rewards = {
         usd: storedRewards?.usd ?? derivedRewards.usd,
@@ -2995,6 +2995,59 @@ app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res
     res.json(missionPerformance);
   } catch (error) {
     console.error('Error fetching mission performance:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ✅ DEBUG ENDPOINT - Temporary endpoint to debug mission data
+app.get('/v1/debug/mission/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const missionDoc = await db.collection('missions').doc(id).get();
+    
+    if (!missionDoc.exists) {
+      return res.status(404).json({ error: 'Mission not found' });
+    }
+    
+    const data = missionDoc.data();
+    
+    // Get system config
+    const configDoc = await db.collection('system_config').doc('main').get();
+    const config = configDoc.exists ? configDoc.data() : {};
+    
+    // Test deriveRewards
+    const deriveRewards = (d: any, cfg: any) => {
+      if (d.model === 'degen') {
+        const usd = Number(d.selectedDegenPreset?.costUSD ?? d.costUSD ?? 0);
+        const honors = Math.round(usd * cfg.honorsPerUsd);
+        return { usd, honors };
+      }
+      const perUserHonors = d.rewardPerUser ?? 0;
+      const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
+      const honors = perUserHonors * participants;
+      const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
+      return { usd, honors, perUserHonors };
+    };
+    
+    const cfg = {
+      honorsPerUsd: config.honorsPerUsd ?? 450,
+      platformFeeRate: config.platformFeeRate ?? 0.25,
+      premiumMultiplier: config.premiumMultiplier ?? 5,
+      taskPrices: config.pricing?.taskPrices ?? { like: 50, retweet: 100, comment: 150, follow: 200 }
+    };
+    
+    const derivedRewards = deriveRewards(data, cfg);
+    
+    res.json({
+      rawData: data,
+      systemConfig: config,
+      processedConfig: cfg,
+      derivedRewards,
+      createdAt: toIso(data.created_at),
+      deadline: toIso(data.deadline)
+    });
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
