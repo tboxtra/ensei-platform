@@ -79,20 +79,20 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             isPremium: wizard.state.isPremium,
             contentLink: wizard.state.contentLink, // Always send contentLink
             instructions: wizard.state.instructions,
-            
+
             // Fixed mission fields
             ...(wizard.state.model === 'fixed' && {
                 cap: wizard.state.cap,
                 rewardPerUser: wizard.state.rewardPerUser,
             }),
-            
+
             // Degen mission fields
             ...(wizard.state.model === 'degen' && {
                 selectedDegenPreset: wizard.state.selectedDegenPreset,
                 winnersPerMission: wizard.state.winnersPerMission ?? wizard.state.winnersCap,
                 duration: wizard.state.duration,
             }),
-            
+
             // Custom platform fields (if needed)
             ...(wizard.state.platform === 'custom' && {
                 customTitle: wizard.state.customTitle,
@@ -207,7 +207,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
                     onNext={handleStepNext}
                     onReset={wizard.resetWizard}
                     canGoPrevious={wizard.canGoPrevious}
-                    canGoNext={wizard.canGoNext}
+                    canGoNext={wizard.canGoNext}  // This now uses live validation from useWizardState
                     isLastStep={wizard.isLastStep}
                     isFirstStep={wizard.isFirstStep}
                     isLoading={isLoading}

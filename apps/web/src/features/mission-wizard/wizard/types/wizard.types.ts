@@ -83,42 +83,42 @@ export const INITIAL_WIZARD_STATE: WizardState = {
 
 // URL validation helpers to match backend
 const normalizeUrl = (url: string) =>
-  (url || '')
-    .replace(/x\.com/gi, 'twitter.com')
-    .split(/[?#]/)[0]
-    .trim();
+    (url || '')
+        .replace(/x\.com/gi, 'twitter.com')
+        .split(/[?#]/)[0]
+        .trim();
 
 const isValidTweet = (url: string) =>
-  /^(https?:\/\/)?(www\.|mobile\.)?(twitter\.com)\/[^/]+\/status\/\d+$/i.test(normalizeUrl(url));
+    /^(https?:\/\/)?(www\.|mobile\.)?(twitter\.com)\/[^/]+\/status\/\d+$/i.test(normalizeUrl(url));
 
 const hasTasks = (platform: string, tasks: string[] | undefined) =>
-  platform === 'custom' ? true : Array.isArray(tasks) && tasks.length > 0;
+    platform === 'custom' ? true : Array.isArray(tasks) && tasks.length > 0;
 
 // Main validation function that matches backend requirements
 export const canContinueToReview = (m: WizardState) => {
-  const baseOk =
-    !!m.platform &&
-    !!m.type &&
-    !!m.instructions?.trim() &&
-    !!m.contentLink &&
-    isValidTweet(m.contentLink) &&
-    hasTasks(m.platform, m.tasks);
+    const baseOk =
+        !!m.platform &&
+        !!m.type &&
+        !!m.instructions?.trim() &&
+        !!m.contentLink &&
+        isValidTweet(m.contentLink) &&
+        hasTasks(m.platform, m.tasks);
 
-  if (!baseOk) return false;
+    if (!baseOk) return false;
 
-  if (m.model === 'fixed') {
-    return Number.isFinite(m.cap) && m.cap > 0 &&
-           Number.isFinite(m.rewardPerUser) && m.rewardPerUser > 0;
-  }
+    if (m.model === 'fixed') {
+        return Number.isFinite(m.cap) && m.cap > 0 &&
+            Number.isFinite(m.rewardPerUser) && m.rewardPerUser > 0;
+    }
 
-  if (m.model === 'degen') {
-    // allow either preset with costUSD or explicit winners
-    const winners = m.winnersPerMission ?? m.winnersCap ?? m.maxWinners;
-    const hasPresetCost = Number.isFinite(m?.selectedDegenPreset?.costUSD) && m.selectedDegenPreset.costUSD > 0;
-    return (Number.isFinite(winners) && winners! > 0) && hasPresetCost;
-  }
+    if (m.model === 'degen') {
+        // allow either preset with costUSD or explicit winners
+        const winners = m.winnersPerMission ?? m.winnersCap ?? m.maxWinners;
+        const hasPresetCost = Number.isFinite(m?.selectedDegenPreset?.costUSD) && m.selectedDegenPreset.costUSD > 0;
+        return (Number.isFinite(winners) && winners! > 0) && hasPresetCost;
+    }
 
-  return false;
+    return false;
 };
 
 // Validation functions for each step

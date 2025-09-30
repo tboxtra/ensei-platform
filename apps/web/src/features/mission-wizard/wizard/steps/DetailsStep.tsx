@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { WizardState, canContinueToReview } from '../types/wizard.types';
+import { WizardState, canContinueToReview, validateStep } from '../types/wizard.types';
 
 interface DetailsStepProps {
     state: WizardState;
@@ -11,23 +11,27 @@ interface DetailsStepProps {
 
 // URL normalization helper to match backend
 const normalizeUrl = (url: string) =>
-  (url || '')
-    .replace(/x\.com/gi, 'twitter.com')
-    .split(/[?#]/)[0]
-    .trim();
+    (url || '')
+        .replace(/x\.com/gi, 'twitter.com')
+        .split(/[?#]/)[0]
+        .trim();
 
 export const DetailsStep: React.FC<DetailsStepProps> = ({
     state,
     updateState,
     onNext,
 }) => {
+    // ✅ FIX: Use the same validation as the step validator for consistency
+    const { isValid: stepValid } = validateStep(6, state); // Details is step 6
+    
     // Debug logging to help troubleshoot validation issues
     React.useEffect(() => {
         console.log('=== DETAILS STEP DEBUG ===');
         console.log('canContinueToReview:', canContinueToReview(state));
+        console.log('stepValid (step 6):', stepValid);
         console.log('Mission state:', state);
         console.log('==========================');
-    }, [state]);
+    }, [state, stepValid]);
     const handleContentLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         updateState({ contentLink: e.target.value });
     };
@@ -90,17 +94,16 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
 
             <div className="text-center">
                 <button
-                    disabled={!canContinueToReview(state)}
+                    disabled={!stepValid}
                     onClick={onNext}
-                    className={`font-bold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg ${
-                        canContinueToReview(state)
-                            ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
-                            : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    }`}
+                    className={`font-bold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg ${stepValid
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
+                        : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        }`}
                 >
                     Review Mission →
                 </button>
-                {!canContinueToReview(state) && (
+                {!stepValid && (
                     <p className="text-sm text-gray-400 mt-2">
                         Please complete all required fields to continue
                     </p>
