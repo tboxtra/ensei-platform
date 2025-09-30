@@ -265,15 +265,6 @@ const normalizeMissionData = (data: any) => {
 };
 
 const serializeMissionResponse = (data: any) => {
-  // Debug logging for deadline serialization
-  if (data.model === 'degen') {
-    console.log('=== SERIALIZE DEGEN MISSION DEBUG ===');
-    console.log('Mission ID:', data.id);
-    console.log('Raw deadline:', data.deadline);
-    console.log('Deadline type:', typeof data.deadline);
-    console.log('Serialized deadline:', toIso(data.deadline));
-    console.log('=====================================');
-  }
 
   // Helper: limit used by the UI progress bar
   const deriveSubmissionsLimit = (d: any) =>
@@ -1127,26 +1118,28 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       const cfgDoc = await db.collection('system_config').doc('main').get();
       const cfg = readCfg(cfgDoc.exists ? cfgDoc.data() : {});
 
-      if (!d.rewards) {
-        if (d.model === 'degen') {
-          const usd = Number(d.selectedDegenPreset?.costUSD ?? d.costUSD ?? 0);
-          const honors = Math.round(usd * cfg.honorsPerUsd);
-          tx.set(mref, { rewards: { usd, honors } }, { merge: true });
-          console.log('✅ Persisted degen mission rewards:', { usd, honors, selectedDegenPreset: d.selectedDegenPreset, costUSD: d.costUSD });
-        } else {
-          const perUserHonors =
-            d.rewardPerUser ??
-            (Array.isArray(d.tasks)
-              ? d.tasks.reduce((s: number, t: string) =>
-                s + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
-              : 0);
-          const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
-          const honors = perUserHonors * participants;
-          const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
-          tx.set(mref, { rewards: { usd, honors } }, { merge: true });
-          console.log('✅ Persisted fixed mission rewards:', { usd, honors });
-        }
+      // ✅ SYSTEMATIC FIX: Always calculate and persist rewards (even if they exist, recalculate to ensure consistency)
+      let rewards;
+      if (d.model === 'degen') {
+        const usd = Number(d.selectedDegenPreset?.costUSD ?? d.costUSD ?? 0);
+        const honors = Math.round(usd * cfg.honorsPerUsd);
+        rewards = { usd, honors };
+      } else {
+        const perUserHonors =
+          d.rewardPerUser ??
+          (Array.isArray(d.tasks)
+            ? d.tasks.reduce((s: number, t: string) =>
+              s + ((cfg.taskPrices?.[t] ?? 0) * (d.isPremium ? cfg.premiumMultiplier : 1)), 0)
+            : 0);
+        const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
+        const honors = perUserHonors * participants;
+        const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
+        rewards = { usd, honors, perUserHonors };
       }
+      
+      // Always update rewards to ensure consistency
+      tx.set(mref, { rewards }, { merge: true });
+      console.log('✅ Persisted mission rewards:', { model: d.model, rewards });
 
       // also normalize winners field for degen back-compat
       if (d.model === 'degen' && !d.winnersPerMission) {
@@ -2435,12 +2428,6 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
     const cfgDoc = await db.collection('system_config').doc('main').get();
     const cfg = readCfg(cfgDoc.exists ? cfgDoc.data() : {});
 
-    // ✅ DEBUG: Log system config
-    console.log('=== SYSTEM CONFIG DEBUG ===');
-    console.log('Config doc exists:', cfgDoc.exists);
-    console.log('Raw config data:', cfgDoc.exists ? cfgDoc.data() : 'No config document');
-    console.log('Processed config:', cfg);
-    console.log('===========================');
 
     // Helper: derive rewards from the saved document (no side effects)
     const deriveRewards = (d: any, cfg: ReturnType<typeof readCfg>) => {
@@ -2483,13 +2470,6 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const data = doc.data();
       const creator = usersMap.get(data.created_by);
 
-      // ✅ DEBUG: Log the raw Firestore data for the first mission
-      if (doc.id === 'vb4ycovDru4j1Plq93GS') {
-        console.log('=== ADMIN API DEBUG - MISSION vb4ycovDru4j1Plq93GS ===');
-        console.log('Raw Firestore data:', JSON.stringify(data, null, 2));
-        console.log('System config:', JSON.stringify(cfg, null, 2));
-        console.log('====================================================');
-      }
 
       // normalize dates BEFORE spreading raw data so we don't overwrite
       const createdAt = toIso(data.created_at);
@@ -2512,16 +2492,6 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const storedRewards = data.rewards;
       const derivedRewards = deriveRewards(data, cfg);
 
-      // ✅ DEBUG: Log rewards calculation for the specific mission
-      if (doc.id === 'vb4ycovDru4j1Plq93GS') {
-        console.log('=== REWARDS CALCULATION DEBUG ===');
-        console.log('Stored rewards:', storedRewards);
-        console.log('Derived rewards:', derivedRewards);
-        console.log('Mission model:', data.model);
-        console.log('SelectedDegenPreset:', data.selectedDegenPreset);
-        console.log('CostUSD:', data.costUSD);
-        console.log('================================');
-      }
 
       // Use stored rewards if available, otherwise use derived rewards
       const rewards = {
@@ -2583,26 +2553,6 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       };
     });
 
-    // ✅ DEBUG: Log the final response for the specific mission
-    const debugMission = missions.find(m => m.id === 'vb4ycovDru4j1Plq93GS');
-    if (debugMission) {
-      console.log('=== FINAL ADMIN API RESPONSE DEBUG ===');
-      console.log('Final mission data:', JSON.stringify(debugMission, null, 2));
-      console.log('=====================================');
-    }
-
-    // ✅ TEMPORARY FIX: Force update the specific mission with rewards if missing
-    const missionToFix = missionsSnapshot.docs.find(doc => doc.id === 'vb4ycovDru4j1Plq93GS');
-    if (missionToFix) {
-      const missionData = missionToFix.data();
-      if (!missionData.rewards && missionData.costUSD) {
-        console.log('🔧 FIXING MISSING REWARDS FOR MISSION vb4ycovDru4j1Plq93GS');
-        const usd = Number(missionData.costUSD);
-        const honors = Math.round(usd * cfg.honorsPerUsd);
-        await missionToFix.ref.update({ rewards: { usd, honors } });
-        console.log('✅ Fixed mission rewards:', { usd, honors });
-      }
-    }
 
     res.json(missions);
   } catch (error) {
@@ -2999,12 +2949,16 @@ app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res
   }
 });
 
-// ✅ DEBUG ENDPOINT - Temporary endpoint to debug mission data
-app.get('/v1/debug/mission/:id', async (req, res) => {
+// ✅ SYSTEMATIC FIX - Ensure all missions have proper rewards object
+app.post('/v1/admin/fix-mission-rewards', requireAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
-    const missionDoc = await db.collection('missions').doc(id).get();
+    const { missionId } = req.body;
     
+    if (!missionId) {
+      return res.status(400).json({ error: 'Mission ID is required' });
+    }
+    
+    const missionDoc = await db.collection('missions').doc(missionId).get();
     if (!missionDoc.exists) {
       return res.status(404).json({ error: 'Mission not found' });
     }
@@ -3014,40 +2968,33 @@ app.get('/v1/debug/mission/:id', async (req, res) => {
     // Get system config
     const configDoc = await db.collection('system_config').doc('main').get();
     const config = configDoc.exists ? configDoc.data() : {};
+    const cfg = readCfg(config);
     
-    // Test deriveRewards
-    const deriveRewards = (d: any, cfg: any) => {
-      if (d.model === 'degen') {
-        const usd = Number(d.selectedDegenPreset?.costUSD ?? d.costUSD ?? 0);
-        const honors = Math.round(usd * cfg.honorsPerUsd);
-        return { usd, honors };
-      }
-      const perUserHonors = d.rewardPerUser ?? 0;
-      const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
+    // Calculate rewards
+    let rewards;
+    if (data.model === 'degen') {
+      const usd = Number(data.selectedDegenPreset?.costUSD ?? data.costUSD ?? 0);
+      const honors = Math.round(usd * cfg.honorsPerUsd);
+      rewards = { usd, honors };
+    } else {
+      const perUserHonors = data.rewardPerUser ?? 0;
+      const participants = data.cap ?? data.max_participants ?? data.winnersCap ?? 0;
       const honors = perUserHonors * participants;
       const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
-      return { usd, honors, perUserHonors };
-    };
+      rewards = { usd, honors, perUserHonors };
+    }
     
-    const cfg = {
-      honorsPerUsd: config.honorsPerUsd ?? 450,
-      platformFeeRate: config.platformFeeRate ?? 0.25,
-      premiumMultiplier: config.premiumMultiplier ?? 5,
-      taskPrices: config.pricing?.taskPrices ?? { like: 50, retweet: 100, comment: 150, follow: 200 }
-    };
+    // Update the mission with rewards
+    await missionDoc.ref.update({ rewards });
     
-    const derivedRewards = deriveRewards(data, cfg);
-    
-    res.json({
-      rawData: data,
-      systemConfig: config,
-      processedConfig: cfg,
-      derivedRewards,
-      createdAt: toIso(data.created_at),
-      deadline: toIso(data.deadline)
+    res.json({ 
+      success: true, 
+      missionId, 
+      rewards,
+      message: 'Mission rewards updated successfully' 
     });
   } catch (error) {
-    console.error('Debug endpoint error:', error);
+    console.error('Fix mission rewards error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
