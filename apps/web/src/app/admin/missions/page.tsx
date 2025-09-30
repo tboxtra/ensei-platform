@@ -82,7 +82,6 @@ export default function MissionsPage() {
           totalPages: Math.ceil((response.data?.length || 0) / pagination.limit)
         }));
       } else {
-        console.log('❌ Admin missions failed:', response.message);
         setMissions([]);
         setPagination(prev => ({
           ...prev,
@@ -91,7 +90,6 @@ export default function MissionsPage() {
         }));
       }
     } catch (err) {
-      console.error('❌ Admin missions error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load missions');
       setMissions([]);
     } finally {

@@ -64,6 +64,7 @@ app.use(cors({
     'https://ensei-platform-onh1g1z1d-izecubes-projects-b81ca540.vercel.app',
     'https://ensei-platform-8mimjbhxx-izecubes-projects-b81ca540.vercel.app',
     'https://admin-dashboard-d83i9lh7f-izecubes-projects-b81ca540.vercel.app',
+    'https://ensei-platform-git-main-izecubes-projects-b81ca540.vercel.app', // Current admin domain
     'http://localhost:3000',
     'http://localhost:3001'
   ],
@@ -212,6 +213,17 @@ const toIso = (v: any) => {
     // Handle Firestore date strings like "September 30, 2025 at 1:08:34 PM UTC+1"
     if (v.includes('at') && v.includes('UTC')) {
       try {
+        // Try to parse the specific Firestore format
+        const m = v.match(/^([A-Za-z]+ \d{1,2}, \d{4}) at (\d{1,2}:\d{2}:\d{2} [AP]M) UTC([+-]\d+)/);
+        if (m) {
+          const [_, d, t, offset] = m;
+          // Build ISO-like string without "at" and with numeric TZ
+          const s = `${d} ${t} GMT${offset}`;
+          const dt = new Date(s);
+          if (!isNaN(dt.getTime())) return dt.toISOString();
+        }
+        
+        // Fallback to direct parsing
         const date = new Date(v);
         if (!isNaN(date.getTime())) {
           return date.toISOString();
@@ -221,10 +233,10 @@ const toIso = (v: any) => {
       }
     }
     
-    // Validate that it's a proper ISO string
-    const date = new Date(v);
-    if (!isNaN(date.getTime())) {
-      return v;
+    // Final fallback for any string
+    const dt = new Date(v);
+    if (!isNaN(dt.getTime())) {
+      return dt.toISOString();
     }
   }
 
@@ -284,7 +296,7 @@ const serializeMissionResponse = (data: any) => {
   const createdAt = toIso(data.created_at);
   const rawDeadline = toIso(data.deadline);
   let calculatedDeadline = rawDeadline;
-  
+
   if (data.model === 'degen' && !rawDeadline && data.duration && createdAt) {
     try {
       const startDate = new Date(createdAt);
@@ -295,6 +307,29 @@ const serializeMissionResponse = (data: any) => {
       console.warn('Failed to calculate deadline for degen mission in serializeMissionResponse:', data.id, e);
     }
   }
+
+  // ✅ FIX: Add reward derivation to public serializer so public cards don't show $0
+  const deriveRewards = (d: any) => {
+    if (d.model === 'degen') {
+      const usd = Number(d.selectedDegenPreset?.costUSD ?? d.costUSD ?? 0);
+      const honors = Math.round(usd * 450); // Use default honorsPerUsd
+      return { usd, honors };
+    }
+    // fixed
+    const perUserHonors = d.rewardPerUser ?? 0;
+    const participants = d.cap ?? d.max_participants ?? d.winnersCap ?? 0;
+    const honors = perUserHonors * participants;
+    const usd = Number((honors / 450).toFixed(2)); // Use default honorsPerUsd
+    return { usd, honors, perUserHonors };
+  };
+
+  const storedRewards = data.rewards;
+  const derivedRewards = deriveRewards(data);
+  const rewards = {
+    usd: (storedRewards?.usd && storedRewards.usd > 0) ? storedRewards.usd : derivedRewards.usd,
+    honors: (storedRewards?.honors && storedRewards.honors > 0) ? storedRewards.honors : derivedRewards.honors,
+    ...(derivedRewards.perUserHonors && { perUserHonors: derivedRewards.perUserHonors })
+  };
 
   return {
     ...data,
@@ -313,6 +348,11 @@ const serializeMissionResponse = (data: any) => {
 
     // ✅ submissionsLimit for UI progress bars
     submissionsLimit: deriveSubmissionsLimit(data),
+
+    // ✅ rewards for public cards
+    rewards,
+    totalCostUsd: rewards.usd,
+    totalCostHonors: rewards.honors,
 
     // keep content link normalization too if you like
     contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
@@ -815,10 +855,10 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
       const data = doc.data();
       return {
         ...serializeMissionResponse({
-          id: doc.id,
+      id: doc.id,
           ...data,
         }),
-        type: 'created'
+      type: 'created'
       };
     });
 
@@ -830,7 +870,7 @@ app.get('/v1/missions/my', verifyFirebaseToken, async (req: any, res) => {
           const data = missionDoc.data();
           return {
             ...serializeMissionResponse({
-              id: missionDoc.id,
+            id: missionDoc.id,
               ...data,
             }),
             type: 'participating',
@@ -911,15 +951,16 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       );
 
       if (durationH > 0) {
+        // ✅ FIX: Use Firestore Timestamp for deadline, not JavaScript Date
         const deadlineDate = new Date(Date.now() + durationH * 3600 * 1000);
-        missionData.deadline = deadlineDate;
+        missionData.deadline = firebaseAdmin.firestore.Timestamp.fromDate(deadlineDate);
 
         console.log('=== DEGEN DEADLINE DEBUG ===');
         console.log('duration_hours:', missionData.duration_hours);
         console.log('durationHours:', missionData.durationHours);
         console.log('duration:', missionData.duration);
         console.log('resolved durationH:', durationH);
-        console.log('calculated deadline:', deadlineDate);
+        console.log('calculated deadline (Timestamp):', missionData.deadline);
         console.log('deadline ISO:', deadlineDate.toISOString());
         console.log('============================');
       } else {
@@ -953,8 +994,9 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       // (optional back-compat write so legacy readers don't break)
       missionData.winnersPerTask = undefined; // we no longer use this for degen; leave undefined
     } else if (missionData.model === 'fixed' && missionData.cap) {
-      // Fixed missions expire after 48 hours
-      missionData.expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      // ✅ FIX: Fixed missions expire after 48 hours - use Firestore Timestamp
+      const expiresDate = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      missionData.expires_at = firebaseAdmin.firestore.Timestamp.fromDate(expiresDate);
 
       // Calculate rewards for fixed missions
       const totalHonors = missionData.rewardPerUser * missionData.cap;
@@ -2191,8 +2233,8 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
     if (!participationsSnapshot.empty) {
       // Convert participation format to submission format
       items = participationsSnapshot.docs.flatMap(doc => {
-        const data = doc.data();
-        const tasksCompleted = data.tasks_completed || [];
+          const data = doc.data();
+          const tasksCompleted = data.tasks_completed || [];
 
         // If no tasks completed, return the participation itself as a submission
         if (tasksCompleted.length === 0) {
@@ -2215,33 +2257,33 @@ app.get('/v1/missions/:missionId/taskCompletions', async (req, res) => {
         }
 
         // Convert each completed task to a submission
-        return tasksCompleted.map((task: any, index: number) => ({
-          id: `${doc.id}_${task.task_id || index}`,
-          missionId: data.mission_id,
-          taskId: task.task_id,
-          userId: data.user_id,
-          userName: data.user_name,
-          userEmail: data.user_email,
-          userSocialHandle: data.user_social_handle,
-          status: task.status === 'completed' ? 'verified' : task.status,
-          completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
-          verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
-          flaggedAt: null,
-          flaggedReason: null,
-          reviewedBy: null,
-          reviewedAt: null,
-          metadata: {
-            taskType: task.task_id,
-            platform: data.platform || 'twitter',
-            url: task.verification_data?.url,
-            ...task.verification_data
-          },
-          createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
-          updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
-        }));
-      });
-      console.log('Found submissions in mission_participations collection:', items.length);
-    } else {
+          return tasksCompleted.map((task: any, index: number) => ({
+            id: `${doc.id}_${task.task_id || index}`,
+            missionId: data.mission_id,
+            taskId: task.task_id,
+            userId: data.user_id,
+            userName: data.user_name,
+            userEmail: data.user_email,
+            userSocialHandle: data.user_social_handle,
+            status: task.status === 'completed' ? 'verified' : task.status,
+            completedAt: task.completed_at?.toDate?.()?.toISOString() || task.completed_at,
+            verifiedAt: task.status === 'completed' ? (task.completed_at?.toDate?.()?.toISOString() || task.completed_at) : null,
+            flaggedAt: null,
+            flaggedReason: null,
+            reviewedBy: null,
+            reviewedAt: null,
+            metadata: {
+              taskType: task.task_id,
+              platform: data.platform || 'twitter',
+              url: task.verification_data?.url,
+              ...task.verification_data
+            },
+            createdAt: data.created_at?.toDate?.()?.toISOString() || data.created_at,
+            updatedAt: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
+          }));
+        });
+        console.log('Found submissions in mission_participations collection:', items.length);
+      } else {
       // ✅ FALLBACK: Check taskCompletions for legacy data
       const taskCompletionsSnapshot = await db.collection('taskCompletions')
         .where('missionId', '==', missionId)
@@ -2288,8 +2330,8 @@ app.get('/v1/missions/:missionId/taskCompletions/count', async (req, res) => {
       // ✅ FALLBACK: Count from taskCompletions for legacy data
       const taskCompletionsSnapshot = await db.collection('taskCompletions')
         .where('missionId', '==', missionId)
-        .where('status', 'in', ['verified', 'approved'])
-        .get();
+            .where('status', 'in', ['verified', 'approved'])
+            .get();
       count = taskCompletionsSnapshot.size;
     }
 
@@ -2507,7 +2549,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         honors: (storedRewards?.honors && storedRewards.honors > 0) ? storedRewards.honors : derivedRewards.honors,
         ...(derivedRewards.perUserHonors && { perUserHonors: derivedRewards.perUserHonors })
       };
-      
+
       // ✅ CRITICAL FIX: If rewards are still 0, force update the mission document
       if (rewards.usd === 0 && rewards.honors === 0 && (data.costUSD || data.selectedDegenPreset?.costUSD || data.rewardPerUser)) {
         console.log('🔧 CRITICAL: Mission has 0 rewards but has cost data, forcing update:', doc.id);
@@ -2750,7 +2792,7 @@ app.get('/v1/submissions', async (req, res) => {
     const submissions = submissionsSnapshot.docs.map(doc => {
       const d: any = doc.data();
       return {
-        id: doc.id,
+      id: doc.id,
         ...d,
         submitted_at: toIso(d.submitted_at),
         created_at: toIso(d.created_at),
@@ -2973,52 +3015,117 @@ app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res
   }
 });
 
-// ✅ SYSTEMATIC FIX - Ensure all missions have proper rewards object
-app.post('/v1/admin/fix-mission-rewards', requireAdmin, async (req, res) => {
+// ✅ BACKFILL SCRIPT - Convert string dates to Timestamps and fix missing data
+app.post('/v1/admin/backfill-missions', requireAdmin, async (req, res) => {
   try {
-    const { missionId } = req.body;
-
-    if (!missionId) {
-      return res.status(400).json({ error: 'Mission ID is required' });
+    const { limit = 50 } = req.body;
+    
+    console.log('🔧 Starting mission backfill...');
+    
+    // Get missions with potential issues
+    const missionsSnapshot = await db.collection('missions')
+      .orderBy('created_at', 'desc')
+      .limit(limit)
+      .get();
+    
+    const results = [];
+    
+    for (const doc of missionsSnapshot.docs) {
+      const data = doc.data();
+      const updates: any = {};
+      let needsUpdate = false;
+      
+      // Fix string created_at to Timestamp
+      if (typeof data.created_at === 'string') {
+        try {
+          const date = new Date(data.created_at);
+          if (!isNaN(date.getTime())) {
+            updates.created_at = firebaseAdmin.firestore.Timestamp.fromDate(date);
+            needsUpdate = true;
+            console.log(`🔧 Converting created_at for mission ${doc.id}: ${data.created_at} -> Timestamp`);
+          }
+        } catch (e) {
+          console.warn(`Failed to convert created_at for mission ${doc.id}:`, e);
+        }
+      }
+      
+      // Fix string updated_at to Timestamp
+      if (typeof data.updated_at === 'string') {
+        try {
+          const date = new Date(data.updated_at);
+          if (!isNaN(date.getTime())) {
+            updates.updated_at = firebaseAdmin.firestore.Timestamp.fromDate(date);
+            needsUpdate = true;
+            console.log(`🔧 Converting updated_at for mission ${doc.id}: ${data.updated_at} -> Timestamp`);
+          }
+        } catch (e) {
+          console.warn(`Failed to convert updated_at for mission ${doc.id}:`, e);
+        }
+      }
+      
+      // Fix missing rewards
+      if (!data.rewards || (data.rewards.usd === 0 && data.rewards.honors === 0)) {
+        if (data.model === 'degen' && (data.selectedDegenPreset?.costUSD || data.costUSD)) {
+          const usd = Number(data.selectedDegenPreset?.costUSD ?? data.costUSD ?? 0);
+          const honors = Math.round(usd * 450);
+          updates.rewards = { usd, honors };
+          needsUpdate = true;
+          console.log(`🔧 Adding rewards for degen mission ${doc.id}: ${usd} USD, ${honors} honors`);
+        } else if (data.model === 'fixed' && data.rewardPerUser && data.cap) {
+          const honors = data.rewardPerUser * data.cap;
+          const usd = Number((honors / 450).toFixed(2));
+          updates.rewards = { usd, honors, perUserHonors: data.rewardPerUser };
+          needsUpdate = true;
+          console.log(`🔧 Adding rewards for fixed mission ${doc.id}: ${usd} USD, ${honors} honors`);
+        }
+      }
+      
+      // Fix missing deadline for degen missions
+      if (data.model === 'degen' && !data.deadline && data.duration && data.created_at) {
+        try {
+          const createdAt = typeof data.created_at === 'string' 
+            ? new Date(data.created_at) 
+            : data.created_at.toDate();
+          const deadlineDate = new Date(createdAt.getTime() + (data.duration * 60 * 60 * 1000));
+          updates.deadline = firebaseAdmin.firestore.Timestamp.fromDate(deadlineDate);
+          needsUpdate = true;
+          console.log(`🔧 Adding deadline for degen mission ${doc.id}: ${deadlineDate.toISOString()}`);
+        } catch (e) {
+          console.warn(`Failed to calculate deadline for mission ${doc.id}:`, e);
+        }
+      }
+      
+      // Fix missing expires_at for fixed missions
+      if (data.model === 'fixed' && !data.expires_at && data.created_at) {
+        try {
+          const createdAt = typeof data.created_at === 'string' 
+            ? new Date(data.created_at) 
+            : data.created_at.toDate();
+          const expiresDate = new Date(createdAt.getTime() + (48 * 60 * 60 * 1000));
+          updates.expires_at = firebaseAdmin.firestore.Timestamp.fromDate(expiresDate);
+          needsUpdate = true;
+          console.log(`🔧 Adding expires_at for fixed mission ${doc.id}: ${expiresDate.toISOString()}`);
+        } catch (e) {
+          console.warn(`Failed to calculate expires_at for mission ${doc.id}:`, e);
+        }
+      }
+      
+      if (needsUpdate) {
+        await doc.ref.update(updates);
+        results.push({ missionId: doc.id, updates });
+      }
     }
-
-    const missionDoc = await db.collection('missions').doc(missionId).get();
-    if (!missionDoc.exists) {
-      return res.status(404).json({ error: 'Mission not found' });
-    }
-
-    const data = missionDoc.data();
-
-    // Get system config
-    const configDoc = await db.collection('system_config').doc('main').get();
-    const config = configDoc.exists ? configDoc.data() : {};
-    const cfg = readCfg(config);
-
-    // Calculate rewards
-    let rewards;
-    if (data.model === 'degen') {
-      const usd = Number(data.selectedDegenPreset?.costUSD ?? data.costUSD ?? 0);
-      const honors = Math.round(usd * cfg.honorsPerUsd);
-      rewards = { usd, honors };
-    } else {
-      const perUserHonors = data.rewardPerUser ?? 0;
-      const participants = data.cap ?? data.max_participants ?? data.winnersCap ?? 0;
-      const honors = perUserHonors * participants;
-      const usd = Number((honors / cfg.honorsPerUsd).toFixed(2));
-      rewards = { usd, honors, perUserHonors };
-    }
-
-    // Update the mission with rewards
-    await missionDoc.ref.update({ rewards });
-
-    res.json({
-      success: true,
-      missionId,
-      rewards,
-      message: 'Mission rewards updated successfully'
+    
+    console.log(`✅ Backfill completed. Updated ${results.length} missions.`);
+    
+    res.json({ 
+      success: true, 
+      updated: results.length,
+      results,
+      message: `Backfill completed. Updated ${results.length} missions.` 
     });
   } catch (error) {
-    console.error('Fix mission rewards error:', error);
+    console.error('Backfill error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -3421,10 +3528,10 @@ export const updateMissionAggregates = functions.firestore
         if (delta > 0) {
           if (missionData.model === 'fixed' && winnersPerTask) {
             // Fixed missions: check per-task cap
-            const currentCount = agg.taskCounts[taskId] || 0;
-            if (currentCount >= winnersPerTask) {
-              console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);
-              return; // Skip this update - task is already full
+          const currentCount = agg.taskCounts[taskId] || 0;
+          if (currentCount >= winnersPerTask) {
+            console.log(`Task ${taskId} already at cap (${currentCount}/${winnersPerTask}), skipping increment`);
+            return; // Skip this update - task is already full
             }
           } else if (missionData.model === 'degen' && winnersPerMission) {
             // Degen missions: check mission-wide cap
