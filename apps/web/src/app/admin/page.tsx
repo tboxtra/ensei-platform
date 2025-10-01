@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AdminAuthContext';
+import { LoginForm } from '../../components/admin/auth/LoginForm';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -16,7 +17,7 @@ export default function AdminPage() {
                 console.log('Admin Dashboard - Redirecting to /admin/review');
                 router.push('/admin/review');
             } else {
-                console.log('Admin Dashboard - Not authenticated, should show login form');
+                console.log('Admin Dashboard - Not authenticated, showing login form');
             }
         }
     }, [isAuthenticated, isLoading, router, user]);
@@ -33,7 +34,12 @@ export default function AdminPage() {
         );
     }
 
-    // This should not be reached if ProtectedRoute is working correctly
+    // Show login form if not authenticated
+    if (!isAuthenticated) {
+        return <LoginForm onSuccess={() => router.push('/admin/review')} />;
+    }
+
+    // This should not be reached if authentication is working correctly
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
             <div className="text-center">
