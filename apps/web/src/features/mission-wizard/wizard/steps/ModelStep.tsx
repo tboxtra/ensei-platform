@@ -53,6 +53,21 @@ export const ModelStep: React.FC<ModelStepProps> = ({
                 <p className="text-gray-400">Choose how your mission will be structured</p>
             </div>
 
+            {/* V1 Pre-selected Settings */}
+            <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-center justify-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                        <span className="text-blue-300">Platform:</span>
+                        <span className="bg-blue-500/30 px-2 py-1 rounded text-blue-200">Twitter</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-purple-300">Type:</span>
+                        <span className="bg-purple-500/30 px-2 py-1 rounded text-purple-200">Engage</span>
+                    </div>
+                    <span className="text-gray-400">(V1 defaults)</span>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {MODELS.map((model) => {
                     const isSelected = state.model === model.id;

@@ -20,13 +20,11 @@ interface MissionWizardProps {
 }
 
 const WIZARD_STEPS = [
-    { id: 1, title: 'Platform', description: 'Twitter (V1 only)' },
-    { id: 2, title: 'Model', description: 'Mission structure' },
-    { id: 3, title: 'Type', description: 'Engage (V1 only)' },
-    { id: 4, title: 'Tasks', description: 'Select activities' },
-    { id: 5, title: 'Settings', description: 'Configure' },
-    { id: 6, title: 'Details', description: 'Content' },
-    { id: 7, title: 'Review', description: 'Create' },
+    { id: 1, title: 'Model', description: 'Mission structure' },
+    { id: 2, title: 'Tasks', description: 'Select activities' },
+    { id: 3, title: 'Settings', description: 'Configure' },
+    { id: 4, title: 'Details', description: 'Content' },
+    { id: 5, title: 'Review', description: 'Create' },
 ];
 
 export const MissionWizard: React.FC<MissionWizardProps> = ({
@@ -121,18 +119,14 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
 
         switch (wizard.currentStep) {
             case 1:
-                return <PlatformStep {...stepProps} />;
-            case 2:
                 return <ModelStep {...stepProps} />;
-            case 3:
-                return <TypeStep {...stepProps} />;
-            case 4:
+            case 2:
                 return <TasksStep {...stepProps} />;
-            case 5:
+            case 3:
                 return <SettingsStep {...stepProps} />;
-            case 6:
+            case 4:
                 return <DetailsStep {...stepProps} />;
-            case 7:
+            case 5:
                 return (
                     <ReviewStep
                         state={wizard.state}
@@ -142,7 +136,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
                     />
                 );
             default:
-                return <PlatformStep {...stepProps} />;
+                return <ModelStep {...stepProps} />;
         }
     };
 
@@ -201,7 +195,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             </div>
 
             {/* Navigation */}
-            {wizard.currentStep < 7 && (
+            {wizard.currentStep < 5 && (
                 <WizardNavigation
                     onPrevious={handleStepPrevious}
                     onNext={handleStepNext}
