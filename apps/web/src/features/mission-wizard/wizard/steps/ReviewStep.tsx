@@ -196,6 +196,5 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                 </div>
             )}
         </div>
-        </div >
     );
 };
