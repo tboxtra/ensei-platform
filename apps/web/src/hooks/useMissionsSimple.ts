@@ -61,8 +61,10 @@ export function useMissionsSimple() {
             console.log('useMissionsSimple: Received data:', data);
             console.log('useMissionsSimple: Data type:', typeof data);
             console.log('useMissionsSimple: Is array:', Array.isArray(data));
+            console.log('useMissionsSimple: Has missions property:', data?.missions ? 'yes' : 'no');
 
-            const missionsArray = Array.isArray(data) ? data : [];
+            // Handle the correct API response format: {missions: [...], hasMore: boolean, nextPageToken: string | null}
+            const missionsArray = data?.missions || [];
             setMissions(missionsArray);
             console.log('useMissionsSimple: Set missions:', missionsArray.length);
         } catch (err) {

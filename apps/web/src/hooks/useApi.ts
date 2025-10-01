@@ -397,12 +397,14 @@ export function useApi() {
     const getMissions = useCallback(async (): Promise<Mission[]> => {
         console.log('getMissions: Starting to fetch all missions...');
         try {
-            const missions = await makeRequest<Mission[]>('/v1/missions');
+            const response = await makeRequest<{missions: Mission[], hasMore: boolean, nextPageToken: string | null}>('/v1/missions');
             console.log('getMissions: Successfully fetched missions:', {
-                count: missions?.length || 0,
-                missions: missions
+                count: response?.missions?.length || 0,
+                missions: response?.missions,
+                hasMore: response?.hasMore,
+                nextPageToken: response?.nextPageToken
             });
-            return missions || [];
+            return response?.missions || [];
         } catch (error) {
             console.error('getMissions: Failed to fetch missions:', error);
             throw error;
@@ -417,7 +419,8 @@ export function useApi() {
         console.log('getMyMissions: Starting to fetch user missions...');
 
         // This endpoint doesn't exist, so we'll get all missions and filter on frontend
-        const allMissions = await makeRequest<Mission[]>('/v1/missions');
+        const response = await makeRequest<{missions: Mission[], hasMore: boolean, nextPageToken: string | null}>('/v1/missions');
+        const allMissions = response?.missions || [];
         console.log('getMyMissions: Got all missions:', allMissions?.length || 0);
 
         const userData = localStorage.getItem('user');
