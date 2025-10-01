@@ -25,37 +25,39 @@ export const PlatformStep: React.FC<PlatformStepProps> = ({
     updateState,
     onNext,
 }) => {
-    const handlePlatformSelect = (platform: string) => {
-        updateState({ platform });
-        onNext();
-    };
+    // V1 RESTRICTION: Auto-select Twitter and proceed
+    React.useEffect(() => {
+        updateState({ platform: 'twitter' });
+        // Auto-proceed to next step after a brief delay to show the selection
+        const timer = setTimeout(() => {
+            onNext();
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [updateState, onNext]);
 
     return (
         <div className="space-y-8">
             <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Choose Your Platform</h2>
-                <p className="text-gray-400">Select the social media platform for your mission</p>
+                <h2 className="text-2xl font-bold mb-2">Platform Selection</h2>
+                <p className="text-gray-400">Currently only Twitter missions are supported</p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {PLATFORMS.map((platform) => {
-                    const isSelected = state.platform === platform.id;
-                    const isTwitter = platform.id === 'twitter';
+            {/* V1: Show only Twitter as selected */}
+            <div className="flex justify-center">
+                <div className="p-8 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg max-w-sm">
+                    <div className="text-center">
+                        <span className="text-6xl mb-4 block">𝕏</span>
+                        <span className="font-medium text-2xl">X (Twitter)</span>
+                        <p className="text-blue-100 mt-2 text-sm">Automatically selected for V1</p>
+                    </div>
+                </div>
+            </div>
 
-                    return (
-                        <button
-                            key={platform.id}
-                            onClick={() => handlePlatformSelect(platform.id)}
-                            className={`p-6 rounded-xl flex flex-col items-center transition-all duration-300 transform hover:scale-105 ${isSelected || isTwitter
-                                    ? `bg-gradient-to-br ${platform.color} text-white shadow-lg`
-                                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                                }`}
-                        >
-                            <span className="text-4xl mb-3">{platform.icon}</span>
-                            <span className="font-medium text-lg">{platform.name}</span>
-                        </button>
-                    );
-                })}
+            {/* V1 Notice */}
+            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 text-center">
+                <p className="text-blue-300 text-sm">
+                    <strong>V1 Launch:</strong> Currently only Twitter engage missions are supported. More platforms coming soon!
+                </p>
             </div>
         </div>
     );

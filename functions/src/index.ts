@@ -381,6 +381,11 @@ const readCfg = (cfg: any = {}) => ({
   platformFeeRate: cfg.platformFeeRate ?? cfg.pricing?.platformFeeRate ?? 0.25,
   premiumMultiplier: cfg.premiumMultiplier ?? cfg.pricing?.premiumMultiplier ?? 5,
   taskPrices: cfg.pricing?.taskPrices ?? DEFAULT_TASK_PRICES,
+  v1Restrictions: cfg.v1Restrictions ?? {
+    allowedPlatforms: ['twitter'],
+    allowedMissionTypes: ['engage'],
+    allowedTasks: ['like', 'retweet', 'comment', 'quote', 'follow']
+  },
 });
 
 // Centralized configuration - should match frontend config
@@ -938,10 +943,39 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       return;
     }
 
-    // Get system configuration for pricing
+    // Get system configuration for pricing and V1 restrictions
     const configDoc = await db.collection('system_config').doc('main').get();
     const rawConfig = configDoc.exists ? configDoc.data() : {};
     const systemConfig = readCfg(rawConfig);
+
+    // V1 RESTRICTIONS: Check against configurable restrictions
+    const v1Restrictions = systemConfig.v1Restrictions || {
+      allowedPlatforms: ['twitter'],
+      allowedMissionTypes: ['engage'],
+      allowedTasks: ['like', 'retweet', 'comment', 'quote', 'follow']
+    };
+
+    if (!v1Restrictions.allowedPlatforms.includes(missionData.platform)) {
+      res.status(400).json({
+        error: `Only ${v1Restrictions.allowedPlatforms.join(', ')} missions are supported in this version.`
+      });
+      return;
+    }
+    if (!v1Restrictions.allowedMissionTypes.includes(missionData.type)) {
+      res.status(400).json({
+        error: `Only ${v1Restrictions.allowedMissionTypes.join(', ')} mission types are supported in this version.`
+      });
+      return;
+    }
+
+    // V1 TASK WHITELISTING: Only allow specific tasks
+    const invalidTasks = missionData.tasks.filter(task => !v1Restrictions.allowedTasks.includes(task));
+    if (invalidTasks.length > 0) {
+      res.status(400).json({
+        error: `The following tasks are not supported in this version: ${invalidTasks.join(', ')}. Only ${v1Restrictions.allowedTasks.join(', ')} are allowed.`
+      });
+      return;
+    }
 
     // Calculate deadline and rewards based on mission model
     if (missionData.model === 'degen') {
@@ -2561,7 +2595,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const createdAt = toIso(data.created_at);
       const deadline = toIso(data.deadline);
       let expiresAt = toIso(data.expires_at);
-      
+
       // ✅ FIX: Calculate expires_at for fixed missions if missing (48-hour auto-completion)
       if (data.model === 'fixed' && !expiresAt && createdAt) {
         try {
@@ -3151,6 +3185,12 @@ app.get('/v1/admin/system-config', requireAdmin, async (req, res) => {
           emailEnabled: true,
           pushEnabled: true,
           smsEnabled: false
+        },
+        // V1 RESTRICTIONS: Configurable platform and mission type limitations
+        v1Restrictions: {
+          allowedPlatforms: ['twitter'],
+          allowedMissionTypes: ['engage'],
+          allowedTasks: ['like', 'retweet', 'comment', 'quote', 'follow']
         }
       };
 

@@ -18,6 +18,11 @@ const TASK_DEFINITIONS = {
             { id: 'comment', name: 'Comment', price: 150 },
             { id: 'quote', name: 'Quote', price: 200 },
             { id: 'follow', name: 'Follow', price: 250 },
+            // V1: Hide other tasks that aren't supported yet
+            // { id: 'meme', name: 'Meme', price: 300 },
+            // { id: 'thread', name: 'Thread', price: 500 },
+            // { id: 'article', name: 'Article', price: 400 },
+            // { id: 'videoreview', name: 'Video Review', price: 600 },
         ],
         content: [
             { id: 'meme', name: 'Meme', price: 300 },
@@ -160,6 +165,14 @@ export const TasksStep: React.FC<TasksStepProps> = ({
             <div className="text-center">
                 <h2 className="text-2xl font-bold mb-2">Select Tasks</h2>
                 <p className="text-gray-400">Choose which tasks participants need to complete</p>
+
+                {/* V1 Notice */}
+                <div className="mt-3 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+                    <p className="text-green-300 text-sm">
+                        <strong>V1 Launch:</strong> Currently only basic engagement tasks are available. More task types coming soon!
+                    </p>
+                </div>
+
                 {state.model === 'degen' && (
                     <div className="mt-3 p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg">
                         <p className="text-purple-300 text-sm">

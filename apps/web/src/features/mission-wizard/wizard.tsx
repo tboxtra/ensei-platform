@@ -20,9 +20,9 @@ interface MissionWizardProps {
 }
 
 const WIZARD_STEPS = [
-    { id: 1, title: 'Platform', description: 'Choose platform' },
+    { id: 1, title: 'Platform', description: 'Twitter (V1 only)' },
     { id: 2, title: 'Model', description: 'Mission structure' },
-    { id: 3, title: 'Type', description: 'Mission category' },
+    { id: 3, title: 'Type', description: 'Engage (V1 only)' },
     { id: 4, title: 'Tasks', description: 'Select activities' },
     { id: 5, title: 'Settings', description: 'Configure' },
     { id: 6, title: 'Details', description: 'Content' },

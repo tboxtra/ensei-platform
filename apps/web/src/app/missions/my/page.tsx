@@ -137,6 +137,11 @@ function MyMissionsContent() {
     const filteredMissions = useMemo(() => {
         const arr = (missions || [])
             .filter((m) => {
+                // V1 RESTRICTION: Only show Twitter engage missions
+                if (m.platform !== 'twitter' || m.type !== 'engage') {
+                    return false;
+                }
+
                 if (filters.status !== 'all') {
                     // show computed status (auto-complete) in filtering too
                     const displayStatus =

@@ -128,6 +128,11 @@ export default function MissionsPage() {
   const missionsArray = Array.isArray(missions) ? missions : [];
 
   const filteredMissions = missionsArray.filter(mission => {
+    // V1 RESTRICTION: Only show Twitter engage missions
+    if (mission.platform !== 'twitter' || mission.type !== 'engage') {
+      return false;
+    }
+
     // Apply regular filters
     if (filters.type !== 'all' && mission.type !== filters.type) return false;
     if (filters.model !== 'all' && mission.model !== filters.model) return false;

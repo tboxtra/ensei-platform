@@ -286,7 +286,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({
               <CountdownTimer deadline={mission.deadline} />
             </div>
           )}
-          
+
           {mission.model === 'fixed' && mission.expires_at && (
             <div className="flex items-center space-x-1">
               <span className="text-gray-500">Expires in:</span>
