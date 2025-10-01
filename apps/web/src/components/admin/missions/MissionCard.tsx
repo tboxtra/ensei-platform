@@ -15,6 +15,7 @@ interface Mission {
   creatorEmail: string;
   createdAt: string;
   deadline?: string;
+  expires_at?: string;
   submissionsCount: number;
   approvedCount: number;
   totalCostUsd: number;
@@ -278,11 +279,18 @@ export const MissionCard: React.FC<MissionCardProps> = ({
               Duration: {mission.durationHours}h
             </div>
           )}
-          
+
           {mission.model === 'degen' && mission.deadline && (
             <div className="flex items-center space-x-1">
               <span className="text-gray-500">Ends in:</span>
               <CountdownTimer deadline={mission.deadline} />
+            </div>
+          )}
+          
+          {mission.model === 'fixed' && mission.expires_at && (
+            <div className="flex items-center space-x-1">
+              <span className="text-gray-500">Expires in:</span>
+              <CountdownTimer deadline={mission.expires_at} />
             </div>
           )}
         </div>

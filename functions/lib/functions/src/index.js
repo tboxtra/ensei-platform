@@ -2326,7 +2326,18 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
             // normalize dates BEFORE spreading raw data so we don't overwrite
             const createdAt = toIso(data.created_at);
             const deadline = toIso(data.deadline);
-            const expiresAt = toIso(data.expires_at);
+            let expiresAt = toIso(data.expires_at);
+            // ✅ FIX: Calculate expires_at for fixed missions if missing (48-hour auto-completion)
+            if (data.model === 'fixed' && !expiresAt && createdAt) {
+                try {
+                    const startDate = new Date(createdAt);
+                    const expiresDate = new Date(startDate.getTime() + (48 * 60 * 60 * 1000)); // 48 hours
+                    expiresAt = expiresDate.toISOString();
+                }
+                catch (e) {
+                    console.warn('Failed to calculate expires_at for fixed mission:', doc.id);
+                }
+            }
             // ✅ FIX: Calculate deadline for degen missions if missing
             let calculatedDeadline = deadline;
             if (data.model === 'degen' && !deadline && data.duration && createdAt) {
