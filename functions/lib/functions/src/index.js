@@ -2406,7 +2406,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
                 winnersCount: deriveWinnersCount(data), // Explicit field for UI display
                 winnersPerTask: data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0, // keep for back-compat display
                 winnersCap: data.winnersCap ?? data.winners_cap,
-                cap: data.cap ?? data.max_participants ?? 0,
+                cap: data.model === 'fixed' ? (data.cap ?? data.max_participants ?? 0) : null,
                 durationHours: data.duration_hours ?? data.durationHours ?? data.duration,
                 maxParticipants: data.max_participants ?? data.cap,
                 participantsCount: data.participants_count || 0,

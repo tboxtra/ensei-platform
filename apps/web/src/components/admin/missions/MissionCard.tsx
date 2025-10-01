@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { CountdownTimer } from './CountdownTimer';
 
 interface Mission {
   id: string;
@@ -13,6 +14,7 @@ interface Mission {
   creatorName: string;
   creatorEmail: string;
   createdAt: string;
+  deadline?: string;
   submissionsCount: number;
   approvedCount: number;
   totalCostUsd: number;
@@ -222,7 +224,10 @@ export const MissionCard: React.FC<MissionCardProps> = ({
           <div className="text-sm text-gray-500">Submissions</div>
           <div className="text-lg font-semibold text-gray-900">
             {mission.submissionsCount}
-            {mission.cap && ` / ${mission.cap}`}
+            {mission.model === 'fixed' && mission.cap && ` / ${mission.cap}`}
+            {mission.model === 'degen' && (
+              <span className="text-sm text-gray-500 ml-1">(unlimited)</span>
+            )}
           </div>
         </div>
 
@@ -267,11 +272,20 @@ export const MissionCard: React.FC<MissionCardProps> = ({
           {' '}• {formatDate(mission.createdAt)}
         </div>
 
-        {mission.durationHours && (
-          <div>
-            Duration: {mission.durationHours}h
-          </div>
-        )}
+        <div className="flex items-center space-x-4">
+          {mission.durationHours && (
+            <div>
+              Duration: {mission.durationHours}h
+            </div>
+          )}
+          
+          {mission.model === 'degen' && mission.deadline && (
+            <div className="flex items-center space-x-1">
+              <span className="text-gray-500">Ends in:</span>
+              <CountdownTimer deadline={mission.deadline} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

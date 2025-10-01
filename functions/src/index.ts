@@ -133,10 +133,10 @@ const requireAdmin = async (req: any, res: any, next: any) => {
   try {
     const token = req.headers.authorization?.split('Bearer ')[1];
     if (!token) return res.status(401).json({ error: 'No token' });
-    
+
     // Check for demo admin tokens first
     if (token === 'demo_admin_token' || token === 'demo_moderator_token') {
-      req.user = { 
+      req.user = {
         uid: token === 'demo_admin_token' ? 'demo_admin_1' : 'demo_moderator_1',
         admin: true,
         email: token === 'demo_admin_token' ? 'admin@ensei.com' : 'moderator@ensei.com'
@@ -144,7 +144,7 @@ const requireAdmin = async (req: any, res: any, next: any) => {
       next();
       return;
     }
-    
+
     // Verify real Firebase token
     const decoded = await firebaseAdmin.auth().verifyIdToken(token);
     if (!decoded.admin) return res.status(403).json({ error: 'Admin access required' });
@@ -2648,7 +2648,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         winnersCount: deriveWinnersCount(data), // Explicit field for UI display
         winnersPerTask: data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0, // keep for back-compat display
         winnersCap: data.winnersCap ?? data.winners_cap,
-        cap: data.cap ?? data.max_participants ?? 0,
+        cap: data.model === 'fixed' ? (data.cap ?? data.max_participants ?? 0) : null,
         durationHours: data.duration_hours ?? data.durationHours ?? data.duration,
         maxParticipants: data.max_participants ?? data.cap,
         participantsCount: data.participants_count || 0,
