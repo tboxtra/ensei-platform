@@ -187,12 +187,17 @@ const toIso = (v: any) => {
 
   // Firestore Timestamp
   if (v?.toDate && typeof v.toDate === 'function') {
-    try { return v.toDate().toISOString(); } catch {}
+    try { return v.toDate().toISOString(); } catch { }
   }
 
   // {seconds: number}
   if (typeof v === 'object' && typeof v.seconds === 'number') {
-    try { return new Date(v.seconds * 1000).toISOString(); } catch {}
+    try { return new Date(v.seconds * 1000).toISOString(); } catch { }
+  }
+
+  // {_seconds: number, _nanoseconds: number} - Firestore Timestamp format
+  if (typeof v === 'object' && typeof v._seconds === 'number') {
+    try { return new Date(v._seconds * 1000).toISOString(); } catch { }
   }
 
   // Native Date
@@ -314,7 +319,7 @@ const serializeMissionResponse = (data: any) => {
         data.rewards = { usd: Number((honors / honorsPerUsd).toFixed(2)), honors, perUserHonors: data.rewardPerUser };
       }
     }
-  } catch {}
+  } catch { }
 
   return {
     ...data,
@@ -2558,12 +2563,23 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const storedRewards = data.rewards;
       const derivedRewards = deriveRewards(data, cfg);
 
-      // Use stored rewards if they exist and are valid, otherwise use derived rewards
+      // ✅ CRITICAL FIX: Always use derived rewards if stored rewards are missing or zero
       const rewards = {
         usd: (storedRewards?.usd && storedRewards.usd > 0) ? storedRewards.usd : derivedRewards.usd,
         honors: (storedRewards?.honors && storedRewards.honors > 0) ? storedRewards.honors : derivedRewards.honors,
         ...(derivedRewards.perUserHonors && { perUserHonors: derivedRewards.perUserHonors })
       };
+      
+      // ✅ DEBUG: Log rewards calculation for problematic missions
+      if (rewards.usd === 0 && (data.selectedDegenPreset?.costUSD || data.costUSD || data.rewardPerUser)) {
+        console.log('🔧 DEBUG: Mission has 0 rewards but has cost data:', doc.id);
+        console.log('  storedRewards:', storedRewards);
+        console.log('  derivedRewards:', derivedRewards);
+        console.log('  selectedDegenPreset:', data.selectedDegenPreset);
+        console.log('  costUSD:', data.costUSD);
+        console.log('  rewardPerUser:', data.rewardPerUser);
+        console.log('  final rewards:', rewards);
+      }
 
       // ✅ CRITICAL FIX: If rewards are still 0, force update the mission document
       if (rewards.usd === 0 && rewards.honors === 0 && (data.costUSD || data.selectedDegenPreset?.costUSD || data.rewardPerUser)) {
