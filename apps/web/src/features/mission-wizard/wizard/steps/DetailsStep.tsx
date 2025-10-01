@@ -61,55 +61,35 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
     };
 
     return (
-        <div className="space-y-8">
-            <div className="text-center">
-                <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                    Mission Details
-                </h2>
-                <p className="text-gray-400 text-lg">Provide the content and instructions for your mission</p>
+        <div className="space-y-4">
+            <div className="text-left mb-2">
+                <h2 className="text-lg font-bold text-white mb-1">Mission Details</h2>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-4">
                 {/* Content Link */}
-                <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
-                    <label className="block text-lg font-semibold mb-4 text-white">Content Link</label>
-                    <div className="space-y-3">
-                        <input
-                            type="url"
-                            value={state.contentLink}
-                            onChange={handleContentLinkChange}
-                            onBlur={handleContentLinkBlur}
-                            className="w-full p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-medium"
-                            placeholder={getPlaceholder()}
-                        />
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <span className="text-blue-400">💡</span>
-                            <span>Paste the Twitter/X post URL that participants will engage with</span>
-                        </div>
-                    </div>
+                <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50">
+                    <label className="block text-sm font-semibold mb-2 text-white">Content Link</label>
+                    <input
+                        type="url"
+                        value={state.contentLink}
+                        onChange={handleContentLinkChange}
+                        onBlur={handleContentLinkBlur}
+                        className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        placeholder={getPlaceholder()}
+                    />
                 </div>
 
                 {/* Instructions */}
-                <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
-                    <label className="block text-lg font-semibold mb-4 text-white">Instructions</label>
-                    <div className="space-y-3">
-                        <textarea
-                            rows={6}
-                            value={state.instructions}
-                            onChange={handleInstructionsChange}
-                            className="w-full p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-lg font-medium"
-                            placeholder="Enter detailed mission instructions for participants..."
-                        />
-                        <div className="flex items-center justify-between text-sm text-gray-400">
-                            <div className="flex items-center gap-2">
-                                <span className="text-green-400">📝</span>
-                                <span>Be specific about what participants should do</span>
-                            </div>
-                            <div className="text-xs">
-                                {state.instructions.length}/2000 characters
-                            </div>
-                        </div>
-                    </div>
+                <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50">
+                    <label className="block text-sm font-semibold mb-2 text-white">Instructions</label>
+                    <textarea
+                        rows={3}
+                        value={state.instructions}
+                        onChange={handleInstructionsChange}
+                        className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                        placeholder="Enter mission instructions for participants..."
+                    />
                 </div>
             </div>
 

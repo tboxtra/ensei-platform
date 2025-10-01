@@ -71,18 +71,18 @@ export default function CreateMissionPage() {
     return (
         <ModernLayout currentPage="/missions/create">
             <div className="max-w-4xl mx-auto px-4 py-4">
-                {/* V1 Notice - Small and subtle */}
-                <div className="text-center mb-4">
-                    <span className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">
-                        V1: Twitter engage missions only
-                    </span>
-                </div>
-
                 <MissionWizard
                     onSubmit={handleWizardSubmit}
                     isLoading={loading}
                     error={error}
                 />
+                
+                {/* V1 Notice - Bottom aligned */}
+                <div className="text-center mt-4">
+                    <span className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">
+                        V1: Twitter engage missions only
+                    </span>
+                </div>
             </div>
         </ModernLayout>
     );

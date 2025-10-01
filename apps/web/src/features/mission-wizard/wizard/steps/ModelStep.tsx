@@ -36,8 +36,8 @@ export const ModelStep: React.FC<ModelStepProps> = ({
 
     return (
         <div className="h-full flex flex-col">
-            <div className="text-center mb-4">
-                <h2 className="text-lg font-bold text-white">Mission Model</h2>
+            <div className="text-left mb-2">
+                <h2 className="text-lg font-bold text-white mb-1">Mission Model</h2>
             </div>
 
             <div className="flex-1 grid grid-cols-2 gap-4">
@@ -49,11 +49,10 @@ export const ModelStep: React.FC<ModelStepProps> = ({
                         <button
                             key={model.id}
                             onClick={() => handleModelSelect(model.id)}
-                            className={`relative p-4 rounded-xl text-center transition-all duration-300 ${
-                                isSelected || isFixed
-                                    ? 'bg-blue-500/20 border-2 border-blue-500 text-white'
-                                    : 'bg-gray-800/50 border border-gray-700 text-gray-300 hover:border-gray-600'
-                            }`}
+                            className={`relative p-4 rounded-xl text-center transition-all duration-300 ${isSelected || isFixed
+                                ? 'bg-blue-500/20 border-2 border-blue-500 text-white'
+                                : 'bg-gray-800/50 border border-gray-700 text-gray-300 hover:border-gray-600'
+                                }`}
                         >
                             {(isSelected || isFixed) && (
                                 <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">

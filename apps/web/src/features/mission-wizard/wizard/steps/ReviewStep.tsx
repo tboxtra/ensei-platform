@@ -61,12 +61,9 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
 
 
     return (
-        <div className="space-y-8">
-            <div className="text-center">
-                <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
-                    Review & Create
-                </h2>
-                <p className="text-gray-400 text-lg">Review your mission configuration and pricing before launching</p>
+        <div className="space-y-4">
+            <div className="text-left mb-2">
+                <h2 className="text-lg font-bold text-white mb-1">Review & Create</h2>
             </div>
 
             {/* Mission Summary */}
@@ -170,42 +167,35 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             )}
 
             {/* Create Button */}
-            <div className="text-center space-y-6">
-                <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-2xl p-6 border border-green-500/20">
-                    <button
-                        onClick={onSubmit}
-                        disabled={isLoading}
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 px-16 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl text-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? (
-                            <div className="flex items-center gap-3">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                                Creating Mission...
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3">
-                                <span>🚀</span>
-                                <span>Create Mission</span>
-                            </div>
-                        )}
-                    </button>
-                    <p className="text-gray-400 text-sm mt-4">
-                        Your mission will be live immediately after creation
-                    </p>
-                </div>
-
-                {onReset && (
-                    <div>
-                        <button
-                            onClick={onReset}
-                            disabled={isLoading}
-                            className="text-gray-400 hover:text-white text-sm underline transition-colors disabled:opacity-50"
-                        >
-                            🔄 Start Over
-                        </button>
-                    </div>
-                )}
+            <div className="text-center">
+                <button
+                    onClick={onSubmit}
+                    disabled={isLoading}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {isLoading ? (
+                        <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Creating...
+                        </div>
+                    ) : (
+                        'Create Mission'
+                    )}
+                </button>
             </div>
+
+            {onReset && (
+                <div>
+                    <button
+                        onClick={onReset}
+                        disabled={isLoading}
+                        className="text-gray-400 hover:text-white text-sm underline transition-colors disabled:opacity-50"
+                    >
+                        🔄 Start Over
+                    </button>
+                </div>
+            )}
         </div>
+        </div >
     );
 };

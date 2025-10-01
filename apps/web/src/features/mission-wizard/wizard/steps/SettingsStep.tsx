@@ -54,7 +54,7 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
         }
         const parsed = parseInt(value, 10);
         if (!Number.isFinite(parsed)) return;
-        updateState({ cap: clamp(parsed, 1) });
+        updateState({ cap: clamp(parsed, 60) });
     };
 
     const handleWinnersCapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,12 +103,9 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
             : !!state.selectedDegenPreset && (state.winnersCap ?? 0) >= 1;
 
     return (
-        <div className="space-y-8">
-            <div className="text-center">
-                <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                    Mission Settings
-                </h2>
-                <p className="text-gray-400 text-lg">Configure your mission parameters and pricing</p>
+        <div className="space-y-4">
+            <div className="text-left mb-2">
+                <h2 className="text-lg font-bold text-white mb-1">Mission Settings</h2>
             </div>
 
             {state.model === 'fixed' ? (
@@ -132,23 +129,22 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
 
                     {/* Target Audience */}
                     <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
-                        <label className="block text-lg font-semibold mb-4 text-white">Target Audience</label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="radiogroup" aria-label="Target audience selection">
+                        <label className="block text-sm font-semibold mb-2 text-white">Target Audience</label>
+                        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Target audience selection">
                             <button
                                 onClick={() => handleAudienceSelect(false)}
                                 role="radio"
                                 aria-pressed={!state.isPremium}
-                                className={`group relative p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${!state.isPremium
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl border-2 border-blue-400/30'
+                                className={`relative p-2 rounded-lg text-center transition-all duration-300 ${!state.isPremium
+                                    ? 'bg-blue-500/20 border-2 border-blue-500 text-white'
                                     : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
                                     }`}
                             >
-                                <div className="text-3xl mb-3">🌍</div>
-                                <div className="font-bold text-lg mb-2">All Users</div>
-                                <div className="text-sm opacity-90">Open to everyone</div>
+                                <div className="text-lg mb-1">🌍</div>
+                                <div className="font-semibold text-xs">All Users</div>
                                 {!state.isPremium && (
-                                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                                        <div className="w-3 h-3 rounded-full bg-white"></div>
+                                    <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-green-500 flex items-center justify-center">
+                                        <span className="text-white text-xs">✓</span>
                                     </div>
                                 )}
                             </button>
@@ -156,17 +152,16 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                 onClick={() => handleAudienceSelect(true)}
                                 role="radio"
                                 aria-pressed={state.isPremium}
-                                className={`group relative p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${state.isPremium
-                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl border-2 border-yellow-400/30'
+                                className={`relative p-2 rounded-lg text-center transition-all duration-300 ${state.isPremium
+                                    ? 'bg-yellow-500/20 border-2 border-yellow-500 text-white'
                                     : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
                                     }`}
                             >
-                                <div className="text-3xl mb-3">👑</div>
-                                <div className="font-bold text-lg mb-2">Premium Users</div>
-                                <div className="text-sm opacity-90">Higher quality engagement</div>
+                                <div className="text-lg mb-1">👑</div>
+                                <div className="font-semibold text-xs">Premium</div>
                                 {state.isPremium && (
-                                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                                        <div className="w-3 h-3 rounded-full bg-white"></div>
+                                    <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-green-500 flex items-center justify-center">
+                                        <span className="text-white text-xs">✓</span>
                                     </div>
                                 )}
                             </button>
@@ -259,22 +254,22 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                         </div>
 
                         <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
-                            <label className="block text-lg font-semibold mb-4 text-white">Target Audience</label>
-                            <div className="space-y-4" role="radiogroup" aria-label="Target audience selection">
+                            <label className="block text-sm font-semibold mb-2 text-white">Target Audience</label>
+                            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Target audience selection">
                                 <button
                                     onClick={() => handleAudienceSelect(false)}
                                     role="radio"
                                     aria-pressed={!state.isPremium}
-                                    className={`group relative w-full p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${!state.isPremium
-                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl border-2 border-blue-400/30'
+                                    className={`relative p-2 rounded-lg text-center transition-all duration-300 ${!state.isPremium
+                                        ? 'bg-blue-500/20 border-2 border-blue-500 text-white'
                                         : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
                                         }`}
                                 >
-                                    <div className="text-2xl mb-2">🌍</div>
-                                    <div className="font-bold">All Users</div>
+                                    <div className="text-lg mb-1">🌍</div>
+                                    <div className="font-semibold text-xs">All Users</div>
                                     {!state.isPremium && (
-                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                                        <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-green-500 flex items-center justify-center">
+                                            <span className="text-white text-xs">✓</span>
                                         </div>
                                     )}
                                 </button>
@@ -282,16 +277,16 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                     onClick={() => handleAudienceSelect(true)}
                                     role="radio"
                                     aria-pressed={state.isPremium}
-                                    className={`group relative w-full p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${state.isPremium
-                                        ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl border-2 border-yellow-400/30'
+                                    className={`relative p-2 rounded-lg text-center transition-all duration-300 ${state.isPremium
+                                        ? 'bg-yellow-500/20 border-2 border-yellow-500 text-white'
                                         : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
                                         }`}
                                 >
-                                    <div className="text-2xl mb-2">👑</div>
-                                    <div className="font-bold">Premium Users</div>
+                                    <div className="text-lg mb-1">👑</div>
+                                    <div className="font-semibold text-xs">Premium</div>
                                     {state.isPremium && (
-                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                                        <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-green-500 flex items-center justify-center">
+                                            <span className="text-white text-xs">✓</span>
                                         </div>
                                     )}
                                 </button>

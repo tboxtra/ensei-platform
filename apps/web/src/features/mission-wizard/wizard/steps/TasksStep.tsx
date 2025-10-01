@@ -161,12 +161,9 @@ export const TasksStep: React.FC<TasksStepProps> = ({
     };
 
     return (
-        <div className="space-y-8">
-            <div className="text-center">
-                <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
-                    Select Tasks
-                </h2>
-                <p className="text-gray-400 text-lg">Choose which engagement tasks participants need to complete</p>
+        <div className="space-y-4">
+            <div className="text-left mb-2">
+                <h2 className="text-lg font-bold text-white mb-1">Select Tasks</h2>
 
 
                 {state.model === 'degen' && (
@@ -189,7 +186,7 @@ export const TasksStep: React.FC<TasksStepProps> = ({
             </div>
 
             {availableTasks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     {availableTasks.map((task) => {
                         const isSelected = state.tasks.includes(task.id);
                         const isDisabled = state.model === 'degen' && !isSelected && state.tasks.length >= 3;
@@ -199,47 +196,26 @@ export const TasksStep: React.FC<TasksStepProps> = ({
                                 key={task.id}
                                 onClick={() => handleTaskToggle(task.id)}
                                 disabled={isDisabled}
-                                className={getTaskButtonClass(task.id)}
+                                className={`relative p-3 rounded-lg text-center transition-all duration-300 ${isSelected
+                                    ? 'bg-green-500/20 border-2 border-green-500 text-white'
+                                    : 'bg-gray-800/50 border border-gray-700 text-gray-300 hover:border-gray-600'
+                                    } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                {/* Selection indicator */}
                                 {isSelected && (
-                                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                                        <div className="w-3 h-3 rounded-full bg-white"></div>
+                                    <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                                        <span className="text-white text-xs">✓</span>
                                     </div>
                                 )}
 
-                                <div className="flex flex-col h-full">
-                                    <div className="flex-1">
-                                        <div className="font-bold text-xl mb-2 group-hover:text-white transition-colors">
-                                            {task.name}
-                                        </div>
-                                        <div className="text-sm opacity-75 mb-4">
-                                            {task.price} honors
-                                        </div>
-
-                                        {/* Task description based on type */}
-                                        <div className="text-xs opacity-60 leading-relaxed">
-                                            {task.id === 'like' && 'Users will like the specified content'}
-                                            {task.id === 'retweet' && 'Users will retweet/share the content'}
-                                            {task.id === 'comment' && 'Users will leave a comment on the content'}
-                                            {task.id === 'quote' && 'Users will quote tweet with their own message'}
-                                            {task.id === 'follow' && 'Users will follow the specified account'}
-                                        </div>
-                                    </div>
-
-                                    {/* Selection checkbox */}
-                                    <div className="flex justify-center mt-4">
-                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected
-                                                ? 'border-white bg-white/20'
-                                                : 'border-gray-400 group-hover:border-gray-300'
-                                            }`}>
-                                            {isSelected && <span className="text-white text-lg">✓</span>}
-                                        </div>
-                                    </div>
+                                <div className="text-2xl mb-1">
+                                    {task.id === 'like' && '👍'}
+                                    {task.id === 'retweet' && '🔄'}
+                                    {task.id === 'comment' && '💬'}
+                                    {task.id === 'quote' && '💭'}
+                                    {task.id === 'follow' && '👥'}
                                 </div>
-
-                                {/* Hover effect overlay */}
-                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                                <div className="font-semibold text-sm">{task.name}</div>
+                                <div className="text-xs opacity-75">{task.price}h</div>
                             </button>
                         );
                     })}
