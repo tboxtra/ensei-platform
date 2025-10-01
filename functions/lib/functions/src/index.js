@@ -139,6 +139,17 @@ const requireAdmin = async (req, res, next) => {
         const token = req.headers.authorization?.split('Bearer ')[1];
         if (!token)
             return res.status(401).json({ error: 'No token' });
+        // Check for demo admin tokens first
+        if (token === 'demo_admin_token' || token === 'demo_moderator_token') {
+            req.user = {
+                uid: token === 'demo_admin_token' ? 'demo_admin_1' : 'demo_moderator_1',
+                admin: true,
+                email: token === 'demo_admin_token' ? 'admin@ensei.com' : 'moderator@ensei.com'
+            };
+            next();
+            return;
+        }
+        // Verify real Firebase token
         const decoded = await firebaseAdmin.auth().verifyIdToken(token);
         if (!decoded.admin)
             return res.status(403).json({ error: 'Admin access required' });
