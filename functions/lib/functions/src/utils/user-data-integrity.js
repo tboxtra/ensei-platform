@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.coerceUserData = coerceUserData;
 exports.checkUserDataIntegrity = checkUserDataIntegrity;
@@ -12,6 +45,29 @@ exports.createMissionWithUidReferences = createMissionWithUidReferences;
 exports.createSubmissionWithUidReferences = createSubmissionWithUidReferences;
 exports.verifyDataIntegrityAfterDisplayNameChange = verifyDataIntegrityAfterDisplayNameChange;
 const firestore_1 = require("firebase-admin/firestore");
+const firebaseAdmin = __importStar(require("firebase-admin"));
+// Status standardization
+const normalizeStatus = (status) => {
+    if (!status)
+        return 'pending';
+    const statusStr = String(status).toLowerCase();
+    // Map legacy statuses to standard ones
+    const legacyMap = {
+        'verified': 'verified',
+        'VERIFIED': 'verified',
+        'approved': 'approved',
+        'APPROVED': 'approved',
+        'completed': 'completed',
+        'COMPLETED': 'completed',
+        'active': 'active',
+        'ACTIVE': 'active',
+        'paused': 'paused',
+        'PAUSED': 'paused',
+        'expired': 'expired',
+        'EXPIRED': 'expired'
+    };
+    return legacyMap[statusStr] || statusStr;
+};
 function coerceUserData(data) {
     return {
         missions: data?.missions ?? [],
@@ -273,17 +329,77 @@ async function createMissionWithUidReferences(userId, missionData) {
         throw new Error('Invalid user ID format');
     }
     const missionRef = getDb().collection('missions').doc();
-    const mission = {
-        ...missionData,
+    // ✅ FIX A: Ensure mission document persists all computed fields
+    const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+    const canonical = {
+        // Base fields
+        platform: missionData.platform,
+        model: missionData.model,
+        type: missionData.type,
+        tasks: missionData.tasks,
+        isPremium: !!missionData.isPremium,
+        contentLink: missionData.contentLink,
+        tweetLink: missionData.contentLink, // keep normalized twin for back-compat
+        instructions: missionData.instructions,
+        status: normalizeStatus(missionData.status || 'active'),
         created_by: userId,
         id: missionRef.id,
-        status: missionData.status || 'active', // Default to 'active' if not specified
-        created_at: new Date() // Ensure created_at is set for proper ordering
+        // Timestamps
+        created_at: now,
+        updated_at: now,
+        // Fixed mission fields
+        ...(missionData.model === 'fixed' && {
+            cap: missionData.cap,
+            rewardPerUser: missionData.rewardPerUser,
+            winnersPerTask: 1, // as designed
+            expires_at: missionData.expires_at ?? null,
+            deadline: missionData.deadline ?? null,
+            rewards: missionData.rewards ?? {
+                honors: Math.round(missionData.rewardPerUser * missionData.cap),
+                usd: Number(((missionData.rewardPerUser * missionData.cap) / 450).toFixed(2)),
+            },
+        }),
+        // Degen mission fields
+        ...(missionData.model === 'degen' && {
+            duration: missionData.duration, // hours
+            selectedDegenPreset: missionData.selectedDegenPreset,
+            winnersPerMission: missionData.winnersPerMission ?? missionData.winnersCap ?? missionData.maxWinners ?? 0,
+            winnersCap: missionData.winnersPerMission ?? missionData.winnersCap ?? missionData.maxWinners ?? 0, // back-compat mirror
+            deadline: missionData.deadline ?? null,
+            rewards: missionData.rewards ?? {
+                usd: missionData.selectedDegenPreset?.costUSD ?? 0,
+                honors: Math.round((missionData.selectedDegenPreset?.costUSD ?? 0) * 450),
+            },
+        }),
     };
-    await missionRef.set(mission);
+    // IMPORTANT: write all of the above; don't drop unknown keys
+    await missionRef.set(canonical, { merge: true });
+    // ✅ DEGEN FLOW COMPLETION - Create task documents for degen missions
+    if (missionData.model === 'degen' && missionData.tasks && missionData.tasks.length > 0) {
+        const batch = getDb().batch();
+        for (const task of missionData.tasks) {
+            const taskRef = missionRef.collection('tasks').doc();
+            const taskDoc = {
+                id: taskRef.id,
+                missionId: missionRef.id,
+                type: task,
+                status: 'active',
+                created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                // Initialize task-specific fields for degen missions
+                winners: [],
+                winnersHash: null,
+                honorsPerTask: missionData.rewards?.honors ? Math.floor(missionData.rewards.honors / missionData.tasks.length) : 0,
+                maxWinners: missionData.winnersPerMission || 0
+            };
+            batch.set(taskRef, taskDoc);
+        }
+        await batch.commit();
+        console.log(`Created ${missionData.tasks.length} task documents for degen mission ${missionRef.id}`);
+    }
     return {
         success: true,
-        mission
+        mission: canonical
     };
 }
 /**
