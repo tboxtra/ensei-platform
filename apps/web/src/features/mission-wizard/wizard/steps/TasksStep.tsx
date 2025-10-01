@@ -167,21 +167,7 @@ export const TasksStep: React.FC<TasksStepProps> = ({
                     Select Tasks
                 </h2>
                 <p className="text-gray-400 text-lg">Choose which engagement tasks participants need to complete</p>
-                
-                {/* V1 Notice */}
-                <div className="mt-4 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl backdrop-blur-sm">
-                    <div className="flex items-center justify-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center">
-                            <span className="text-green-300 text-lg">🚀</span>
-                        </div>
-                        <div>
-                            <p className="text-green-300 text-sm font-medium">
-                                <strong>V1 Launch:</strong> Basic engagement tasks available
-                            </p>
-                            <p className="text-green-200 text-xs mt-1">More task types coming soon!</p>
-                        </div>
-                    </div>
-                </div>
+
 
                 {state.model === 'degen' && (
                     <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/30 rounded-xl backdrop-blur-sm">
@@ -230,7 +216,7 @@ export const TasksStep: React.FC<TasksStepProps> = ({
                                         <div className="text-sm opacity-75 mb-4">
                                             {task.price} honors
                                         </div>
-                                        
+
                                         {/* Task description based on type */}
                                         <div className="text-xs opacity-60 leading-relaxed">
                                             {task.id === 'like' && 'Users will like the specified content'}
@@ -243,11 +229,10 @@ export const TasksStep: React.FC<TasksStepProps> = ({
 
                                     {/* Selection checkbox */}
                                     <div className="flex justify-center mt-4">
-                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                                            isSelected 
-                                                ? 'border-white bg-white/20' 
+                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected
+                                                ? 'border-white bg-white/20'
                                                 : 'border-gray-400 group-hover:border-gray-300'
-                                        }`}>
+                                            }`}>
                                             {isSelected && <span className="text-white text-lg">✓</span>}
                                         </div>
                                     </div>
@@ -267,13 +252,7 @@ export const TasksStep: React.FC<TasksStepProps> = ({
 
             {state.tasks.length > 0 && (
                 <div className="text-center">
-                    <button
-                        onClick={handleContinue}
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-10 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl text-lg"
-                    >
-                        Continue to Settings →
-                    </button>
-                    <p className="text-gray-500 text-sm mt-3">
+                    <p className="text-gray-500 text-sm">
                         Selected {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''} • Ready to configure settings
                     </p>
                 </div>

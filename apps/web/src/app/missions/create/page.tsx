@@ -70,26 +70,20 @@ export default function CreateMissionPage() {
 
     return (
         <ModernLayout currentPage="/missions/create">
-            {/* V1 Notice */}
             <div className="max-w-4xl mx-auto px-4 py-4">
-                <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-lg p-4 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="text-2xl">🚀</div>
-                        <div>
-                            <h3 className="text-lg font-semibold text-blue-300 mb-1">V1 Launch - Limited Features</h3>
-                            <p className="text-blue-200 text-sm">
-                                Currently only <strong>Twitter engage missions</strong> are supported. More platforms and mission types coming soon!
-                            </p>
-                        </div>
-                    </div>
+                {/* V1 Notice - Small and subtle */}
+                <div className="text-center mb-4">
+                    <span className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">
+                        V1: Twitter engage missions only
+                    </span>
                 </div>
-            </div>
 
-            <MissionWizard
-                onSubmit={handleWizardSubmit}
-                isLoading={loading}
-                error={error}
-            />
+                <MissionWizard
+                    onSubmit={handleWizardSubmit}
+                    isLoading={loading}
+                    error={error}
+                />
+            </div>
         </ModernLayout>
     );
 }

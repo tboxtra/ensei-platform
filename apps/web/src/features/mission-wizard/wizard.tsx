@@ -169,11 +169,13 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
     return (
         <div className="max-w-6xl mx-auto px-4 py-6">
             {/* Header */}
-            <div className="text-center mb-10">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-emerald-500 bg-clip-text text-transparent mb-3">
-                    Create New Mission
-                </h1>
-                <p className="text-gray-400 text-lg">Build and launch your engagement campaign in minutes</p>
+            <div className="text-left mb-2">
+                <div className="flex items-center gap-2">
+                    <h1 className="text-base font-semibold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                        Create Mission
+                    </h1>
+                </div>
+                <p className="text-[11px] text-gray-400">Build and launch your engagement campaign</p>
             </div>
 
             {/* Progress Steps */}

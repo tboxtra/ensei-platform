@@ -114,16 +114,6 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
             </div>
 
             <div className="text-center">
-                <button
-                    disabled={!stepValid}
-                    onClick={onNext}
-                    className={`font-bold py-4 px-10 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl text-lg ${stepValid
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
-                        : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                        }`}
-                >
-                    Review Mission →
-                </button>
                 {!stepValid && (
                     <p className="text-gray-500 text-sm mt-3">
                         Please complete all required fields to continue

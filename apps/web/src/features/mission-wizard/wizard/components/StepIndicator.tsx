@@ -33,8 +33,8 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
         }
         return (
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${status === 'active'
-                    ? 'bg-white text-blue-600'
-                    : 'bg-gray-600 text-gray-400'
+                ? 'bg-white text-blue-600'
+                : 'bg-gray-600 text-gray-400'
                 }`}>
                 {stepId}
             </div>
@@ -68,11 +68,10 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
                             </div>
 
                             {!isLast && (
-                                <div className={`flex-1 h-1 mx-6 rounded-full transition-all duration-500 ${
-                                    step.id < currentStep 
-                                        ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                <div className={`flex-1 h-1 mx-6 rounded-full transition-all duration-500 ${step.id < currentStep
+                                        ? 'bg-gradient-to-r from-green-500 to-emerald-500'
                                         : 'bg-gray-700'
-                                }`} />
+                                    }`} />
                             )}
                         </React.Fragment>
                     );

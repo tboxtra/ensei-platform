@@ -47,13 +47,23 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
         Math.min(Math.max(n, min), max);
 
     const handleCapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const parsed = parseInt(e.target.value, 10);
+        const value = e.target.value;
+        if (value === '') {
+            updateState({ cap: undefined });
+            return;
+        }
+        const parsed = parseInt(value, 10);
         if (!Number.isFinite(parsed)) return;
         updateState({ cap: clamp(parsed, 1) });
     };
 
     const handleWinnersCapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const parsed = parseInt(e.target.value, 10);
+        const value = e.target.value;
+        if (value === '') {
+            updateState({ winnersCap: undefined });
+            return;
+        }
+        const parsed = parseInt(value, 10);
         if (!Number.isFinite(parsed)) return;
         const maxW = state.selectedDegenPreset?.maxWinners ?? 10;
         updateState({ winnersCap: clamp(parsed, 1, maxW) });
@@ -128,11 +138,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                 onClick={() => handleAudienceSelect(false)}
                                 role="radio"
                                 aria-pressed={!state.isPremium}
-                                className={`group relative p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
-                                    !state.isPremium
-                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl border-2 border-blue-400/30'
-                                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
-                                }`}
+                                className={`group relative p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${!state.isPremium
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl border-2 border-blue-400/30'
+                                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                    }`}
                             >
                                 <div className="text-3xl mb-3">🌍</div>
                                 <div className="font-bold text-lg mb-2">All Users</div>
@@ -147,11 +156,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                 onClick={() => handleAudienceSelect(true)}
                                 role="radio"
                                 aria-pressed={state.isPremium}
-                                className={`group relative p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
-                                    state.isPremium
-                                        ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl border-2 border-yellow-400/30'
-                                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
-                                }`}
+                                className={`group relative p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${state.isPremium
+                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl border-2 border-yellow-400/30'
+                                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                    }`}
                             >
                                 <div className="text-3xl mb-3">👑</div>
                                 <div className="font-bold text-lg mb-2">Premium Users</div>
@@ -207,11 +215,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                     <button
                                         key={preset.hours}
                                         onClick={() => handleDegenPresetSelect(preset)}
-                                        className={`group relative p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
-                                            isSelected
-                                                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-xl border-2 border-purple-400/30'
-                                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
-                                        }`}
+                                        className={`group relative p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${isSelected
+                                            ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-xl border-2 border-purple-400/30'
+                                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                            }`}
                                     >
                                         {isSelected && (
                                             <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
@@ -220,7 +227,6 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                         )}
                                         <div className="font-bold text-sm mb-1">{preset.label}</div>
                                         <div className="text-xs opacity-75">Max {preset.maxWinners} winners</div>
-                                        <div className="text-xs opacity-60 mt-1">${preset.costUSD}</div>
                                     </button>
                                 );
                             })}
@@ -259,11 +265,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                     onClick={() => handleAudienceSelect(false)}
                                     role="radio"
                                     aria-pressed={!state.isPremium}
-                                    className={`group relative w-full p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
-                                        !state.isPremium
-                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl border-2 border-blue-400/30'
-                                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
-                                    }`}
+                                    className={`group relative w-full p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${!state.isPremium
+                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl border-2 border-blue-400/30'
+                                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                        }`}
                                 >
                                     <div className="text-2xl mb-2">🌍</div>
                                     <div className="font-bold">All Users</div>
@@ -277,11 +282,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                     onClick={() => handleAudienceSelect(true)}
                                     role="radio"
                                     aria-pressed={state.isPremium}
-                                    className={`group relative w-full p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
-                                        state.isPremium
-                                            ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl border-2 border-yellow-400/30'
-                                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
-                                    }`}
+                                    className={`group relative w-full p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${state.isPremium
+                                        ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl border-2 border-yellow-400/30'
+                                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                        }`}
                                 >
                                     <div className="text-2xl mb-2">👑</div>
                                     <div className="font-bold">Premium Users</div>
@@ -298,20 +302,13 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                 </div>
             )}
 
-            <div className="text-center">
-                <button
-                    onClick={onNext}
-                    disabled={!canContinue}
-                    className={`bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-10 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl text-lg ${!canContinue ? 'opacity-60 cursor-not-allowed' : ''}`}
-                >
-                    Continue to Details →
-                </button>
-                {!canContinue && (
-                    <p className="text-gray-500 text-sm mt-3">
+            {!canContinue && (
+                <div className="text-center">
+                    <p className="text-gray-500 text-sm">
                         Please complete all required settings to continue
                     </p>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };
