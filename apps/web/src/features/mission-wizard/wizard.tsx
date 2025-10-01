@@ -167,12 +167,13 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-6">
             {/* Header */}
-            <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold gradient-text mb-2">
+            <div className="text-center mb-10">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-emerald-500 bg-clip-text text-transparent mb-3">
                     Create New Mission
                 </h1>
+                <p className="text-gray-400 text-lg">Build and launch your engagement campaign in minutes</p>
             </div>
 
             {/* Progress Steps */}
@@ -184,13 +185,18 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
 
             {/* Error Display */}
             {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-8">
-                    <p className="text-red-400">{error}</p>
+                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-8 backdrop-blur-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-red-500/30 flex items-center justify-center">
+                            <span className="text-red-300 text-lg">⚠️</span>
+                        </div>
+                        <p className="text-red-400 font-medium">{error}</p>
+                    </div>
                 </div>
             )}
 
             {/* Step Content */}
-            <div className="bg-gray-800/60 backdrop-blur-lg rounded-xl p-8 mb-8 inset-shadow min-h-[500px]">
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-10 mb-8 inset-shadow min-h-[600px] border border-gray-700/50">
                 {renderCurrentStep()}
             </div>
 

@@ -95,73 +95,102 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
     return (
         <div className="space-y-8">
             <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Mission Settings</h2>
-                <p className="text-gray-400">Configure your mission parameters</p>
+                <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                    Mission Settings
+                </h2>
+                <p className="text-gray-400 text-lg">Configure your mission parameters and pricing</p>
             </div>
 
             {state.model === 'fixed' ? (
                 // Fixed Mission Settings
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div>
-                        <label className="block text-sm font-medium mb-3">Participant Cap</label>
-                        <input
-                            type="number"
-                            value={state.cap ?? ''}
-                            onChange={handleCapChange}
-                            className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
-                            min="1"
-                        />
+                <div className="space-y-8">
+                    {/* Participant Cap */}
+                    <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
+                        <label className="block text-lg font-semibold mb-4 text-white">Participant Cap</label>
+                        <div className="max-w-xs">
+                            <input
+                                type="number"
+                                value={state.cap ?? ''}
+                                onChange={handleCapChange}
+                                className="w-full p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xl font-medium"
+                                min="1"
+                                placeholder="100"
+                            />
+                            <p className="text-sm text-gray-400 mt-2">Maximum number of participants for this mission</p>
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium mb-3">Target Audience</label>
-                        <div className="space-y-3" role="radiogroup" aria-label="Target audience selection">
+                    {/* Target Audience */}
+                    <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
+                        <label className="block text-lg font-semibold mb-4 text-white">Target Audience</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="radiogroup" aria-label="Target audience selection">
                             <button
                                 onClick={() => handleAudienceSelect(false)}
                                 role="radio"
                                 aria-pressed={!state.isPremium}
-                                className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                    : 'bg-gray-700/50 text-gray-300'
-                                    }`}
+                                className={`group relative p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
+                                    !state.isPremium
+                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl border-2 border-blue-400/30'
+                                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                }`}
                             >
-                                🌍 All Users
+                                <div className="text-3xl mb-3">🌍</div>
+                                <div className="font-bold text-lg mb-2">All Users</div>
+                                <div className="text-sm opacity-90">Open to everyone</div>
+                                {!state.isPremium && (
+                                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                                        <div className="w-3 h-3 rounded-full bg-white"></div>
+                                    </div>
+                                )}
                             </button>
                             <button
                                 onClick={() => handleAudienceSelect(true)}
                                 role="radio"
                                 aria-pressed={state.isPremium}
-                                className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
-                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white'
-                                    : 'bg-gray-700/50 text-gray-300'
-                                    }`}
+                                className={`group relative p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
+                                    state.isPremium
+                                        ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl border-2 border-yellow-400/30'
+                                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                }`}
                             >
-                                👑 Premium Users
+                                <div className="text-3xl mb-3">👑</div>
+                                <div className="font-bold text-lg mb-2">Premium Users</div>
+                                <div className="text-sm opacity-90">Higher quality engagement</div>
+                                {state.isPremium && (
+                                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                                        <div className="w-3 h-3 rounded-full bg-white"></div>
+                                    </div>
+                                )}
                             </button>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium mb-3">Reward per User</label>
-                        <div className="p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl">
-                            <div className="text-xl font-bold text-green-400">{rewardPerUser} Honors</div>
-                            <div className="text-sm text-gray-400">≈ ${honorsToUsd(rewardPerUser).toFixed(2)} USD</div>
-                            {(!state.tasks || state.tasks.length === 0) && (
-                                <div className="text-xs text-gray-400 mt-1">Select at least one task to compute rewards</div>
-                            )}
-                            {state.tasks && state.tasks.length > 0 && (
-                                <div className="mt-2 text-xs text-gray-500">
-                                    <div>Based on {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''}</div>
-                                    {state.isPremium && <div className="text-yellow-400">Premium {premiumMultiplier}x multiplier applied</div>}
-                                    <div className="mt-1 text-gray-600">
-                                        {state.tasks?.map((task, idx) => (
-                                            <span key={idx} className="inline-block mr-2 text-xs">
-                                                {task}: {calculateTaskReward(task, false)}H
-                                            </span>
-                                        ))}
+                    {/* Reward Calculation */}
+                    <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-2xl p-6 border border-green-500/30">
+                        <label className="block text-lg font-semibold mb-4 text-white">Reward per User</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <div className="text-3xl font-bold text-green-400 mb-1">{rewardPerUser.toLocaleString()} Honors</div>
+                                <div className="text-lg text-gray-300">≈ ${honorsToUsd(rewardPerUser).toFixed(2)} USD</div>
+                            </div>
+                            <div className="space-y-2">
+                                {(!state.tasks || state.tasks.length === 0) && (
+                                    <div className="text-sm text-gray-400">Select at least one task to compute rewards</div>
+                                )}
+                                {state.tasks && state.tasks.length > 0 && (
+                                    <div className="text-sm text-gray-300">
+                                        <div>Based on {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''}</div>
+                                        {state.isPremium && <div className="text-yellow-400 font-medium">Premium {premiumMultiplier}x multiplier applied</div>}
+                                        <div className="mt-2 text-xs text-gray-400">
+                                            {state.tasks?.map((task, idx) => (
+                                                <span key={idx} className="inline-block mr-3 mb-1 bg-gray-700/50 px-2 py-1 rounded">
+                                                    {task}: {calculateTaskReward(task, false)}H
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -169,22 +198,29 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                 // Degen Mission Settings
                 <div className="space-y-8">
                     {/* Duration Preset Selection */}
-                    <div>
-                        <label className="block text-sm font-medium mb-4">Duration Preset</label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
+                        <label className="block text-lg font-semibold mb-6 text-white">Duration Preset</label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {DEGEN_PRESETS.map((preset) => {
                                 const isSelected = state.selectedDegenPreset?.hours === preset.hours;
                                 return (
                                     <button
                                         key={preset.hours}
                                         onClick={() => handleDegenPresetSelect(preset)}
-                                        className={`p-3 rounded-xl text-center transition-all ${isSelected
-                                            ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg'
-                                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                                            }`}
+                                        className={`group relative p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
+                                            isSelected
+                                                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-xl border-2 border-purple-400/30'
+                                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                        }`}
                                     >
-                                        <div className="font-semibold text-sm">{preset.label}</div>
+                                        {isSelected && (
+                                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                                                <div className="w-2 h-2 rounded-full bg-white"></div>
+                                            </div>
+                                        )}
+                                        <div className="font-bold text-sm mb-1">{preset.label}</div>
                                         <div className="text-xs opacity-75">Max {preset.maxWinners} winners</div>
+                                        <div className="text-xs opacity-60 mt-1">${preset.costUSD}</div>
                                     </button>
                                 );
                             })}
@@ -192,51 +228,68 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                     </div>
 
                     {/* Winners Cap and Target Audience */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <label className="block text-sm font-medium mb-3">Winners Cap</label>
-                            <input
-                                type="number"
-                                value={state.winnersCap ?? ''}
-                                onChange={handleWinnersCapChange}
-                                className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
-                                min="1"
-                                max={state.selectedDegenPreset?.maxWinners || 10}
-                            />
-                            <p className="text-xs text-gray-400 mt-2">
-                                Max: {state.selectedDegenPreset?.maxWinners || 10} winners
-                            </p>
-                            {state.winnersCap > (state.selectedDegenPreset?.maxWinners || 10) && (
-                                <p className="text-xs text-red-400 mt-1">
-                                    ⚠️ Winners cap cannot exceed {state.selectedDegenPreset?.maxWinners || 10}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
+                            <label className="block text-lg font-semibold mb-4 text-white">Winners Cap</label>
+                            <div className="max-w-xs">
+                                <input
+                                    type="number"
+                                    value={state.winnersCap ?? ''}
+                                    onChange={handleWinnersCapChange}
+                                    className="w-full p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xl font-medium"
+                                    min="1"
+                                    max={state.selectedDegenPreset?.maxWinners || 10}
+                                    placeholder="3"
+                                />
+                                <p className="text-sm text-gray-400 mt-2">
+                                    Max: {state.selectedDegenPreset?.maxWinners || 10} winners
                                 </p>
-                            )}
+                                {state.winnersCap > (state.selectedDegenPreset?.maxWinners || 10) && (
+                                    <p className="text-sm text-red-400 mt-2">
+                                        ⚠️ Winners cap cannot exceed {state.selectedDegenPreset?.maxWinners || 10}
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium mb-3">Target Audience</label>
-                            <div className="space-y-3" role="radiogroup" aria-label="Target audience selection">
+                        <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
+                            <label className="block text-lg font-semibold mb-4 text-white">Target Audience</label>
+                            <div className="space-y-4" role="radiogroup" aria-label="Target audience selection">
                                 <button
                                     onClick={() => handleAudienceSelect(false)}
                                     role="radio"
                                     aria-pressed={!state.isPremium}
-                                    className={`w-full p-4 rounded-xl text-center transition-all ${!state.isPremium
-                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                        : 'bg-gray-700/50 text-gray-300'
-                                        }`}
+                                    className={`group relative w-full p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
+                                        !state.isPremium
+                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl border-2 border-blue-400/30'
+                                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                    }`}
                                 >
-                                    🌍 All Users
+                                    <div className="text-2xl mb-2">🌍</div>
+                                    <div className="font-bold">All Users</div>
+                                    {!state.isPremium && (
+                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                                        </div>
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => handleAudienceSelect(true)}
                                     role="radio"
                                     aria-pressed={state.isPremium}
-                                    className={`w-full p-4 rounded-xl text-center transition-all ${state.isPremium
-                                        ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white'
-                                        : 'bg-gray-700/50 text-gray-300'
-                                        }`}
+                                    className={`group relative w-full p-4 rounded-xl text-center transition-all duration-300 transform hover:scale-[1.02] ${
+                                        state.isPremium
+                                            ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-xl border-2 border-yellow-400/30'
+                                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600/50'
+                                    }`}
                                 >
-                                    👑 Premium Users
+                                    <div className="text-2xl mb-2">👑</div>
+                                    <div className="font-bold">Premium Users</div>
+                                    {state.isPremium && (
+                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                                        </div>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -249,10 +302,15 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                 <button
                     onClick={onNext}
                     disabled={!canContinue}
-                    className={`bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg ${!canContinue ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    className={`bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-10 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl text-lg ${!canContinue ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                     Continue to Details →
                 </button>
+                {!canContinue && (
+                    <p className="text-gray-500 text-sm mt-3">
+                        Please complete all required settings to continue
+                    </p>
+                )}
             </div>
         </div>
     );
