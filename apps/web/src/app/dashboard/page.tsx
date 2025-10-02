@@ -5,12 +5,12 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { useApi } from '../../hooks/useApi';
-import { useUserStats } from '../../hooks/useUserStats';
+import { useDashboardSummary } from '../../hooks/useDashboardSummary';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 
 export default function DashboardPage() {
   const { getMissions, getWalletBalance, loading } = useApi();
-  const { data: stats, isLoading: loadingStats, error: statsError } = useUserStats();
+  const { summary, isLoading: summaryLoading } = useDashboardSummary();
 
   // Stats are now handled by useUserStats hook
   return (
@@ -32,7 +32,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-400 text-xs">Missions Created</p>
                   <p className="text-lg font-bold text-green-400">
-                    {loadingStats ? '...' : (stats?.missionsCreated ?? 0)}
+                    {summaryLoading ? '...' : (summary?.missionsCreated ?? 0)}
                   </p>
                 </div>
                 <div className="text-xl">📊</div>
@@ -44,7 +44,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-400 text-xs">Honors Earned</p>
                   <p className="text-lg font-bold text-blue-400">
-                    {loadingStats ? '...' : (stats?.honorsEarned ?? 0).toLocaleString()}
+                    {summaryLoading ? '...' : (summary?.honorsEarned ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <div className="text-xl">🏆</div>
@@ -56,7 +56,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-400 text-xs">Reviews Done</p>
                   <p className="text-lg font-bold text-orange-400">
-                    {loadingStats ? '...' : (stats?.reviewsDone ?? 0)}
+                    {summaryLoading ? '...' : (summary?.tasksDone ?? 0)}
                   </p>
                 </div>
                 <div className="text-xl">⚖️</div>
@@ -68,10 +68,10 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-400 text-xs">USD Spent & Balance</p>
                   <p className="text-lg font-bold text-purple-400">
-                    {loadingStats ? '...' : `$${(stats?.usdSpent ?? 0).toFixed(2)}`}
+                    {summaryLoading ? '...' : `$${(summary?.usdSpent ?? 0).toFixed(2)}`}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {loadingStats ? '...' : `Balance: $${(stats?.usdBalance ?? 0).toFixed(2)}`}
+                    {summaryLoading ? '...' : `Balance: $${(summary?.usdBalance ?? 0).toFixed(2)}`}
                   </p>
                 </div>
                 <div className="text-xl">👛</div>
