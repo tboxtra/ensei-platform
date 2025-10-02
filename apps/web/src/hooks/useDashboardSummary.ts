@@ -5,21 +5,21 @@ import { useAuthUser } from './useAuthUser';
 import { useApi } from './useApi';
 
 export interface DashboardSummary {
-  missionsCreated: number;
-  missionsCompleted: number;
-  tasksDone: number;
-  honorsEarned: number;
-  usdSpent: number;
-  usdBalance: number;
-  lastUpdated: string;
+    missionsCreated: number;
+    missionsCompleted: number;
+    tasksDone: number;
+    honorsEarned: number;
+    usdSpent: number;
+    usdBalance: number;
+    lastUpdated: string;
 }
 
 interface UseDashboardSummaryReturn {
-  summary: DashboardSummary | null;
-  isLoading: boolean;
-  error: any;
-  refetch: () => void;
-  authReady: boolean;
+    summary: DashboardSummary | null;
+    isLoading: boolean;
+    error: any;
+    refetch: () => void;
+    authReady: boolean;
 }
 
 /**
@@ -37,68 +37,68 @@ interface UseDashboardSummaryReturn {
  * - USD Balance: current user balance
  */
 export function useDashboardSummary(): UseDashboardSummaryReturn {
-  const { user: authUser, ready } = useAuthUser();
-  const api = useApi();
+    const { user: authUser, ready } = useAuthUser();
+    const api = useApi();
 
-  const enabled = ready && !!authUser?.uid;
+    const enabled = ready && !!authUser?.uid;
 
-  const query = useQuery<DashboardSummary>({
-    enabled,
-    queryKey: ['dashboard', 'summary', authUser?.uid],
-    queryFn: async (): Promise<DashboardSummary> => {
-      if (!authUser?.uid) {
-        throw new Error('User not authenticated');
-      }
-
-      try {
-        // Acquire token (same strategy as useApi)
-        const token =
-          (typeof window !== 'undefined' && localStorage.getItem('firebaseToken')) ||
-          (await (async () => {
-            try {
-              const { getFirebaseAuth } = await import('../lib/firebase');
-              const a = getFirebaseAuth();
-              const u = a.currentUser;
-              return u ? await u.getIdToken(false) : null;
-            } catch {
-              return null;
+    const query = useQuery<DashboardSummary>({
+        enabled,
+        queryKey: ['dashboard', 'summary', authUser?.uid],
+        queryFn: async (): Promise<DashboardSummary> => {
+            if (!authUser?.uid) {
+                throw new Error('User not authenticated');
             }
-          })());
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/dashboard/summary`, {
-          headers: {
-            ...(token && { 'Authorization': `Bearer ${token}` }),
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
+            try {
+                // Acquire token (same strategy as useApi)
+                const token =
+                    (typeof window !== 'undefined' && localStorage.getItem('firebaseToken')) ||
+                    (await (async () => {
+                        try {
+                            const { getFirebaseAuth } = await import('../lib/firebase');
+                            const a = getFirebaseAuth();
+                            const u = a.currentUser;
+                            return u ? await u.getIdToken(false) : null;
+                        } catch {
+                            return null;
+                        }
+                    })());
 
-        if (!response.ok) {
-          throw new Error(`Dashboard summary failed: ${response.status}`);
-        }
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/dashboard/summary`, {
+                    headers: {
+                        ...(token && { 'Authorization': `Bearer ${token}` }),
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                });
 
-        const data = await response.json();
-        console.log('📊 Dashboard summary fetched:', data);
-        return data;
-      } catch (error) {
-        console.error('Failed to fetch dashboard summary:', error);
-        throw error;
-      }
-    },
-    retry: false,
-    refetchOnMount: 'always',
-    staleTime: 30 * 1000, // 30 seconds for real-time feel
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
-    // Keep previous data during refetch to prevent flicker
-    placeholderData: (prev) => prev,
-  });
+                if (!response.ok) {
+                    throw new Error(`Dashboard summary failed: ${response.status}`);
+                }
 
-  return {
-    summary: query.data ?? null,
-    isLoading: query.isLoading,
-    error: query.error,
-    refetch: query.refetch,
-    authReady: ready,
-  };
+                const data = await response.json();
+                console.log('📊 Dashboard summary fetched:', data);
+                return data;
+            } catch (error) {
+                console.error('Failed to fetch dashboard summary:', error);
+                throw error;
+            }
+        },
+        retry: false,
+        refetchOnMount: 'always',
+        staleTime: 30 * 1000, // 30 seconds for real-time feel
+        gcTime: 5 * 60 * 1000, // 5 minutes
+        refetchOnWindowFocus: true,
+        // Keep previous data during refetch to prevent flicker
+        placeholderData: (prev) => prev,
+    });
+
+    return {
+        summary: query.data ?? null,
+        isLoading: query.isLoading,
+        error: query.error,
+        refetch: query.refetch,
+        authReady: ready,
+    };
 }

@@ -3048,83 +3048,65 @@ app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res
 // Dashboard summary endpoint - single source of truth for user metrics
 app.get('/v1/dashboard/summary', async (req: any, res) => {
   try {
-    // Handle authentication
     const token = req.headers.authorization?.split('Bearer ')[1];
     if (!token) return res.status(401).json({ error: 'No token' });
 
     let userId: string;
-    
-    // Check for demo admin tokens first
     if (token === 'demo_admin_token' || token === 'demo_moderator_token') {
-      userId = 'mDPgwAwb1pYqmxmsPsYW1b4qlup2'; // Use the actual user ID from the missions
+      userId = 'mDPgwAwb1pYqmxmsPsYW1b4qlup2';
     } else {
-      // Verify real Firebase token
       const decoded = await firebaseAdmin.auth().verifyIdToken(token);
       userId = decoded.uid;
     }
 
-    console.log(`📊 Computing dashboard summary for user: ${userId}`);
+    // 0) Fast path: consolidated stats document if present
+    const statsDoc = await db.doc(`users/${userId}/stats/summary`).get();
+    const stats = statsDoc.exists ? (statsDoc.data() as any) : null;
 
-    // 1. Missions Created: missions where ownerId === currentUserId and status ∈ {'draft','active','completed','paused'} (exclude hard-deleted)
-    const missionsCreatedQuery = db.collection('missions')
-      .where('created_by', '==', userId);
-    
-    const missionsCreatedSnapshot = await missionsCreatedQuery.get();
-    const missionsCreated = missionsCreatedSnapshot.size;
-
-    // 2. Missions Completed: owner's missions where status === 'completed'
-    const missionsCompletedQuery = db.collection('missions')
+    // 1) Missions I created
+    const myMissionsSnap = await db.collection('missions')
       .where('created_by', '==', userId)
-      .where('status', '==', 'completed');
-    
-    const missionsCompletedSnapshot = await missionsCompletedQuery.get();
-    const missionsCompleted = missionsCompletedSnapshot.size;
+      .get();
+    const missionsCreated = myMissionsSnap.size;
 
-    // 3. Tasks Done: number of approved submissions the current user (as a participant) completed
-    const tasksDoneQuery = db.collection('mission_participations')
-      .where('user_id', '==', userId)
-      .where('status', '==', 'verified'); // approved/verified submissions
-    
-    const tasksDoneSnapshot = await tasksDoneQuery.get();
-    const tasksDone = tasksDoneSnapshot.size;
+    // 2) Missions I completed (as a participant)
+    const progressSnap = await db.collection('mission_progress')
+      .where('userId', '==', userId)
+      .where('missionCompleted', '==', true)
+      .get();
+    const missionsCompleted = progressSnap.empty ? (stats?.missionsCompleted ?? 0) : progressSnap.size;
 
-    // 4. Total Earned: sum of honors earned by the current user from verified submissions
-    let totalEarned = 0;
-    tasksDoneSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.rewards?.honors) {
-        totalEarned += data.rewards.honors;
-      }
-    });
+    // 3) Tasks done (verified only)
+    const verificationsSnap = await db.collection('verifications')
+      .where('uid', '==', userId)
+      .where('status', '==', 'verified')
+      .get();
+    const tasksDone = verificationsSnap.empty ? (stats?.tasksDone ?? stats?.tasksCompleted ?? 0) : verificationsSnap.size;
 
-    // 5. USD Spent: sum of USD spent by the user on missions (from mission rewards)
+    // 4) Honors earned (authoritative = wallet honors; fallback to stats)
+    const walletDoc = await db.collection('wallets').doc(userId).get();
+    const wallet = walletDoc.exists ? (walletDoc.data() as any) : null;
+    const honorsEarned = (wallet?.honors ?? null) ?? (stats?.totalEarned ?? stats?.totalEarnings ?? 0);
+
+    // 5) USD spent = sum of rewards.usd on my missions
     let usdSpent = 0;
-    missionsCreatedSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.rewards?.usd) {
-        usdSpent += data.rewards.usd;
-      }
+    myMissionsSnap.docs.forEach(d => {
+      const r = d.data()?.rewards;
+      if (r?.usd) usdSpent += Number(r.usd) || 0;
     });
 
-    // 6. USD Balance: get from user document (if available)
-    const userDoc = await db.collection('users').doc(userId).get();
-    const userData = userDoc.data();
-    const usdBalance = userData?.honors_balance ? (userData.honors_balance / 450) : 0; // Convert honors to USD
+    // 6) USD balance from wallet
+    const usdBalance = Number(wallet?.usd ?? 0);
 
-    const summary = {
+    res.json({
       missionsCreated,
       missionsCompleted,
       tasksDone,
-      honorsEarned: totalEarned,
+      honorsEarned: Number(honorsEarned || 0),
       usdSpent: Number(usdSpent.toFixed(2)),
       usdBalance: Number(usdBalance.toFixed(2)),
-      lastUpdated: new Date().toISOString()
-    };
-
-    console.log(`📊 Dashboard summary computed:`, summary);
-
-    res.json(summary);
-
+      lastUpdated: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('Error computing dashboard summary:', error);
     res.status(500).json({ error: 'Failed to compute dashboard summary' });
