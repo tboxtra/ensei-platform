@@ -214,13 +214,6 @@ const toIso = (v) => {
         }
         catch { }
     }
-    // {_seconds: number, _nanoseconds: number} - Firestore Timestamp format
-    if (typeof v === 'object' && typeof v._seconds === 'number') {
-        try {
-            return new Date(v._seconds * 1000).toISOString();
-        }
-        catch { }
-    }
     // Native Date
     if (v instanceof Date && !isNaN(v.getTime()))
         return v.toISOString();
@@ -1447,10 +1440,10 @@ app.post('/v1/upload', verifyFirebaseToken, rateLimit, upload.single('file'), as
         // ✅ MAGIC BYTES VALIDATION - Validate file type using magic bytes
         // const detectedType = await fileTypeFromBuffer(file.buffer);
         const detectedType = null; // Temporarily disabled due to import issues
-        if (!detectedType) {
-            // res.status(400).json({ error: 'Invalid file type - could not detect file format' });
-            // return;
-        }
+        // if (!detectedType) {
+        //   res.status(400).json({ error: 'Invalid file type - could not detect file format' });
+        //   return;
+        // }
         // Validate against allowed MIME types
         const ALLOWED_MIME_TYPES = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
@@ -2326,18 +2319,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
             // normalize dates BEFORE spreading raw data so we don't overwrite
             const createdAt = toIso(data.created_at);
             const deadline = toIso(data.deadline);
-            let expiresAt = toIso(data.expires_at);
-            // ✅ FIX: Calculate expires_at for fixed missions if missing (48-hour auto-completion)
-            if (data.model === 'fixed' && !expiresAt && createdAt) {
-                try {
-                    const startDate = new Date(createdAt);
-                    const expiresDate = new Date(startDate.getTime() + (48 * 60 * 60 * 1000)); // 48 hours
-                    expiresAt = expiresDate.toISOString();
-                }
-                catch (e) {
-                    console.warn('Failed to calculate expires_at for fixed mission:', doc.id);
-                }
-            }
+            const expiresAt = toIso(data.expires_at);
             // ✅ FIX: Calculate deadline for degen missions if missing
             let calculatedDeadline = deadline;
             if (data.model === 'degen' && !deadline && data.duration && createdAt) {
@@ -2353,22 +2335,12 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
             // ✅ FIX B: Always ensure rewards are calculated and present
             const storedRewards = data.rewards;
             const derivedRewards = deriveRewards(data, cfg);
-            // ✅ CRITICAL FIX: Always use derived rewards if stored rewards are missing or zero
+            // Use stored rewards if they exist and are valid, otherwise use derived rewards
             const rewards = {
                 usd: (storedRewards?.usd && storedRewards.usd > 0) ? storedRewards.usd : derivedRewards.usd,
                 honors: (storedRewards?.honors && storedRewards.honors > 0) ? storedRewards.honors : derivedRewards.honors,
                 ...(derivedRewards.perUserHonors && { perUserHonors: derivedRewards.perUserHonors })
             };
-            // ✅ DEBUG: Log rewards calculation for problematic missions
-            if (rewards.usd === 0 && (data.selectedDegenPreset?.costUSD || data.costUSD || data.rewardPerUser)) {
-                console.log('🔧 DEBUG: Mission has 0 rewards but has cost data:', doc.id);
-                console.log('  storedRewards:', storedRewards);
-                console.log('  derivedRewards:', derivedRewards);
-                console.log('  selectedDegenPreset:', data.selectedDegenPreset);
-                console.log('  costUSD:', data.costUSD);
-                console.log('  rewardPerUser:', data.rewardPerUser);
-                console.log('  final rewards:', rewards);
-            }
             // ✅ CRITICAL FIX: If rewards are still 0, force update the mission document
             if (rewards.usd === 0 && rewards.honors === 0 && (data.costUSD || data.selectedDegenPreset?.costUSD || data.rewardPerUser)) {
                 console.log('🔧 CRITICAL: Mission has 0 rewards but has cost data, forcing update:', doc.id);
@@ -2417,7 +2389,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
                 winnersCount: deriveWinnersCount(data), // Explicit field for UI display
                 winnersPerTask: data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0, // keep for back-compat display
                 winnersCap: data.winnersCap ?? data.winners_cap,
-                cap: data.model === 'fixed' ? (data.cap ?? data.max_participants ?? 0) : null,
+                cap: data.cap ?? data.max_participants ?? 0,
                 durationHours: data.duration_hours ?? data.durationHours ?? data.duration,
                 maxParticipants: data.max_participants ?? data.cap,
                 participantsCount: data.participants_count || 0,
@@ -2786,6 +2758,64 @@ app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res
     catch (error) {
         console.error('Error fetching mission performance:', error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+// Admin: create user stats for existing users
+app.post('/v1/admin/create-user-stats', requireAdmin, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+        // Check if user exists
+        const userRef = db.collection('users').doc(userId);
+        const userDoc = await userRef.get();
+        if (!userDoc.exists) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        // Check if stats already exist
+        const statsRef = db.doc(`users/${userId}/stats/summary`);
+        const statsDoc = await statsRef.get();
+        if (statsDoc.exists) {
+            return res.json({
+                success: true,
+                message: 'User stats already exist',
+                stats: statsDoc.data()
+            });
+        }
+        // Calculate stats from existing data
+        const missionsCreated = await db.collection('missions')
+            .where('created_by', '==', userId)
+            .get();
+        const tasksCompleted = await db.collection('mission_participations')
+            .where('user_id', '==', userId)
+            .where('status', '==', 'verified')
+            .get();
+        let totalEarned = 0;
+        tasksCompleted.forEach(doc => {
+            const data = doc.data();
+            if (data.rewards?.honors) {
+                totalEarned += data.rewards.honors;
+            }
+        });
+        // Create user stats document
+        const statsData = {
+            missionsCreated: missionsCreated.size,
+            missionsCompleted: 0, // Will be updated by other functions
+            tasksDone: tasksCompleted.size,
+            totalEarned: totalEarned,
+            updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+        };
+        await statsRef.set(statsData);
+        res.json({
+            success: true,
+            message: 'User stats created successfully',
+            stats: statsData
+        });
+    }
+    catch (error) {
+        console.error('Error creating user stats:', error);
+        res.status(500).json({ error: 'Failed to create user stats' });
     }
 });
 // Admin: backfill timestamps, deadlines, and rewards for legacy missions

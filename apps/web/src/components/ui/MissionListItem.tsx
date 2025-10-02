@@ -161,7 +161,7 @@ export function MissionListItem({
     const [subsLoading, setSubsLoading] = useState(false);
     const [subsError, setSubsError] = useState<string | null>(null);
 
-    const created = mission.created_at ? new Date(mission.created_at) : null;
+    const created = mission.createdAt ? new Date(mission.createdAt) : (mission.created_at ? new Date(mission.created_at) : null);
     const displayStatus: string = mission.__displayStatus ?? mission.status ?? 'draft';
     const usdCost = getUsd(mission);
 
