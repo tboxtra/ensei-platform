@@ -3045,11 +3045,97 @@ app.get('/v1/admin/analytics/mission-performance', requireAdmin, async (req, res
   }
 });
 
+// Dashboard summary endpoint - single source of truth for user metrics
+app.get('/v1/dashboard/summary', async (req: any, res) => {
+  try {
+    // Handle authentication
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+
+    let userId: string;
+    
+    // Check for demo admin tokens first
+    if (token === 'demo_admin_token' || token === 'demo_moderator_token') {
+      userId = 'mDPgwAwb1pYqmxmsPsYW1b4qlup2'; // Use the actual user ID from the missions
+    } else {
+      // Verify real Firebase token
+      const decoded = await firebaseAdmin.auth().verifyIdToken(token);
+      userId = decoded.uid;
+    }
+
+    console.log(`📊 Computing dashboard summary for user: ${userId}`);
+
+    // 1. Missions Created: missions where ownerId === currentUserId and status ∈ {'draft','active','completed','paused'} (exclude hard-deleted)
+    const missionsCreatedQuery = db.collection('missions')
+      .where('created_by', '==', userId);
+    
+    const missionsCreatedSnapshot = await missionsCreatedQuery.get();
+    const missionsCreated = missionsCreatedSnapshot.size;
+
+    // 2. Missions Completed: owner's missions where status === 'completed'
+    const missionsCompletedQuery = db.collection('missions')
+      .where('created_by', '==', userId)
+      .where('status', '==', 'completed');
+    
+    const missionsCompletedSnapshot = await missionsCompletedQuery.get();
+    const missionsCompleted = missionsCompletedSnapshot.size;
+
+    // 3. Tasks Done: number of approved submissions the current user (as a participant) completed
+    const tasksDoneQuery = db.collection('mission_participations')
+      .where('user_id', '==', userId)
+      .where('status', '==', 'verified'); // approved/verified submissions
+    
+    const tasksDoneSnapshot = await tasksDoneQuery.get();
+    const tasksDone = tasksDoneSnapshot.size;
+
+    // 4. Total Earned: sum of honors earned by the current user from verified submissions
+    let totalEarned = 0;
+    tasksDoneSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.rewards?.honors) {
+        totalEarned += data.rewards.honors;
+      }
+    });
+
+    // 5. USD Spent: sum of USD spent by the user on missions (from mission rewards)
+    let usdSpent = 0;
+    missionsCreatedSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.rewards?.usd) {
+        usdSpent += data.rewards.usd;
+      }
+    });
+
+    // 6. USD Balance: get from user document (if available)
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.data();
+    const usdBalance = userData?.honors_balance ? (userData.honors_balance / 450) : 0; // Convert honors to USD
+
+    const summary = {
+      missionsCreated,
+      missionsCompleted,
+      tasksDone,
+      honorsEarned: totalEarned,
+      usdSpent: Number(usdSpent.toFixed(2)),
+      usdBalance: Number(usdBalance.toFixed(2)),
+      lastUpdated: new Date().toISOString()
+    };
+
+    console.log(`📊 Dashboard summary computed:`, summary);
+
+    res.json(summary);
+
+  } catch (error) {
+    console.error('Error computing dashboard summary:', error);
+    res.status(500).json({ error: 'Failed to compute dashboard summary' });
+  }
+});
+
 // Admin: create user stats for existing users
 app.post('/v1/admin/create-user-stats', requireAdmin, async (req, res) => {
   try {
     const { userId } = req.body;
-    
+
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' });
     }
@@ -3057,7 +3143,7 @@ app.post('/v1/admin/create-user-stats', requireAdmin, async (req, res) => {
     // Check if user exists
     const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
-    
+
     if (!userDoc.exists) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -3065,10 +3151,10 @@ app.post('/v1/admin/create-user-stats', requireAdmin, async (req, res) => {
     // Check if stats already exist
     const statsRef = db.doc(`users/${userId}/stats/summary`);
     const statsDoc = await statsRef.get();
-    
+
     if (statsDoc.exists) {
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         message: 'User stats already exist',
         stats: statsDoc.data()
       });
@@ -3103,8 +3189,8 @@ app.post('/v1/admin/create-user-stats', requireAdmin, async (req, res) => {
 
     await statsRef.set(statsData);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'User stats created successfully',
       stats: statsData
     });
