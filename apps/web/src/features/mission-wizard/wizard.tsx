@@ -61,7 +61,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             platform: 'twitter',
             type: 'engage',
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleStepNext = () => {
@@ -162,7 +162,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto px-4 py-4">
             <div className="text-center mb-6">
                 <h1 className="text-2xl font-semibold text-white">Create New Mission</h1>
                 <p className="text-xs text-gray-400 mt-1">V1: Twitter · Engage missions only</p>
@@ -181,7 +181,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             )}
 
             {/* No inner scroll: keep content compact */}
-            <div className="bg-gray-800/60 backdrop-blur-lg rounded-xl p-6 mb-6 inset-shadow">
+            <div className="wizard-card bg-gray-800/60 backdrop-blur-lg rounded-xl p-5 mb-5 inset-shadow">
                 {renderCurrentStep()}
             </div>
 

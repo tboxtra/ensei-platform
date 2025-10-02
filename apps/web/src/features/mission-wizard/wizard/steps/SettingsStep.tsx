@@ -14,22 +14,22 @@ import { getConfig, calculateTaskReward, calculateTotalReward, honorsToUsd } fro
 // Degen mission presets
 type DegenPreset = { hours: number; costUSD: number; maxWinners: number; label: string };
 const DEGEN_PRESETS: Readonly<DegenPreset[]> = [
-    { hours: 1, costUSD: 15, maxWinners: 1, label: '1h' },
-    { hours: 3, costUSD: 30, maxWinners: 2, label: '3h' },
-    { hours: 6, costUSD: 80, maxWinners: 3, label: '6h' },
-    { hours: 8, costUSD: 150, maxWinners: 3, label: '8h' },
-    { hours: 12, costUSD: 180, maxWinners: 5, label: '12h' },
-    { hours: 18, costUSD: 300, maxWinners: 5, label: '18h' },
-    { hours: 24, costUSD: 400, maxWinners: 5, label: '24h' },
-    { hours: 36, costUSD: 500, maxWinners: 10, label: '36h' },
-    { hours: 48, costUSD: 600, maxWinners: 10, label: '48h' },
-    { hours: 72, costUSD: 800, maxWinners: 10, label: '3d' },
-    { hours: 96, costUSD: 1000, maxWinners: 10, label: '4d' },
-    { hours: 168, costUSD: 1500, maxWinners: 10, label: '7d' },
-    { hours: 240, costUSD: 2000, maxWinners: 10, label: '10d' },
-    { hours: 336, costUSD: 3000, maxWinners: 15, label: '14d' },
-    { hours: 480, costUSD: 4000, maxWinners: 20, label: '20d' },
-    { hours: 720, costUSD: 5000, maxWinners: 25, label: '30d' }
+    { hours: 1, costUSD: 15, maxWinners: 1, label: '1h · $15' },
+    { hours: 3, costUSD: 30, maxWinners: 2, label: '3h · $30' },
+    { hours: 6, costUSD: 80, maxWinners: 3, label: '6h · $80' },
+    { hours: 8, costUSD: 150, maxWinners: 3, label: '8h · $150' },
+    { hours: 12, costUSD: 180, maxWinners: 5, label: '12h · $180' },
+    { hours: 18, costUSD: 300, maxWinners: 5, label: '18h · $300' },
+    { hours: 24, costUSD: 400, maxWinners: 5, label: '24h · $400' },
+    { hours: 36, costUSD: 500, maxWinners: 10, label: '36h · $500' },
+    { hours: 48, costUSD: 600, maxWinners: 10, label: '48h · $600' },
+    { hours: 72, costUSD: 800, maxWinners: 10, label: '3d · $800' },
+    { hours: 96, costUSD: 1000, maxWinners: 10, label: '4d · $1000' },
+    { hours: 168, costUSD: 1500, maxWinners: 10, label: '7d · $1500' },
+    { hours: 240, costUSD: 2000, maxWinners: 10, label: '10d · $2000' },
+    { hours: 336, costUSD: 3000, maxWinners: 15, label: '14d · $3000' },
+    { hours: 480, costUSD: 4000, maxWinners: 20, label: '20d · $4000' },
+    { hours: 720, costUSD: 5000, maxWinners: 25, label: '30d · $5000' }
 ];
 
 export const SettingsStep: React.FC<SettingsStepProps> = ({
@@ -54,7 +54,7 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
         }
         const parsed = parseInt(value, 10);
         if (!isFinite(parsed)) return;
-        const clamped = clamp(parsed, 60);
+        const clamped = clamp(parsed, 1);
         updateState({ cap: clamped });
     };
 
@@ -186,11 +186,6 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                 </div>
             )}
 
-            <div className="text-center">
-                <button onClick={onNext} disabled={!canContinue} className={`btn-primary ${!canContinue && 'opacity-60 cursor-not-allowed'}`}>
-                    Continue to Details →
-                </button>
-            </div>
         </div>
     );
 };

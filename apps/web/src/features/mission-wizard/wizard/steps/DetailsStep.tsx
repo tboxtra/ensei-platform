@@ -93,16 +93,6 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
                 </div>
             </div>
 
-            <div className="text-center">
-                <button
-                    disabled={!stepValid}
-                    onClick={onNext}
-                    className={`btn-primary ${!stepValid && 'opacity-60 cursor-not-allowed'}`}
-                >
-                    Review Mission →
-                </button>
-                {!stepValid && <p className="hint mt-2">Please complete all required fields</p>}
-            </div>
         </div>
     );
 };

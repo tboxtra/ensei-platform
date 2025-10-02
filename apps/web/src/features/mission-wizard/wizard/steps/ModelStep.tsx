@@ -66,7 +66,7 @@ export const ModelStep: React.FC<ModelStepProps> = ({
                             className={`p-6 rounded-xl text-left transition ${isSelected || isFixed
                                 ? `bg-gradient-to-br ${model.color} text-white shadow-lg`
                                 : 'card text-gray-300 hover:bg-gray-700/50'
-                            }`}
+                                }`}
                         >
                             <div className="text-3xl mb-2">{model.icon}</div>
                             <div className="font-bold text-lg mb-1">{model.title}</div>

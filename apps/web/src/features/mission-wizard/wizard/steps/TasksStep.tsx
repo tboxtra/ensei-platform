@@ -179,7 +179,7 @@ export const TasksStep: React.FC<TasksStepProps> = ({
                                 className={`${isSelected
                                     ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
                                     : 'card text-gray-300 hover:bg-gray-700/50'
-                                } p-5 rounded-xl text-left transition`}
+                                    } p-5 rounded-xl text-left transition`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -200,11 +200,6 @@ export const TasksStep: React.FC<TasksStepProps> = ({
                 </div>
             )}
 
-            {state.tasks.length > 0 && (
-                <div className="text-center">
-                    <button onClick={handleContinue} className="btn-primary">Continue to Settings →</button>
-                </div>
-            )}
         </div>
     );
 };

@@ -58,8 +58,7 @@ body {
 
 /* Global utility classes */
 .btn-primary {
-    @apply bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700
-           text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200;
 }
 
 .card {
@@ -68,4 +67,9 @@ body {
 
 .hint {
     @apply text-xs text-gray-400;
+}
+
+/* Prevent nested scroll areas in the wizard card */
+.wizard-card {
+    overflow: visible;
 }
