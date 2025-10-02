@@ -121,18 +121,30 @@ export const canContinueToReview = (m: WizardState) => {
     return false;
 };
 
-// Validation functions for each step (V1: Platform and Type steps removed)
+// Validation functions for each step
 export const validateStep = (step: number, state: WizardState): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
 
     switch (step) {
-        case 1: // Model (was step 2)
+        case 1: // Platform
+            if (!state.platform) {
+                errors.push('Please select a platform');
+            }
+            break;
+
+        case 2: // Model
             if (!state.model) {
                 errors.push('Please select a mission model');
             }
             break;
 
-        case 2: // Tasks (was step 4)
+        case 3: // Type
+            if (!state.type) {
+                errors.push('Please select a mission type');
+            }
+            break;
+
+        case 4: // Tasks
             if (!hasTasks(state.platform, state.tasks)) {
                 errors.push('Please select at least one task');
             }
@@ -141,7 +153,7 @@ export const validateStep = (step: number, state: WizardState): { isValid: boole
             }
             break;
 
-        case 3: // Settings (was step 5)
+        case 5: // Settings
             if (state.model === 'fixed') {
                 if (!Number.isFinite(state.cap) || state.cap <= 0) {
                     errors.push('Please set a valid participant cap');
@@ -167,7 +179,7 @@ export const validateStep = (step: number, state: WizardState): { isValid: boole
             }
             break;
 
-        case 4: // Details (was step 6)
+        case 6: // Details
             if (!state.contentLink || state.contentLink.trim() === '') {
                 errors.push('Please provide a content link');
             }
@@ -183,7 +195,7 @@ export const validateStep = (step: number, state: WizardState): { isValid: boole
             }
             break;
 
-        case 5: // Review (was step 7)
+        case 7: // Review
             // Use the main validation function
             if (!canContinueToReview(state)) {
                 errors.push('Please complete all required fields to review your mission');

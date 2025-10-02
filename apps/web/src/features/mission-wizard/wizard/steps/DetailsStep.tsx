@@ -61,44 +61,47 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
     };
 
     return (
-        <div className="space-y-4">
-            <div className="text-left mb-2">
-                <h2 className="text-lg font-bold text-white mb-1">Mission Details</h2>
+        <div className="space-y-6">
+            <div className="text-center">
+                <h2 className="text-xl font-semibold mb-1">Mission Details</h2>
+                <p className="text-gray-400 text-sm">Provide the content link and short instructions</p>
             </div>
 
-            <div className="space-y-4">
-                {/* Content Link */}
-                <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50">
-                    <label className="block text-sm font-semibold mb-2 text-white">Content Link</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-xs font-medium mb-2">Content Link</label>
                     <input
                         type="url"
                         value={state.contentLink}
                         onChange={handleContentLinkChange}
                         onBlur={handleContentLinkBlur}
-                        className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder={getPlaceholder()}
                     />
+                    <p className="hint mt-1">X links auto-normalize to twitter.com</p>
                 </div>
 
-                {/* Instructions */}
-                <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50">
-                    <label className="block text-sm font-semibold mb-2 text-white">Instructions</label>
+                <div>
+                    <label className="block text-xs font-medium mb-2">Instructions</label>
                     <textarea
-                        rows={3}
+                        rows={4}
                         value={state.instructions}
                         onChange={handleInstructionsChange}
-                        className="w-full p-3 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
-                        placeholder="Enter mission instructions for participants..."
+                        className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                        placeholder="Example: Like + Retweet the tweet."
                     />
                 </div>
             </div>
 
             <div className="text-center">
-                {!stepValid && (
-                    <p className="text-gray-500 text-sm mt-3">
-                        Please complete all required fields to continue
-                    </p>
-                )}
+                <button
+                    disabled={!stepValid}
+                    onClick={onNext}
+                    className={`btn-primary ${!stepValid && 'opacity-60 cursor-not-allowed'}`}
+                >
+                    Review Mission →
+                </button>
+                {!stepValid && <p className="hint mt-2">Please complete all required fields</p>}
             </div>
         </div>
     );

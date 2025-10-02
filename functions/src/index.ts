@@ -55,7 +55,7 @@ const bucket = firebaseAdmin.storage().bucket();
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-// import { fileTypeFromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type';
 
 const app = express();
 app.use(cors({
@@ -133,19 +133,6 @@ const requireAdmin = async (req: any, res: any, next: any) => {
   try {
     const token = req.headers.authorization?.split('Bearer ')[1];
     if (!token) return res.status(401).json({ error: 'No token' });
-
-    // Check for demo admin tokens first
-    if (token === 'demo_admin_token' || token === 'demo_moderator_token') {
-      req.user = {
-        uid: token === 'demo_admin_token' ? 'demo_admin_1' : 'demo_moderator_1',
-        admin: true,
-        email: token === 'demo_admin_token' ? 'admin@ensei.com' : 'moderator@ensei.com'
-      };
-      next();
-      return;
-    }
-
-    // Verify real Firebase token
     const decoded = await firebaseAdmin.auth().verifyIdToken(token);
     if (!decoded.admin) return res.status(403).json({ error: 'Admin access required' });
     req.user = decoded;
@@ -206,11 +193,6 @@ const toIso = (v: any) => {
   // {seconds: number}
   if (typeof v === 'object' && typeof v.seconds === 'number') {
     try { return new Date(v.seconds * 1000).toISOString(); } catch { }
-  }
-
-  // {_seconds: number, _nanoseconds: number} - Firestore Timestamp format
-  if (typeof v === 'object' && typeof v._seconds === 'number') {
-    try { return new Date(v._seconds * 1000).toISOString(); } catch { }
   }
 
   // Native Date
@@ -381,11 +363,6 @@ const readCfg = (cfg: any = {}) => ({
   platformFeeRate: cfg.platformFeeRate ?? cfg.pricing?.platformFeeRate ?? 0.25,
   premiumMultiplier: cfg.premiumMultiplier ?? cfg.pricing?.premiumMultiplier ?? 5,
   taskPrices: cfg.pricing?.taskPrices ?? DEFAULT_TASK_PRICES,
-  v1Restrictions: cfg.v1Restrictions ?? {
-    allowedPlatforms: ['twitter'],
-    allowedMissionTypes: ['engage'],
-    allowedTasks: ['like', 'retweet', 'comment', 'quote', 'follow']
-  },
 });
 
 // Centralized configuration - should match frontend config
@@ -943,39 +920,10 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       return;
     }
 
-    // Get system configuration for pricing and V1 restrictions
+    // Get system configuration for pricing
     const configDoc = await db.collection('system_config').doc('main').get();
     const rawConfig = configDoc.exists ? configDoc.data() : {};
     const systemConfig = readCfg(rawConfig);
-
-    // V1 RESTRICTIONS: Check against configurable restrictions
-    const v1Restrictions = systemConfig.v1Restrictions || {
-      allowedPlatforms: ['twitter'],
-      allowedMissionTypes: ['engage'],
-      allowedTasks: ['like', 'retweet', 'comment', 'quote', 'follow']
-    };
-
-    if (!v1Restrictions.allowedPlatforms.includes(missionData.platform)) {
-      res.status(400).json({
-        error: `Only ${v1Restrictions.allowedPlatforms.join(', ')} missions are supported in this version.`
-      });
-      return;
-    }
-    if (!v1Restrictions.allowedMissionTypes.includes(missionData.type)) {
-      res.status(400).json({
-        error: `Only ${v1Restrictions.allowedMissionTypes.join(', ')} mission types are supported in this version.`
-      });
-      return;
-    }
-
-    // V1 TASK WHITELISTING: Only allow specific tasks
-    const invalidTasks = missionData.tasks.filter(task => !v1Restrictions.allowedTasks.includes(task));
-    if (invalidTasks.length > 0) {
-      res.status(400).json({
-        error: `The following tasks are not supported in this version: ${invalidTasks.join(', ')}. Only ${v1Restrictions.allowedTasks.join(', ')} are allowed.`
-      });
-      return;
-    }
 
     // Calculate deadline and rewards based on mission model
     if (missionData.model === 'degen') {
@@ -1618,11 +1566,10 @@ app.post('/v1/upload', verifyFirebaseToken, rateLimit, upload.single('file'), as
     const file = req.file;
 
     // ✅ MAGIC BYTES VALIDATION - Validate file type using magic bytes
-    // const detectedType = await fileTypeFromBuffer(file.buffer);
-    const detectedType = null; // Temporarily disabled due to import issues
+    const detectedType = await fileTypeFromBuffer(file.buffer);
     if (!detectedType) {
-      // res.status(400).json({ error: 'Invalid file type - could not detect file format' });
-      // return;
+      res.status(400).json({ error: 'Invalid file type - could not detect file format' });
+      return;
     }
 
     // Validate against allowed MIME types
@@ -1942,8 +1889,7 @@ app.post('/v1/upload/base64', verifyFirebaseToken, rateLimit, async (req: any, r
     }
 
     // ✅ MAGIC BYTES VALIDATION - Use file-type for accurate detection
-    // const detectedType = await fileTypeFromBuffer(fileBuffer);
-    const detectedType = null; // Temporarily disabled due to import issues
+    const detectedType = await fileTypeFromBuffer(fileBuffer);
 
     // Whitelist of allowed MIME types
     const ALLOWED_MIME_TYPES = [
@@ -2594,18 +2540,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       // normalize dates BEFORE spreading raw data so we don't overwrite
       const createdAt = toIso(data.created_at);
       const deadline = toIso(data.deadline);
-      let expiresAt = toIso(data.expires_at);
-
-      // ✅ FIX: Calculate expires_at for fixed missions if missing (48-hour auto-completion)
-      if (data.model === 'fixed' && !expiresAt && createdAt) {
-        try {
-          const startDate = new Date(createdAt);
-          const expiresDate = new Date(startDate.getTime() + (48 * 60 * 60 * 1000)); // 48 hours
-          expiresAt = expiresDate.toISOString();
-        } catch (e) {
-          console.warn('Failed to calculate expires_at for fixed mission:', doc.id);
-        }
-      }
+      const expiresAt = toIso(data.expires_at);
 
       // ✅ FIX: Calculate deadline for degen missions if missing
       let calculatedDeadline = deadline;
@@ -2623,23 +2558,12 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
       const storedRewards = data.rewards;
       const derivedRewards = deriveRewards(data, cfg);
 
-      // ✅ CRITICAL FIX: Always use derived rewards if stored rewards are missing or zero
+      // Use stored rewards if they exist and are valid, otherwise use derived rewards
       const rewards = {
         usd: (storedRewards?.usd && storedRewards.usd > 0) ? storedRewards.usd : derivedRewards.usd,
         honors: (storedRewards?.honors && storedRewards.honors > 0) ? storedRewards.honors : derivedRewards.honors,
         ...(derivedRewards.perUserHonors && { perUserHonors: derivedRewards.perUserHonors })
       };
-
-      // ✅ DEBUG: Log rewards calculation for problematic missions
-      if (rewards.usd === 0 && (data.selectedDegenPreset?.costUSD || data.costUSD || data.rewardPerUser)) {
-        console.log('🔧 DEBUG: Mission has 0 rewards but has cost data:', doc.id);
-        console.log('  storedRewards:', storedRewards);
-        console.log('  derivedRewards:', derivedRewards);
-        console.log('  selectedDegenPreset:', data.selectedDegenPreset);
-        console.log('  costUSD:', data.costUSD);
-        console.log('  rewardPerUser:', data.rewardPerUser);
-        console.log('  final rewards:', rewards);
-      }
 
       // ✅ CRITICAL FIX: If rewards are still 0, force update the mission document
       if (rewards.usd === 0 && rewards.honors === 0 && (data.costUSD || data.selectedDegenPreset?.costUSD || data.rewardPerUser)) {
@@ -2693,7 +2617,7 @@ app.get('/v1/admin/missions', requireAdmin, async (req, res) => {
         winnersCount: deriveWinnersCount(data), // Explicit field for UI display
         winnersPerTask: data.winnersPerTask ?? data.winners_cap ?? data.winnersCap ?? 0, // keep for back-compat display
         winnersCap: data.winnersCap ?? data.winners_cap,
-        cap: data.model === 'fixed' ? (data.cap ?? data.max_participants ?? 0) : null,
+        cap: data.cap ?? data.max_participants ?? 0,
         durationHours: data.duration_hours ?? data.durationHours ?? data.duration,
         maxParticipants: data.max_participants ?? data.cap,
         participantsCount: data.participants_count || 0,
@@ -3185,12 +3109,6 @@ app.get('/v1/admin/system-config', requireAdmin, async (req, res) => {
           emailEnabled: true,
           pushEnabled: true,
           smsEnabled: false
-        },
-        // V1 RESTRICTIONS: Configurable platform and mission type limitations
-        v1Restrictions: {
-          allowedPlatforms: ['twitter'],
-          allowedMissionTypes: ['engage'],
-          allowedTasks: ['like', 'retweet', 'comment', 'quote', 'follow']
         }
       };
 

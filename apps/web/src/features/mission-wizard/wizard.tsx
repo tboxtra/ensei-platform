@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useWizardState } from './wizard/hooks/useWizardState';
 import { StepIndicator } from './wizard/components/StepIndicator';
 import { WizardNavigation } from './wizard/components/WizardNavigation';
-import { PlatformStep } from './wizard/steps/PlatformStep';
+// REMOVE these when V1: PlatformStep, TypeStep
+// import { PlatformStep } from './wizard/steps/PlatformStep';
+// import { TypeStep } from './wizard/steps/TypeStep';
 import { ModelStep } from './wizard/steps/ModelStep';
-import { TypeStep } from './wizard/steps/TypeStep';
 import { TasksStep } from './wizard/steps/TasksStep';
 import { SettingsStep } from './wizard/steps/SettingsStep';
 import { DetailsStep } from './wizard/steps/DetailsStep';
@@ -19,6 +20,10 @@ interface MissionWizardProps {
     error?: string | null;
 }
 
+// V1 flag in case you want to re-enable later
+const V1_TWITTER_ENGAGE_ONLY = true;
+
+// Shrunk flow (5 steps) to remove Platform + Type
 const WIZARD_STEPS = [
     { id: 1, title: 'Model', description: 'Mission structure' },
     { id: 2, title: 'Tasks', description: 'Select activities' },
@@ -49,6 +54,16 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
         checkAuth();
     }, []);
 
+    // 🔒 Lock to Twitter + Engage for V1
+    useEffect(() => {
+        if (!V1_TWITTER_ENGAGE_ONLY) return;
+        wizard.updateState({
+            platform: 'twitter',
+            type: 'engage',
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleStepNext = () => {
         // Validate current step before proceeding
         const validation = wizard.validateCurrentStep();
@@ -68,36 +83,22 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
     };
 
     const handleMissionSubmit = () => {
-        // Transform wizard state to match API expectations exactly
         const missionData = {
-            platform: wizard.state.platform,
+            platform: 'twitter',
             model: wizard.state.model,
-            type: wizard.state.type,
+            type: 'engage',
             tasks: wizard.state.tasks,
             isPremium: wizard.state.isPremium,
-            contentLink: wizard.state.contentLink, // Always send contentLink
+            contentLink: wizard.state.contentLink,
             instructions: wizard.state.instructions,
-
-            // Fixed mission fields
             ...(wizard.state.model === 'fixed' && {
                 cap: wizard.state.cap,
                 rewardPerUser: wizard.state.rewardPerUser,
             }),
-
-            // Degen mission fields
             ...(wizard.state.model === 'degen' && {
                 selectedDegenPreset: wizard.state.selectedDegenPreset,
                 winnersPerMission: wizard.state.winnersPerMission ?? wizard.state.winnersCap,
                 duration: wizard.state.duration,
-            }),
-
-            // Custom platform fields (if needed)
-            ...(wizard.state.platform === 'custom' && {
-                customTitle: wizard.state.customTitle,
-                customDescription: wizard.state.customDescription,
-                customTimeMinutes: wizard.state.customTimeMinutes,
-                customProofMode: wizard.state.customProofMode,
-                customApiVerifier: wizard.state.customApiVerifier,
             }),
         };
 
@@ -116,16 +117,11 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             updateState: wizard.updateState,
             onNext: handleStepNext,
         };
-
         switch (wizard.currentStep) {
-            case 1:
-                return <ModelStep {...stepProps} />;
-            case 2:
-                return <TasksStep {...stepProps} />;
-            case 3:
-                return <SettingsStep {...stepProps} />;
-            case 4:
-                return <DetailsStep {...stepProps} />;
+            case 1: return <ModelStep {...stepProps} />;
+            case 2: return <TasksStep {...stepProps} />;
+            case 3: return <SettingsStep {...stepProps} />;
+            case 4: return <DetailsStep {...stepProps} />;
             case 5:
                 return (
                     <ReviewStep
@@ -135,8 +131,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
                         isLoading={isLoading}
                     />
                 );
-            default:
-                return <ModelStep {...stepProps} />;
+            default: return <ModelStep {...stepProps} />;
         }
     };
 
@@ -167,55 +162,41 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
     }
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-6">
-            {/* Header */}
-            <div className="text-left mb-2">
-                <div className="flex items-center gap-2">
-                    <h1 className="text-base font-semibold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                        Create Mission
-                    </h1>
-                </div>
-                <p className="text-[11px] text-gray-400">Build and launch your engagement campaign</p>
+        <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+                <h1 className="text-2xl font-semibold text-white">Create New Mission</h1>
+                <p className="text-xs text-gray-400 mt-1">V1: Twitter · Engage missions only</p>
             </div>
 
-            {/* Progress Steps */}
             <StepIndicator
                 currentStep={wizard.currentStep}
                 totalSteps={WIZARD_STEPS.length}
                 steps={WIZARD_STEPS}
             />
 
-            {/* Error Display */}
             {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-8 backdrop-blur-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-red-500/30 flex items-center justify-center">
-                            <span className="text-red-300 text-lg">⚠️</span>
-                        </div>
-                        <p className="text-red-400 font-medium">{error}</p>
-                    </div>
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 my-6">
+                    <p className="text-red-400 text-sm">{error}</p>
                 </div>
             )}
 
-            {/* Step Content */}
-            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-10 mb-8 inset-shadow min-h-[600px] border border-gray-700/50">
+            {/* No inner scroll: keep content compact */}
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-xl p-6 mb-6 inset-shadow">
                 {renderCurrentStep()}
             </div>
 
-            {/* Navigation */}
             {wizard.currentStep < 5 && (
                 <WizardNavigation
                     onPrevious={handleStepPrevious}
                     onNext={handleStepNext}
                     onReset={wizard.resetWizard}
                     canGoPrevious={wizard.canGoPrevious}
-                    canGoNext={wizard.canGoNext}  // This now uses live validation from useWizardState
+                    canGoNext={wizard.canGoNext}
                     isLastStep={wizard.isLastStep}
                     isFirstStep={wizard.isFirstStep}
                     isLoading={isLoading}
                 />
             )}
-
         </div>
     );
 };

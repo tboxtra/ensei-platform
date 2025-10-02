@@ -61,140 +61,74 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
 
 
     return (
-        <div className="space-y-4">
-            <div className="text-left mb-2">
-                <h2 className="text-lg font-bold text-white mb-1">Review & Create</h2>
-            </div>
-
-            {/* Mission Summary */}
-            <div className="bg-gray-800/30 rounded-2xl p-8 border border-gray-700/50">
-                <h3 className="text-2xl font-bold mb-6 text-white">Mission Summary</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="bg-gray-700/30 rounded-xl p-4">
-                        <div className="text-sm text-gray-400 mb-1">Platform</div>
-                        <div className="text-lg font-semibold text-white">{getPlatformName(state.platform)}</div>
-                    </div>
-                    <div className="bg-gray-700/30 rounded-xl p-4">
-                        <div className="text-sm text-gray-400 mb-1">Model</div>
-                        <div className="text-lg font-semibold text-white capitalize">{state.model}</div>
-                    </div>
-                    <div className="bg-gray-700/30 rounded-xl p-4">
-                        <div className="text-sm text-gray-400 mb-1">Tasks</div>
-                        <div className="text-lg font-semibold text-white">{state.tasks.length} selected</div>
-                    </div>
-                    <div className="bg-gray-700/30 rounded-xl p-4">
-                        <div className="text-sm text-gray-400 mb-1">Participants</div>
-                        <div className="text-lg font-semibold text-white">
-                            {state.model === 'degen' ? '∞ (Unlimited)' : state.cap}
-                        </div>
-                    </div>
-                    {state.model === 'degen' && (
-                        <>
-                            <div className="bg-gray-700/30 rounded-xl p-4">
-                                <div className="text-sm text-gray-400 mb-1">Duration</div>
-                                <div className="text-lg font-semibold text-white">
-                                    {state.selectedDegenPreset?.hours || state.duration} hours
-                                </div>
-                            </div>
-                            <div className="bg-gray-700/30 rounded-xl p-4">
-                                <div className="text-sm text-gray-400 mb-1">Winners</div>
-                                <div className="text-lg font-semibold text-white">
-                                    {state.winnersCap || state.selectedDegenPreset?.maxWinners || 0}
-                                </div>
-                            </div>
-                        </>
-                    )}
-                    {state.model === 'fixed' && (
-                        <div className="bg-gray-700/30 rounded-xl p-4">
-                            <div className="text-sm text-gray-400 mb-1">Audience</div>
-                            <div className="text-lg font-semibold text-white">{state.isPremium ? 'Premium' : 'All Users'}</div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Pricing Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl p-8 border border-green-500/30">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center">
-                            <span className="text-green-300 text-xl">💰</span>
-                        </div>
-                        <div>
-                            <div className="text-3xl font-bold text-green-400">${pricing.totalUsd.toFixed(2)}</div>
-                            <div className="text-sm text-gray-400">Total Cost (USD)</div>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-lg rounded-2xl p-8 border border-blue-500/30">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center">
-                            <span className="text-blue-300 text-xl">🏆</span>
-                        </div>
-                        <div>
-                            <div className="text-3xl font-bold text-blue-400">{pricing.totalHonors.toLocaleString()}</div>
-                            <div className="text-sm text-gray-400">Total Honors</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Content Preview */}
-            {state.contentLink && (
-                <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
-                    <h3 className="text-xl font-bold mb-4 text-white">Content Link</h3>
-                    <div className="bg-gray-700/30 rounded-xl p-4">
-                        <a
-                            href={state.contentLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 break-all text-sm font-medium"
-                        >
-                            {state.contentLink}
-                        </a>
-                    </div>
-                </div>
-            )}
-
-            {/* Instructions Preview */}
-            {state.instructions && (
-                <div className="bg-gray-800/30 rounded-2xl p-6 border border-gray-700/50">
-                    <h3 className="text-xl font-bold mb-4 text-white">Instructions</h3>
-                    <div className="bg-gray-700/30 rounded-xl p-4">
-                        <p className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">{state.instructions}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Create Button */}
+        <div className="space-y-6">
             <div className="text-center">
-                <button
-                    onClick={onSubmit}
-                    disabled={isLoading}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {isLoading ? (
-                        <div className="flex items-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            Creating...
-                        </div>
-                    ) : (
-                        'Create Mission'
-                    )}
-                </button>
+                <h2 className="text-xl font-semibold mb-1">Review & Create</h2>
+                <p className="text-gray-400 text-sm">Confirm configuration and pricing</p>
             </div>
 
-            {onReset && (
-                <div>
-                    <button
-                        onClick={onReset}
-                        disabled={isLoading}
-                        className="text-gray-400 hover:text-white text-sm underline transition-colors disabled:opacity-50"
-                    >
-                        🔄 Start Over
-                    </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="card p-5">
+                    <h3 className="text-sm font-semibold mb-3">Mission Summary</h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="text-gray-400">Platform</div><div>X (Twitter)</div>
+                        <div className="text-gray-400">Model</div><div className="capitalize">{state.model}</div>
+                        <div className="text-gray-400">Tasks</div><div>{state.tasks.length} selected</div>
+                        <div className="text-gray-400">Participants</div>
+                        <div>{state.model === 'degen' ? '∞ (Unlimited)' : state.cap}</div>
+                        {state.model === 'degen' && (
+                            <>
+                                <div className="text-gray-400">Duration</div><div>{state.selectedDegenPreset?.hours || state.duration}h</div>
+                                <div className="text-gray-400">Winners</div><div>{state.winnersCap || state.selectedDegenPreset?.maxWinners || 0}</div>
+                            </>
+                        )}
+                        {state.model === 'fixed' && (
+                            <>
+                                <div className="text-gray-400">Audience</div><div>{state.isPremium ? 'Premium' : 'All Users'}</div>
+                            </>
+                        )}
+                    </div>
                 </div>
-            )}
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="p-5 rounded-xl border border-green-500/30 bg-green-500/10">
+                        <div className="text-2xl font-bold text-green-400 mb-1">${pricing.totalUsd.toFixed(2)}</div>
+                        <div className="hint">Total Cost (USD)</div>
+                    </div>
+                    <div className="p-5 rounded-xl border border-blue-500/30 bg-blue-500/10">
+                        <div className="text-2xl font-bold text-blue-400 mb-1">{pricing.totalHonors.toLocaleString()}</div>
+                        <div className="hint">Total Honors</div>
+                    </div>
+
+                    {state.contentLink && (
+                        <div className="col-span-2 card p-4">
+                            <h3 className="text-sm font-semibold mb-2">Content Link</h3>
+                            <a href={state.contentLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 break-all hover:text-blue-300 text-sm">
+                                {state.contentLink}
+                            </a>
+                        </div>
+                    )}
+                    {state.instructions && (
+                        <div className="col-span-2 card p-4">
+                            <h3 className="text-sm font-semibold mb-2">Instructions</h3>
+                            <p className="text-gray-300 text-sm whitespace-pre-wrap">{state.instructions}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="text-center space-y-3">
+                <button onClick={onSubmit} disabled={isLoading} className="btn-primary px-10">
+                    {isLoading ? 'Creating Mission…' : '🚀 Create Mission'}
+                </button>
+                {onReset && (
+                    <div>
+                        <button onClick={onReset} disabled={isLoading} className="text-gray-400 hover:text-white text-xs underline">
+                            Start Over
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

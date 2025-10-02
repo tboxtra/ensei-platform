@@ -49,18 +49,8 @@ export default function CreateMissionPage() {
                             </p>
                         )}
                         <div className="flex justify-center space-x-4">
-                            <button
-                                onClick={() => window.location.href = '/missions'}
-                                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
-                            >
-                                View All Missions
-                            </button>
-                            <button
-                                onClick={() => window.location.href = '/missions/my'}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
-                            >
-                                My Missions
-                            </button>
+                            <button onClick={() => (window.location.href = '/missions')} className="btn-primary">View All Missions</button>
+                            <button onClick={() => (window.location.href = '/missions/my')} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200">My Missions</button>
                         </div>
                     </div>
                 </div>
@@ -70,20 +60,11 @@ export default function CreateMissionPage() {
 
     return (
         <ModernLayout currentPage="/missions/create">
-            <div className="max-w-4xl mx-auto px-4 py-4">
-                <MissionWizard
-                    onSubmit={handleWizardSubmit}
-                    isLoading={loading}
-                    error={error}
-                />
-                
-                {/* V1 Notice - Bottom aligned */}
-                <div className="text-center mt-4">
-                    <span className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">
-                        V1: Twitter engage missions only
-                    </span>
-                </div>
-            </div>
+            <MissionWizard
+                onSubmit={handleWizardSubmit}
+                isLoading={loading}
+                error={error}
+            />
         </ModernLayout>
     );
 }

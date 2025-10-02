@@ -12,15 +12,29 @@ interface ModelStepProps {
 const MODELS = [
     {
         id: 'fixed' as const,
-        title: 'Fixed',
+        title: 'Fixed Mission',
+        description: 'Fixed participants, task-based pricing',
         icon: '📊',
-        features: ['Fixed participants', 'Predictable cost'],
+        color: 'from-purple-500 to-indigo-600',
+        borderColor: 'border-purple-500/30',
+        features: [
+            'Predictable costs',
+            'Fixed timeline',
+            'Task-based rewards',
+        ],
     },
     {
         id: 'degen' as const,
-        title: 'Degen',
+        title: 'Degen Mission',
+        description: 'Time-boxed, unlimited applicants',
         icon: '⚡',
-        features: ['Unlimited applicants', 'Time-based'],
+        color: 'from-gray-800/50 to-gray-700/50',
+        borderColor: 'border-gray-700/50',
+        features: [
+            'Unlimited applicants',
+            'Time-based rewards',
+            'Competitive pool',
+        ],
     },
 ];
 
@@ -35,38 +49,31 @@ export const ModelStep: React.FC<ModelStepProps> = ({
     };
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="text-left mb-2">
-                <h2 className="text-lg font-bold text-white mb-1">Mission Model</h2>
+        <div className="space-y-6">
+            <div className="text-center">
+                <h2 className="text-xl font-semibold mb-1">Mission Model</h2>
+                <p className="text-gray-400 text-sm">Choose how your mission will be structured</p>
             </div>
 
-            <div className="flex-1 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {MODELS.map((model) => {
                     const isSelected = state.model === model.id;
                     const isFixed = model.id === 'fixed';
-
                     return (
                         <button
                             key={model.id}
                             onClick={() => handleModelSelect(model.id)}
-                            className={`relative p-4 rounded-xl text-center transition-all duration-300 ${isSelected || isFixed
-                                ? 'bg-blue-500/20 border-2 border-blue-500 text-white'
-                                : 'bg-gray-800/50 border border-gray-700 text-gray-300 hover:border-gray-600'
-                                }`}
+                            className={`p-6 rounded-xl text-left transition ${isSelected || isFixed
+                                ? `bg-gradient-to-br ${model.color} text-white shadow-lg`
+                                : 'card text-gray-300 hover:bg-gray-700/50'
+                            }`}
                         >
-                            {(isSelected || isFixed) && (
-                                <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                                    <span className="text-white text-xs">✓</span>
-                                </div>
-                            )}
-
                             <div className="text-3xl mb-2">{model.icon}</div>
-                            <h3 className="font-bold text-sm mb-2">{model.title}</h3>
-                            <div className="space-y-1">
-                                {model.features.map((feature, index) => (
-                                    <div key={index} className="text-xs opacity-80">{feature}</div>
-                                ))}
-                            </div>
+                            <div className="font-bold text-lg mb-1">{model.title}</div>
+                            <div className="text-sm opacity-90 mb-3">{model.description}</div>
+                            <ul className="text-sm space-y-1">
+                                {model.features.map((f, i) => <li key={i}>• {f}</li>)}
+                            </ul>
                         </button>
                     );
                 })}

@@ -18,11 +18,6 @@ const TASK_DEFINITIONS = {
             { id: 'comment', name: 'Comment', price: 150 },
             { id: 'quote', name: 'Quote', price: 200 },
             { id: 'follow', name: 'Follow', price: 250 },
-            // V1: Hide other tasks that aren't supported yet
-            // { id: 'meme', name: 'Meme', price: 300 },
-            // { id: 'thread', name: 'Thread', price: 500 },
-            // { id: 'article', name: 'Article', price: 400 },
-            // { id: 'videoreview', name: 'Video Review', price: 600 },
         ],
         content: [
             { id: 'meme', name: 'Meme', price: 300 },
@@ -121,7 +116,8 @@ export const TasksStep: React.FC<TasksStepProps> = ({
     updateState,
     onNext,
 }) => {
-    const availableTasks = TASK_DEFINITIONS[state.platform as keyof typeof TASK_DEFINITIONS]?.[state.type] || [];
+    // V1: Only show Twitter Engage tasks
+    const availableTasks = TASK_DEFINITIONS.twitter.engage;
 
     const handleTaskToggle = (taskId: string) => {
         const currentTasks = state.tasks || [];
@@ -152,85 +148,61 @@ export const TasksStep: React.FC<TasksStepProps> = ({
         const isDisabled = state.model === 'degen' && !isSelected && state.tasks.length >= 3;
 
         if (isSelected) {
-            return 'group relative p-6 rounded-2xl text-left transition-all duration-300 transform hover:scale-[1.02] bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-xl border-2 border-green-400/30';
+            return 'p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg';
         } else if (isDisabled) {
-            return 'p-6 rounded-2xl text-left transition-all duration-300 bg-gray-800/30 text-gray-500 border border-gray-700/30 cursor-not-allowed opacity-50';
+            return 'p-6 rounded-xl text-left transition-all duration-300 bg-gray-800/30 text-gray-500 border border-gray-700/30 cursor-not-allowed opacity-50';
         } else {
-            return 'group relative p-6 rounded-2xl text-left transition-all duration-300 transform hover:scale-[1.02] bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50 hover:border-gray-600/50 hover:shadow-lg';
+            return 'p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50';
         }
     };
 
     return (
-        <div className="space-y-4">
-            <div className="text-left mb-2">
-                <h2 className="text-lg font-bold text-white mb-1">Select Tasks</h2>
-
-
+        <div className="space-y-6">
+            <div className="text-center">
+                <h2 className="text-xl font-semibold mb-1">Select Tasks</h2>
+                <p className="text-gray-400 text-sm">Choose which actions participants must complete</p>
                 {state.model === 'degen' && (
-                    <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/30 rounded-xl backdrop-blur-sm">
-                        <div className="flex items-center justify-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center">
-                                <span className="text-purple-300 text-lg">⚡</span>
-                            </div>
-                            <div>
-                                <p className="text-purple-300 text-sm font-medium">
-                                    <strong>Degen Mission:</strong> Select up to 3 tasks
-                                </p>
-                                <p className="text-purple-200 text-xs mt-1">
-                                    Selected: {state.tasks.length}/3 tasks
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    <p className="hint mt-2">Degen: select up to 3 tasks (selected {state.tasks.length}/3)</p>
                 )}
             </div>
 
             {availableTasks.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {availableTasks.map((task) => {
                         const isSelected = state.tasks.includes(task.id);
                         const isDisabled = state.model === 'degen' && !isSelected && state.tasks.length >= 3;
-
                         return (
                             <button
                                 key={task.id}
                                 onClick={() => handleTaskToggle(task.id)}
                                 disabled={isDisabled}
-                                className={`relative p-3 rounded-lg text-center transition-all duration-300 ${isSelected
-                                    ? 'bg-green-500/20 border-2 border-green-500 text-white'
-                                    : 'bg-gray-800/50 border border-gray-700 text-gray-300 hover:border-gray-600'
-                                    } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`${isSelected
+                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                                    : 'card text-gray-300 hover:bg-gray-700/50'
+                                } p-5 rounded-xl text-left transition`}
                             >
-                                {isSelected && (
-                                    <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                                        <span className="text-white text-xs">✓</span>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="font-medium text-base">{task.name}</div>
+                                        <div className="hint mt-0.5">{task.price} honors</div>
                                     </div>
-                                )}
-
-                                <div className="text-2xl mb-1">
-                                    {task.id === 'like' && '👍'}
-                                    {task.id === 'retweet' && '🔄'}
-                                    {task.id === 'comment' && '💬'}
-                                    {task.id === 'quote' && '💭'}
-                                    {task.id === 'follow' && '👥'}
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-white' : 'border-gray-500'}`}>
+                                        {isSelected && <span className="text-white text-sm">✓</span>}
+                                    </div>
                                 </div>
-                                <div className="font-semibold text-sm">{task.name}</div>
-                                <div className="text-xs opacity-75">{task.price}h</div>
                             </button>
                         );
                     })}
                 </div>
             ) : (
-                <div className="text-center py-8">
-                    <p className="text-gray-400">No tasks available for this platform and type combination.</p>
+                <div className="text-center py-6">
+                    <p className="text-gray-400">No tasks available.</p>
                 </div>
             )}
 
             {state.tasks.length > 0 && (
                 <div className="text-center">
-                    <p className="text-gray-500 text-sm">
-                        Selected {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''} • Ready to configure settings
-                    </p>
+                    <button onClick={handleContinue} className="btn-primary">Continue to Settings →</button>
                 </div>
             )}
         </div>

@@ -42,7 +42,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
     };
 
     return (
-        <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-8 mb-8 inset-shadow border border-gray-700/50">
+        <div className="bg-gray-800/60 backdrop-blur-lg rounded-xl p-6 mb-8 inset-shadow">
             <div className="flex items-center justify-between">
                 {steps.map((step, index) => {
                     const status = getStepStatus(step.id);
@@ -50,27 +50,16 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
 
                     return (
                         <React.Fragment key={step.id}>
-                            <div className={`step-indicator ${status} flex items-center group`}>
-                                <div className="relative">
-                                    {getStepIcon(step.id, status)}
-                                    {status === 'active' && (
-                                        <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse"></div>
-                                    )}
-                                </div>
-                                <div className="hidden sm:block ml-4">
-                                    <div className="text-sm font-semibold text-white group-hover:text-blue-300 transition-colors">
-                                        {step.title}
-                                    </div>
-                                    <div className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
-                                        {step.description}
-                                    </div>
+                            <div className={`step-indicator ${status} flex items-center`}>
+                                {getStepIcon(step.id, status)}
+                                <div className="hidden sm:block ml-3">
+                                    <div className="text-sm font-medium">{step.title}</div>
+                                    <div className="text-xs opacity-75">{step.description}</div>
                                 </div>
                             </div>
 
                             {!isLast && (
-                                <div className={`flex-1 h-1 mx-6 rounded-full transition-all duration-500 ${step.id < currentStep
-                                        ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                                        : 'bg-gray-700'
+                                <div className={`flex-1 h-0.5 mx-4 ${step.id < currentStep ? 'bg-green-500' : 'bg-gray-700'
                                     }`} />
                             )}
                         </React.Fragment>
