@@ -51,9 +51,23 @@ export function useDashboardSummary(): UseDashboardSummaryReturn {
       }
 
       try {
+        // Acquire token (same strategy as useApi)
+        const token =
+          (typeof window !== 'undefined' && localStorage.getItem('firebaseToken')) ||
+          (await (async () => {
+            try {
+              const { getFirebaseAuth } = await import('../lib/firebase');
+              const a = getFirebaseAuth();
+              const u = a.currentUser;
+              return u ? await u.getIdToken(false) : null;
+            } catch {
+              return null;
+            }
+          })());
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/dashboard/summary`, {
           headers: {
-            'Authorization': `Bearer ${await authUser.getIdToken()}`,
+            ...(token && { 'Authorization': `Bearer ${token}` }),
             'Content-Type': 'application/json',
           },
           credentials: 'include',
