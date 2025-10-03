@@ -94,7 +94,9 @@ export function useDashboardSummary(): UseDashboardSummaryReturn {
         refetchOnMount: 'always',
         staleTime: 30 * 1000, // 30 seconds for real-time feel
         gcTime: 5 * 60 * 1000, // 5 minutes
-        refetchOnWindowFocus: true,
+    refetchOnWindowFocus: true,
+    // Light realtime: poll while tab is visible so Tasks Done updates quickly
+    refetchInterval: () => (typeof document !== 'undefined' && document.visibilityState === 'visible' ? 5000 : false),
         // Keep previous data during refetch to prevent flicker
         placeholderData: (prev) => prev,
     });
