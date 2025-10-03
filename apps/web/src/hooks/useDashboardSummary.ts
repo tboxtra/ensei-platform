@@ -42,6 +42,9 @@ export function useDashboardSummary(): UseDashboardSummaryReturn {
 
     const enabled = ready && !!authUser?.uid;
 
+    // Use the same base URL convention as useApi
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
+
     const query = useQuery<DashboardSummary>({
         enabled,
         queryKey: ['dashboard', 'summary', authUser?.uid],
@@ -65,7 +68,9 @@ export function useDashboardSummary(): UseDashboardSummaryReturn {
                         }
                     })());
 
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/dashboard/summary`, {
+                const url = `${API_BASE_URL}/v1/dashboard/summary`;
+
+                const response = await fetch(url, {
                     headers: {
                         ...(token && { 'Authorization': `Bearer ${token}` }),
                         'Content-Type': 'application/json',
@@ -74,11 +79,11 @@ export function useDashboardSummary(): UseDashboardSummaryReturn {
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Dashboard summary failed: ${response.status}`);
+                    const text = await response.text().catch(() => '');
+                    throw new Error(`Dashboard summary failed: ${response.status} ${text}`);
                 }
 
                 const data = await response.json();
-                console.log('📊 Dashboard summary fetched:', data);
                 return data;
             } catch (error) {
                 console.error('Failed to fetch dashboard summary:', error);
