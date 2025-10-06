@@ -145,7 +145,18 @@ export default function MissionsPage() {
         }
       }
     } else if (mission.model?.toLowerCase() === 'fixed') {
-      // For fixed missions: hide if participant cap is reached
+      // For fixed missions: hide if expired OR participant cap is reached
+      
+      // Check expiration first
+      if (mission.expires_at) {
+        const expiresAt = new Date(mission.expires_at);
+        const now = new Date();
+        if (expiresAt.getTime() <= now.getTime()) {
+          return false; // Hide expired fixed missions
+        }
+      }
+      
+      // Check participant cap
       const currentParticipants = mission.participants_count || mission.participants || 0;
       const maxParticipants = mission.max_participants || mission.cap || 0;
       if (maxParticipants > 0 && currentParticipants >= maxParticipants) {

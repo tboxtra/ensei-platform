@@ -2788,16 +2788,40 @@ app.get('/v1/dashboard/summary', async (req, res) => {
             .where('missionCompleted', '==', true)
             .get();
         const missionsCompleted = progressSnap.empty ? (stats?.missionsCompleted ?? 0) : progressSnap.size;
-        // 3) Tasks done (verified only)
-        const verificationsSnap = await db.collection('verifications')
+        // 3) Tasks done: include both 'verified' and 'approved' statuses
+        const verVerifiedSnap = await db.collection('verifications')
             .where('uid', '==', userId)
             .where('status', '==', 'verified')
             .get();
-        const tasksDone = verificationsSnap.empty ? (stats?.tasksDone ?? stats?.tasksCompleted ?? 0) : verificationsSnap.size;
-        // 4) Honors earned (authoritative = wallet honors; fallback to stats)
+        const verApprovedSnap = await db.collection('verifications')
+            .where('uid', '==', userId)
+            .where('status', '==', 'approved')
+            .get();
+        const tasksDoneRaw = (verVerifiedSnap.size || 0) + (verApprovedSnap.size || 0);
+        const tasksDone = tasksDoneRaw === 0 ? (stats?.tasksDone ?? stats?.tasksCompleted ?? 0) : tasksDoneRaw;
+        // 4) Honors earned
+        // Priority: wallet.honors → sum of verified verifications honors → stats rollup
         const walletDoc = await db.collection('wallets').doc(userId).get();
         const wallet = walletDoc.exists ? walletDoc.data() : null;
-        const honorsEarned = (wallet?.honors ?? null) ?? (stats?.totalEarned ?? stats?.totalEarnings ?? 0);
+        let honorsEarned = wallet?.honors ?? null;
+        if (!honorsEarned || honorsEarned === 0) {
+            // Sum honors from verified verifications as a reliable fallback
+            let verifiedHonors = 0;
+            verVerifiedSnap.forEach(v => {
+                const vd = v.data();
+                const h = vd?.rewards?.honors ?? vd?.honors ?? 0;
+                verifiedHonors += Number(h) || 0;
+            });
+            verApprovedSnap.forEach(v => {
+                const vd = v.data();
+                const h = vd?.rewards?.honors ?? vd?.honors ?? 0;
+                verifiedHonors += Number(h) || 0;
+            });
+            honorsEarned = verifiedHonors > 0 ? verifiedHonors : null;
+        }
+        if (!honorsEarned) {
+            honorsEarned = Number(stats?.totalEarned ?? stats?.totalEarnings ?? 0) || 0;
+        }
         // 5) USD spent = sum of rewards.usd on my missions
         let usdSpent = 0;
         myMissionsSnap.docs.forEach(d => {
