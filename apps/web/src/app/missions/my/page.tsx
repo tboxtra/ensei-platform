@@ -32,13 +32,13 @@ function isEnded(m: any) {
 
     if (model === 'fixed') {
         // Check expiration first
-        if (m.expires_at) {
-            const expiresAt = new Date(m.expires_at).getTime();
+        if (m.expiresAt) {
+            const expiresAt = new Date(m.expiresAt).getTime();
             if (!Number.isNaN(expiresAt) && expiresAt <= now) {
                 return true; // Mission has expired
             }
         }
-        
+
         // Check participant cap
         const current = m.participants_count ?? m.participants ?? 0;
         const max = m.max_participants ?? m.cap ?? 0;

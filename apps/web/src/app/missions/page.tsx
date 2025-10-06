@@ -128,6 +128,18 @@ export default function MissionsPage() {
   const missionsArray = Array.isArray(missions) ? missions : [];
 
   const filteredMissions = missionsArray.filter(mission => {
+    // Debug: Log mission data for expired fixed missions
+    if (mission.model?.toLowerCase() === 'fixed') {
+      console.log('🔍 Fixed mission data:', {
+        id: mission.id,
+        model: mission.model,
+        expiresAt: mission.expiresAt,
+        expires_at: mission.expires_at,
+        status: mission.status,
+        allFields: Object.keys(mission)
+      });
+    }
+
     // Apply regular filters
     if (filters.type !== 'all' && mission.type !== filters.type) return false;
     if (filters.model !== 'all' && mission.model !== filters.model) return false;
@@ -148,14 +160,15 @@ export default function MissionsPage() {
       // For fixed missions: hide if expired OR participant cap is reached
       
       // Check expiration first
-      if (mission.expires_at) {
-        const expiresAt = new Date(mission.expires_at);
+      if (mission.expiresAt) {
+        const expiresAt = new Date(mission.expiresAt);
         const now = new Date();
         if (expiresAt.getTime() <= now.getTime()) {
+          console.log('🔍 Hiding expired fixed mission:', mission.id, 'expiresAt:', mission.expiresAt, 'now:', now.toISOString());
           return false; // Hide expired fixed missions
         }
       }
-      
+
       // Check participant cap
       const currentParticipants = mission.participants_count || mission.participants || 0;
       const maxParticipants = mission.max_participants || mission.cap || 0;
