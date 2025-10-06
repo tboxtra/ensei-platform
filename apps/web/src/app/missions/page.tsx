@@ -17,8 +17,10 @@ import { Spinner } from '../../components/ui/Feedback';
 export default function MissionsPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { getMissions, participateInMission, completeTask, loading, error } = useApi();
+  const { getMissions, getExpiredMissions, participateInMission, completeTask, loading, error } = useApi();
   const [missions, setMissions] = useState<any[]>([]);
+  const [expiredMissions, setExpiredMissions] = useState<any[]>([]);
+  const [showExpired, setShowExpired] = useState(false);
 
   // Get all user completions for real-time status updates
   const { data: userCompletions = [], isLoading: loadingCompletions } = useAllUserCompletions(user?.id);
@@ -108,8 +110,21 @@ export default function MissionsPage() {
       }
     };
 
+    const loadExpiredMissions = async () => {
+      try {
+        console.log('MissionsPage: Starting to fetch expired missions...');
+        const expiredData = await getExpiredMissions();
+        console.log('MissionsPage: Fetched expired missions:', expiredData?.length || 0);
+        setExpiredMissions(Array.isArray(expiredData) ? expiredData : []);
+      } catch (err) {
+        console.error('MissionsPage: Failed to fetch expired missions:', err);
+        setExpiredMissions([]);
+      }
+    };
+
     loadMissions();
-  }, [getMissions]);
+    loadExpiredMissions();
+  }, [getMissions, getExpiredMissions]);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -128,18 +143,6 @@ export default function MissionsPage() {
   const missionsArray = Array.isArray(missions) ? missions : [];
 
   const filteredMissions = missionsArray.filter(mission => {
-    // Debug: Log mission data for expired fixed missions
-    if (mission.model?.toLowerCase() === 'fixed') {
-      console.log('🔍 Fixed mission data:', {
-        id: mission.id,
-        model: mission.model,
-        expiresAt: mission.expiresAt,
-        expires_at: mission.expires_at,
-        status: mission.status,
-        allFields: Object.keys(mission)
-      });
-    }
-
     // Apply regular filters
     if (filters.type !== 'all' && mission.type !== filters.type) return false;
     if (filters.model !== 'all' && mission.model !== filters.model) return false;
@@ -158,13 +161,12 @@ export default function MissionsPage() {
       }
     } else if (mission.model?.toLowerCase() === 'fixed') {
       // For fixed missions: hide if expired OR participant cap is reached
-      
+
       // Check expiration first
       if (mission.expiresAt) {
         const expiresAt = new Date(mission.expiresAt);
         const now = new Date();
         if (expiresAt.getTime() <= now.getTime()) {
-          console.log('🔍 Hiding expired fixed mission:', mission.id, 'expiresAt:', mission.expiresAt, 'now:', now.toISOString());
           return false; // Hide expired fixed missions
         }
       }
@@ -401,6 +403,57 @@ export default function MissionsPage() {
               >
                 Clear Filters
               </ModernButton>
+            </div>
+          )}
+
+          {/* Expired Missions Section */}
+          {expiredMissions.length > 0 && (
+            <div className="mt-8">
+              {/* Expired Missions Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-bold text-gray-300">Expired Missions</h2>
+                  <span className="bg-gray-700/50 text-gray-400 text-xs px-2 py-1 rounded-full">
+                    {expiredMissions.length}
+                  </span>
+                </div>
+                <ModernButton
+                  onClick={() => setShowExpired(!showExpired)}
+                  variant="secondary"
+                  className="text-xs px-3 py-1"
+                >
+                  {showExpired ? 'Hide' : 'Show'} Expired
+                </ModernButton>
+              </div>
+
+              {/* Expired Missions Grid */}
+              {showExpired && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {expiredMissions.map((mission) => {
+                    const userCompletion = userCompletionsByMission[mission.id];
+                    return (
+                      <div key={mission.id} className="relative">
+                        {/* Expired Overlay */}
+                        <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-gray-400 text-2xl mb-2">⏰</div>
+                            <div className="text-gray-300 text-sm font-medium">Expired</div>
+                          </div>
+                        </div>
+                        
+                        {/* Mission Card with reduced opacity */}
+                        <div className="opacity-60">
+                          <CompactMissionCard
+                            mission={mission}
+                            userCompletion={userCompletion}
+                            onViewDetails={handleViewDetails}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -411,6 +411,23 @@ export function useApi() {
         }
     }, [makeRequest]);
 
+    const getExpiredMissions = useCallback(async (): Promise<Mission[]> => {
+        console.log('getExpiredMissions: Starting to fetch expired missions...');
+        try {
+            const response = await makeRequest<{ missions: Mission[], hasMore: boolean, nextPageToken: string | null }>('/v1/missions/expired');
+            console.log('getExpiredMissions: Successfully fetched expired missions:', {
+                count: response?.missions?.length || 0,
+                missions: response?.missions,
+                hasMore: response?.hasMore,
+                nextPageToken: response?.nextPageToken
+            });
+            return response?.missions || [];
+        } catch (error) {
+            console.error('getExpiredMissions: Failed to fetch expired missions:', error);
+            throw error;
+        }
+    }, [makeRequest]);
+
     const getMission = useCallback(async (id: string): Promise<Mission> => {
         return makeRequest<Mission>(`/v1/missions/${id}`);
     }, [makeRequest]);
@@ -762,6 +779,7 @@ export function useApi() {
         // Mission methods
         createMission,
         getMissions,
+        getExpiredMissions,
         getMission,
         getMyMissions,
         // Submission methods

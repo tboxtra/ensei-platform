@@ -802,6 +802,95 @@ app.get('/v1/missions', async (req, res) => {
   }
 });
 
+// Get expired missions endpoint
+app.get('/v1/missions/expired', async (req, res) => {
+  try {
+    const { limit = 20, pageToken } = req.query;
+    const limitNum = Math.min(parseInt(limit as string, 10) || 20, 100); // Max 100 per page
+
+    const now = new Date();
+
+    let query = db.collection('missions')
+      .where('status', 'in', ['completed', 'expired'])
+      .orderBy('created_at', 'desc')
+      .limit(limitNum);
+
+    // Handle pagination
+    if (pageToken) {
+      try {
+        const cursorData = JSON.parse(Buffer.from(pageToken as string, 'base64').toString());
+        const { id, created_at } = cursorData;
+
+        if (id && created_at) {
+          query = query.startAfter(new Date(created_at));
+        }
+      } catch (error) {
+        console.warn('Invalid pageToken provided:', pageToken, error);
+      }
+    }
+
+    const missionsSnapshot = await query.get();
+
+    // Filter and serialize expired missions
+    const missions = missionsSnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return serializeMissionResponse({
+          id: doc.id,
+          ...data,
+        });
+      })
+      .filter((mission: any) => {
+        // Additional client-side filtering for expired missions
+        if (mission.model?.toLowerCase() === 'degen') {
+          // For degen missions: check if deadline has passed
+          if (mission.deadline) {
+            const deadline = new Date(mission.deadline);
+            return deadline.getTime() <= now.getTime();
+          }
+        } else if (mission.model?.toLowerCase() === 'fixed') {
+          // For fixed missions: check if expired OR participant cap reached
+          if (mission.expiresAt) {
+            const expiresAt = new Date(mission.expiresAt);
+            if (expiresAt.getTime() <= now.getTime()) {
+              return true; // Expired
+            }
+          }
+          
+          // Check if participant cap is reached
+          const currentParticipants = mission.participants_count || mission.participants || 0;
+          const maxParticipants = mission.max_participants || mission.cap || 0;
+          if (maxParticipants > 0 && currentParticipants >= maxParticipants) {
+            return true; // Cap reached
+          }
+        }
+        
+        return false; // Not expired
+      });
+
+    // Generate next page token
+    let nextPageToken = null;
+    if (missionsSnapshot.docs.length === limitNum) {
+      const lastDoc = missionsSnapshot.docs[missionsSnapshot.docs.length - 1];
+      const lastData = lastDoc.data();
+      const cursorData = {
+        id: lastDoc.id,
+        created_at: toIso(lastData.created_at)
+      };
+      nextPageToken = Buffer.from(JSON.stringify(cursorData)).toString('base64');
+    }
+
+    res.json({
+      missions,
+      hasMore: missionsSnapshot.docs.length === limitNum,
+      nextPageToken
+    });
+  } catch (error) {
+    console.error('Error fetching expired missions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/v1/missions/:id', async (req, res) => {
   try {
     const missionId = req.params.id;
