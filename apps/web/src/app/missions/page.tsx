@@ -118,6 +118,7 @@ export default function MissionsPage() {
         setExpiredMissions(Array.isArray(expiredData) ? expiredData : []);
       } catch (err) {
         console.error('MissionsPage: Failed to fetch expired missions:', err);
+        // Don't show error to user, just set empty array
         setExpiredMissions([]);
       }
     };
@@ -440,7 +441,7 @@ export default function MissionsPage() {
                             <div className="text-gray-300 text-sm font-medium">Expired</div>
                           </div>
                         </div>
-                        
+
                         {/* Mission Card with reduced opacity */}
                         <div className="opacity-60">
                           <CompactMissionCard

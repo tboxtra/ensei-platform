@@ -856,7 +856,7 @@ app.get('/v1/missions/expired', async (req, res) => {
               return true; // Expired
             }
           }
-          
+
           // Check if participant cap is reached
           const currentParticipants = mission.participants_count || mission.participants || 0;
           const maxParticipants = mission.max_participants || mission.cap || 0;
@@ -864,7 +864,7 @@ app.get('/v1/missions/expired', async (req, res) => {
             return true; // Cap reached
           }
         }
-        
+
         return false; // Not expired
       });
 
