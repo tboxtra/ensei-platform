@@ -5,18 +5,53 @@ import { ModernCard } from '../ui/ModernCard'
 import { ModernButton } from '../ui/ModernButton'
 
 export default function MyPacks() {
-    const [items, setItems] = React.useState<any[]>([])
-    const [loading, setLoading] = React.useState(true)
+  const [items, setItems] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
 
-    const load = async () => {
-        setLoading(true)
-        const e = await apiGetEntitlements()
-        setItems(e); setLoading(false)
+  const load = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const e = await apiGetEntitlements()
+      setItems(e)
+    } catch (err) {
+      console.error('Failed to load entitlements:', err)
+      setError('Failed to load your packs. Please try again later.')
+      setItems([])
+    } finally {
+      setLoading(false)
     }
-    React.useEffect(() => { load() }, [])
+  }
+  React.useEffect(() => { load() }, [])
 
-    if (loading) return <div className="opacity-70">Loading…</div>
-    if (!items.length) return <div className="opacity-70">You don't own any packs yet.</div>
+  if (loading) return <div className="opacity-70">Loading your packs…</div>
+  
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-4xl mb-4">⚠️</div>
+        <h3 className="text-lg font-semibold mb-2 text-yellow-400">Unable to load packs</h3>
+        <p className="text-gray-400 mb-4">{error}</p>
+        <button 
+          onClick={load}
+          className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-500/30 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    )
+  }
+  
+  if (!items.length) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-4xl mb-4">🎒</div>
+        <h3 className="text-lg font-semibold mb-2">No packs yet</h3>
+        <p className="text-gray-400">Purchase packs from the Packs tab to get started!</p>
+      </div>
+    )
+  }
 
     return (
         <div className="flex flex-col gap-4">
