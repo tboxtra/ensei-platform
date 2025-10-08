@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/UserAuthContext';
+import { Pack, Entitlement } from '../types/packs';
 
 interface ApiResponse<T> {
     data: T | null;
@@ -936,4 +937,41 @@ export function useRewards() {
         loading: api.loading,
         error: api.error,
     };
+}
+
+// ---- Packs API Functions ----
+export async function apiGetPacks(): Promise<Pack[]> {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/packs`, { cache: 'no-store' })
+    if (!res.ok) throw new Error('Failed to load packs')
+    return res.json()
+}
+
+export async function apiGetEntitlements(): Promise<Entitlement[]> {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/entitlements`, { cache: 'no-store', credentials: 'include' })
+    if (!res.ok) throw new Error('Failed to load entitlements')
+    return res.json()
+}
+
+// start an onchain purchase; backend returns { txRequest } or { checkoutUrl }
+export async function apiStartPurchase(packId: string, chainId?: number) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/packs/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ packId, method: 'onchain', chainId }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json() as Promise<{ txRequest?: any; txId?: string }>
+}
+
+export async function apiPaymentStatus(txId: string) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/payments/status/${txId}`, { cache: 'no-store' })
+    if (!res.ok) throw new Error('Failed to check payment')
+    return res.json()
+}
+
+export async function apiEthUsd() {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/prices/ethusd`, { cache: 'no-store' })
+    if (!res.ok) throw new Error('Failed to load price')
+    return res.json() as Promise<{ price: number }>
 }
