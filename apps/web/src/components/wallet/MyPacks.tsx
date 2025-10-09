@@ -33,14 +33,14 @@ export default function MyPacks() {
           <p className="text-sm text-white/60 mb-6">Your purchased packs with remaining missions</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy={true}>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-white/10 bg-white/[0.04] h-40 animate-pulse" />
+              <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.04] h-40 animate-pulse" />
             ))}
           </div>
         </section>
         <section>
           <div className="text-2xl font-semibold mb-1">Purchase History</div>
           <p className="text-sm text-white/60 mb-4">Your recent pack purchases</p>
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] h-32 animate-pulse" />
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] h-32 animate-pulse" />
         </section>
       </div>
     );
@@ -93,7 +93,7 @@ export default function MyPacks() {
 
                     <a
                       href={`/create?type=fixed&packId=${encodeURIComponent(ent.packId)}`}
-                      className="mt-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm text-center transition-colors"
+                      className="mt-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm text-center transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/70 focus:ring-offset-2 focus:ring-offset-black"
                     >
                       Use Pack →
                     </a>

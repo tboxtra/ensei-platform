@@ -13,10 +13,11 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
   const [error, setError] = React.useState<string | null>(null)
   const [ethUsd, setEthUsd] = React.useState<number | null>(null)
 
+  const alive = { v: true }
   React.useEffect(() => {
     let m = true
     apiEthUsd().then(p => m && setEthUsd(p.price)).catch(() => { })
-    return () => { m = false }
+    return () => { m = false; alive.v = false }
   }, [])
 
   const handleBuy = async () => {
@@ -25,7 +26,9 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
       const { txId } = await apiStartPurchase(pack.id)
       if (txId) {
         const poll = async () => {
+          if (!alive.v) return
           const s = await apiPaymentStatus(txId!)
+          if (!alive.v) return
           if (s.status === 'confirmed') onPurchased?.()
           else if (['failed', 'expired'].includes(s.status)) setError('Payment failed or expired.')
           else setTimeout(poll, 2000)
@@ -41,15 +44,23 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
     }
   }
 
-  const usd = `$${pack.priceUsd.toFixed(2)}`
+  const fmtUSD = (n: number) => `$${n.toFixed(2)}`
+  const usd = fmtUSD(pack.priceUsd)
   const eth = ethUsd ? `≈ ${(pack.priceUsd / ethUsd).toFixed(4)} ETH` : ''
+  
+  // Auto-compute discount percentage if not provided
+  const pct = pack.meta?.discountPct ?? (
+    pack.meta?.originalUsd && pack.meta.originalUsd > pack.priceUsd
+      ? Math.round(100 - (pack.priceUsd / pack.meta.originalUsd) * 100)
+      : undefined
+  )
 
   return (
-    <ModernCard className="relative flex flex-col gap-4 overflow-hidden group">
+    <ModernCard className="relative flex flex-col gap-3 overflow-hidden group min-h-[200px]">
       {/* Discount chip (optional) */}
-      {typeof pack.meta?.discountPct === 'number' && (
+      {pct != null && (
         <div aria-hidden className="absolute top-3 right-3 text-[11px] font-semibold px-2 py-1 rounded-full bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
-          -{pack.meta!.discountPct}%
+          -{pct}%
         </div>
       )}
 
@@ -59,17 +70,17 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
           <div className="text-xs tracking-wide text-white/60 uppercase">
             {pack.meta?.tierNote || pack.size.toUpperCase()}
           </div>
-          <h3 className="text-lg font-semibold">{pack.label}</h3>
+          <h3 className="text-lg font-semibold break-words">{pack.label}</h3>
         </div>
 
         {/* Price block */}
         <div className="text-right">
           <div className="text-emerald-400 font-bold text-xl">
-            ${pack.priceUsd.toFixed(2)}
+            {usd}
           </div>
           {!!pack.meta?.originalUsd && pack.meta.originalUsd > pack.priceUsd && (
             <div className="text-[12px] line-through opacity-60">
-              ${pack.meta.originalUsd.toFixed(2)}
+              {fmtUSD(pack.meta.originalUsd)}
             </div>
           )}
           {eth && <div className="text-[11px] opacity-60 mt-0.5">{eth}</div>}
@@ -93,16 +104,16 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
         <a
           href={`/create?type=fixed&packId=${encodeURIComponent(pack.id)}`}
           aria-label={`Select ${pack.label}`}
-          className="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm text-white text-center transition-colors"
+          className="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm text-white text-center transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/70 focus:ring-offset-2 focus:ring-offset-black"
         >
           Select
         </a>
         {owned ? (
           <ModernButton variant="secondary" disabled className="flex-1">Owned</ModernButton>
         ) : (
-          <ModernButton 
-            onClick={handleBuy} 
-            loading={loading} 
+          <ModernButton
+            onClick={handleBuy}
+            loading={loading}
             className="flex-1"
             aria-label={`Buy ${pack.label}`}
           >
@@ -114,7 +125,7 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
       {/* Optional comparison stub */}
       <button
         type="button"
-        className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors"
+        className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/70 focus:ring-offset-2 focus:ring-offset-black"
         aria-label={`Compare ${pack.label}`}
         onClick={() => alert('Comparison coming soon')}
       >

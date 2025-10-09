@@ -15,8 +15,8 @@ export default function WalletPage() {
   const { balance, transactions, fetchBalance, fetchTransactions, withdrawFunds, loading, error } = useWallet();
   const params = useSearchParams();
   const router = useRouter();
-  
-  const urlTab = (params.get('tab') as 'wallet'|'packs'|'mine') || 'wallet';
+
+  const urlTab = (params.get('tab') as 'wallet' | 'packs' | 'mine') || 'wallet';
   const [tab, setTab] = useState<'wallet' | 'packs' | 'mine'>(urlTab);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function WalletPage() {
     setTab(t);
     const qs = new URLSearchParams(params.toString());
     qs.set('tab', t);
-    router.replace(`/wallet?${qs.toString()}`, { scroll: false });
+    router.push(`/wallet?${qs.toString()}`, { scroll: false });
   };
 
   const handleWithdraw = async () => {
@@ -74,7 +74,7 @@ export default function WalletPage() {
     <ModernLayout currentPage="/wallet">
       <div className="max-w-7xl mx-auto px-2 py-2">
         {/* Tab Switcher */}
-        <div className="inline-flex items-center gap-1 mb-6 p-1 bg-white/5 border border-white/10 rounded-xl">
+        <div role="tablist" className="inline-flex items-center gap-1 mb-6 p-1 bg-white/5 border border-white/10 rounded-xl">
           {[
             { key: 'wallet', icon: '💰', label: 'Wallet' },
             { key: 'packs', icon: '📦', label: 'Packs' },
@@ -82,6 +82,8 @@ export default function WalletPage() {
           ].map(t => (
             <button
               key={t.key}
+              role="tab"
+              aria-current={tab === t.key ? 'page' : undefined}
               onClick={() => setTabAndSync(t.key as any)}
               className={`px-4 py-2 rounded-lg text-sm transition
                 ${tab === t.key ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}

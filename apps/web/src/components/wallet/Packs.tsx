@@ -38,7 +38,7 @@ export default function Packs({ onPurchased }: Props) {
                     <p className="text-sm text-white/60 mb-6">Purchase mission packs to save on your campaigns.</p>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy={true}>
                         {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="rounded-xl border border-white/10 bg-white/[0.04] h-48 animate-pulse" />
+                            <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.04] h-52 animate-pulse" />
                         ))}
                     </div>
                 </section>
