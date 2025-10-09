@@ -2,16 +2,16 @@
 import React from 'react'
 import { apiGetPacks } from '../../hooks/useApi'
 import PackCard from './PackCard'
-import { SectionHeader } from '../ui/SectionHeader'
+import PacksHeader from './PacksHeader'
 import { PACKS_FALLBACK } from '../../shared/config/packs.fallback'
 
 type Props = { onPurchased?: () => void }
 
 export default function Packs({ onPurchased }: Props) {
-  const [items, setItems] = React.useState<any[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
-  const [filter, setFilter] = React.useState('All')
+    const [items, setItems] = React.useState<any[]>([])
+    const [loading, setLoading] = React.useState(true)
+    const [error, setError] = React.useState<string | null>(null)
+    const [filter, setFilter] = React.useState('All')
 
     const load = async () => {
         setLoading(true); setError(null)
@@ -54,37 +54,32 @@ export default function Packs({ onPurchased }: Props) {
     const subs = filteredItems.filter(p => p.kind === 'subscription')
 
     return (
-        <div className="space-y-8">
-            {/* Header bar with filters */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
-                <p className="text-sm text-gray-400">Pick a pack to prefill your next Fixed mission.</p>
-                <div className="inline-flex bg-white/5 border border-white/10 rounded-lg p-1">
-                    {['All','Single','Subscriptions'].map(f => (
-                        <button key={f}
-                            className={`px-3 py-1.5 rounded-md text-sm ${filter===f ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-                            onClick={() => setFilter(f)}
-                        >{f}</button>
+        <div className="space-y-10">
+            <PacksHeader />
+
+            {/* Available Packs */}
+            <section>
+                <div className="mb-1 text-2xl font-semibold">Available Packs</div>
+                <p className="text-sm text-white/60 mb-6">
+                    Purchase mission packs to save on your campaigns.
+                </p>
+
+                {/* Single-use */}
+                <h3 className="text-lg font-semibold mb-3">Single-use Packs</h3>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {singles.map(p => (
+                        <PackCard key={p.id} pack={p} owned={false} onPurchased={onPurchased} />
                     ))}
                 </div>
-            </div>
 
-            {singles.length > 0 && (
-                <section>
-                    <SectionHeader icon="📦" title="Single-use Packs" subtitle="Engagement quotas are per tweet; one-time use packs." />
-                    <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                        {singles.map(p => <PackCard key={p.id} pack={p} onPurchased={onPurchased} />)}
-                    </div>
-                </section>
-            )}
-
-            {subs.length > 0 && (
-                <section>
-                    <SectionHeader icon="🔄" title="Subscription Packs" subtitle="Engagement quotas are per tweet; subscriptions cap at 1 tweet/hour." />
-                    <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                        {subs.map(p => <PackCard key={p.id} pack={p} onPurchased={onPurchased} />)}
-                    </div>
-                </section>
-            )}
+                {/* Subscriptions */}
+                <h3 className="text-lg font-semibold mt-10 mb-3">Subscription Packs</h3>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {subs.map(p => (
+                        <PackCard key={p.id} pack={p} owned={false} onPurchased={onPurchased} />
+                    ))}
+                </div>
+            </section>
         </div>
     )
 }

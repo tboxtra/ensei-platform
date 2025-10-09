@@ -38,52 +38,93 @@ export default function MyPacks() {
   }
 
   return (
-    <div className="space-y-6">
-      <SectionHeader icon="🎒" title="Your Packs" />
-      
-      <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((ent) => {
-          const pct = Math.min(100, Math.round((ent.usage.tweetsUsed / ent.quotas.tweets) * 100))
-          
-          // Status chip styling
-          const chip = (s: string) => s === 'active' ? 'bg-green-500/15 text-green-300' :
-            s === 'consumed' ? 'bg-yellow-500/15 text-yellow-300' : 'bg-red-500/15 text-red-300';
+    <div className="space-y-10">
+      {/* Active */}
+      <section>
+        <div className="text-2xl font-semibold mb-1">Your Active Packs</div>
+        <p className="text-sm text-white/60 mb-6">Your purchased packs with remaining missions</p>
 
-          return (
-            <ModernCard key={ent.id} className="flex flex-col gap-3 p-4 sm:p-5 border border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold">{ent.packLabel}</div>
-                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] ${chip(ent.status)}`}>
-                    {ent.status.toUpperCase()}
-                  </div>
-                </div>
-                {ent.status === 'active' ? (
-                  <Link
-                    href={`/create?type=fixed&packId=${encodeURIComponent(ent.packId)}`}
-                    className="px-3 py-2 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-300 hover:bg-blue-600/30 text-sm"
-                  >
-                    Use Pack →
-                  </Link>
-                ) : (
-                  <ModernButton variant="secondary" disabled size="sm">Use Pack</ModernButton>
-                )}
-              </div>
+        {items.filter(i => i.status === 'active').length === 0 ? (
+          <div className="text-center py-10 opacity-70">No active packs yet.</div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items
+              .filter(i => i.status === 'active')
+              .map((ent) => {
+                const pct = Math.min(100, Math.round((ent.usage.tweetsUsed / ent.quotas.tweets) * 100))
+                return (
+                  <ModernCard key={ent.id} className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">{ent.packLabel}</div>
+                        <div className="text-xs opacity-70">Engage Missions</div>
+                      </div>
+                      <div className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-300 border border-green-500/20">
+                        ACTIVE
+                      </div>
+                    </div>
 
-              <div className="text-sm text-gray-300/90 space-y-1">
-                <div className="flex justify-between"><span className="text-gray-400">Tweets</span><span>{ent.usage.tweetsUsed}/{ent.quotas.tweets}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">Likes</span><span>{ent.usage.likes}/{ent.quotas.likes}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">Retweets</span><span>{ent.usage.retweets}/{ent.quotas.retweets}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">Comments</span><span>{ent.usage.comments}/{ent.quotas.comments}</span></div>
-              </div>
-              
-              <div className="h-2 bg-white/10 rounded">
-                <div className="h-2 rounded bg-gradient-to-r from-emerald-400 to-blue-400" style={{ width: `${pct}%` }} />
-              </div>
-            </ModernCard>
-          )
-        })}
-      </div>
+                    <div className="text-xs opacity-80">
+                      Tweets: {ent.usage.tweetsUsed}/{ent.quotas.tweets} • Likes: {ent.usage.likes}/{ent.quotas.likes} • Retweets: {ent.usage.retweets}/{ent.quotas.retweets} • Comments: {ent.usage.comments}/{ent.quotas.comments}
+                    </div>
+
+                    <div className="h-2 bg-white/10 rounded">
+                      <div className="h-2 bg-gradient-to-r from-green-500 to-blue-500 rounded" style={{ width: `${pct}%` }} />
+                    </div>
+
+                    <a
+                      href={`/create?type=fixed&packId=${encodeURIComponent(ent.packId)}`}
+                      className="mt-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm text-center transition-colors"
+                    >
+                      Use Pack →
+                    </a>
+                  </ModernCard>
+                )
+              })}
+          </div>
+        )}
+      </section>
+
+      {/* History */}
+      <section>
+        <div className="text-2xl font-semibold mb-1">Purchase History</div>
+        <p className="text-sm text-white/60 mb-4">Your recent pack purchases</p>
+
+        {items.length === 0 ? (
+          <div className="text-center py-8 opacity-70">No purchases yet.</div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-white/10">
+            <table className="min-w-full text-sm">
+              <thead className="bg-white/5 text-white/70">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium">Date</th>
+                  <th className="text-left px-4 py-3 font-medium">Pack</th>
+                  <th className="text-left px-4 py-3 font-medium">Status</th>
+                  <th className="text-left px-4 py-3 font-medium">Usage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items
+                  .map(x => ({
+                    ...x,
+                    _date: x.startsAt || x.endsAt || ''
+                  }))
+                  .sort((a,b) => (a._date < b._date ? 1 : -1))
+                  .map((ent) => (
+                    <tr key={ent.id} className="border-t border-white/5">
+                      <td className="px-4 py-3">{ent._date ? new Date(ent._date).toLocaleDateString() : '—'}</td>
+                      <td className="px-4 py-3">{ent.packLabel}</td>
+                      <td className="px-4 py-3 capitalize">{ent.status}</td>
+                      <td className="px-4 py-3">
+                        {ent.usage.tweetsUsed}/{ent.quotas.tweets} tweets
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

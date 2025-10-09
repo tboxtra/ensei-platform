@@ -65,8 +65,8 @@ export default function WalletPage() {
         <div className="inline-flex items-center gap-1 mb-6 p-1 bg-white/5 border border-white/10 rounded-xl">
           {[
             { key: 'wallet', icon: '💰', label: 'Wallet' },
-            { key: 'packs',  icon: '📦', label: 'Packs' },
-            { key: 'mine',   icon: '🎒', label: 'My Packs' },
+            { key: 'packs', icon: '📦', label: 'Packs' },
+            { key: 'mine', icon: '🎒', label: 'My Packs' },
           ].map(t => (
             <button
               key={t.key}

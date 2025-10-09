@@ -45,40 +45,67 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
   const eth = ethUsd ? `≈ ${(pack.priceUsd / ethUsd).toFixed(4)} ETH` : ''
 
   return (
-    <ModernCard className="flex flex-col gap-3 p-4 sm:p-5 border border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] transition-transform duration-150 will-change-transform hover:scale-[1.01] active:scale-[0.99]">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{pack.label}</h3>
+    <ModernCard className="relative flex flex-col gap-4 overflow-hidden group">
+      {/* Discount chip (optional) */}
+      {typeof pack.meta?.discountPct === 'number' && (
+        <div className="absolute top-3 right-3 text-[11px] font-semibold px-2 py-1 rounded-full bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+          -{pack.meta!.discountPct}%
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-xs tracking-wide text-white/60 uppercase">
+            {pack.meta?.tierNote || pack.size.toUpperCase()}
+          </div>
+          <h3 className="text-lg font-semibold">{pack.label}</h3>
+        </div>
+
+        {/* Price block */}
         <div className="text-right">
-          <div className="text-emerald-400 font-bold">${pack.priceUsd.toFixed(2)}</div>
-          {eth && <div className="text-[11px] opacity-70">{eth}</div>}
+          <div className="text-emerald-400 font-bold text-xl">
+            ${pack.priceUsd.toFixed(2)}
+          </div>
+          {!!pack.meta?.originalUsd && pack.meta.originalUsd > pack.priceUsd && (
+            <div className="text-[12px] line-through opacity-60">
+              ${pack.meta.originalUsd.toFixed(2)}
+            </div>
+          )}
+          {eth && <div className="text-[11px] opacity-60 mt-0.5">{eth}</div>}
         </div>
       </div>
 
-      <div className="text-sm text-gray-300/90 space-y-1">
-        <div className="flex justify-between"><span className="text-gray-400">Likes</span><span>{pack.quotas.likes}</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Retweets</span><span>{pack.quotas.retweets}</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Comments</span><span>{pack.quotas.comments}</span></div>
+      {/* Quotas */}
+      <div className="space-y-1 text-sm">
+        <div>Likes: {pack.quotas.likes.toLocaleString()}</div>
+        <div>Retweets: {pack.quotas.retweets.toLocaleString()}</div>
+        <div>Comments: {pack.quotas.comments.toLocaleString()}</div>
         {pack.kind === 'subscription' && (
-          <div className="text-xs text-blue-300/90 mt-2">
-            Max {pack.meta?.maxPerHour ?? 1}/hour • Duration {pack.meta?.durationDays ?? 7} days
+          <div className="mt-2 text-xs text-blue-300/90 bg-blue-500/10 border border-blue-500/20 rounded-lg p-2">
+            Max {pack.meta?.maxPerHour ?? 1} tweet/hour • Duration {pack.meta?.durationDays ?? 7} days
           </div>
         )}
       </div>
 
-      <div className="mt-2 flex gap-2">
-        <Link
+      {/* Actions */}
+      <div className="mt-1 flex gap-2">
+        <a
           href={`/create?type=fixed&packId=${encodeURIComponent(pack.id)}`}
-          className="flex-1 px-4 py-2 rounded-lg text-center bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm"
+          className="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm text-white text-center transition-colors"
         >
           Select
-        </Link>
+        </a>
         {owned ? (
           <ModernButton variant="secondary" disabled className="flex-1">Owned</ModernButton>
         ) : (
-          <ModernButton className="flex-1" onClick={handleBuy} loading={loading}>Buy Pack →</ModernButton>
+          <ModernButton onClick={handleBuy} loading={loading} className="flex-1">
+            Buy Pack →
+          </ModernButton>
         )}
       </div>
-      {error && <div className="text-red-400 text-xs mt-2">{error}</div>}
+
+      {error && <div className="text-red-400 text-xs">{error}</div>}
     </ModernCard>
   )
 }
