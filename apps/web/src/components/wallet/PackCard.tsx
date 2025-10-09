@@ -48,7 +48,7 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
     <ModernCard className="relative flex flex-col gap-4 overflow-hidden group">
       {/* Discount chip (optional) */}
       {typeof pack.meta?.discountPct === 'number' && (
-        <div className="absolute top-3 right-3 text-[11px] font-semibold px-2 py-1 rounded-full bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+        <div aria-hidden className="absolute top-3 right-3 text-[11px] font-semibold px-2 py-1 rounded-full bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
           -{pack.meta!.discountPct}%
         </div>
       )}
@@ -92,6 +92,7 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
       <div className="mt-1 flex gap-2">
         <a
           href={`/create?type=fixed&packId=${encodeURIComponent(pack.id)}`}
+          aria-label={`Select ${pack.label}`}
           className="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm text-white text-center transition-colors"
         >
           Select
@@ -99,11 +100,26 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
         {owned ? (
           <ModernButton variant="secondary" disabled className="flex-1">Owned</ModernButton>
         ) : (
-          <ModernButton onClick={handleBuy} loading={loading} className="flex-1">
+          <ModernButton 
+            onClick={handleBuy} 
+            loading={loading} 
+            className="flex-1"
+            aria-label={`Buy ${pack.label}`}
+          >
             Buy Pack →
           </ModernButton>
         )}
       </div>
+
+      {/* Optional comparison stub */}
+      <button
+        type="button"
+        className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors"
+        aria-label={`Compare ${pack.label}`}
+        onClick={() => alert('Comparison coming soon')}
+      >
+        ↔︎ Compare
+      </button>
 
       {error && <div className="text-red-400 text-xs">{error}</div>}
     </ModernCard>

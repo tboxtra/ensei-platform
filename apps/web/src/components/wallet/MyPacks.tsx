@@ -25,7 +25,26 @@ export default function MyPacks() {
   }
   React.useEffect(() => { load() }, [])
 
-  if (loading) return <div className="opacity-70">Loading your packs…</div>
+  if (loading) {
+    return (
+      <div className="space-y-10">
+        <section>
+          <div className="text-2xl font-semibold mb-1">Your Active Packs</div>
+          <p className="text-sm text-white/60 mb-6">Your purchased packs with remaining missions</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy={true}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-white/10 bg-white/[0.04] h-40 animate-pulse" />
+            ))}
+          </div>
+        </section>
+        <section>
+          <div className="text-2xl font-semibold mb-1">Purchase History</div>
+          <p className="text-sm text-white/60 mb-4">Your recent pack purchases</p>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] h-32 animate-pulse" />
+        </section>
+      </div>
+    );
+  }
   if (!items.length) {
     return (
       <div className="text-center py-10">
@@ -109,7 +128,7 @@ export default function MyPacks() {
                     ...x,
                     _date: x.startsAt || x.endsAt || ''
                   }))
-                  .sort((a,b) => (a._date < b._date ? 1 : -1))
+                  .sort((a, b) => (a._date < b._date ? 1 : -1))
                   .map((ent) => (
                     <tr key={ent.id} className="border-t border-white/5">
                       <td className="px-4 py-3">{ent._date ? new Date(ent._date).toLocaleDateString() : '—'}</td>

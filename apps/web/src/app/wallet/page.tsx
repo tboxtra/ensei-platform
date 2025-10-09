@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useWallet } from '../../hooks/useApi';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
@@ -12,6 +13,11 @@ import MyPacks from '../../components/wallet/MyPacks';
 
 export default function WalletPage() {
   const { balance, transactions, fetchBalance, fetchTransactions, withdrawFunds, loading, error } = useWallet();
+  const params = useSearchParams();
+  const router = useRouter();
+  
+  const urlTab = (params.get('tab') as 'wallet'|'packs'|'mine') || 'wallet';
+  const [tab, setTab] = useState<'wallet' | 'packs' | 'mine'>(urlTab);
 
   useEffect(() => {
     fetchBalance();
@@ -21,7 +27,13 @@ export default function WalletPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAddress, setWithdrawAddress] = useState('');
-  const [tab, setTab] = useState<'wallet' | 'packs' | 'mine'>('wallet');
+
+  const setTabAndSync = (t: typeof tab) => {
+    setTab(t);
+    const qs = new URLSearchParams(params.toString());
+    qs.set('tab', t);
+    router.replace(`/wallet?${qs.toString()}`, { scroll: false });
+  };
 
   const handleWithdraw = async () => {
     const amount = parseFloat(withdrawAmount);
@@ -70,7 +82,7 @@ export default function WalletPage() {
           ].map(t => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key as any)}
+              onClick={() => setTabAndSync(t.key as any)}
               className={`px-4 py-2 rounded-lg text-sm transition
                 ${tab === t.key ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
             >

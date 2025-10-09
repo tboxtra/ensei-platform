@@ -29,7 +29,22 @@ export default function Packs({ onPurchased }: Props) {
 
     React.useEffect(() => { load() }, [])
 
-    if (loading) return <div className="opacity-70">Loading packs…</div>
+    if (loading) {
+        return (
+            <div className="space-y-10">
+                <PacksHeader />
+                <section>
+                    <div className="mb-1 text-2xl font-semibold">Available Packs</div>
+                    <p className="text-sm text-white/60 mb-6">Purchase mission packs to save on your campaigns.</p>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy={true}>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="rounded-xl border border-white/10 bg-white/[0.04] h-48 animate-pulse" />
+                        ))}
+                    </div>
+                </section>
+            </div>
+        );
+    }
 
     // Remove the "Unable to load packs" hard error screen; we already fall back
     if (!items.length) {

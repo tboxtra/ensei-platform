@@ -13,7 +13,7 @@ export const PACKS_FALLBACK: Pack[] = [
     { id: 'single_1_large', kind: 'single', label: '1 Tweet — Large', group: 'Single-use Packs', tweets: 1, priceUsd: 25, size: 'large', quotas: Q.large },
 
     { id: 'single_3_small', kind: 'single', label: '3 Tweets — Small', group: 'Single-use Packs', tweets: 3, priceUsd: 25, size: 'small', quotas: Q.small },
-    { id: 'single_3_medium', kind: 'single', label: '3 Tweets — Medium', group: 'Single-use Packs', tweets: 3, priceUsd: 40, size: 'medium', quotas: Q.medium },
+    { id: 'single_3_medium', kind: 'single', label: '3 Tweets — Medium', group: 'Single-use Packs', tweets: 3, priceUsd: 40, size: 'medium', quotas: Q.medium, meta: { originalUsd: 48, discountPct: 17, tierNote: 'MEDIUM' } },
     { id: 'single_3_large', kind: 'single', label: '3 Tweets — Large', group: 'Single-use Packs', tweets: 3, priceUsd: 60, size: 'large', quotas: Q.large },
 
     { id: 'single_10_small', kind: 'single', label: '10 Tweets — Small', group: 'Single-use Packs', tweets: 10, priceUsd: 75, size: 'small', quotas: Q.small },
@@ -25,7 +25,7 @@ export const PACKS_FALLBACK: Pack[] = [
     { id: 'sub_week_medium', kind: 'subscription', label: 'Weekly — Medium', group: 'Subscription Packs', tweets: 1, priceUsd: 750, size: 'medium', quotas: Q.medium, meta: { maxPerHour: 1, durationDays: 7 } },
     { id: 'sub_week_large', kind: 'subscription', label: 'Weekly — Large', group: 'Subscription Packs', tweets: 1, priceUsd: 1250, size: 'large', quotas: Q.large, meta: { maxPerHour: 1, durationDays: 7 } },
 
-    { id: 'sub_month_small', kind: 'subscription', label: 'Monthly — Small', group: 'Subscription Packs', tweets: 1, priceUsd: 2000, size: 'small', quotas: Q.small, meta: { maxPerHour: 1, durationDays: 30 } },
+    { id: 'sub_month_small', kind: 'subscription', label: 'Monthly — Small', group: 'Subscription Packs', tweets: 1, priceUsd: 2000, size: 'small', quotas: Q.small, meta: { maxPerHour: 1, durationDays: 30, originalUsd: 2200, discountPct: 9, tierNote: 'STARTER' } },
     { id: 'sub_month_medium', kind: 'subscription', label: 'Monthly — Medium', group: 'Subscription Packs', tweets: 1, priceUsd: 3000, size: 'medium', quotas: Q.medium, meta: { maxPerHour: 1, durationDays: 30 } },
     { id: 'sub_month_large', kind: 'subscription', label: 'Monthly — Large', group: 'Subscription Packs', tweets: 1, priceUsd: 5000, size: 'large', quotas: Q.large, meta: { maxPerHour: 1, durationDays: 30 } },
 
