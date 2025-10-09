@@ -47,7 +47,7 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
   const fmtUSD = (n: number) => `$${n.toFixed(2)}`
   const usd = fmtUSD(pack.priceUsd)
   const eth = ethUsd ? `≈ ${(pack.priceUsd / ethUsd).toFixed(4)} ETH` : ''
-  
+
   // Auto-compute discount percentage if not provided
   const pct = pack.meta?.discountPct ?? (
     pack.meta?.originalUsd && pack.meta.originalUsd > pack.priceUsd
@@ -56,83 +56,90 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
   )
 
   return (
-    <ModernCard className="relative flex flex-col gap-3 overflow-hidden group min-h-[200px]">
-      {/* Discount chip (optional) */}
+    <ModernCard
+      className="relative overflow-hidden group min-h-[172px] p-4 sm:p-5
+                 border border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent
+                 transition-transform hover:-translate-y-[2px]"
+    >
+      {/* gradient edge & sheen */}
+      <div className="pointer-events-none absolute inset-0 rounded-2xl
+                      [mask-image:linear-gradient(to_bottom,rgba(0,0,0,.5),transparent)]
+                      bg-[linear-gradient(90deg,rgba(16,185,129,.25),transparent,rgba(99,102,241,.25))] opacity-40" />
+      <div className="pointer-events-none absolute -top-16 -left-16 h-40 w-40 rotate-12
+                      bg-white/5 blur-2xl transition-opacity group-hover:opacity-60 opacity-0" />
+
+      {/* small discount chip (optional) */}
       {pct != null && (
-        <div aria-hidden className="absolute top-3 right-3 text-[11px] font-semibold px-2 py-1 rounded-full bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+        <span className="absolute top-3 right-3 text-[11px] font-semibold px-2 py-1
+                         rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
           -{pct}%
-        </div>
+        </span>
       )}
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xs tracking-wide text-white/60 uppercase">
-            {pack.meta?.tierNote || pack.size.toUpperCase()}
+      {/* header: name + size pill + price rail */}
+      <div className="grid grid-cols-[1fr,auto] gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[10px] tracking-wide uppercase
+                             text-white/70 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
+              {pack.size}
+            </span>
+            {pack.kind === 'subscription' && (
+              <span className="text-[10px] text-blue-300/80 bg-blue-500/10 border border-blue-500/20 rounded-full px-2 py-0.5">
+                Sub
+              </span>
+            )}
           </div>
-          <h3 className="text-lg font-semibold break-words">{pack.label}</h3>
+          <h3 className="mt-1 text-base sm:text-lg font-semibold leading-tight break-words">
+            {pack.label}
+          </h3>
         </div>
 
-        {/* Price block */}
-        <div className="text-right">
-          <div className="text-emerald-400 font-bold text-xl">
-            {usd}
+        <div className="text-right pl-3 border-l border-white/10">
+          <div className="text-emerald-400 font-bold text-xl tabular-nums">
+            ${pack.priceUsd.toFixed(2)}
           </div>
           {!!pack.meta?.originalUsd && pack.meta.originalUsd > pack.priceUsd && (
-            <div className="text-[12px] line-through opacity-60">
-              {fmtUSD(pack.meta.originalUsd)}
-            </div>
+            <div className="text-[12px] line-through text-white/50">${pack.meta.originalUsd.toFixed(2)}</div>
           )}
-          {eth && <div className="text-[11px] opacity-60 mt-0.5">{eth}</div>}
         </div>
       </div>
 
-      {/* Quotas */}
-      <div className="space-y-1 text-sm">
-        <div>Likes: {pack.quotas.likes.toLocaleString()}</div>
-        <div>Retweets: {pack.quotas.retweets.toLocaleString()}</div>
-        <div>Comments: {pack.quotas.comments.toLocaleString()}</div>
-        {pack.kind === 'subscription' && (
-          <div className="mt-2 text-xs text-blue-300/90 bg-blue-500/10 border border-blue-500/20 rounded-lg p-2">
-            Max {pack.meta?.maxPerHour ?? 1} tweet/hour • Duration {pack.meta?.durationDays ?? 7} days
-          </div>
-        )}
-      </div>
+      {/* concise quotas: one line summary */}
+      <p className="mt-3 text-[13px] text-white/70">
+        {pack.tweets} {pack.tweets === 1 ? 'mission' : 'missions'} •
+        {' '}Likes {pack.quotas.likes} • RT {pack.quotas.retweets} • CM {pack.quotas.comments}
+      </p>
 
-      {/* Actions */}
-      <div className="mt-1 flex gap-2">
+      {/* subscription hint (compact) */}
+      {pack.kind === 'subscription' && (
+        <p className="mt-2 text-[12px] text-blue-300/85">
+          Max {pack.meta?.maxPerHour ?? 1}/hr • {pack.meta?.durationDays ?? 7} days
+        </p>
+      )}
+
+      {/* actions */}
+      <div className="mt-4 flex gap-2">
         <a
           href={`/create?type=fixed&packId=${encodeURIComponent(pack.id)}`}
           aria-label={`Select ${pack.label}`}
-          className="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm text-white text-center transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/70 focus:ring-offset-2 focus:ring-offset-black"
+          title="Prefill this pack in Create Mission"
+          className="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm text-center
+                     transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/70
+                     focus:ring-offset-2 focus:ring-offset-black"
         >
           Select
         </a>
         {owned ? (
           <ModernButton variant="secondary" disabled className="flex-1">Owned</ModernButton>
         ) : (
-          <ModernButton
-            onClick={handleBuy}
-            loading={loading}
-            className="flex-1"
-            aria-label={`Buy ${pack.label}`}
-          >
-            Buy Pack →
+          <ModernButton onClick={handleBuy} loading={loading} className="flex-1" aria-label={`Buy ${pack.label}`}>
+            Buy →
           </ModernButton>
         )}
       </div>
 
-      {/* Optional comparison stub */}
-      <button
-        type="button"
-        className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/70 focus:ring-offset-2 focus:ring-offset-black"
-        aria-label={`Compare ${pack.label}`}
-        onClick={() => alert('Comparison coming soon')}
-      >
-        ↔︎ Compare
-      </button>
-
-      {error && <div className="text-red-400 text-xs">{error}</div>}
+      {error && <div className="text-red-400 text-xs mt-2">{error}</div>}
     </ModernCard>
   )
 }

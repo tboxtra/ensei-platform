@@ -49,9 +49,7 @@ export default function MyPacks() {
     return (
       <div className="text-center py-10">
         <div className="text-4xl mb-3">🎒</div>
-        <h3 className="text-lg font-semibold mb-1">No packs yet</h3>
-        <p className="text-gray-400 mb-4">Browse packs to get started.</p>
-        <ModernButton onClick={() => window.location.href = '/wallet?tab=packs'}>Browse Packs</ModernButton>
+        <h3 className="text-lg font-semibold mb-1">No packs yet — browse packs to start.</h3>
       </div>
     )
   }
@@ -74,17 +72,10 @@ export default function MyPacks() {
                 return (
                   <ModernCard key={ent.id} className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold">{ent.packLabel}</div>
-                        <div className="text-xs opacity-70">Engage Missions</div>
-                      </div>
+                      <div className="font-semibold">{ent.packLabel}</div>
                       <div className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-300 border border-green-500/20">
                         ACTIVE
                       </div>
-                    </div>
-
-                    <div className="text-xs opacity-80">
-                      Tweets: {ent.usage.tweetsUsed}/{ent.quotas.tweets} • Likes: {ent.usage.likes}/{ent.quotas.likes} • Retweets: {ent.usage.retweets}/{ent.quotas.retweets} • Comments: {ent.usage.comments}/{ent.quotas.comments}
                     </div>
 
                     <div className="h-2 bg-white/10 rounded">
@@ -118,7 +109,6 @@ export default function MyPacks() {
                 <tr>
                   <th className="text-left px-4 py-3 font-medium">Date</th>
                   <th className="text-left px-4 py-3 font-medium">Pack</th>
-                  <th className="text-left px-4 py-3 font-medium">Status</th>
                   <th className="text-left px-4 py-3 font-medium">Usage</th>
                 </tr>
               </thead>
@@ -133,7 +123,6 @@ export default function MyPacks() {
                     <tr key={ent.id} className="border-t border-white/5">
                       <td className="px-4 py-3">{ent._date ? new Date(ent._date).toLocaleDateString() : '—'}</td>
                       <td className="px-4 py-3">{ent.packLabel}</td>
-                      <td className="px-4 py-3 capitalize">{ent.status}</td>
                       <td className="px-4 py-3">
                         {ent.usage.tweetsUsed}/{ent.quotas.tweets} tweets
                       </td>

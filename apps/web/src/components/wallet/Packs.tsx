@@ -36,9 +36,9 @@ export default function Packs({ onPurchased }: Props) {
                 <section>
                     <div className="mb-1 text-2xl font-semibold">Available Packs</div>
                     <p className="text-sm text-white/60 mb-6">Purchase mission packs to save on your campaigns.</p>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy={true}>
-                        {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.04] h-52 animate-pulse" />
+                    <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy={true}>
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.04] h-[180px] animate-pulse" />
                         ))}
                     </div>
                 </section>
@@ -51,8 +51,7 @@ export default function Packs({ onPurchased }: Props) {
         return (
             <div className="text-center py-10">
                 <div className="text-4xl mb-3">📦</div>
-                <h3 className="text-lg font-semibold mb-1">No packs available</h3>
-                <p className="text-gray-400 mb-4">Please check back later.</p>
+                <h3 className="text-lg font-semibold mb-1">No packs available right now.</h3>
             </div>
         )
     }
@@ -74,26 +73,27 @@ export default function Packs({ onPurchased }: Props) {
 
             {/* Available Packs */}
             <section>
-                <div className="mb-1 text-2xl font-semibold">Available Packs</div>
-                <p className="text-sm text-white/60 mb-6">
-                    Purchase mission packs to save on your campaigns.
-                </p>
+                <h1 className="text-2xl font-semibold">Available Packs</h1>
 
                 {/* Single-use */}
-                <h3 className="text-lg font-semibold mb-3">Single-use Packs</h3>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {singles.map(p => (
-                        <PackCard key={p.id} pack={p} owned={false} onPurchased={onPurchased} />
-                    ))}
-                </div>
+                {singles.length > 0 && (
+                    <>
+                        <h2 className="mt-5 mb-3 text-lg font-semibold">Single-use</h2>
+                        <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {singles.map(p => <PackCard key={p.id} pack={p} owned={false} onPurchased={onPurchased} />)}
+                        </div>
+                    </>
+                )}
 
                 {/* Subscriptions */}
-                <h3 className="text-lg font-semibold mt-10 mb-3">Subscription Packs</h3>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {subs.map(p => (
-                        <PackCard key={p.id} pack={p} owned={false} onPurchased={onPurchased} />
-                    ))}
-                </div>
+                {subs.length > 0 && (
+                    <>
+                        <h2 className="mt-10 mb-3 text-lg font-semibold">Subscriptions</h2>
+                        <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {subs.map(p => <PackCard key={p.id} pack={p} owned={false} onPurchased={onPurchased} />)}
+                        </div>
+                    </>
+                )}
             </section>
         </div>
     )

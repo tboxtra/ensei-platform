@@ -14,8 +14,8 @@ export default function PacksHeader() {
         return () => { m = false }
     }, [])
 
-  const usd = Number.isFinite(balance?.usd) ? balance!.usd : 0
-  const eth = ethUsd && ethUsd > 0 ? (usd / ethUsd).toFixed(3) : '—'
+    const usd = Number.isFinite(balance?.usd) ? balance!.usd : 0
+    const eth = ethUsd && ethUsd > 0 ? (usd / ethUsd).toFixed(3) : '—'
 
     return (
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
