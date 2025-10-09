@@ -2,6 +2,7 @@
 import React from 'react'
 import { apiGetPacks } from '../../hooks/useApi'
 import PackCard from './PackCard'
+import PackDetailsModal from './PackDetailsModal'
 import PacksHeader from './PacksHeader'
 import { PACKS_FALLBACK } from '../../shared/config/packs.fallback'
 
@@ -11,7 +12,7 @@ export default function Packs({ onPurchased }: Props) {
     const [items, setItems] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(true)
     const [error, setError] = React.useState<string | null>(null)
-    const [filter, setFilter] = React.useState('All')
+    const [selectedPack, setSelectedPack] = React.useState<any>(null)
 
     const load = async () => {
         setLoading(true); setError(null)
@@ -29,16 +30,29 @@ export default function Packs({ onPurchased }: Props) {
 
     React.useEffect(() => { load() }, [])
 
+    // Category grouping logic
+    const singleGroups = [
+        { title: "1 Mission Engage", ids: ["single_1_small", "single_1_medium", "single_1_large"] },
+        { title: "3 Missions Engage", ids: ["single_3_small", "single_3_medium", "single_3_large"] },
+        { title: "10 Missions Engage", ids: ["single_10_small", "single_10_medium", "single_10_large"] },
+    ]
+
+    const subGroups = [
+        { title: "Weekly Plans", ids: ["sub_week_small", "sub_week_medium", "sub_week_large"] },
+        { title: "Monthly Plans", ids: ["sub_month_small", "sub_month_medium", "sub_month_large"] },
+        { title: "3-Month Plans", ids: ["sub_3m_small", "sub_3m_medium", "sub_3m_large"] },
+        { title: "6-Month Plans", ids: ["sub_6m_small", "sub_6m_medium", "sub_6m_large"] },
+        { title: "1-Year Plans", ids: ["sub_12m_small", "sub_12m_medium", "sub_12m_large"] },
+    ]
+
     if (loading) {
         return (
             <div className="space-y-10">
-                <PacksHeader />
                 <section>
-                    <div className="mb-1 text-2xl font-semibold">Available Packs</div>
-                    <p className="text-sm text-white/60 mb-6">Purchase mission packs to save on your campaigns.</p>
+                    <h1 className="text-2xl font-semibold">Available Packs</h1>
                     <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy={true}>
                         {Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.04] h-[180px] animate-pulse" />
+                            <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.04] h-[140px] animate-pulse" />
                         ))}
                     </div>
                 </section>
@@ -46,7 +60,6 @@ export default function Packs({ onPurchased }: Props) {
         );
     }
 
-    // Remove the "Unable to load packs" hard error screen; we already fall back
     if (!items.length) {
         return (
             <div className="text-center py-10">
@@ -56,45 +69,64 @@ export default function Packs({ onPurchased }: Props) {
         )
     }
 
-    // Filter items based on selected filter
-    const filteredItems = items.filter(p => {
-        if (filter === 'All') return true
-        if (filter === 'Single') return p.kind === 'single'
-        if (filter === 'Subscriptions') return p.kind === 'subscription'
-        return true
-    })
-
-    const singles = filteredItems.filter(p => p.kind === 'single')
-    const subs = filteredItems.filter(p => p.kind === 'subscription')
-
     return (
         <div className="space-y-10">
             <PacksHeader />
-
-            {/* Available Packs */}
             <section>
                 <h1 className="text-2xl font-semibold">Available Packs</h1>
 
-                {/* Single-use */}
-                {singles.length > 0 && (
-                    <>
-                        <h2 className="mt-5 mb-3 text-lg font-semibold">Single-use</h2>
-                        <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {singles.map(p => <PackCard key={p.id} pack={p} owned={false} onPurchased={onPurchased} />)}
+                {/* Single-use Groups */}
+                {singleGroups.map(group => {
+                    const groupPacks = items.filter(p => group.ids.includes(p.id))
+                    if (groupPacks.length === 0) return null
+                    
+                    return (
+                        <div key={group.title} className="mt-8">
+                            <h2 className="mb-3 text-lg font-semibold">{group.title}</h2>
+                            <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {groupPacks.map(p => (
+                                    <PackCard 
+                                        key={p.id} 
+                                        pack={p} 
+                                        owned={false} 
+                                        onClick={() => setSelectedPack(p)} 
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </>
-                )}
+                    )
+                })}
 
-                {/* Subscriptions */}
-                {subs.length > 0 && (
-                    <>
-                        <h2 className="mt-10 mb-3 text-lg font-semibold">Subscriptions</h2>
-                        <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {subs.map(p => <PackCard key={p.id} pack={p} owned={false} onPurchased={onPurchased} />)}
+                {/* Subscription Groups */}
+                {subGroups.map(group => {
+                    const groupPacks = items.filter(p => group.ids.includes(p.id))
+                    if (groupPacks.length === 0) return null
+                    
+                    return (
+                        <div key={group.title} className="mt-10">
+                            <h2 className="mb-3 text-lg font-semibold">{group.title}</h2>
+                            <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {groupPacks.map(p => (
+                                    <PackCard 
+                                        key={p.id} 
+                                        pack={p} 
+                                        owned={false} 
+                                        onClick={() => setSelectedPack(p)} 
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </>
-                )}
+                    )
+                })}
             </section>
+
+            {/* Pack Details Modal */}
+            <PackDetailsModal
+                pack={selectedPack}
+                owned={false}
+                onClose={() => setSelectedPack(null)}
+                onPurchased={onPurchased}
+            />
         </div>
     )
 }
