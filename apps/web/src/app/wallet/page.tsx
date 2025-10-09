@@ -6,6 +6,7 @@ import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
 import { ModernInput } from '../../components/ui/ModernInput';
+import { SectionHeader } from '../../components/ui/SectionHeader';
 import Packs from '../../components/wallet/Packs';
 import MyPacks from '../../components/wallet/MyPacks';
 
@@ -61,25 +62,21 @@ export default function WalletPage() {
     <ModernLayout currentPage="/wallet">
       <div className="max-w-7xl mx-auto px-2 py-2">
         {/* Tab Switcher */}
-        <div className="flex items-center gap-2 mb-6">
-          <button
-            onClick={() => setTab('wallet')}
-            className={`px-4 py-2 rounded ${tab === 'wallet' ? 'bg-white/10' : 'hover:bg-white/5'}`}
-          >
-            💰 Wallet
-          </button>
-          <button
-            onClick={() => setTab('packs')}
-            className={`px-4 py-2 rounded ${tab === 'packs' ? 'bg-white/10' : 'hover:bg-white/5'}`}
-          >
-            📦 Packs
-          </button>
-          <button
-            onClick={() => setTab('mine')}
-            className={`px-4 py-2 rounded ${tab === 'mine' ? 'bg-white/10' : 'hover:bg-white/5'}`}
-          >
-            🎒 My Packs
-          </button>
+        <div className="inline-flex items-center gap-1 mb-6 p-1 bg-white/5 border border-white/10 rounded-xl">
+          {[
+            { key: 'wallet', icon: '💰', label: 'Wallet' },
+            { key: 'packs',  icon: '📦', label: 'Packs' },
+            { key: 'mine',   icon: '🎒', label: 'My Packs' },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key as any)}
+              className={`px-4 py-2 rounded-lg text-sm transition
+                ${tab === t.key ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <span className="mr-2">{t.icon}</span>{t.label}
+            </button>
+          ))}
         </div>
 
         {/* Conditional Content Based on Tab */}
@@ -134,10 +131,7 @@ export default function WalletPage() {
 
             {/* Quick Actions */}
             <ModernCard className="mb-6 sm:mb-8">
-              <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-                <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">⚡</span>
-                Quick Actions
-              </h2>
+              <SectionHeader icon="⚡" title="Quick Actions" />
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <ModernButton
                   onClick={() => setShowWithdrawModal(true)}
@@ -170,10 +164,7 @@ export default function WalletPage() {
 
             {/* Transaction History */}
             <ModernCard>
-              <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center">
-                <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">📋</span>
-                Transaction History
-              </h2>
+              <SectionHeader icon="📋" title="Transaction History" />
 
               {loading ? (
                 <div className="text-center py-8 sm:py-12">
