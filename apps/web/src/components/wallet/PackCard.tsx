@@ -68,7 +68,7 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
       <div className="mt-2 flex gap-2">
         <Link
           href={`/create?type=fixed&packId=${encodeURIComponent(pack.id)}`}
-          className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
+          className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium transition-colors"
         >
           Select
         </Link>

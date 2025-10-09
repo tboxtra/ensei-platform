@@ -299,7 +299,7 @@ export default function WalletPage() {
           </>
         )}
 
-        {tab === 'packs' && <Packs />}
+        {tab === 'packs' && <Packs onPurchased={() => setTab('mine')} />}
 
         {tab === 'mine' && <MyPacks />}
       </div>
