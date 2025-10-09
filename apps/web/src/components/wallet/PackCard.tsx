@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import Link from 'next/link'
 import { Pack } from '../../types/packs'
 import { apiStartPurchase, apiEthUsd, apiPaymentStatus } from '../../hooks/useApi'
 import { ModernCard } from '../ui/ModernCard'
@@ -14,7 +15,7 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
 
   React.useEffect(() => {
     let m = true
-    apiEthUsd().then(p => m && setEthUsd(p.price)).catch(() => {})
+    apiEthUsd().then(p => m && setEthUsd(p.price)).catch(() => { })
     return () => { m = false }
   }, [])
 
@@ -26,7 +27,7 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
         const poll = async () => {
           const s = await apiPaymentStatus(txId!)
           if (s.status === 'confirmed') onPurchased?.()
-          else if (['failed','expired'].includes(s.status)) setError('Payment failed or expired.')
+          else if (['failed', 'expired'].includes(s.status)) setError('Payment failed or expired.')
           else setTimeout(poll, 2000)
         }
         poll()
@@ -64,24 +65,21 @@ export default function PackCard({ pack, owned, onPurchased }: Props) {
         )}
       </div>
 
-      <div className="mt-2">
+      <div className="mt-2 flex gap-2">
+        <Link
+          href={`/create?type=fixed&packId=${encodeURIComponent(pack.id)}`}
+          className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
+        >
+          Select
+        </Link>
+
         {owned ? (
           <ModernButton variant="secondary" disabled>Owned</ModernButton>
         ) : (
-          <>
-            <ModernButton onClick={handleBuy} loading={loading}>Buy Pack →</ModernButton>
-            <div className="mt-2 text-xs">
-              <a
-                href={`/create?type=fixed&packId=${encodeURIComponent(pack.id)}`}
-                className="opacity-80 hover:opacity-100 underline"
-              >
-                Select for Fixed Mission
-              </a>
-            </div>
-          </>
+          <ModernButton onClick={handleBuy} loading={loading}>Buy Pack →</ModernButton>
         )}
-        {error && <div className="text-red-400 text-xs mt-2">{error}</div>}
       </div>
+      {error && <div className="text-red-400 text-xs mt-2">{error}</div>}
     </ModernCard>
   )
 }

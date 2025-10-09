@@ -153,6 +153,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ens
 const API_VERSION = 'v2.2'; // Force cache invalidation
 const CACHE_BUST = Date.now(); // Aggressive cache busting
 
+// Reuse the same base everywhere (fallback to API_BASE_URL)
+const API_BASE_FOR_PACKS = process.env.NEXT_PUBLIC_API_BASE || API_BASE_URL;
+
 export function useApi() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -941,37 +944,37 @@ export function useRewards() {
 
 // ---- Packs API Functions ----
 export async function apiGetPacks(): Promise<Pack[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/packs`, { cache: 'no-store' })
-    if (!res.ok) throw new Error('Failed to load packs')
-    return res.json()
+    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/packs`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to load packs');
+    return res.json();
 }
 
 export async function apiGetEntitlements(): Promise<Entitlement[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/entitlements`, { cache: 'no-store', credentials: 'include' })
-    if (!res.ok) throw new Error('Failed to load entitlements')
-    return res.json()
+    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/entitlements`, { cache: 'no-store', credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to load entitlements');
+    return res.json();
 }
 
 // start an onchain purchase; backend returns { txRequest } or { checkoutUrl }
 export async function apiStartPurchase(packId: string, chainId?: number) {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/packs/purchase`, {
+    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/packs/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ packId, method: 'onchain', chainId }),
-    })
-    if (!res.ok) throw new Error(await res.text())
-    return res.json() as Promise<{ txRequest?: any; txId?: string }>
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json() as Promise<{ txRequest?: any; txId?: string }>;
 }
 
 export async function apiPaymentStatus(txId: string) {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/payments/status/${txId}`, { cache: 'no-store' })
-    if (!res.ok) throw new Error('Failed to check payment')
-    return res.json()
+    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/payments/status/${txId}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to check payment');
+    return res.json();
 }
 
 export async function apiEthUsd() {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/v1/prices/ethusd`, { cache: 'no-store' })
-    if (!res.ok) throw new Error('Failed to load price')
-    return res.json() as Promise<{ price: number }>
+    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/prices/ethusd`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to load price');
+    return res.json() as Promise<{ price: number }>;
 }
