@@ -1302,10 +1302,31 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         });
 
         console.log('Successfully deducted quota for pack:', missionData.packId);
+        
+        // Telemetry: Log pack usage for analytics
+        console.log('=== PACK USAGE TELEMETRY ===');
+        console.log('Event: pack_quota_deducted');
+        console.log('UserId:', userId);
+        console.log('PackId:', missionData.packId);
+        console.log('MissionType:', missionData.model);
+        console.log('RemainingQuota:', remainingQuota - 1);
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('=============================');
+        
         console.log('=====================================');
 
       } catch (error) {
         console.error('Pack validation/entitlement deduction failed:', error);
+        
+        // Telemetry: Log pack validation error for analytics
+        console.log('=== PACK VALIDATION ERROR TELEMETRY ===');
+        console.log('Event: pack_validation_failed');
+        console.log('UserId:', userId);
+        console.log('PackId:', missionData.packId);
+        console.log('Error:', error.message || 'Unknown error');
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('=======================================');
+        
         res.status(400).json({ 
           error: error.message || 'Failed to validate pack entitlement' 
         });
@@ -1651,6 +1672,15 @@ app.get('/v1/packs', async (req, res) => {
       { id: 'sub_week_medium', kind: 'subscription', label: 'Weekly Thunder', group: 'Subscription Packs', tweets: 1, priceUsd: 750, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 7 } }
     ];
 
+    // Telemetry: Log packs catalog access for analytics
+    console.log('=== PACKS CATALOG ACCESS TELEMETRY ===');
+    console.log('Event: packs_catalog_accessed');
+    console.log('PacksCount:', packs.length);
+    console.log('SinglePacks:', packs.filter(p => p.kind === 'single').length);
+    console.log('SubscriptionPacks:', packs.filter(p => p.kind === 'subscription').length);
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('======================================');
+
     res.json(packs);
   } catch (error) {
     console.error('Error fetching packs:', error);
@@ -1788,6 +1818,19 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
       };
     });
 
+    // Telemetry: Log pack purchase for analytics
+    console.log('=== PACK PURCHASE TELEMETRY ===');
+    console.log('Event: pack_purchased');
+    console.log('UserId:', userId);
+    console.log('PackId:', packId);
+    console.log('PackPrice:', pack.priceUsd);
+    console.log('RequiredHonors:', requiredHonors);
+    console.log('EntitlementId:', result.entitlementId);
+    console.log('TransactionId:', result.transactionId);
+    console.log('ClientRequestId:', clientRequestId);
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('===============================');
+
     res.json({
       success: true,
       message: 'Pack purchased successfully',
@@ -1797,6 +1840,16 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
 
   } catch (error) {
     console.error('Error purchasing pack:', error);
+    
+    // Telemetry: Log pack purchase error for analytics
+    console.log('=== PACK PURCHASE ERROR TELEMETRY ===');
+    console.log('Event: pack_purchase_failed');
+    console.log('UserId:', req.user?.uid || 'unknown');
+    console.log('PackId:', req.params.id);
+    console.log('Error:', error.message || 'Unknown error');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('=====================================');
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1826,6 +1879,15 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req: any, res) => {
         packLabel: data.packId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
       };
     });
+
+    // Telemetry: Log entitlements access for analytics
+    console.log('=== ENTITLEMENTS ACCESS TELEMETRY ===');
+    console.log('Event: entitlements_accessed');
+    console.log('UserId:', userId);
+    console.log('EntitlementsCount:', entitlements.length);
+    console.log('ActiveEntitlements:', entitlements.filter(e => e.status === 'active').length);
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('=====================================');
 
     res.json(entitlements);
   } catch (error) {
