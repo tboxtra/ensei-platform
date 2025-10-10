@@ -26,10 +26,10 @@ export default function Packs({ onPurchased }: Props) {
     const getPackStatus = (packId: string) => {
         const entitlement = entitlements.find(e => e.packId === packId && e.status === 'active')
         if (!entitlement) return { status: 'available', remainingQuota: 0, isExpired: false }
-        
+
         const remainingQuota = entitlement.quotas.tweets - entitlement.usage.tweetsUsed
         const isExpired = entitlement.endsAt ? new Date(entitlement.endsAt) < new Date() : false
-        
+
         if (isExpired) return { status: 'expired', remainingQuota: 0, isExpired: true }
         if (remainingQuota <= 0) return { status: 'exhausted', remainingQuota: 0, isExpired: false }
         if (remainingQuota <= 1) return { status: 'low', remainingQuota, isExpired: false }
@@ -44,7 +44,7 @@ export default function Packs({ onPurchased }: Props) {
             await purchasePack(packId)
             setPurchaseSuccess(`Successfully purchased ${packId}!`)
             onPurchased?.()
-            
+
             // Clear success message after 3 seconds
             setTimeout(() => setPurchaseSuccess(null), 3000)
         } catch (error) {
@@ -96,7 +96,7 @@ export default function Packs({ onPurchased }: Props) {
     return (
         <div className="space-y-8">
             <PacksHeader />
-            
+
             {purchaseError && (
                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
                     <p className="text-red-400 text-sm">
@@ -104,7 +104,7 @@ export default function Packs({ onPurchased }: Props) {
                     </p>
                 </div>
             )}
-            
+
             {purchaseSuccess && (
                 <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                     <p className="text-green-400 text-sm">
@@ -172,7 +172,7 @@ export default function Packs({ onPurchased }: Props) {
                             {(() => {
                                 const packStatus = getPackStatus('single_1_small')
                                 const isDisabled = purchasing === 'single_1_small' || packStatus.status === 'exhausted' || packStatus.status === 'expired'
-                                
+
                                 return (
                                     <>
                                         {packStatus.status === 'exhausted' && (
@@ -203,20 +203,19 @@ export default function Packs({ onPurchased }: Props) {
                                                 </p>
                                             </div>
                                         )}
-                                        
+
                                         <button
                                             onClick={() => handlePurchase('single_1_small')}
                                             disabled={isDisabled}
-                                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${
-                                                isDisabled 
-                                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${isDisabled
+                                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                                     : 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white'
-                                            }`}
+                                                }`}
                                         >
-                                            {purchasing === 'single_1_small' ? 'Purchasing...' : 
-                                             packStatus.status === 'exhausted' ? 'Exhausted' :
-                                             packStatus.status === 'expired' ? 'Expired' :
-                                             'Purchase Pack'}
+                                            {purchasing === 'single_1_small' ? 'Purchasing...' :
+                                                packStatus.status === 'exhausted' ? 'Exhausted' :
+                                                    packStatus.status === 'expired' ? 'Expired' :
+                                                        'Purchase Pack'}
                                         </button>
                                     </>
                                 )

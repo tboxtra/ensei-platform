@@ -13,11 +13,11 @@ export default function CreateMissionClient() {
     const prefilledPack = usePrefilledPack();
     const api = useApi();
     const router = useRouter();
-    const [missionType, setMissionType] = useState<'fixed' | 'dynamic'>('fixed');
+    const [missionType, setMissionType] = useState<'fixed' | 'degen'>('fixed');
     const [packId, setPackId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
-    
+
     // Form state
     const [tweetLink, setTweetLink] = useState('');
     const [instructions, setInstructions] = useState('');
@@ -39,32 +39,32 @@ export default function CreateMissionClient() {
             setSubmitError('Please select a pack for this mission');
             return false;
         }
-        
+
         if (!prefilledPack?.entitlement) {
             setSubmitError('No active entitlement found for the selected pack. Please purchase the pack first.');
             return false;
         }
-        
+
         if (!prefilledPack.isActive) {
             setSubmitError('The selected pack entitlement is not active');
             return false;
         }
-        
+
         if (prefilledPack.isExpired) {
             setSubmitError('The selected pack entitlement has expired');
             return false;
         }
-        
+
         if (prefilledPack.remainingQuota <= 0) {
             setSubmitError(`Insufficient quota remaining in the selected pack. You have ${prefilledPack.remainingQuota} tweets remaining, but need at least 1.`);
             return false;
         }
-        
+
         if (!tweetLink.trim()) {
             setSubmitError('Please provide a tweet link');
             return false;
         }
-        
+
         // Validate URL format
         try {
             new URL(tweetLink);
@@ -72,23 +72,23 @@ export default function CreateMissionClient() {
             setSubmitError('Please provide a valid URL for the tweet link');
             return false;
         }
-        
+
         if (!instructions.trim()) {
             setSubmitError('Please provide mission instructions');
             return false;
         }
-        
+
         if (instructions.trim().length < 10) {
             setSubmitError('Mission instructions must be at least 10 characters long');
             return false;
         }
-        
+
         const validTasks = tasks.filter(task => task.trim());
         if (validTasks.length === 0) {
             setSubmitError('Please provide at least one task');
             return false;
         }
-        
+
         // Validate each task
         for (let i = 0; i < validTasks.length; i++) {
             if (validTasks[i].trim().length < 5) {
@@ -96,33 +96,33 @@ export default function CreateMissionClient() {
                 return false;
             }
         }
-        
+
         if (cap < 1 || cap > 1000) {
             setSubmitError('Participant cap must be between 1 and 1000');
             return false;
         }
-        
+
         if (durationHours < 1 || durationHours > 168) {
             setSubmitError('Duration must be between 1 and 168 hours (1 week)');
             return false;
         }
-        
+
         return true;
     };
 
     // Form submission handler
     const handleSubmit = async () => {
         setSubmitError(null);
-        
+
         if (!validateForm()) {
             return;
         }
-        
+
         setIsSubmitting(true);
-        
+
         try {
             const validTasks = tasks.filter(task => task.trim());
-            
+
             const missionData = {
                 platform: 'twitter', // Default to twitter for now
                 type: 'engagement',
@@ -135,16 +135,16 @@ export default function CreateMissionClient() {
                 durationHours: durationHours,
                 isPremium: true // Pack-based missions are premium
             };
-            
+
             console.log('Creating mission with pack validation:', missionData);
-            
+
             const createdMission = await api.createMission(missionData);
-            
+
             console.log('Mission created successfully:', createdMission);
-            
+
             // Redirect to the created mission or missions list
             router.push(`/missions/${createdMission.id}`);
-            
+
         } catch (error) {
             console.error('Mission creation failed:', error);
             setSubmitError(error instanceof Error ? error.message : 'Failed to create mission');
@@ -189,15 +189,15 @@ export default function CreateMissionClient() {
                         </div>
 
                         <div
-                            className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${missionType === 'dynamic'
+                            className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${missionType === 'degen'
                                 ? 'border-blue-500 bg-blue-500/10'
                                 : 'border-gray-700 hover:border-gray-600'
                                 }`}
-                            onClick={() => setMissionType('dynamic')}
+                            onClick={() => setMissionType('degen')}
                         >
                             <div className="text-center">
                                 <div className="text-4xl mb-4">🎯</div>
-                                <h3 className="text-xl font-semibold mb-2">Dynamic Mission</h3>
+                                <h3 className="text-xl font-semibold mb-2">Degen Mission</h3>
                                 <p className="text-gray-400 mb-4">Pay per engagement achieved</p>
                                 <div className="text-sm text-blue-400">✓ Pay only for results</div>
                                 <div className="text-sm text-blue-400">✓ Flexible pricing</div>
@@ -238,27 +238,25 @@ export default function CreateMissionClient() {
                                             📦 {prefilledPack.pack.label} - ${prefilledPack.pack.priceUsd}
                                         </span>
                                     </div>
-                                    
+
                                     {prefilledPack.entitlement && (
                                         <div className="mt-3 space-y-3">
                                             <div className="flex justify-between text-xs">
                                                 <span className="text-gray-300">Status:</span>
-                                                <span className={`font-medium ${
-                                                    prefilledPack.isActive ? 'text-green-400' : 'text-red-400'
-                                                }`}>
+                                                <span className={`font-medium ${prefilledPack.isActive ? 'text-green-400' : 'text-red-400'
+                                                    }`}>
                                                     {prefilledPack.isActive ? '✅ Active' : '❌ Inactive'}
                                                 </span>
                                             </div>
-                                            
+
                                             <div className="flex justify-between text-xs">
                                                 <span className="text-gray-300">Remaining Quota:</span>
-                                                <span className={`font-medium ${
-                                                    prefilledPack.remainingQuota > 0 ? 'text-green-400' : 'text-red-400'
-                                                }`}>
+                                                <span className={`font-medium ${prefilledPack.remainingQuota > 0 ? 'text-green-400' : 'text-red-400'
+                                                    }`}>
                                                     {prefilledPack.remainingQuota} / {prefilledPack.pack.tweets} tweets
                                                 </span>
                                             </div>
-                                            
+
                                             {/* Progress bar for quota usage */}
                                             <div className="w-full">
                                                 <div className="flex justify-between text-xs mb-1">
@@ -268,17 +266,16 @@ export default function CreateMissionClient() {
                                                     </span>
                                                 </div>
                                                 <div className="w-full bg-gray-700 rounded-full h-2">
-                                                    <div 
-                                                        className={`h-2 rounded-full transition-all duration-300 ${
-                                                            prefilledPack.remainingQuota > 0 ? 'bg-green-500' : 'bg-red-500'
-                                                        }`}
-                                                        style={{ 
-                                                            width: `${Math.min(100, (prefilledPack.entitlement.usage.tweetsUsed / prefilledPack.pack.tweets) * 100)}%` 
+                                                    <div
+                                                        className={`h-2 rounded-full transition-all duration-300 ${prefilledPack.remainingQuota > 0 ? 'bg-green-500' : 'bg-red-500'
+                                                            }`}
+                                                        style={{
+                                                            width: `${Math.min(100, (prefilledPack.entitlement.usage.tweetsUsed / prefilledPack.pack.tweets) * 100)}%`
                                                         }}
                                                     ></div>
                                                 </div>
                                             </div>
-                                            
+
                                             {prefilledPack.entitlement.endsAt && (
                                                 <div className="flex justify-between text-xs">
                                                     <span className="text-gray-300">Expires:</span>
@@ -287,7 +284,7 @@ export default function CreateMissionClient() {
                                                     </span>
                                                 </div>
                                             )}
-                                            
+
                                             {/* Additional quota breakdown */}
                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                 <div className="flex justify-between">
@@ -305,7 +302,7 @@ export default function CreateMissionClient() {
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {!prefilledPack.entitlement && (
                                         <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded">
                                             <p className="text-yellow-400 text-xs">
@@ -313,7 +310,7 @@ export default function CreateMissionClient() {
                                             </p>
                                         </div>
                                     )}
-                                    
+
                                     {prefilledPack.entitlement && prefilledPack.remainingQuota <= 1 && prefilledPack.remainingQuota > 0 && (
                                         <div className="mt-2 p-2 bg-orange-500/10 border border-orange-500/20 rounded">
                                             <p className="text-orange-400 text-xs">
@@ -321,7 +318,7 @@ export default function CreateMissionClient() {
                                             </p>
                                         </div>
                                     )}
-                                    
+
                                     {prefilledPack.entitlement && prefilledPack.remainingQuota === 0 && (
                                         <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded">
                                             <p className="text-red-400 text-xs">
@@ -442,8 +439,8 @@ export default function CreateMissionClient() {
                             ← Back to Missions
                         </ModernButton>
                     </Link>
-                    <ModernButton 
-                        variant="success" 
+                    <ModernButton
+                        variant="success"
                         size="lg"
                         onClick={handleSubmit}
                         disabled={isSubmitting}

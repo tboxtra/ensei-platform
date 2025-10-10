@@ -1228,7 +1228,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       console.log('=== PACK VALIDATION DEBUG ===');
       console.log('Pack ID:', missionData.packId);
       console.log('User ID:', userId);
-      
+
       try {
         // Find the user's active entitlement for this pack
         const entitlementsSnapshot = await db.collection('entitlements')
@@ -1239,22 +1239,22 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
 
         if (entitlementsSnapshot.empty) {
           console.log('No active entitlement found for pack:', missionData.packId);
-          res.status(400).json({ 
-            error: 'No active entitlement found for the selected pack. Please purchase the pack first.' 
+          res.status(400).json({
+            error: 'No active entitlement found for the selected pack. Please purchase the pack first.'
           });
           return;
         }
 
         const entitlementDoc = entitlementsSnapshot.docs[0];
         const entitlement = entitlementDoc.data();
-        
+
         console.log('Found entitlement:', entitlement);
 
         // Check if entitlement is expired
         if (entitlement.endsAt && new Date(entitlement.endsAt.toDate()) < new Date()) {
           console.log('Entitlement expired:', entitlement.endsAt);
-          res.status(400).json({ 
-            error: 'The selected pack entitlement has expired' 
+          res.status(400).json({
+            error: 'The selected pack entitlement has expired'
           });
           return;
         }
@@ -1262,11 +1262,11 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         // Check remaining quota
         const remainingQuota = entitlement.quotas.tweets - entitlement.usage.tweetsUsed;
         console.log('Remaining quota:', remainingQuota);
-        
+
         if (remainingQuota <= 0) {
           console.log('Insufficient quota remaining');
-          res.status(400).json({ 
-            error: `Insufficient quota remaining in the selected pack. You have ${remainingQuota} tweets remaining, but need at least 1.` 
+          res.status(400).json({
+            error: `Insufficient quota remaining in the selected pack. You have ${remainingQuota} tweets remaining, but need at least 1.`
           });
           return;
         }
@@ -1276,7 +1276,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
           // Re-read the entitlement to ensure we have the latest data
           const freshEntitlementDoc = await transaction.get(entitlementDoc.ref);
           const freshEntitlement = freshEntitlementDoc.data();
-          
+
           if (!freshEntitlement) {
             throw new Error('Entitlement not found during transaction');
           }
@@ -1302,7 +1302,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         });
 
         console.log('Successfully deducted quota for pack:', missionData.packId);
-        
+
         // Telemetry: Log pack usage for analytics
         console.log('=== PACK USAGE TELEMETRY ===');
         console.log('Event: pack_quota_deducted');
@@ -1312,12 +1312,12 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         console.log('RemainingQuota:', remainingQuota - 1);
         console.log('Timestamp:', new Date().toISOString());
         console.log('=============================');
-        
+
         console.log('=====================================');
 
       } catch (error) {
         console.error('Pack validation/entitlement deduction failed:', error);
-        
+
         // Telemetry: Log pack validation error for analytics
         console.log('=== PACK VALIDATION ERROR TELEMETRY ===');
         console.log('Event: pack_validation_failed');
@@ -1326,9 +1326,9 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         console.log('Error:', error.message || 'Unknown error');
         console.log('Timestamp:', new Date().toISOString());
         console.log('=======================================');
-        
-        res.status(400).json({ 
-          error: error.message || 'Failed to validate pack entitlement' 
+
+        res.status(400).json({
+          error: error.message || 'Failed to validate pack entitlement'
         });
         return;
       }
@@ -1840,7 +1840,7 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
 
   } catch (error) {
     console.error('Error purchasing pack:', error);
-    
+
     // Telemetry: Log pack purchase error for analytics
     console.log('=== PACK PURCHASE ERROR TELEMETRY ===');
     console.log('Event: pack_purchase_failed');
@@ -1849,7 +1849,7 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
     console.log('Error:', error.message || 'Unknown error');
     console.log('Timestamp:', new Date().toISOString());
     console.log('=====================================');
-    
+
     res.status(500).json({ error: 'Internal server error' });
   }
 });
