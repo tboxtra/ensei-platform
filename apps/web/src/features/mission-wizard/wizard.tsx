@@ -10,7 +10,7 @@ import { WizardNavigation } from './wizard/components/WizardNavigation';
 import { ModelStep } from './wizard/steps/ModelStep';
 import { TasksStep } from './wizard/steps/TasksStep';
 import { SettingsStep } from './wizard/steps/SettingsStep';
-import { DetailsStep } from './wizard/steps/DetailsStep';
+import { PaymentStep } from './wizard/steps/PaymentStep';
 import { ReviewStep } from './wizard/steps/ReviewStep';
 import { WizardState } from './wizard/types/wizard.types';
 
@@ -23,13 +23,12 @@ interface MissionWizardProps {
 // V1 flag in case you want to re-enable later
 const V1_TWITTER_ENGAGE_ONLY = true;
 
-// Shrunk flow (5 steps) to remove Platform + Type
+// Updated flow (4 steps) with payment integration
 const WIZARD_STEPS = [
     { id: 1, title: 'Model', description: 'Mission structure' },
     { id: 2, title: 'Tasks', description: 'Select activities' },
     { id: 3, title: 'Settings', description: 'Configure' },
-    { id: 4, title: 'Details', description: 'Content' },
-    { id: 5, title: 'Review', description: 'Create' },
+    { id: 4, title: 'Payment', description: 'Pay & Create' },
 ];
 
 export const MissionWizard: React.FC<MissionWizardProps> = ({
@@ -121,13 +120,12 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             case 1: return <ModelStep {...stepProps} />;
             case 2: return <TasksStep {...stepProps} />;
             case 3: return <SettingsStep {...stepProps} />;
-            case 4: return <DetailsStep {...stepProps} />;
-            case 5:
+            case 4:
                 return (
-                    <ReviewStep
+                    <PaymentStep
                         state={wizard.state}
+                        updateState={wizard.updateState}
                         onSubmit={handleMissionSubmit}
-                        onReset={wizard.resetWizard}
                         isLoading={isLoading}
                     />
                 );
@@ -185,7 +183,7 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
                 {renderCurrentStep()}
             </div>
 
-            {wizard.currentStep < 5 && (
+            {wizard.currentStep < 4 && (
                 <WizardNavigation
                     onPrevious={handleStepPrevious}
                     onNext={handleStepNext}

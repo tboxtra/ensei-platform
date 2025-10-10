@@ -33,6 +33,10 @@ export interface WizardState {
     winnersCap: number;
     winnersPerMission: number;
     maxWinners: number;
+
+    // Payment fields
+    paymentType: 'single-use' | 'pack';
+    packId: string;
 }
 
 export interface WizardStep {
@@ -79,6 +83,8 @@ export const INITIAL_WIZARD_STATE: WizardState = {
     winnersCap: 3,
     winnersPerMission: 3,
     maxWinners: 3,
+    paymentType: 'single-use',
+    packId: '',
 };
 
 // URL validation helpers to match backend

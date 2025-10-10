@@ -127,9 +127,9 @@ export const TasksStep: React.FC<TasksStepProps> = ({
             const newTasks = currentTasks.filter(id => id !== taskId);
             updateState({ tasks: newTasks });
         } else {
-            // Add task if not selected, but check limit for degen missions
-            if (state.model === 'degen' && currentTasks.length >= 3) {
-                // Don't allow more than 3 tasks for degen missions
+            // Add task if not selected, but check limit (3 tasks max for both fixed and degen)
+            if (currentTasks.length >= 3) {
+                // Don't allow more than 3 tasks
                 return;
             }
             const newTasks = [...currentTasks, taskId];
@@ -145,7 +145,7 @@ export const TasksStep: React.FC<TasksStepProps> = ({
 
     const getTaskButtonClass = (taskId: string) => {
         const isSelected = state.tasks.includes(taskId);
-        const isDisabled = state.model === 'degen' && !isSelected && state.tasks.length >= 3;
+        const isDisabled = !isSelected && state.tasks.length >= 3;
 
         if (isSelected) {
             return 'p-6 rounded-xl text-left transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg';
@@ -160,17 +160,15 @@ export const TasksStep: React.FC<TasksStepProps> = ({
         <div className="space-y-6">
             <div className="text-center">
                 <h2 className="text-xl font-semibold mb-1">Select Tasks</h2>
-                <p className="text-gray-400 text-sm">Choose which actions participants must complete</p>
-                {state.model === 'degen' && (
-                    <p className="hint mt-2">Degen: select up to 3 tasks (selected {state.tasks.length}/3)</p>
-                )}
+                <p className="text-gray-400 text-sm">Choose 3 of 5 tasks for participants to complete</p>
+                <p className="hint mt-2">Selected {state.tasks.length}/3 tasks</p>
             </div>
 
             {availableTasks.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {availableTasks.map((task) => {
                         const isSelected = state.tasks.includes(task.id);
-                        const isDisabled = state.model === 'degen' && !isSelected && state.tasks.length >= 3;
+                        const isDisabled = !isSelected && state.tasks.length >= 3;
                         return (
                             <button
                                 key={task.id}

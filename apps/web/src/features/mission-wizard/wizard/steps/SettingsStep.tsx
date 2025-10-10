@@ -101,43 +101,60 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
             </div>
 
             {state.model === 'fixed' ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-6">
                     <div>
-                        <label className="block text-xs font-medium mb-2">Participant Cap</label>
-                        <input
-                            type="number"
-                            value={state.cap ?? ''}
-                            onChange={handleCapChange}
-                            className="w-full p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            min="1"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-medium mb-2">Target Audience</label>
-                        <div className="space-y-2">
-                            <button
-                                onClick={() => handleAudienceSelect(false)}
-                                className={`w-full p-3 rounded-lg ${!state.isPremium ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' : 'bg-gray-700/50 text-gray-300'}`}
-                            >🌍 All Users</button>
-                            <button
-                                onClick={() => handleAudienceSelect(true)}
-                                className={`w-full p-3 rounded-lg ${state.isPremium ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white' : 'bg-gray-700/50 text-gray-300'}`}
-                            >👑 Premium</button>
+                        <label className="block text-xs font-medium mb-3">Participant Cap</label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {[
+                                { id: 'starter', label: 'Starter', cap: 100, description: '100 participants' },
+                                { id: 'boost', label: 'Boost', cap: 200, description: '200 participants' },
+                                { id: 'explosive', label: 'Explosive', cap: 500, description: '500 participants' }
+                            ].map((option) => {
+                                const isSelected = state.cap === option.cap;
+                                return (
+                                    <button
+                                        key={option.id}
+                                        onClick={() => updateState({ cap: option.cap })}
+                                        className={`p-4 rounded-xl text-center transition ${
+                                            isSelected 
+                                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg' 
+                                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                                        }`}
+                                    >
+                                        <div className="font-semibold text-lg">{option.label}</div>
+                                        <div className="text-sm opacity-90">{option.description}</div>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-xs font-medium mb-2">Reward per User</label>
-                        <div className="p-3 card">
-                            <div className="text-lg font-bold text-green-400">{rewardPerUser} Honors</div>
-                            <div className="hint">≈ ${honorsToUsd(rewardPerUser).toFixed(2)} USD</div>
-                            {state.tasks?.length > 0 && (
-                                <div className="mt-1 hint">
-                                    Based on {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''}
-                                    {state.isPremium && <span className="block text-yellow-400">Premium multiplier applied</span>}
-                                </div>
-                            )}
+                        <div>
+                            <label className="block text-xs font-medium mb-2">Target Audience</label>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={() => handleAudienceSelect(false)}
+                                    className={`w-full p-3 rounded-lg ${!state.isPremium ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' : 'bg-gray-700/50 text-gray-300'}`}
+                                >🌍 All Users</button>
+                                <button
+                                    onClick={() => handleAudienceSelect(true)}
+                                    className={`w-full p-3 rounded-lg ${state.isPremium ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white' : 'bg-gray-700/50 text-gray-300'}`}
+                                >👑 Premium</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium mb-2">Reward per User</label>
+                            <div className="p-3 card">
+                                <div className="text-lg font-bold text-green-400">{rewardPerUser} Honors</div>
+                                <div className="hint">≈ ${honorsToUsd(rewardPerUser).toFixed(2)} USD</div>
+                                {state.tasks?.length > 0 && (
+                                    <div className="mt-1 hint">
+                                        Based on {state.tasks.length} task{state.tasks.length > 1 ? 's' : ''}
+                                        {state.isPremium && <span className="block text-yellow-400">Premium multiplier applied</span>}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
