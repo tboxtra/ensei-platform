@@ -72,15 +72,11 @@ export default function Packs({ onPurchased }: Props) {
     return (
         <div className="space-y-8">
             <PacksHeader />
-            
+
             {/* Pack Categories */}
             <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold">Engagement Packs</h3>
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-400">Choose 3 tasks from 5 selected missions</span>
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    </div>
                 </div>
 
                 {/* Single Use Packs */}

@@ -281,7 +281,7 @@ export default function WalletPage() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Skeleton loading state */}
                   <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 animate-pulse">
                     <div className="flex items-center gap-4">
