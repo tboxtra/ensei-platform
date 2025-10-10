@@ -79,17 +79,17 @@ export default function Packs({ onPurchased }: Props) {
                 {singleGroups.map(group => {
                     const groupPacks = items.filter(p => group.ids.includes(p.id))
                     if (groupPacks.length === 0) return null
-                    
+
                     return (
                         <div key={group.title} className="mt-8">
                             <h2 className="mb-3 text-lg font-semibold">{group.title}</h2>
                             <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 {groupPacks.map(p => (
-                                    <PackCard 
-                                        key={p.id} 
-                                        pack={p} 
-                                        owned={false} 
-                                        onClick={() => setSelectedPack(p)} 
+                                    <PackCard
+                                        key={p.id}
+                                        pack={p}
+                                        owned={false}
+                                        onClick={() => setSelectedPack(p)}
                                     />
                                 ))}
                             </div>
@@ -101,17 +101,17 @@ export default function Packs({ onPurchased }: Props) {
                 {subGroups.map(group => {
                     const groupPacks = items.filter(p => group.ids.includes(p.id))
                     if (groupPacks.length === 0) return null
-                    
+
                     return (
                         <div key={group.title} className="mt-10">
                             <h2 className="mb-3 text-lg font-semibold">{group.title}</h2>
                             <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 {groupPacks.map(p => (
-                                    <PackCard 
-                                        key={p.id} 
-                                        pack={p} 
-                                        owned={false} 
-                                        onClick={() => setSelectedPack(p)} 
+                                    <PackCard
+                                        key={p.id}
+                                        pack={p}
+                                        owned={false}
+                                        onClick={() => setSelectedPack(p)}
                                     />
                                 ))}
                             </div>

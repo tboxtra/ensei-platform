@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Neon Design - Alternative</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+        body { 
+            font-family: 'JetBrains Mono', monospace; 
+            background: #0a0a0a;
+        }
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        .neon-border {
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+        .cyber-card {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(20, 20, 20, 0.9));
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .cyber-card:hover {
+            border-color: rgba(0, 255, 255, 0.7);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+        }
+        .neon-text {
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        .pulse-glow {
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
+            }
+        }
+        .scan-line {
+            position: relative;
+            overflow: hidden;
+        }
+        .scan-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            animation: scan 3s infinite;
+        }
+        @keyframes scan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        .matrix-bg {
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(255, 0, 255, 0.1) 0%, transparent 50%);
+        }
+        .holographic {
+            background: linear-gradient(45deg, 
+                rgba(255, 0, 255, 0.1) 0%, 
+                rgba(0, 255, 255, 0.1) 25%, 
+                rgba(0, 255, 0, 0.1) 50%, 
+                rgba(255, 255, 0, 0.1) 75%, 
+                rgba(255, 0, 255, 0.1) 100%);
+            background-size: 400% 400%;
+            animation: holographic 4s ease-in-out infinite;
+        }
+        @keyframes holographic {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen matrix-bg">
+    <!-- Cyber Header -->
+    <header class="cyber-card border-b border-cyan-500/30 sticky top-0 z-40 scan-line">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center neon-glow">
+                        <span class="text-black text-lg font-bold">E</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold neon-text">WALLET.EXE</h1>
+                        <p class="text-sm text-gray-400 font-mono">[SYSTEM] Earnings Management Interface</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-green-900/30 border border-green-500/50 rounded">
+                        <div class="w-2 h-2 bg-green-400 rounded-full pulse-glow"></div>
+                        <span class="text-sm text-green-400 font-mono">ONLINE</span>
+                    </div>
+                    <button class="p-2 rounded-lg cyber-card hover:neon-glow transition-all">
+                        <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4 19h6v-6H4v6zM4 5h6V1H4v4zM15 7h5l-5-5v5z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Cyber Tab Navigation -->
+        <div class="flex items-center gap-2 mb-8 p-1 cyber-card rounded-lg w-fit">
+            <button class="px-4 py-2 rounded-md bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 text-sm font-mono neon-glow">
+                [WALLET]
+            </button>
+            <button class="px-4 py-2 rounded-md text-gray-400 text-sm font-mono hover:text-cyan-400 transition-colors">
+                [PACKS]
+            </button>
+            <button class="px-4 py-2 rounded-md text-gray-400 text-sm font-mono hover:text-cyan-400 transition-colors">
+                [MY_PACKS]
+            </button>
+            <button class="px-4 py-2 rounded-md text-gray-400 text-sm font-mono hover:text-cyan-400 transition-colors">
+                [ANALYTICS]
+            </button>
+        </div>
+
+        <!-- Cyber Balance Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Available Balance -->
+            <div class="cyber-card rounded-xl p-6 holographic">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-green-900/30 border border-green-500/50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-green-400 font-mono">[AVAILABLE]</div>
+                        <div class="text-xs text-gray-400 font-mono">REAL-TIME</div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-2xl font-bold text-white font-mono">2,450</div>
+                    <div class="text-sm text-green-400 font-mono">HONORS</div>
+                </div>
+                <div class="text-sm text-gray-300 mb-3 font-mono">
+                    ≈ $5.44 USD
+                </div>
+                <div class="flex items-center text-xs text-green-400 font-mono">
+                    <span class="mr-1">↗</span>
+                    +12.5% [WEEK]
+                </div>
+            </div>
+
+            <!-- Pending Balance -->
+            <div class="cyber-card rounded-xl p-6 holographic">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-yellow-900/30 border border-yellow-500/50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-yellow-400 font-mono">[PENDING]</div>
+                        <div class="text-xs text-gray-400 font-mono">PROCESSING</div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-2xl font-bold text-white font-mono">850</div>
+                    <div class="text-sm text-yellow-400 font-mono">HONORS</div>
+                </div>
+                <div class="text-sm text-gray-300 mb-3 font-mono">
+                    ≈ $1.89 USD
+                </div>
+                <div class="flex items-center text-xs text-yellow-400 font-mono">
+                    <span class="mr-1">⏱</span>
+                    2-3 DAYS
+                </div>
+            </div>
+
+            <!-- Total Earned -->
+            <div class="cyber-card rounded-xl p-6 holographic">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-blue-900/30 border border-blue-500/50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-blue-400 font-mono">[TOTAL_EARNED]</div>
+                        <div class="text-xs text-gray-400 font-mono">ALL_TIME</div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-2xl font-bold text-white font-mono">8,750</div>
+                    <div class="text-sm text-blue-400 font-mono">HONORS</div>
+                </div>
+                <div class="text-sm text-gray-300 mb-3 font-mono">
+                    ≈ $19.44 USD
+                </div>
+                <div class="flex items-center text-xs text-blue-400 font-mono">
+                    <span class="mr-1">📊</span>
+                    +45% [MONTH]
+                </div>
+            </div>
+
+            <!-- Total Withdrawn -->
+            <div class="cyber-card rounded-xl p-6 holographic">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-purple-900/30 border border-purple-500/50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-purple-400 font-mono">[WITHDRAWN]</div>
+                        <div class="text-xs text-gray-400 font-mono">TOTAL</div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-2xl font-bold text-white font-mono">1,200</div>
+                    <div class="text-sm text-purple-400 font-mono">HONORS</div>
+                </div>
+                <div class="text-sm text-gray-300 mb-3 font-mono">
+                    ≈ $2.67 USD
+                </div>
+                <div class="flex items-center text-xs text-purple-400 font-mono">
+                    <span class="mr-1">💳</span>
+                    LAST: 3D_AGO
+                </div>
+            </div>
+        </div>
+
+        <!-- Cyber Quick Actions -->
+        <div class="cyber-card rounded-xl p-6 mb-8 scan-line">
+            <h3 class="text-lg font-bold neon-text mb-6 font-mono">[QUICK_ACTIONS]</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button class="flex items-center gap-3 p-4 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white transition-all duration-200 neon-glow">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-bold text-sm font-mono">[WITHDRAW]</div>
+                        <div class="text-xs opacity-90 font-mono">SEND_TO_WALLET</div>
+                    </div>
+                </button>
+                <button class="flex items-center gap-3 p-4 rounded-lg cyber-card hover:neon-glow transition-all duration-200">
+                    <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-bold text-sm font-mono">[ANALYTICS]</div>
+                        <div class="text-xs text-gray-400 font-mono">VIEW_INSIGHTS</div>
+                    </div>
+                </button>
+                <button class="flex items-center gap-3 p-4 rounded-lg cyber-card hover:neon-glow transition-all duration-200">
+                    <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-bold text-sm font-mono">[EXPORT]</div>
+                        <div class="text-xs text-gray-400 font-mono">DOWNLOAD_DATA</div>
+                    </div>
+                </button>
+                <button class="flex items-center gap-3 p-4 rounded-lg cyber-card hover:neon-glow transition-all duration-200">
+                    <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-bold text-sm font-mono">[SETTINGS]</div>
+                        <div class="text-xs text-gray-400 font-mono">PREFERENCES</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Cyber Pack Cards -->
+        <div class="cyber-card rounded-xl p-6 mb-8 scan-line">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold neon-text font-mono">[AVAILABLE_PACKS]</h3>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-400 font-mono">[AI_RECOMMENDED]</span>
+                    <div class="w-2 h-2 bg-cyan-400 rounded-full pulse-glow"></div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cyber Pack Card 1 -->
+                <div class="cyber-card rounded-lg p-6 cursor-pointer group holographic">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="px-2 py-1 rounded-md text-xs font-bold bg-cyan-900/30 border border-cyan-500/50 text-cyan-400 font-mono">
+                            [PREMIUM]
+                        </span>
+                        <span class="px-2 py-1 rounded-md text-xs font-bold bg-red-900/30 border border-red-500/50 text-red-400 font-mono">
+                            -25%
+                        </span>
+                    </div>
+
+                    <div class="w-12 h-12 mx-auto mb-4 rounded-lg bg-cyan-900/30 border border-cyan-500/50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-white mb-2 text-center font-mono">[GROWTH_ACCELERATOR]</h3>
+                    <p class="text-sm text-gray-400 text-center mb-4 font-mono">BOOST_SOCIAL_MEDIA_PRESENCE</p>
+
+                    <div class="space-y-2 mb-4">
+                        <div class="flex items-center text-sm text-gray-300 font-mono">
+                            <div class="w-2 h-2 bg-green-400 rounded-full mr-3 pulse-glow"></div>
+                            500 [LIKES]
+                        </div>
+                        <div class="flex items-center text-sm text-gray-300 font-mono">
+                            <div class="w-2 h-2 bg-blue-400 rounded-full mr-3 pulse-glow"></div>
+                            200 [RETWEETS]
+                        </div>
+                        <div class="flex items-center text-sm text-gray-300 font-mono">
+                            <div class="w-2 h-2 bg-purple-400 rounded-full mr-3 pulse-glow"></div>
+                            100 [COMMENTS]
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-4">
+                        <div class="flex items-center justify-center gap-2">
+                            <span class="text-xl font-bold text-white font-mono">$29.99</span>
+                            <span class="text-sm text-gray-500 line-through font-mono">$39.99</span>
+                        </div>
+                        <p class="text-xs text-green-400 mt-1 font-mono">SAVE $10.00</p>
+                    </div>
+
+                    <button class="w-full py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold transition-all duration-200 neon-glow font-mono">
+                        [PURCHASE_PACK]
+                    </button>
+                </div>
+
+                <!-- Cyber Pack Card 2 -->
+                <div class="cyber-card rounded-lg p-6 cursor-pointer group holographic">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="px-2 py-1 rounded-md text-xs font-bold bg-purple-900/30 border border-purple-500/50 text-purple-400 font-mono">
+                            [SUBSCRIPTION]
+                        </span>
+                        <span class="px-2 py-1 rounded-md text-xs font-bold bg-green-900/30 border border-green-500/50 text-green-400 font-mono">
+                            [POPULAR]
+                        </span>
+                    </div>
+
+                    <div class="w-12 h-12 mx-auto mb-4 rounded-lg bg-purple-900/30 border border-purple-500/50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                        </svg>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-white mb-2 text-center font-mono">[MONTHLY_PRO]</h3>
+                    <p class="text-sm text-gray-400 text-center mb-4 font-mono">UNLIMITED_GROWTH_FEATURES</p>
+
+                    <div class="space-y-2 mb-4">
+                        <div class="flex items-center text-sm text-gray-300 font-mono">
+                            <div class="w-2 h-2 bg-green-400 rounded-full mr-3 pulse-glow"></div>
+                            UNLIMITED [LIKES]
+                        </div>
+                        <div class="flex items-center text-sm text-gray-300 font-mono">
+                            <div class="w-2 h-2 bg-blue-400 rounded-full mr-3 pulse-glow"></div>
+                            UNLIMITED [RETWEETS]
+                        </div>
+                        <div class="flex items-center text-sm text-gray-300 font-mono">
+                            <div class="w-2 h-2 bg-purple-400 rounded-full mr-3 pulse-glow"></div>
+                            UNLIMITED [COMMENTS]
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-4">
+                        <div class="flex items-center justify-center gap-2">
+                            <span class="text-xl font-bold text-white font-mono">$99.99</span>
+                            <span class="text-sm text-gray-500 font-mono">/MONTH</span>
+                        </div>
+                        <p class="text-xs text-green-400 mt-1 font-mono">CANCEL_ANYTIME</p>
+                    </div>
+
+                    <button class="w-full py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold transition-all duration-200 neon-glow font-mono">
+                        [START_SUBSCRIPTION]
+                    </button>
+                </div>
+
+                <!-- Cyber Pack Card 3 - Owned -->
+                <div class="cyber-card rounded-lg p-6 cursor-pointer group border-2 border-green-500/50 holographic">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="px-2 py-1 rounded-md text-xs font-bold bg-green-900/30 border border-green-500/50 text-green-400 font-mono">
+                            [ACTIVE]
+                        </span>
+                        <span class="px-2 py-1 rounded-md text-xs font-bold bg-blue-900/30 border border-blue-500/50 text-blue-400 font-mono">
+                            3_DAYS_LEFT
+                        </span>
+                    </div>
+
+                    <div class="w-12 h-12 mx-auto mb-4 rounded-lg bg-green-900/30 border border-green-500/50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-white mb-2 text-center font-mono">[WEEKLY_BOOST]</h3>
+                    <p class="text-sm text-gray-400 text-center mb-4 font-mono">STEADY_GROWTH_ENGAGEMENT</p>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm text-gray-400 mb-2 font-mono">
+                            <span>[USAGE]</span>
+                            <span>65%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden border border-gray-600">
+                            <div class="h-full bg-gradient-to-r from-cyan-500 to-green-500 rounded-full" style="width: 65%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 font-mono">520 / 800 [MISSIONS_USED]</p>
+                    </div>
+
+                    <button class="w-full py-3 rounded-lg bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700 text-white font-bold transition-all duration-200 neon-glow font-mono">
+                        [USE_PACK] →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cyber Transaction History -->
+        <div class="cyber-card rounded-xl p-6 scan-line">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold neon-text font-mono">[TRANSACTION_HISTORY]</h3>
+                <div class="flex gap-2">
+                    <button class="px-3 py-1 rounded-md bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 text-sm font-mono">[ALL]</button>
+                    <button class="px-3 py-1 rounded-md text-gray-400 text-sm font-mono hover:text-cyan-400">[EARNINGS]</button>
+                    <button class="px-3 py-1 rounded-md text-gray-400 text-sm font-mono hover:text-cyan-400">[WITHDRAWALS]</button>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Transaction Item -->
+                <div class="flex items-center justify-between p-4 rounded-lg cyber-card hover:neon-glow transition-all">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-green-900/30 border border-green-500/50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-white font-mono">[MISSION_COMPLETED]</h4>
+                            <p class="text-xs text-gray-400 font-mono">SOCIAL_MEDIA_ENGAGEMENT • 2H_AGO</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-green-400 font-mono">+150</div>
+                        <div class="text-xs text-gray-400 font-mono">HONORS</div>
+                        <div class="inline-block px-2 py-1 rounded-md text-xs bg-green-900/30 border border-green-500/50 text-green-400 mt-1 font-mono">
+                            [COMPLETED]
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Item -->
+                <div class="flex items-center justify-between p-4 rounded-lg cyber-card hover:neon-glow transition-all">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-yellow-900/30 border border-yellow-500/50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-white font-mono">[MISSION_IN_PROGRESS]</h4>
+                            <p class="text-xs text-gray-400 font-mono">CONTENT_CREATION • 5H_AGO</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-yellow-400 font-mono">+200</div>
+                        <div class="text-xs text-gray-400 font-mono">HONORS [PENDING]</div>
+                        <div class="inline-block px-2 py-1 rounded-md text-xs bg-yellow-900/30 border border-yellow-500/50 text-yellow-400 mt-1 font-mono">
+                            [PROCESSING]
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Item -->
+                <div class="flex items-center justify-between p-4 rounded-lg cyber-card hover:neon-glow transition-all">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-purple-900/30 border border-purple-500/50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-white font-mono">[WITHDRAWAL]</h4>
+                            <p class="text-xs text-gray-400 font-mono">TON_WALLET • 3D_AGO</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-purple-400 font-mono">-500</div>
+                        <div class="text-xs text-gray-400 font-mono">HONORS</div>
+                        <div class="inline-block px-2 py-1 rounded-md text-xs bg-purple-900/30 border border-purple-500/50 text-purple-400 mt-1 font-mono">
+                            [COMPLETED]
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <button class="px-6 py-2 rounded-lg cyber-card text-sm font-mono hover:neon-glow transition-all">
+                    [LOAD_MORE_TRANSACTIONS]
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Features Section -->
+    <div class="max-w-7xl mx-auto px-4 py-16">
+        <div class="cyber-card rounded-xl p-8 scan-line">
+            <h2 class="text-2xl font-bold neon-text mb-6 font-mono">[DARK_NEON_DESIGN_FEATURES]</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div>
+                    <h3 class="font-bold text-cyan-400 mb-2 font-mono">[CYBER_AESTHETICS]</h3>
+                    <ul class="text-sm text-gray-300 space-y-1 font-mono">
+                        <li>• NEON_GLOW_EFFECTS</li>
+                        <li>• HOLOGRAPHIC_GRADIENTS</li>
+                        <li>• SCAN_LINE_ANIMATIONS</li>
+                        <li>• MATRIX_BACKGROUND</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-green-400 mb-2 font-mono">[USER_EXPERIENCE]</h3>
+                    <ul class="text-sm text-gray-300 space-y-1 font-mono">
+                        <li>• MONOSPACE_TYPOGRAPHY</li>
+                        <li>• CYBER_TERMINAL_STYLE</li>
+                        <li>• PULSE_ANIMATIONS</li>
+                        <li>• DARK_THEME_OPTIMIZED</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-purple-400 mb-2 font-mono">[PERFORMANCE]</h3>
+                    <ul class="text-sm text-gray-300 space-y-1 font-mono">
+                        <li>• OPTIMIZED_ANIMATIONS</li>
+                        <li>• EFFICIENT_RENDERING</li>
+                        <li>• SMOOTH_TRANSITIONS</li>
+                        <li>• RESPONSIVE_DESIGN</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-yellow-400 mb-2 font-mono">[INDUSTRY_STANDARDS]</h3>
+                    <ul class="text-sm text-gray-300 space-y-1 font-mono">
+                        <li>• CYBERPUNK_DESIGN</li>
+                        <li>• TERMINAL_INTERFACE</li>
+                        <li>• NEON_COLOR_SCHEME</li>
+                        <li>• FUTURISTIC_UI</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

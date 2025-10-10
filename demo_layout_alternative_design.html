@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layout Alternative Design - Different Arrangements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-border {
+            position: relative;
+        }
+
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            background: linear-gradient(90deg, rgba(16, 185, 129, .18), transparent, rgba(99, 102, 241, .18));
+            border-radius: inherit;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: xor;
+        }
+
+        .pack-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .pack-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .horizontal-layout {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .vertical-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2">Layout Alternative Design</h1>
+        <p class="text-gray-400 mb-8">Different layout arrangements with varied content priorities and information flow
+        </p>
+
+        <!-- Tab Navigation -->
+        <div class="flex items-center gap-2 mb-8 p-1 glass-effect rounded-xl w-fit">
+            <button class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium">Wallet</button>
+            <button class="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm">Packs</button>
+            <button class="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm">My Packs</button>
+            <button class="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm">Analytics</button>
+        </div>
+
+        <!-- Alternative 1: Horizontal Dashboard Layout -->
+        <div class="mb-12">
+            <h2 class="text-xl font-semibold mb-6">Alternative 1: Horizontal Dashboard Layout</h2>
+
+            <!-- Top Row: All Balance Cards Horizontal -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="metric-card rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                            <span class="text-lg">💰</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-green-400">Available</div>
+                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-white">2,450</div>
+                    <div class="text-sm text-green-400">Honors</div>
+                    <div class="text-xs text-gray-400">≈ $5.44 USD</div>
+                </div>
+
+                <div class="metric-card rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                            <span class="text-lg">⏳</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-yellow-400">Pending</div>
+                            <div class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-white">850</div>
+                    <div class="text-sm text-yellow-400">Honors</div>
+                    <div class="text-xs text-gray-400">≈ $1.89 USD</div>
+                </div>
+
+                <div class="metric-card rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                            <span class="text-lg">📈</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-blue-400">Total Earned</div>
+                            <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-white">8,750</div>
+                    <div class="text-sm text-blue-400">Honors</div>
+                    <div class="text-xs text-gray-400">≈ $19.44 USD</div>
+                </div>
+
+                <div class="metric-card rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                            <span class="text-lg">💸</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-purple-400">Withdrawn</div>
+                            <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-white">1,200</div>
+                    <div class="text-sm text-purple-400">Honors</div>
+                    <div class="text-xs text-gray-400">≈ $2.67 USD</div>
+                </div>
+            </div>
+
+            <!-- Middle Row: Quick Actions and Pack Preview -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Quick Actions -->
+                <div class="metric-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                    <div class="space-y-3">
+                        <button
+                            class="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white transition-all duration-200">
+                            <span class="text-lg">💸</span>
+                            <div class="text-left">
+                                <div class="font-semibold text-sm">Withdraw Funds</div>
+                                <div class="text-xs opacity-90">Send to TON wallet</div>
+                            </div>
+                        </button>
+                        <button
+                            class="w-full flex items-center gap-3 p-3 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                            <span class="text-lg">📊</span>
+                            <div class="text-left">
+                                <div class="font-semibold text-sm">View Analytics</div>
+                                <div class="text-xs text-gray-400">Performance insights</div>
+                            </div>
+                        </button>
+                        <button
+                            class="w-full flex items-center gap-3 p-3 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                            <span class="text-lg">📄</span>
+                            <div class="text-left">
+                                <div class="font-semibold text-sm">Export Data</div>
+                                <div class="text-xs text-gray-400">Download history</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Featured Pack -->
+                <div class="lg:col-span-2">
+                    <div class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer">
+                        <div class="flex justify-between items-start mb-4">
+                            <span
+                                class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                                FEATURED
+                            </span>
+                            <span
+                                class="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                                -25%
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-6">
+                            <div
+                                class="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center text-2xl">
+                                🚀
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-semibold mb-2">Growth Accelerator Pack</h3>
+                                <p class="text-sm text-gray-400 mb-4">Boost your social media presence with premium
+                                    engagement tools</p>
+
+                                <div class="flex items-center gap-6 mb-4">
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-white">500</div>
+                                        <div class="text-xs text-gray-400">Likes</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-white">200</div>
+                                        <div class="text-xs text-gray-400">Retweets</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-white">100</div>
+                                        <div class="text-xs text-gray-400">Comments</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold text-white mb-2">$29.99</div>
+                                <div class="text-sm text-gray-400 line-through mb-1">$39.99</div>
+                                <div class="text-xs text-green-400 mb-4">Save $10.00</div>
+                                <button
+                                    class="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200">
+                                    Purchase Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Row: Recent Activity and Performance -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Recent Activity -->
+                <div class="metric-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50">
+                            <div class="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                <span class="text-sm">💰</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium">Mission Completed</div>
+                                <div class="text-xs text-gray-400">Social Media Engagement • 2h ago</div>
+                            </div>
+                            <div class="text-sm font-semibold text-green-400">+150</div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50">
+                            <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                                <span class="text-sm">⏳</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium">Mission In Progress</div>
+                                <div class="text-xs text-gray-400">Content Creation • 5h ago</div>
+                            </div>
+                            <div class="text-sm font-semibold text-yellow-400">+200</div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50">
+                            <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                <span class="text-sm">💸</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium">Withdrawal</div>
+                                <div class="text-xs text-gray-400">TON Wallet • 3d ago</div>
+                            </div>
+                            <div class="text-sm font-semibold text-purple-400">-500</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Metrics -->
+                <div class="metric-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Performance Metrics</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 rounded-lg bg-gray-800/50">
+                            <div class="text-2xl font-bold text-green-400">+125</div>
+                            <div class="text-xs text-gray-400">Today's Earnings</div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-gray-800/50">
+                            <div class="text-2xl font-bold text-blue-400">3</div>
+                            <div class="text-xs text-gray-400">Active Missions</div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-gray-800/50">
+                            <div class="text-2xl font-bold text-yellow-400">94%</div>
+                            <div class="text-xs text-gray-400">Success Rate</div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-gray-800/50">
+                            <div class="text-2xl font-bold text-purple-400">12</div>
+                            <div class="text-xs text-gray-400">Days Active</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alternative 2: Vertical Stack Layout -->
+        <div class="mb-12">
+            <h2 class="text-xl font-semibold mb-6">Alternative 2: Vertical Stack Layout</h2>
+
+            <div class="max-w-4xl mx-auto space-y-6">
+                <!-- Primary Balance Card -->
+                <div class="metric-card rounded-2xl p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-semibold">Available Balance</h2>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                            <span class="text-sm text-green-400">Live</span>
+                        </div>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <div class="text-5xl font-bold text-white">2,450</div>
+                            <div class="text-xl text-green-400">Honors</div>
+                            <div class="text-lg text-gray-400 mt-2">≈ $5.44 USD</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg text-green-400 mb-2">+12.5% this week</div>
+                            <div class="text-sm text-gray-400">Last updated: 2 min ago</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Metrics Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="metric-card rounded-2xl p-6">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                                <span class="text-lg">⏳</span>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-400">Pending</div>
+                                <div class="text-lg font-bold text-yellow-400">850</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-card rounded-2xl p-6">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                <span class="text-lg">📈</span>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-400">Total Earned</div>
+                                <div class="text-lg font-bold text-blue-400">8,750</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-card rounded-2xl p-6">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                <span class="text-lg">💸</span>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-400">Withdrawn</div>
+                                <div class="text-lg font-bold text-purple-400">1,200</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pack Showcase -->
+                <div class="metric-card rounded-2xl p-6">
+                    <h3 class="text-xl font-semibold mb-6">Recommended Pack</h3>
+                    <div class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer">
+                        <div class="flex items-center gap-6">
+                            <div
+                                class="w-20 h-20 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center text-3xl">
+                                🚀
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h3 class="text-xl font-semibold">Growth Accelerator</h3>
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                                        PREMIUM
+                                    </span>
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                                        -25%
+                                    </span>
+                                </div>
+                                <p class="text-gray-400 mb-4">Boost your social media presence with premium engagement
+                                    tools</p>
+
+                                <div class="flex items-center gap-8">
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-white">500</div>
+                                        <div class="text-xs text-gray-400">Likes</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-white">200</div>
+                                        <div class="text-xs text-gray-400">Retweets</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-white">100</div>
+                                        <div class="text-xs text-gray-400">Comments</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold text-white mb-2">$29.99</div>
+                                <div class="text-sm text-gray-400 line-through mb-1">$39.99</div>
+                                <div class="text-xs text-green-400 mb-4">Save $10.00</div>
+                                <button
+                                    class="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200">
+                                    Purchase Pack
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="metric-card rounded-2xl p-6">
+                    <h3 class="text-xl font-semibold mb-6">Quick Actions</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button
+                            class="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white transition-all duration-200">
+                            <span class="text-xl">💸</span>
+                            <div class="text-left">
+                                <div class="font-semibold">Withdraw Funds</div>
+                                <div class="text-xs opacity-90">Send to TON wallet</div>
+                            </div>
+                        </button>
+                        <button
+                            class="flex items-center gap-3 p-4 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                            <span class="text-xl">📊</span>
+                            <div class="text-left">
+                                <div class="font-semibold">View Analytics</div>
+                                <div class="text-xs text-gray-400">Performance insights</div>
+                            </div>
+                        </button>
+                        <button
+                            class="flex items-center gap-3 p-4 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                            <span class="text-xl">📄</span>
+                            <div class="text-left">
+                                <div class="font-semibold">Export Data</div>
+                                <div class="text-xs text-gray-400">Download history</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alternative 3: Grid-Based Layout -->
+        <div class="mb-12">
+            <h2 class="text-xl font-semibold mb-6">Alternative 3: Grid-Based Layout</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Balance Overview -->
+                <div class="lg:col-span-2 metric-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Balance Overview</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 rounded-lg bg-gray-800/50">
+                            <div class="text-3xl font-bold text-green-400">2,450</div>
+                            <div class="text-sm text-gray-400">Available</div>
+                            <div class="text-xs text-gray-500">≈ $5.44 USD</div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-gray-800/50">
+                            <div class="text-3xl font-bold text-yellow-400">850</div>
+                            <div class="text-sm text-gray-400">Pending</div>
+                            <div class="text-xs text-gray-500">≈ $1.89 USD</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="metric-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                    <div class="space-y-3">
+                        <button
+                            class="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white transition-all duration-200">
+                            <span class="text-lg">💸</span>
+                            <span class="font-semibold text-sm">Withdraw</span>
+                        </button>
+                        <button
+                            class="w-full flex items-center gap-3 p-3 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                            <span class="text-lg">📊</span>
+                            <span class="font-semibold text-sm">Analytics</span>
+                        </button>
+                        <button
+                            class="w-full flex items-center gap-3 p-3 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                            <span class="text-lg">📄</span>
+                            <span class="font-semibold text-sm">Export</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pack Cards -->
+                <div class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <span
+                            class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                            PREMIUM
+                        </span>
+                        <span
+                            class="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                            -25%
+                        </span>
+                    </div>
+                    <div
+                        class="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center text-2xl">
+                        🚀
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-center">Growth Accelerator</h3>
+                    <p class="text-sm text-gray-400 text-center mb-4">Boost your social media presence</p>
+                    <div class="text-center mb-4">
+                        <div class="text-2xl font-bold text-white">$29.99</div>
+                        <div class="text-sm text-gray-400 line-through">$39.99</div>
+                    </div>
+                    <button
+                        class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200">
+                        Purchase
+                    </button>
+                </div>
+
+                <div class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <span
+                            class="px-2 py-1 rounded-full text-xs font-semibold bg-indigo-400/15 text-indigo-300 border border-indigo-400/30">
+                            SUBSCRIPTION
+                        </span>
+                        <span
+                            class="px-2 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+                            POPULAR
+                        </span>
+                    </div>
+                    <div
+                        class="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-2xl">
+                        ⭐
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-center">Monthly Pro</h3>
+                    <p class="text-sm text-gray-400 text-center mb-4">Unlimited growth features</p>
+                    <div class="text-center mb-4">
+                        <div class="text-2xl font-bold text-white">$99.99</div>
+                        <div class="text-sm text-gray-400">/month</div>
+                    </div>
+                    <button
+                        class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                        Subscribe
+                    </button>
+                </div>
+
+                <div
+                    class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer border-2 border-green-500/30">
+                    <div class="flex justify-between items-start mb-4">
+                        <span
+                            class="px-2 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
+                            ACTIVE
+                        </span>
+                        <span
+                            class="px-2 py-1 rounded-full text-xs font-medium bg-blue-400/15 text-blue-300 border border-blue-400/30">
+                            3 days left
+                        </span>
+                    </div>
+                    <div
+                        class="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-2xl">
+                        📈
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-center">Weekly Boost</h3>
+                    <p class="text-sm text-gray-400 text-center mb-4">Steady growth engagement</p>
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs text-gray-400 mb-2">
+                            <span>Usage</span>
+                            <span>65%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-green-500 to-blue-500 rounded-full"
+                                style="width: 65%"></div>
+                        </div>
+                    </div>
+                    <button
+                        class="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold transition-all duration-200">
+                        Use Pack →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Improvements Section -->
+        <div class="mt-16 p-6 glass-effect rounded-2xl">
+            <h2 class="text-xl font-semibold mb-4">Layout Alternative Improvements</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-green-400 mb-2">✅ Layout Variations</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• Horizontal dashboard for overview focus</li>
+                        <li>• Vertical stack for mobile-first approach</li>
+                        <li>• Grid-based for modular content</li>
+                        <li>• Different content prioritization strategies</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-blue-400 mb-2">✅ Information Flow</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• Top-down information hierarchy</li>
+                        <li>• Left-to-right reading patterns</li>
+                        <li>• Grid-based scanning patterns</li>
+                        <li>• Progressive disclosure of details</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-purple-400 mb-2">✅ Content Organization</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• Primary vs secondary information</li>
+                        <li>• Action-oriented layouts</li>
+                        <li>• Contextual grouping</li>
+                        <li>• Visual hierarchy through size</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-amber-400 mb-2">✅ User Experience</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• Different scanning patterns</li>
+                        <li>• Varied content density</li>
+                        <li>• Flexible information architecture</li>
+                        <li>• Maintains Ensei design consistency</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
+

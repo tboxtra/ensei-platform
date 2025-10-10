@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Platform Design - Exact Data Mirror</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .gradient-border {
+            position: relative;
+        }
+
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            background: linear-gradient(90deg, rgba(16, 185, 129, .18), transparent, rgba(99, 102, 241, .18));
+            border-radius: inherit;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: xor;
+        }
+
+        .pack-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .pack-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .workflow-step {
+            transition: all 0.3s ease;
+        }
+
+        .workflow-step:hover {
+            transform: scale(1.02);
+        }
+
+        .pack-size-small {
+            border-left: 4px solid rgba(20, 184, 166, 0.4);
+        }
+
+        .pack-size-medium {
+            border-left: 4px solid rgba(99, 102, 241, 0.4);
+        }
+
+        .pack-size-large {
+            border-left: 4px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .mission-selector {
+            transition: all 0.2s ease;
+        }
+
+        .mission-selector.selected {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.5);
+        }
+
+        .analytics-widget {
+            transition: all 0.3s ease;
+        }
+
+        .analytics-widget:hover {
+            transform: scale(1.02);
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2;
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2">Ensei Platform - Comprehensive Demo</h1>
+        <p class="text-gray-400 mb-8">Exact data mirror with realistic pack system and mission engagement</p>
+
+        <!-- Tab Navigation -->
+        <div class="flex items-center gap-2 mb-8 p-1 glass-effect rounded-xl w-fit">
+            <button data-tab class="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm"
+                onclick="showSection(event,'wallet')">Wallet</button>
+            <button data-tab class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium"
+                onclick="showSection(event,'packs')">Packs</button>
+            <button data-tab class="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm"
+                onclick="showSection(event,'mypacks')">My Packs</button>
+            <button data-tab class="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-sm"
+                onclick="showSection(event,'analytics')">Analytics</button>
+        </div>
+
+        <!-- WALLET SECTION -->
+        <div id="wallet-section" class="section hidden">
+            <!-- Balance Overview -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="metric-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                            <span class="text-lg">💰</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-teal-400 font-medium">Available</div>
+                            <div class="text-xs text-gray-400">Real-time</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-3xl font-bold text-white">2,450</div>
+                        <div class="text-sm text-teal-400">Honors</div>
+                    </div>
+                    <div class="text-sm text-gray-300 mb-3">
+                        $5.44 USD
+                    </div>
+                    <div class="flex items-center text-xs text-teal-400">
+                        <span class="mr-1">↗</span>
+                        +12.5% this week
+                    </div>
+                </div>
+
+                <div class="metric-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                            <span class="text-lg">⏳</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-indigo-400 font-medium">Pending</div>
+                            <div class="text-xs text-gray-400">Processing</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-3xl font-bold text-white">850</div>
+                        <div class="text-sm text-indigo-400">Honors</div>
+                    </div>
+                    <div class="text-sm text-gray-300 mb-3">
+                        $1.89 USD
+                    </div>
+                    <div class="flex items-center text-xs text-indigo-400">
+                        <span class="mr-1">⏱</span>
+                        2-3 days
+                    </div>
+                </div>
+
+                <div class="metric-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                            <span class="text-lg">📈</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-blue-400 font-medium">Total Earned</div>
+                            <div class="text-xs text-gray-400">All time</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-3xl font-bold text-white">8,750</div>
+                        <div class="text-sm text-blue-400">Honors</div>
+                    </div>
+                    <div class="text-sm text-gray-300 mb-3">
+                        $19.44 USD
+                    </div>
+                    <div class="flex items-center text-xs text-blue-400">
+                        <span class="mr-1">📊</span>
+                        +45% this month
+                    </div>
+                </div>
+
+                <div class="metric-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                            <span class="text-lg">💸</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-purple-400 font-medium">Withdrawn</div>
+                            <div class="text-xs text-gray-400">Total (all-time)</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-3xl font-bold text-white">1,200</div>
+                        <div class="text-sm text-purple-400">Honors</div>
+                    </div>
+                    <div class="text-sm text-gray-300 mb-3">
+                        $2.67 USD
+                    </div>
+                    <div class="flex items-center text-xs text-purple-400">
+                        <span class="mr-1">💳</span>
+                        Last: 3 days ago
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="metric-card rounded-2xl p-6 mb-8">
+                <h3 class="text-lg font-semibold mb-6">Quick Actions</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button
+                        class="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white transition-all duration-200">
+                        <span class="text-xl">💸</span>
+                        <div class="text-left">
+                            <div class="font-semibold text-sm">Withdraw</div>
+                            <div class="text-xs opacity-90">Send to wallet</div>
+                        </div>
+                    </button>
+                    <button
+                        class="flex items-center gap-3 p-4 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                        <span class="text-xl">📊</span>
+                        <div class="text-left">
+                            <div class="font-semibold text-sm">Analytics</div>
+                            <div class="text-xs text-gray-400">View insights</div>
+                        </div>
+                    </button>
+                    <button
+                        class="flex items-center gap-3 p-4 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                        <span class="text-xl">📄</span>
+                        <div class="text-left">
+                            <div class="font-semibold text-sm">Export</div>
+                            <div class="text-xs text-gray-400">Download data</div>
+                        </div>
+                    </button>
+                    <button
+                        class="flex items-center gap-3 p-4 rounded-xl glass-effect hover:bg-white/10 transition-all duration-200">
+                        <span class="text-xl">⚙️</span>
+                        <div class="text-left">
+                            <div class="font-semibold text-sm">Settings</div>
+                            <div class="text-xs text-gray-400">Preferences</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="metric-card rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold">Transaction History</h3>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 rounded-lg bg-white/10 text-xs">All</button>
+                        <button class="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Earnings</button>
+                        <button class="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Withdrawals</button>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div
+                        class="flex items-center justify-between p-4 rounded-xl glass-effect hover:bg-white/5 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                                <span class="text-lg">💰</span>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-sm">Mission Completed</h4>
+                                <p class="text-xs text-gray-400">Social Media Engagement • 2 hours ago</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-emerald-400">+150</div>
+                            <div class="text-xs text-gray-400">Honors</div>
+                        </div>
+                    </div>
+
+                    <!-- Skeleton loading state -->
+                    <div class="flex items-center justify-between p-4 rounded-xl glass-effect animate-pulse">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-white/5"></div>
+                            <div class="space-y-2">
+                                <div class="bg-white/5 h-4 rounded w-32"></div>
+                                <div class="bg-white/5 h-3 rounded w-24"></div>
+                            </div>
+                        </div>
+                        <div class="text-right space-y-2">
+                            <div class="bg-white/5 h-4 rounded w-16 ml-auto"></div>
+                            <div class="bg-white/5 h-3 rounded w-12 ml-auto"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PACKS SECTION -->
+        <div id="packs-section" class="section">
+            <!-- Pack Categories -->
+            <div class="metric-card rounded-2xl p-6 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold">Engagement Packs</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-400">Choose 3 tasks from 5 selected missions</span>
+                        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+
+                <!-- Single Use Packs -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span class="text-xl">🎯</span>
+                        Single Mission Packs
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Small Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-small">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-teal-400/15 text-teal-300 border border-teal-400/30">
+                                    STARTER
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    100 USERS
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center text-2xl">
+                                🌱
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Growth Sprout</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">1 mission • Perfect for testing the waters
+                            </p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-teal-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-teal-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Likes:</span>
+                                        <span class="font-semibold text-teal-400">100</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Retweets:</span>
+                                        <span class="font-semibold text-blue-400">60</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Comments:</span>
+                                        <span class="font-semibold text-purple-400">40</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold text-white">$10.00</div>
+                                <div class="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        <!-- Medium Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-medium">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-400/15 text-indigo-300 border border-indigo-400/30">
+                                    BOOST
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    200 USERS
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-2xl">
+                                🚀
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Engagement Boost</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">1 mission • Solid engagement increase</p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-indigo-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-indigo-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Likes:</span>
+                                        <span class="font-semibold text-teal-400">200</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Retweets:</span>
+                                        <span class="font-semibold text-blue-400">120</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Comments:</span>
+                                        <span class="font-semibold text-purple-400">80</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold text-white">$15.00</div>
+                                <div class="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        <!-- Large Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-large">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                                    EXPLOSIVE
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-amber-400 border border-red-500/30">
+                                    500 USERS
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                💥
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Viral Explosion</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">1 mission • Maximum impact engagement</p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-amber-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-amber-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Likes:</span>
+                                        <span class="font-semibold text-teal-400">500</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Retweets:</span>
+                                        <span class="font-semibold text-blue-400">300</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Minimum Comments:</span>
+                                        <span class="font-semibold text-purple-400">200</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold text-white">$25.00</div>
+                                <div class="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Mission Packs -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span class="text-xl">🎯🎯🎯</span>
+                        3 Mission Packs
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Small 3-Mission Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-small">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
+                                    TRIPLE STARTER
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    100 USERS × 3
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center text-2xl">
+                                🌿
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Triple Growth</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">3 missions • Consistent engagement</p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-teal-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-teal-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span class="font-semibold text-teal-400">300+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span class="font-semibold text-blue-400">180+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span class="font-semibold text-purple-400">120+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold text-white">$25.00</div>
+                                <div class="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        <!-- Medium 3-Mission Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-medium">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+                                    TRIPLE BOOST
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    200 USERS × 3
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                🔥
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Triple Fire</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">3 missions • Strong engagement</p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-indigo-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-indigo-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span class="font-semibold text-teal-400">600+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span class="font-semibold text-blue-400">360+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span class="font-semibold text-purple-400">240+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="text-2xl font-bold text-white">$40.00</span>
+                                    <span class="text-sm text-gray-400 line-through">$48.00</span>
+                                </div>
+                                <div class="text-xs text-teal-400">Save $8.00 (17%)</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        <!-- Large 3-Mission Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-large">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                                    TRIPLE EXPLOSIVE
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-amber-400 border border-red-500/30">
+                                    500 USERS × 3
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                🌋
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Triple Volcano</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">3 missions • Explosive engagement</p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-amber-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-amber-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span class="font-semibold text-teal-400">1,500+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span class="font-semibold text-blue-400">900+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span class="font-semibold text-purple-400">600+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold text-white">$60.00</div>
+                                <div class="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 10 Mission Packs -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span class="text-xl">🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯</span>
+                        10 Mission Packs
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Small 10-Mission Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-small">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
+                                    MEGA STARTER
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    100 USERS × 10
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center text-2xl">
+                                🌳
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Mega Growth</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">10 missions • Sustained growth</p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-teal-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-teal-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span class="font-semibold text-teal-400">1,000+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span class="font-semibold text-blue-400">600+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span class="font-semibold text-purple-400">400+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold text-white">$75.00</div>
+                                <div class="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        <!-- Medium 10-Mission Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-medium">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+                                    MEGA BOOST
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    200 USERS × 10
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                ⚡
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Mega Lightning</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">10 missions • Powerful engagement</p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-indigo-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-indigo-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span class="font-semibold text-teal-400">2,000+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span class="font-semibold text-blue-400">1,200+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span class="font-semibold text-purple-400">800+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold text-white">$120.00</div>
+                                <div class="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        <!-- Large 10-Mission Pack -->
+                        <div
+                            class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer pack-size-large">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                                    MEGA EXPLOSIVE
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-amber-400 border border-red-500/30">
+                                    500 USERS × 10
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                🚀
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Mega Rocket</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">10 missions • Explosive engagement</p>
+
+                            <!-- Expected Results -->
+                            <div class="bg-amber-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-amber-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span class="font-semibold text-teal-400">5,000+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span class="font-semibold text-blue-400">3,000+</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span class="font-semibold text-purple-400">2,000+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold text-white">$180.00</div>
+                                <div class="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subscription Packs -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span class="text-xl">🔄</span>
+                        Subscription Packs
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Weekly Subscription -->
+                        <div class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-400/15 text-blue-300 border border-blue-400/30">
+                                    WEEKLY
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                    UNLIMITED
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-2xl">
+                                📅
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Weekly Momentum</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">Unlimited missions • 7 days</p>
+
+                            <!-- Features -->
+                            <div class="bg-blue-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-blue-400 mb-2">What's Included</div>
+                                <div class="space-y-1">
+                                    <div class="flex items-center text-xs text-gray-300">
+                                        <span class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></span>
+                                        Unlimited missions
+                                    </div>
+                                    <div class="flex items-center text-xs text-gray-300">
+                                        <span class="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></span>
+                                        Choose any 3 from 5 tasks
+                                    </div>
+                                    <div class="flex items-center text-xs text-gray-300">
+                                        <span class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></span>
+                                        Auto-renewal
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="text-2xl font-bold text-white">$500.00</span>
+                                    <span class="text-sm text-gray-400">/week</span>
+                                </div>
+                                <div class="text-xs text-teal-400">Cancel anytime</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Start Weekly Plan
+                            </button>
+                        </div>
+
+                        <!-- Monthly Subscription -->
+                        <div class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-400/15 text-purple-300 border border-purple-400/30">
+                                    MONTHLY
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                    BEST VALUE
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center text-2xl">
+                                🌟
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Monthly Mastery</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">Unlimited missions • 30 days</p>
+
+                            <!-- Features -->
+                            <div class="bg-purple-900/20 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-purple-400 mb-2">What's Included</div>
+                                <div class="space-y-1">
+                                    <div class="flex items-center text-xs text-gray-300">
+                                        <span class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></span>
+                                        Unlimited missions
+                                    </div>
+                                    <div class="flex items-center text-xs text-gray-300">
+                                        <span class="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></span>
+                                        Choose any 3 from 5 tasks
+                                    </div>
+                                    <div class="flex items-center text-xs text-gray-300">
+                                        <span class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></span>
+                                        Priority support
+                                    </div>
+                                    <div class="flex items-center text-xs text-gray-300">
+                                        <span class="w-1.5 h-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                        Advanced analytics
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="text-2xl font-bold text-white">$2,000.00</span>
+                                    <span class="text-sm text-gray-400">/month</span>
+                                </div>
+                                <div class="text-xs text-teal-400">Save 9% vs weekly</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200">
+                                Start Monthly Plan
+                            </button>
+                        </div>
+
+                        <!-- Weekly Medium Subscription -->
+                        <div class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-400/15 text-blue-300 border border-blue-400/30">
+                                    WEEKLY
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    MEDIUM
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-2xl">
+                                ⚡
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Weekly Thunder</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">Unlimited missions • 7 days</p>
+
+                            <div class="text-center mb-4">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="text-2xl font-bold text-white">$750.00</span>
+                                    <span class="text-sm text-gray-400">/week</span>
+                                </div>
+                                <div class="text-xs text-teal-400">Cancel anytime</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Start Weekly Plan
+                            </button>
+                        </div>
+
+                        <!-- Weekly Large Subscription -->
+                        <div class="pack-card gradient-border glass-effect rounded-2xl p-6 cursor-pointer">
+                            <div class="flex justify-between items-start mb-4">
+                                <span
+                                    class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-400/15 text-blue-300 border border-blue-400/30">
+                                    WEEKLY
+                                </span>
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-amber-400 border border-red-500/30">
+                                    LARGE
+                                </span>
+                            </div>
+
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-2xl">
+                                💥
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-2 text-center">Weekly Storm</h3>
+                            <p class="text-sm text-gray-400 text-center mb-4">Unlimited missions • 7 days</p>
+
+                            <div class="text-center mb-4">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="text-2xl font-bold text-white">$1,250.00</span>
+                                    <span class="text-sm text-gray-400">/week</span>
+                                </div>
+                                <div class="text-xs text-teal-400">Cancel anytime</div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Start Weekly Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MY PACKS SECTION -->
+        <div id="mypacks-section" class="section hidden">
+            <!-- Active Packs -->
+            <div class="metric-card rounded-2xl p-6 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold">My Active Packs</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-400">2 active packs</span>
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Active Pack 1 -->
+                    <div class="pack-card gradient-border glass-effect rounded-2xl p-6 border-2 border-green-500/30">
+                        <div class="flex justify-between items-start mb-4">
+                            <span
+                                class="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
+                                ACTIVE
+                            </span>
+                            <span
+                                class="px-2 py-1 rounded-full text-xs font-medium bg-blue-400/15 text-blue-300 border border-blue-400/30">
+                                3 days left
+                            </span>
+                        </div>
+
+                        <div
+                            class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-2xl">
+                            🚀
+                        </div>
+
+                        <h3 class="text-lg font-semibold mb-2 text-center">Engagement Boost</h3>
+                        <p class="text-sm text-gray-400 text-center mb-4">200 users × 3 missions</p>
+
+                        <!-- Mission Selection Status -->
+                        <div class="bg-blue-900/20 rounded-lg p-3 mb-4">
+                            <div class="text-xs text-blue-400 mb-2">Mission Selection Status</div>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span>Selected Missions:</span>
+                                    <span class="font-semibold text-teal-400">3/3</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span>Completed Missions:</span>
+                                    <span class="font-semibold text-blue-400">1/3</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span>Remaining Missions:</span>
+                                    <span class="font-semibold text-indigo-400">2</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="mb-4">
+                            <div class="flex justify-between text-xs text-gray-400 mb-2">
+                                <span>Overall Progress</span>
+                                <span>33%</span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-green-500 to-blue-500 rounded-full"
+                                    style="width: 33%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Mission Details -->
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-300">Mission 1: Social Media Post</span>
+                                <span class="text-teal-400">✅ Completed</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-300">Mission 2: Content Creation</span>
+                                <span class="text-indigo-400">⏳ In Progress</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-300">Mission 3: Brand Awareness</span>
+                                <span class="text-gray-400">⏸️ Pending</span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold transition-all duration-200">
+                            Continue Mission →
+                        </button>
+                    </div>
+
+                    <!-- Active Pack 2 -->
+                    <div class="pack-card gradient-border glass-effect rounded-2xl p-6 border-2 border-purple-500/30">
+                        <div class="flex justify-between items-start mb-4">
+                            <span
+                                class="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
+                                ACTIVE
+                            </span>
+                            <span
+                                class="px-2 py-1 rounded-full text-xs font-medium bg-purple-400/15 text-purple-300 border border-purple-400/30">
+                                12 days left
+                            </span>
+                        </div>
+
+                        <div
+                            class="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center text-2xl">
+                            🌟
+                        </div>
+
+                        <h3 class="text-lg font-semibold mb-2 text-center">Monthly Mastery</h3>
+                        <p class="text-sm text-gray-400 text-center mb-4">Unlimited missions subscription</p>
+
+                        <!-- Usage Statistics -->
+                        <div class="bg-purple-900/20 rounded-lg p-3 mb-4">
+                            <div class="text-xs text-purple-400 mb-2">This Month's Usage</div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs">
+                                    <span>Missions Completed:</span>
+                                    <span class="font-semibold text-teal-400">24</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span>Total Engagement:</span>
+                                    <span class="font-semibold text-blue-400">4,800</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span>Success Rate:</span>
+                                    <span class="font-semibold text-teal-400">96%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Missions -->
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-300">Latest: Social Media Campaign</span>
+                                <span class="text-teal-400">✅ 200 users</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-300">Previous: Content Creation</span>
+                                <span class="text-teal-400">✅ 200 users</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-300">Earlier: Brand Awareness</span>
+                                <span class="text-teal-400">✅ 200 users</span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200">
+                            Start New Mission →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pack History -->
+            <div class="metric-card rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold">Pack History & Performance</h3>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 rounded-lg bg-white/10 text-xs">All Time</button>
+                        <button class="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">30 Days</button>
+                        <button class="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">7 Days</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="text-left py-3 px-4 font-medium text-gray-400">Pack</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-400">Type</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-400">Users</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-400">Results</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-400">Status</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-400">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                            <span class="text-sm">🚀</span>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">Engagement Boost</div>
+                                            <div class="text-xs text-gray-400">3 Mission Pack</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                        Single Use
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm">200 users</div>
+                                    <div class="text-xs text-gray-400">× 3 missions</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm text-teal-400">1,200+ likes</div>
+                                    <div class="text-xs text-gray-400">960+ retweets</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                        Active
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm">3 days ago</div>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                            <span class="text-sm">🌟</span>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">Monthly Mastery</div>
+                                            <div class="text-xs text-gray-400">Subscription</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                        Subscription
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm">Unlimited</div>
+                                    <div class="text-xs text-gray-400">24 missions used</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm text-teal-400">4,800+ likes</div>
+                                    <div class="text-xs text-gray-400">3,840+ retweets</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                        Active
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm">12 days ago</div>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                            <span class="text-sm">🌱</span>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">Growth Sprout</div>
+                                            <div class="text-xs text-gray-400">Single Mission</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                        Single Use
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm">100 users</div>
+                                    <div class="text-xs text-gray-400">× 1 mission</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm text-teal-400">120+ likes</div>
+                                    <div class="text-xs text-gray-400">95+ retweets</div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="px-2 py-1 rounded-full text-xs bg-gray-500/20 text-gray-400 border border-gray-500/30">
+                                        Completed
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-sm">1 week ago</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALYTICS SECTION -->
+        <div id="analytics-section" class="section hidden">
+            <!-- Performance Dashboard -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Key Metrics -->
+                <div class="lg:col-span-2 metric-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold">Engagement Performance</h3>
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1 rounded-lg bg-white/10 text-xs">7D</button>
+                            <button class="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">30D</button>
+                            <button class="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">90D</button>
+                        </div>
+                    </div>
+
+                    <div class="h-64">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="space-y-4">
+                    <div class="analytics-widget metric-card rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-sm">Today's Performance</h4>
+                            <span class="text-2xl">📊</span>
+                        </div>
+                        <div class="text-2xl font-bold text-teal-400">+125</div>
+                        <div class="text-xs text-gray-400">Honors earned</div>
+                        <div class="mt-2 text-xs text-teal-400">+8% vs yesterday</div>
+                    </div>
+
+                    <div class="analytics-widget metric-card rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-sm">Mission Success Rate</h4>
+                            <span class="text-2xl">🎯</span>
+                        </div>
+                        <div class="text-2xl font-bold text-blue-400">94.2%</div>
+                        <div class="text-xs text-gray-400">Completion rate</div>
+                        <div class="mt-2 text-xs text-blue-400">+2.1% vs last week</div>
+                    </div>
+
+                    <div class="analytics-widget metric-card rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-sm">Active Missions</h4>
+                            <span class="text-2xl">⚡</span>
+                        </div>
+                        <div class="text-2xl font-bold text-purple-400">2</div>
+                        <div class="text-xs text-gray-400">Currently running</div>
+                        <div class="mt-2 text-xs text-purple-400">1 completing soon</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pack Performance Analysis -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="metric-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-6">Pack Performance Analysis</h3>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 rounded-xl glass-effect">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                    <span class="text-lg">🚀</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-sm">Engagement Boost</h4>
+                                    <p class="text-xs text-gray-400">200 users × 3 missions</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-bold text-teal-400">96%</div>
+                                <div class="text-xs text-gray-400">Success Rate</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 rounded-xl glass-effect">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                    <span class="text-lg">🌟</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-sm">Monthly Mastery</h4>
+                                    <p class="text-xs text-gray-400">Unlimited subscription</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-bold text-teal-400">98%</div>
+                                <div class="text-xs text-gray-400">Success Rate</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 rounded-xl glass-effect">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                    <span class="text-lg">🌱</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-sm">Growth Sprout</h4>
+                                    <p class="text-xs text-gray-400">100 users × 1 mission</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-bold text-teal-400">92%</div>
+                                <div class="text-xs text-gray-400">Success Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-6">Engagement Metrics</h3>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                    <span class="text-sm">❤️</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium">Total Likes</div>
+                                    <div class="text-xs text-gray-400">This month</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-teal-400">6,120</div>
+                                <div class="text-xs text-teal-400">+15% vs last month</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                    <span class="text-sm">🔁</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium">Total Retweets</div>
+                                    <div class="text-xs text-gray-400">This month</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-blue-400">4,895</div>
+                                <div class="text-xs text-blue-400">+18% vs last month</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                    <span class="text-sm">💬</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium">Total Comments</div>
+                                    <div class="text-xs text-gray-400">This month</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-purple-400">3,060</div>
+                                <div class="text-xs text-purple-400">+12% vs last month</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analytics Table -->
+            <div class="metric-card rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold">Detailed Performance Metrics</h3>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 rounded-lg bg-white/10 text-xs">Export</button>
+                        <button class="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Share</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="text-left py-3 px-4 font-medium text-gray-400">Metric</th>
+                                <th class="text-right py-3 px-4 font-medium text-gray-400">Current</th>
+                                <th class="text-right py-3 px-4 font-medium text-gray-400">Previous</th>
+                                <th class="text-right py-3 px-4 font-medium text-gray-400">Change</th>
+                                <th class="text-right py-3 px-4 font-medium text-gray-400">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-3 px-4 font-medium">Daily Earnings</td>
+                                <td class="py-3 px-4 text-right font-semibold">125 Honors</td>
+                                <td class="py-3 px-4 text-right text-gray-400">115 Honors</td>
+                                <td class="py-3 px-4 text-right text-teal-400">+8.7%</td>
+                                <td class="py-3 px-4 text-right">
+                                    <span class="text-teal-400">↗</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-3 px-4 font-medium">Mission Success Rate</td>
+                                <td class="py-3 px-4 text-right font-semibold">94.2%</td>
+                                <td class="py-3 px-4 text-right text-gray-400">92.1%</td>
+                                <td class="py-3 px-4 text-right text-teal-400">+2.1%</td>
+                                <td class="py-3 px-4 text-right">
+                                    <span class="text-teal-400">↗</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-3 px-4 font-medium">Avg. Mission Duration</td>
+                                <td class="py-3 px-4 text-right font-semibold">2.3 hours</td>
+                                <td class="py-3 px-4 text-right text-gray-400">2.1 hours</td>
+                                <td class="py-3 px-4 text-right text-amber-400">+9.5%</td>
+                                <td class="py-3 px-4 text-right">
+                                    <span class="text-amber-400">↘</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-3 px-4 font-medium">Total Missions</td>
+                                <td class="py-3 px-4 text-right font-semibold">47</td>
+                                <td class="py-3 px-4 text-right text-gray-400">43</td>
+                                <td class="py-3 px-4 text-right text-teal-400">+9.3%</td>
+                                <td class="py-3 px-4 text-right">
+                                    <span class="text-teal-400">↗</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-3 px-4 font-medium">Engagement Rate</td>
+                                <td class="py-3 px-4 text-right font-semibold">87.3%</td>
+                                <td class="py-3 px-4 text-right text-gray-400">85.1%</td>
+                                <td class="py-3 px-4 text-right text-teal-400">+2.2%</td>
+                                <td class="py-3 px-4 text-right">
+                                    <span class="text-teal-400">↗</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Price formatter
+        const fmtUSD = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' });
+
+        // Tab switching functionality
+        function showSection(e, section) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(section + '-section').classList.remove('hidden');
+
+            document.querySelectorAll('[data-tab]').forEach(b => {
+                b.classList.remove('bg-white/10', 'text-white', 'font-medium');
+                b.classList.add('text-gray-400');
+            });
+            e.currentTarget.classList.add('bg-white/10', 'text-white', 'font-medium');
+            e.currentTarget.classList.remove('text-gray-400');
+        }
+
+        // Initialize performance chart
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Earnings (Honors)',
+                    data: [120, 190, 300, 500, 200, 300, 450],
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

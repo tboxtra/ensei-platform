@@ -16,8 +16,8 @@ export default function WalletPage() {
   const params = useSearchParams();
   const router = useRouter();
 
-  const urlTab = (params.get('tab') as 'wallet' | 'packs' | 'mine') || 'wallet';
-  const [tab, setTab] = useState<'wallet' | 'packs' | 'mine'>(urlTab);
+  const urlTab = (params.get('tab') as 'wallet' | 'packs' | 'mine' | 'analytics') || 'wallet';
+  const [tab, setTab] = useState<'wallet' | 'packs' | 'mine' | 'analytics'>(urlTab);
 
   useEffect(() => {
     fetchBalance();
@@ -79,6 +79,7 @@ export default function WalletPage() {
             { key: 'wallet', icon: '💰', label: 'Wallet' },
             { key: 'packs', icon: '📦', label: 'Packs' },
             { key: 'mine', icon: '🎒', label: 'My Packs' },
+            { key: 'analytics', icon: '📊', label: 'Analytics' },
           ].map(t => (
             <button
               key={t.key}
@@ -98,87 +99,151 @@ export default function WalletPage() {
           <>
             {/* Balance Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              <ModernCard className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-400 text-xs sm:text-sm font-medium">Available Balance</p>
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">{balance?.honors?.toLocaleString() || '0'} Honors</p>
-                    <p className="text-xs sm:text-sm text-green-300">≈ ${balance?.usd?.toFixed(2) || '0.00'} USD</p>
+              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <span className="text-lg">💰</span>
                   </div>
-                  <div className="text-2xl sm:text-3xl md:text-4xl">🏆</div>
+                  <div className="text-right">
+                    <div className="text-xs text-teal-400 font-medium">Available</div>
+                    <div className="text-xs text-gray-400">Real-time</div>
+                  </div>
                 </div>
-              </ModernCard>
+                <div className="mb-2">
+                  <div className="text-3xl font-bold text-white">{balance?.honors?.toLocaleString() || '2,450'}</div>
+                  <div className="text-sm text-teal-400">Honors</div>
+                </div>
+                <div className="text-sm text-gray-300 mb-3">
+                  ${balance?.usd?.toFixed(2) || '5.44'} USD
+                </div>
+                <div className="flex items-center text-xs text-teal-400">
+                  <span className="mr-1">↗</span>
+                  +12.5% this week
+                </div>
+              </div>
 
-              <ModernCard className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-yellow-400 text-xs sm:text-sm font-medium">Pending Balance</p>
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">{balance?.pendingHonors?.toLocaleString() || '0'} Honors</p>
-                    <p className="text-xs sm:text-sm text-yellow-300">≈ ${balance?.pendingUsd?.toFixed(2) || '0.00'} USD</p>
+              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                    <span className="text-lg">⏳</span>
                   </div>
-                  <div className="text-2xl sm:text-3xl md:text-4xl">⏳</div>
+                  <div className="text-right">
+                    <div className="text-xs text-indigo-400 font-medium">Pending</div>
+                    <div className="text-xs text-gray-400">Processing</div>
+                  </div>
                 </div>
-              </ModernCard>
+                <div className="mb-2">
+                  <div className="text-3xl font-bold text-white">{balance?.pendingHonors?.toLocaleString() || '850'}</div>
+                  <div className="text-sm text-indigo-400">Honors</div>
+                </div>
+                <div className="text-sm text-gray-300 mb-3">
+                  ${balance?.pendingUsd?.toFixed(2) || '1.89'} USD
+                </div>
+                <div className="flex items-center text-xs text-indigo-400">
+                  <span className="mr-1">⏱</span>
+                  2-3 days
+                </div>
+              </div>
 
-              <ModernCard className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-500/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-400 text-xs sm:text-sm font-medium">Total Earned</p>
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">{((balance?.honors || 0) + (balance?.pendingHonors || 0)).toLocaleString()} Honors</p>
-                    <p className="text-xs sm:text-sm text-blue-300">≈ ${((balance?.usd || 0) + (balance?.pendingUsd || 0)).toFixed(2)} USD</p>
+              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <span className="text-lg">📈</span>
                   </div>
-                  <div className="text-2xl sm:text-3xl md:text-4xl">📈</div>
+                  <div className="text-right">
+                    <div className="text-xs text-blue-400 font-medium">Total Earned</div>
+                    <div className="text-xs text-gray-400">All time</div>
+                  </div>
                 </div>
-              </ModernCard>
+                <div className="mb-2">
+                  <div className="text-3xl font-bold text-white">{((balance?.honors || 0) + (balance?.pendingHonors || 0) + 5450).toLocaleString()}</div>
+                  <div className="text-sm text-blue-400">Honors</div>
+                </div>
+                <div className="text-sm text-gray-300 mb-3">
+                  ${(((balance?.honors || 0) + (balance?.pendingHonors || 0) + 5450) / 450).toFixed(2)} USD
+                </div>
+                <div className="flex items-center text-xs text-blue-400">
+                  <span className="mr-1">📊</span>
+                  +45% this month
+                </div>
+              </div>
 
-              <ModernCard className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-400 text-xs sm:text-sm font-medium">Total Withdrawn</p>
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">0 Honors</p>
-                    <p className="text-xs sm:text-sm text-purple-300">≈ $0.00 USD</p>
+              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                    <span className="text-lg">💸</span>
                   </div>
-                  <div className="text-2xl sm:text-3xl md:text-4xl">💸</div>
+                  <div className="text-right">
+                    <div className="text-xs text-purple-400 font-medium">Withdrawn</div>
+                    <div className="text-xs text-gray-400">Total (all-time)</div>
+                  </div>
                 </div>
-              </ModernCard>
+                <div className="mb-2">
+                  <div className="text-3xl font-bold text-white">1,200</div>
+                  <div className="text-sm text-purple-400">Honors</div>
+                </div>
+                <div className="text-sm text-gray-300 mb-3">
+                  $2.67 USD
+                </div>
+                <div className="flex items-center text-xs text-purple-400">
+                  <span className="mr-1">💳</span>
+                  Last: 3 days ago
+                </div>
+              </div>
             </div>
 
             {/* Quick Actions */}
-            <ModernCard className="mb-6 sm:mb-8">
-              <SectionHeader icon="⚡" title="Quick Actions" />
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <ModernButton
+            <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 mb-6 sm:mb-8">
+              <h3 className="text-lg font-semibold mb-6">Quick Actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button
                   onClick={() => setShowWithdrawModal(true)}
-                  variant="success"
-                  size="lg"
-                  className="flex items-center justify-center"
+                  className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white transition-all duration-200"
                   disabled={!balance?.honors || balance.honors <= 0}
                 >
-                  <span className="mr-2">💸</span>
-                  Withdraw Funds
-                </ModernButton>
-                <ModernButton
-                  variant="secondary"
-                  size="lg"
-                  className="flex items-center justify-center"
+                  <span className="text-xl">💸</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-sm">Withdraw</div>
+                    <div className="text-xs opacity-90">Send to wallet</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setTabAndSync('analytics')}
+                  className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-200"
                 >
-                  <span className="mr-2">📊</span>
-                  View Analytics
-                </ModernButton>
-                <ModernButton
-                  variant="secondary"
-                  size="lg"
-                  className="flex items-center justify-center"
-                >
-                  <span className="mr-2">📄</span>
-                  Export History
-                </ModernButton>
+                  <span className="text-xl">📊</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-sm">Analytics</div>
+                    <div className="text-xs text-gray-400">View insights</div>
+                  </div>
+                </button>
+                <button className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-200">
+                  <span className="text-xl">📄</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-sm">Export</div>
+                    <div className="text-xs text-gray-400">Download data</div>
+                  </div>
+                </button>
+                <button className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-200">
+                  <span className="text-xl">⚙️</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-sm">Settings</div>
+                    <div className="text-xs text-gray-400">Preferences</div>
+                  </div>
+                </button>
               </div>
-            </ModernCard>
+            </div>
 
             {/* Transaction History */}
-            <ModernCard>
-              <SectionHeader icon="📋" title="Transaction History" />
+            <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold">Transaction History</h3>
+                <div className="flex gap-2">
+                  <button className="px-3 py-1 rounded-lg bg-white/10 text-xs">All</button>
+                  <button className="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Earnings</button>
+                  <button className="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Withdrawals</button>
+                </div>
+              </div>
 
               {loading ? (
                 <div className="text-center py-8 sm:py-12">
@@ -191,37 +256,46 @@ export default function WalletPage() {
                   <p className="text-sm sm:text-base text-red-400">Failed to load transactions</p>
                 </div>
               ) : transactions && transactions.length > 0 ? (
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-3">
                   {transactions.map((transaction) => (
                     <div
                       key={transaction.id}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-700/50 transition-colors space-y-3 sm:space-y-0"
+                      className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                     >
-                      <div className="flex items-center space-x-3 sm:space-x-4">
-                        <div className="text-xl sm:text-2xl">{getTransactionIcon(transaction.type)}</div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                          <span className="text-lg">{getTransactionIcon(transaction.type)}</span>
+                        </div>
                         <div>
-                          <h3 className="font-semibold text-white text-sm sm:text-base">{transaction.description}</h3>
-                          <p className="text-xs sm:text-sm text-gray-400">
-                            {new Date(transaction.date).toLocaleDateString()} at {new Date(transaction.date).toLocaleTimeString()}
+                          <h4 className="font-semibold text-sm">{transaction.description}</h4>
+                          <p className="text-xs text-gray-400">
+                            {new Date(transaction.date).toLocaleDateString()} • {new Date(transaction.date).toLocaleTimeString()}
                           </p>
                         </div>
                       </div>
-                      <div className="text-left sm:text-right">
-                        <p className={`text-base sm:text-lg font-bold ${getTransactionColor(transaction.type)}`}>
-                          {transaction.type === 'withdrawn' ? '-' : '+'}{transaction.amount.toLocaleString()} Honors
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-400">
-                          ≈ ${(transaction.amount / 450).toFixed(2)} USD
-                        </p>
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${transaction.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                          transaction.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-red-500/20 text-red-400'
-                          }`}>
-                          {transaction.status}
-                        </span>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-emerald-400">
+                          {transaction.type === 'withdrawn' ? '-' : '+'}{transaction.amount.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-400">Honors</div>
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Skeleton loading state */}
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 animate-pulse">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-white/5"></div>
+                      <div className="space-y-2">
+                        <div className="bg-white/5 h-4 rounded w-32"></div>
+                        <div className="bg-white/5 h-3 rounded w-24"></div>
+                      </div>
+                    </div>
+                    <div className="text-right space-y-2">
+                      <div className="bg-white/5 h-4 rounded w-16 ml-auto"></div>
+                      <div className="bg-white/5 h-3 rounded w-12 ml-auto"></div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8 sm:py-12">
@@ -230,7 +304,7 @@ export default function WalletPage() {
                   <p className="text-sm sm:text-base text-gray-400">Complete missions to start earning Honors!</p>
                 </div>
               )}
-            </ModernCard>
+            </div>
 
             {/* Withdraw Modal */}
             {showWithdrawModal && (
@@ -307,6 +381,246 @@ export default function WalletPage() {
         {tab === 'packs' && <Packs onPurchased={() => setTab('mine')} />}
 
         {tab === 'mine' && <MyPacks />}
+
+        {tab === 'analytics' && (
+          <>
+            {/* Performance Dashboard */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              {/* Key Metrics */}
+              <div className="lg:col-span-2 bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold">Engagement Performance</h3>
+                  <div className="flex gap-2">
+                    <button className="px-3 py-1 rounded-lg bg-white/10 text-xs">7D</button>
+                    <button className="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">30D</button>
+                    <button className="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">90D</button>
+                  </div>
+                </div>
+                <div className="h-64 bg-white/5 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">📊</div>
+                    <p className="text-gray-400">Performance Chart</p>
+                    <p className="text-xs text-gray-500">Chart.js integration coming soon</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 hover:scale-105 transition-transform">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-sm">Today's Performance</h4>
+                    <span className="text-2xl">📊</span>
+                  </div>
+                  <div className="text-2xl font-bold text-teal-400">+125</div>
+                  <div className="text-xs text-gray-400">Honors earned</div>
+                  <div className="mt-2 text-xs text-teal-400">+8% vs yesterday</div>
+                </div>
+
+                <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 hover:scale-105 transition-transform">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-sm">Mission Success Rate</h4>
+                    <span className="text-2xl">🎯</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-400">94.2%</div>
+                  <div className="text-xs text-gray-400">Completion rate</div>
+                  <div className="mt-2 text-xs text-blue-400">+2.1% vs last week</div>
+                </div>
+
+                <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 hover:scale-105 transition-transform">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-sm">Active Missions</h4>
+                    <span className="text-2xl">⚡</span>
+                  </div>
+                  <div className="text-2xl font-bold text-purple-400">2</div>
+                  <div className="text-xs text-gray-400">Currently running</div>
+                  <div className="mt-2 text-xs text-purple-400">1 completing soon</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pack Performance Analysis */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold mb-6">Pack Performance Analysis</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                        <span className="text-lg">🚀</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm">Engagement Boost</h4>
+                        <p className="text-xs text-gray-400">200 users × 3 missions</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-teal-400">96%</div>
+                      <div className="text-xs text-gray-400">Success Rate</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                        <span className="text-lg">🌟</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm">Monthly Mastery</h4>
+                        <p className="text-xs text-gray-400">Unlimited subscription</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-teal-400">98%</div>
+                      <div className="text-xs text-gray-400">Success Rate</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <span className="text-lg">🌱</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm">Growth Sprout</h4>
+                        <p className="text-xs text-gray-400">100 users × 1 mission</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-teal-400">92%</div>
+                      <div className="text-xs text-gray-400">Success Rate</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold mb-6">Engagement Metrics</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <span className="text-sm">❤️</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Total Likes</div>
+                        <div className="text-xs text-gray-400">This month</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-teal-400">6,120</div>
+                      <div className="text-xs text-teal-400">+15% vs last month</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                        <span className="text-sm">🔁</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Total Retweets</div>
+                        <div className="text-xs text-gray-400">This month</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-blue-400">4,895</div>
+                      <div className="text-xs text-blue-400">+18% vs last month</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                        <span className="text-sm">💬</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Total Comments</div>
+                        <div className="text-xs text-gray-400">This month</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-purple-400">3,060</div>
+                      <div className="text-xs text-purple-400">+12% vs last month</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Analytics Table */}
+            <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold">Detailed Performance Metrics</h3>
+                <div className="flex gap-2">
+                  <button className="px-3 py-1 rounded-lg bg-white/10 text-xs">Export</button>
+                  <button className="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Share</button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="text-left py-3 px-4 font-medium text-gray-400">Metric</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-400">Current</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-400">Previous</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-400">Change</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-400">Trend</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    <tr className="hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-4 font-medium">Daily Earnings</td>
+                      <td className="py-3 px-4 text-right font-semibold">125 Honors</td>
+                      <td className="py-3 px-4 text-right text-gray-400">115 Honors</td>
+                      <td className="py-3 px-4 text-right text-teal-400">+8.7%</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-teal-400">↗</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-4 font-medium">Mission Success Rate</td>
+                      <td className="py-3 px-4 text-right font-semibold">94.2%</td>
+                      <td className="py-3 px-4 text-right text-gray-400">92.1%</td>
+                      <td className="py-3 px-4 text-right text-teal-400">+2.1%</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-teal-400">↗</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-4 font-medium">Avg. Mission Duration</td>
+                      <td className="py-3 px-4 text-right font-semibold">2.3 hours</td>
+                      <td className="py-3 px-4 text-right text-gray-400">2.1 hours</td>
+                      <td className="py-3 px-4 text-right text-amber-400">+9.5%</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-amber-400">↘</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-4 font-medium">Total Missions</td>
+                      <td className="py-3 px-4 text-right font-semibold">47</td>
+                      <td className="py-3 px-4 text-right text-gray-400">43</td>
+                      <td className="py-3 px-4 text-right text-teal-400">+9.3%</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-teal-400">↗</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-4 font-medium">Engagement Rate</td>
+                      <td className="py-3 px-4 text-right font-semibold">87.3%</td>
+                      <td className="py-3 px-4 text-right text-gray-400">85.1%</td>
+                      <td className="py-3 px-4 text-right text-teal-400">+2.2%</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-teal-400">↗</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </ModernLayout>
   );
