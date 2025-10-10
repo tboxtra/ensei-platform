@@ -7,6 +7,8 @@ interface PaymentStepProps {
     state: WizardState;
     updateState: (updates: Partial<WizardState>) => void;
     onSubmit: () => void;
+    onPrevious: () => void;
+    onReset: () => void;
     isLoading?: boolean;
 }
 
@@ -14,6 +16,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     state,
     updateState,
     onSubmit,
+    onPrevious,
+    onReset,
     isLoading = false,
 }) => {
     const handlePaymentSelect = (paymentType: 'single-use' | 'pack') => {
@@ -127,8 +131,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                             <div className="flex justify-between text-lg font-bold">
                                 <span>Total Cost:</span>
                                 <span className="text-green-400">
-                                    {state.model === 'fixed'
-                                        ? `$${((state.cap || 0) * (state.tasks?.length || 0) * 0.1).toFixed(2)}`
+                                    {state.model === 'fixed' 
+                                        ? '$10.00'
                                         : 'Variable (based on engagement)'
                                     }
                                 </span>

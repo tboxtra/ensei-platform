@@ -115,11 +115,10 @@ export const SettingsStep: React.FC<SettingsStepProps> = ({
                                     <button
                                         key={option.id}
                                         onClick={() => updateState({ cap: option.cap })}
-                                        className={`p-4 rounded-xl text-center transition ${
-                                            isSelected 
-                                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg' 
-                                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                                        }`}
+                                        className={`p-4 rounded-xl text-center transition ${isSelected
+                                            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                                            }`}
                                     >
                                         <div className="font-semibold text-lg">{option.label}</div>
                                         <div className="text-sm opacity-90">{option.description}</div>
