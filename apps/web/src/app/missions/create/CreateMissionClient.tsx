@@ -14,9 +14,9 @@ export default function CreateMissionClient() {
 
     // Auto-set mission type and pack ID from URL params
     useEffect(() => {
-        if (prefilledPack) {
+        if (prefilledPack?.pack) {
             setMissionType('fixed');
-            setPackId(prefilledPack.id);
+            setPackId(prefilledPack.pack.id);
         }
     }, [prefilledPack]);
 
@@ -99,9 +99,9 @@ export default function CreateMissionClient() {
                                 <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
                                     <p className="text-green-400 text-sm">
                                         ✓ Pack &quot;{packId}&quot; will be used for this mission
-                                        {prefilledPack && (
+                                        {prefilledPack?.pack && (
                                             <span className="block text-xs text-green-300 mt-1">
-                                                📦 {prefilledPack.label} - ${prefilledPack.priceUsd}
+                                                📦 {prefilledPack.pack.label} - ${prefilledPack.pack.priceUsd}
                                             </span>
                                         )}
                                     </p>
