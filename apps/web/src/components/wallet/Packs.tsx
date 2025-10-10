@@ -70,55 +70,616 @@ export default function Packs({ onPurchased }: Props) {
     }
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-8">
             <PacksHeader />
-            <section>
-                <h1 className="text-2xl font-semibold">Available Packs</h1>
+            
+            {/* Pack Categories */}
+            <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold">Engagement Packs</h3>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">Choose 3 tasks from 5 selected missions</span>
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
 
-                {/* Single-use Groups */}
-                {singleGroups.map(group => {
-                    const groupPacks = items.filter(p => group.ids.includes(p.id))
-                    if (groupPacks.length === 0) return null
-
-                    return (
-                        <div key={group.title} className="mt-8">
-                            <h2 className="mb-3 text-lg font-semibold">{group.title}</h2>
-                            <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {groupPacks.map(p => (
-                                    <PackCard
-                                        key={p.id}
-                                        pack={p}
-                                        owned={false}
-                                        onClick={() => setSelectedPack(p)}
-                                    />
-                                ))}
+                {/* Single Use Packs */}
+                <div className="mb-8">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span className="text-xl">🎯</span>
+                        Single Mission Packs
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Small Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-teal-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-teal-400/15 text-teal-300 border border-teal-400/30">
+                                    STARTER
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    100 USERS
+                                </span>
                             </div>
-                        </div>
-                    )
-                })}
 
-                {/* Subscription Groups */}
-                {subGroups.map(group => {
-                    const groupPacks = items.filter(p => group.ids.includes(p.id))
-                    if (groupPacks.length === 0) return null
-
-                    return (
-                        <div key={group.title} className="mt-10">
-                            <h2 className="mb-3 text-lg font-semibold">{group.title}</h2>
-                            <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {groupPacks.map(p => (
-                                    <PackCard
-                                        key={p.id}
-                                        pack={p}
-                                        owned={false}
-                                        onClick={() => setSelectedPack(p)}
-                                    />
-                                ))}
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center text-2xl">
+                                🌱
                             </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Growth Sprout</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">1 mission • Perfect for testing the waters</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-teal-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-teal-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Likes:</span>
+                                        <span className="font-semibold text-teal-400">100</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Retweets:</span>
+                                        <span className="font-semibold text-blue-400">60</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Comments:</span>
+                                        <span className="font-semibold text-purple-400">40</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-2xl font-bold text-white">$10.00</div>
+                                <div className="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
                         </div>
-                    )
-                })}
-            </section>
+
+                        {/* Medium Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-indigo-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-400/15 text-indigo-300 border border-indigo-400/30">
+                                    BOOST
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    200 USERS
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-2xl">
+                                🚀
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Engagement Boost</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">1 mission • Solid engagement increase</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-indigo-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-indigo-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Likes:</span>
+                                        <span className="font-semibold text-teal-400">200</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Retweets:</span>
+                                        <span className="font-semibold text-blue-400">120</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Comments:</span>
+                                        <span className="font-semibold text-purple-400">80</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-2xl font-bold text-white">$15.00</div>
+                                <div className="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        {/* Large Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-amber-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                                    EXPLOSIVE
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-amber-400 border border-red-500/30">
+                                    500 USERS
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                💥
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Viral Explosion</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">1 mission • Maximum impact engagement</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-amber-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-amber-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Likes:</span>
+                                        <span className="font-semibold text-teal-400">500</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Retweets:</span>
+                                        <span className="font-semibold text-blue-400">300</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Minimum Comments:</span>
+                                        <span className="font-semibold text-purple-400">200</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-2xl font-bold text-white">$25.00</div>
+                                <div className="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3 Mission Packs */}
+                <div className="mb-8">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span className="text-xl">🎯🎯🎯</span>
+                        3 Mission Packs
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Small 3-Mission Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-teal-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
+                                    TRIPLE STARTER
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    100 USERS × 3
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center text-2xl">
+                                🌿
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Triple Growth</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">3 missions • Consistent engagement</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-teal-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-teal-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span className="font-semibold text-teal-400">300+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span className="font-semibold text-blue-400">180+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span className="font-semibold text-purple-400">120+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-2xl font-bold text-white">$25.00</div>
+                                <div className="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        {/* Medium 3-Mission Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-indigo-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+                                    TRIPLE BOOST
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    200 USERS × 3
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                🔥
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Triple Fire</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">3 missions • Strong engagement</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-indigo-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-indigo-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span className="font-semibold text-teal-400">600+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span className="font-semibold text-blue-400">360+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span className="font-semibold text-purple-400">240+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-2xl font-bold text-white">$40.00</span>
+                                    <span className="text-sm text-gray-400 line-through">$48.00</span>
+                                </div>
+                                <div className="text-xs text-teal-400">Save $8.00 (17%)</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        {/* Large 3-Mission Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-amber-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                                    TRIPLE EXPLOSIVE
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-amber-400 border border-red-500/30">
+                                    500 USERS × 3
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                🌋
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Triple Volcano</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">3 missions • Explosive engagement</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-amber-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-amber-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span className="font-semibold text-teal-400">1,500+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span className="font-semibold text-blue-400">900+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span className="font-semibold text-purple-400">600+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-2xl font-bold text-white">$60.00</div>
+                                <div className="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 10 Mission Packs */}
+                <div className="mb-8">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span className="text-xl">🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯</span>
+                        10 Mission Packs
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Small 10-Mission Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-teal-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
+                                    MEGA STARTER
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    100 USERS × 10
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center text-2xl">
+                                🌳
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Mega Growth</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">10 missions • Sustained growth</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-teal-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-teal-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span className="font-semibold text-teal-400">1,000+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span className="font-semibold text-blue-400">600+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span className="font-semibold text-purple-400">400+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-2xl font-bold text-white">$75.00</div>
+                                <div className="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        {/* Medium 10-Mission Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-indigo-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+                                    MEGA BOOST
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    200 USERS × 10
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                ⚡
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Mega Lightning</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">10 missions • Powerful engagement</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-indigo-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-indigo-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span className="font-semibold text-teal-400">2,000+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span className="font-semibold text-blue-400">1,200+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span className="font-semibold text-purple-400">800+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-2xl font-bold text-white">$120.00</div>
+                                <div className="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+
+                        {/* Large 10-Mission Pack */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-l-4 border-l-amber-400/40">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                                    MEGA EXPLOSIVE
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500/20 text-amber-400 border border-red-500/30">
+                                    500 USERS × 10
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                                🚀
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Mega Rocket</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">10 missions • Explosive engagement</p>
+
+                            {/* Expected Results */}
+                            <div className="bg-amber-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-amber-400 mb-2">Expected Results (Based on Past Data)</div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Likes:</span>
+                                        <span className="font-semibold text-teal-400">5,000+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Retweets:</span>
+                                        <span className="font-semibold text-blue-400">3,000+</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span>Total Comments:</span>
+                                        <span className="font-semibold text-purple-400">2,000+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-2xl font-bold text-white">$180.00</div>
+                                <div className="text-xs text-gray-400">One-time purchase</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
+                                Purchase Pack
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Subscription Packs */}
+                <div className="mb-8">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span className="text-xl">🔄</span>
+                        Subscription Packs
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Weekly Subscription */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-400/15 text-blue-300 border border-blue-400/30">
+                                    WEEKLY
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                    UNLIMITED
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-2xl">
+                                📅
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Weekly Momentum</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">Unlimited missions • 7 days</p>
+
+                            {/* Features */}
+                            <div className="bg-blue-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-blue-400 mb-2">What's Included</div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center text-xs text-gray-300">
+                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></span>
+                                        Unlimited missions
+                                    </div>
+                                    <div className="flex items-center text-xs text-gray-300">
+                                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></span>
+                                        Choose any 3 from 5 tasks
+                                    </div>
+                                    <div className="flex items-center text-xs text-gray-300">
+                                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></span>
+                                        Auto-renewal
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-2xl font-bold text-white">$500.00</span>
+                                    <span className="text-sm text-gray-400">/week</span>
+                                </div>
+                                <div className="text-xs text-teal-400">Cancel anytime</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Start Weekly Plan
+                            </button>
+                        </div>
+
+                        {/* Monthly Subscription */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-400/15 text-purple-300 border border-purple-400/30">
+                                    MONTHLY
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                    BEST VALUE
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center text-2xl">
+                                🌟
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Monthly Mastery</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">Unlimited missions • 30 days</p>
+
+                            {/* Features */}
+                            <div className="bg-purple-900/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-purple-400 mb-2">What's Included</div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center text-xs text-gray-300">
+                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></span>
+                                        Unlimited missions
+                                    </div>
+                                    <div className="flex items-center text-xs text-gray-300">
+                                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2"></span>
+                                        Choose any 3 from 5 tasks
+                                    </div>
+                                    <div className="flex items-center text-xs text-gray-300">
+                                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></span>
+                                        Priority support
+                                    </div>
+                                    <div className="flex items-center text-xs text-gray-300">
+                                        <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                        Advanced analytics
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-2xl font-bold text-white">$2,000.00</span>
+                                    <span className="text-sm text-gray-400">/month</span>
+                                </div>
+                                <div className="text-xs text-teal-400">Save 9% vs weekly</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200">
+                                Start Monthly Plan
+                            </button>
+                        </div>
+
+                        {/* Weekly Medium Subscription */}
+                        <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 cursor-pointer hover:scale-105 transition-all duration-300">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-400/15 text-blue-300 border border-blue-400/30">
+                                    WEEKLY
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                    MEDIUM
+                                </span>
+                            </div>
+
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-2xl">
+                                ⚡
+                            </div>
+
+                            <h3 className="text-lg font-semibold mb-2 text-center">Weekly Thunder</h3>
+                            <p className="text-sm text-gray-400 text-center mb-4">Unlimited missions • 7 days</p>
+
+                            <div className="text-center mb-4">
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-2xl font-bold text-white">$750.00</span>
+                                    <span className="text-sm text-gray-400">/week</span>
+                                </div>
+                                <div className="text-xs text-teal-400">Cancel anytime</div>
+                            </div>
+
+                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
+                                Start Weekly Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Pack Details Modal */}
             <PackDetailsModal
