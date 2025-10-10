@@ -6,9 +6,13 @@ import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
 import { usePrefilledPack } from './usePrefilledPack';
+import { useApi } from '../../../hooks/useApi';
+import { useRouter } from 'next/navigation';
 
 export default function CreateMissionClient() {
     const prefilledPack = usePrefilledPack();
+    const api = useApi();
+    const router = useRouter();
     const [missionType, setMissionType] = useState<'fixed' | 'dynamic'>('fixed');
     const [packId, setPackId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,25 +121,32 @@ export default function CreateMissionClient() {
         setIsSubmitting(true);
         
         try {
-            // TODO: Implement actual mission creation API call
-            // This will be implemented in the next task
-            console.log('Creating mission with pack validation:', {
-                packId,
-                entitlement: prefilledPack?.entitlement,
-                remainingQuota: prefilledPack?.remainingQuota,
-                formData: {
-                    tweetLink,
-                    instructions,
-                    tasks: tasks.filter(task => task.trim()),
-                    cap,
-                    durationHours
-                }
-            });
+            const validTasks = tasks.filter(task => task.trim());
             
-            // For now, just show success message
-            alert('Mission creation will be implemented in the next step!');
+            const missionData = {
+                platform: 'twitter', // Default to twitter for now
+                type: 'engagement',
+                model: missionType,
+                packId: packId,
+                tweetLink: tweetLink,
+                instructions: instructions,
+                tasks: validTasks,
+                cap: cap,
+                durationHours: durationHours,
+                isPremium: true // Pack-based missions are premium
+            };
+            
+            console.log('Creating mission with pack validation:', missionData);
+            
+            const createdMission = await api.createMission(missionData);
+            
+            console.log('Mission created successfully:', createdMission);
+            
+            // Redirect to the created mission or missions list
+            router.push(`/missions/${createdMission.id}`);
             
         } catch (error) {
+            console.error('Mission creation failed:', error);
             setSubmitError(error instanceof Error ? error.message : 'Failed to create mission');
         } finally {
             setIsSubmitting(false);

@@ -1223,6 +1223,96 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       return;
     }
 
+    // Pack validation and entitlement deduction for fixed missions
+    if (missionData.model === 'fixed' && missionData.packId) {
+      console.log('=== PACK VALIDATION DEBUG ===');
+      console.log('Pack ID:', missionData.packId);
+      console.log('User ID:', userId);
+      
+      try {
+        // Find the user's active entitlement for this pack
+        const entitlementsSnapshot = await db.collection('entitlements')
+          .where('userId', '==', userId)
+          .where('packId', '==', missionData.packId)
+          .where('status', '==', 'active')
+          .get();
+
+        if (entitlementsSnapshot.empty) {
+          console.log('No active entitlement found for pack:', missionData.packId);
+          res.status(400).json({ 
+            error: 'No active entitlement found for the selected pack. Please purchase the pack first.' 
+          });
+          return;
+        }
+
+        const entitlementDoc = entitlementsSnapshot.docs[0];
+        const entitlement = entitlementDoc.data();
+        
+        console.log('Found entitlement:', entitlement);
+
+        // Check if entitlement is expired
+        if (entitlement.endsAt && new Date(entitlement.endsAt.toDate()) < new Date()) {
+          console.log('Entitlement expired:', entitlement.endsAt);
+          res.status(400).json({ 
+            error: 'The selected pack entitlement has expired' 
+          });
+          return;
+        }
+
+        // Check remaining quota
+        const remainingQuota = entitlement.quotas.tweets - entitlement.usage.tweetsUsed;
+        console.log('Remaining quota:', remainingQuota);
+        
+        if (remainingQuota <= 0) {
+          console.log('Insufficient quota remaining');
+          res.status(400).json({ 
+            error: `Insufficient quota remaining in the selected pack. You have ${remainingQuota} tweets remaining, but need at least 1.` 
+          });
+          return;
+        }
+
+        // Deduct quota atomically using Firestore transaction
+        await db.runTransaction(async (transaction) => {
+          // Re-read the entitlement to ensure we have the latest data
+          const freshEntitlementDoc = await transaction.get(entitlementDoc.ref);
+          const freshEntitlement = freshEntitlementDoc.data();
+          
+          if (!freshEntitlement) {
+            throw new Error('Entitlement not found during transaction');
+          }
+
+          // Double-check quota again (concurrency safety)
+          const freshRemainingQuota = freshEntitlement.quotas.tweets - freshEntitlement.usage.tweetsUsed;
+          if (freshRemainingQuota <= 0) {
+            throw new Error('Insufficient quota remaining (concurrent usage detected)');
+          }
+
+          // Update entitlement usage
+          const updatedUsage = {
+            ...freshEntitlement.usage,
+            tweetsUsed: freshEntitlement.usage.tweetsUsed + 1
+          };
+
+          transaction.update(entitlementDoc.ref, {
+            usage: updatedUsage,
+            updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+          });
+
+          console.log('Updated entitlement usage:', updatedUsage);
+        });
+
+        console.log('Successfully deducted quota for pack:', missionData.packId);
+        console.log('=====================================');
+
+      } catch (error) {
+        console.error('Pack validation/entitlement deduction failed:', error);
+        res.status(400).json({ 
+          error: error.message || 'Failed to validate pack entitlement' 
+        });
+        return;
+      }
+    }
+
     // Use the safe mission creation function that ensures UID-based references
     const result = await createMissionWithUidReferences(userId, missionData);
 
