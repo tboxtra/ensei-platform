@@ -11,6 +11,15 @@ export default function CreateMissionClient() {
     const prefilledPack = usePrefilledPack();
     const [missionType, setMissionType] = useState<'fixed' | 'dynamic'>('fixed');
     const [packId, setPackId] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    
+    // Form state
+    const [tweetLink, setTweetLink] = useState('');
+    const [instructions, setInstructions] = useState('');
+    const [tasks, setTasks] = useState<string[]>(['']);
+    const [cap, setCap] = useState<number>(10);
+    const [durationHours, setDurationHours] = useState<number>(24);
 
     // Auto-set mission type and pack ID from URL params
     useEffect(() => {
@@ -19,6 +28,119 @@ export default function CreateMissionClient() {
             setPackId(prefilledPack.pack.id);
         }
     }, [prefilledPack]);
+
+    // Validation function
+    const validateForm = () => {
+        if (!packId) {
+            setSubmitError('Please select a pack for this mission');
+            return false;
+        }
+        
+        if (!prefilledPack?.entitlement) {
+            setSubmitError('No active entitlement found for the selected pack. Please purchase the pack first.');
+            return false;
+        }
+        
+        if (!prefilledPack.isActive) {
+            setSubmitError('The selected pack entitlement is not active');
+            return false;
+        }
+        
+        if (prefilledPack.isExpired) {
+            setSubmitError('The selected pack entitlement has expired');
+            return false;
+        }
+        
+        if (prefilledPack.remainingQuota <= 0) {
+            setSubmitError(`Insufficient quota remaining in the selected pack. You have ${prefilledPack.remainingQuota} tweets remaining, but need at least 1.`);
+            return false;
+        }
+        
+        if (!tweetLink.trim()) {
+            setSubmitError('Please provide a tweet link');
+            return false;
+        }
+        
+        // Validate URL format
+        try {
+            new URL(tweetLink);
+        } catch {
+            setSubmitError('Please provide a valid URL for the tweet link');
+            return false;
+        }
+        
+        if (!instructions.trim()) {
+            setSubmitError('Please provide mission instructions');
+            return false;
+        }
+        
+        if (instructions.trim().length < 10) {
+            setSubmitError('Mission instructions must be at least 10 characters long');
+            return false;
+        }
+        
+        const validTasks = tasks.filter(task => task.trim());
+        if (validTasks.length === 0) {
+            setSubmitError('Please provide at least one task');
+            return false;
+        }
+        
+        // Validate each task
+        for (let i = 0; i < validTasks.length; i++) {
+            if (validTasks[i].trim().length < 5) {
+                setSubmitError(`Task ${i + 1} must be at least 5 characters long`);
+                return false;
+            }
+        }
+        
+        if (cap < 1 || cap > 1000) {
+            setSubmitError('Participant cap must be between 1 and 1000');
+            return false;
+        }
+        
+        if (durationHours < 1 || durationHours > 168) {
+            setSubmitError('Duration must be between 1 and 168 hours (1 week)');
+            return false;
+        }
+        
+        return true;
+    };
+
+    // Form submission handler
+    const handleSubmit = async () => {
+        setSubmitError(null);
+        
+        if (!validateForm()) {
+            return;
+        }
+        
+        setIsSubmitting(true);
+        
+        try {
+            // TODO: Implement actual mission creation API call
+            // This will be implemented in the next task
+            console.log('Creating mission with pack validation:', {
+                packId,
+                entitlement: prefilledPack?.entitlement,
+                remainingQuota: prefilledPack?.remainingQuota,
+                formData: {
+                    tweetLink,
+                    instructions,
+                    tasks: tasks.filter(task => task.trim()),
+                    cap,
+                    durationHours
+                }
+            });
+            
+            // For now, just show success message
+            alert('Mission creation will be implemented in the next step!');
+            
+        } catch (error) {
+            setSubmitError(error instanceof Error ? error.message : 'Failed to create mission');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <ModernLayout currentPage="/missions/create">
@@ -95,16 +217,107 @@ export default function CreateMissionClient() {
                                 </p>
                             </div>
 
-                            {packId && (
+                            {packId && prefilledPack?.pack && (
                                 <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-                                    <p className="text-green-400 text-sm">
-                                        ✓ Pack &quot;{packId}&quot; will be used for this mission
-                                        {prefilledPack?.pack && (
-                                            <span className="block text-xs text-green-300 mt-1">
-                                                📦 {prefilledPack.pack.label} - ${prefilledPack.pack.priceUsd}
-                                            </span>
-                                        )}
-                                    </p>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-green-400 text-sm font-medium">
+                                            ✓ Pack &quot;{packId}&quot; will be used for this mission
+                                        </p>
+                                        <span className="text-xs text-green-300">
+                                            📦 {prefilledPack.pack.label} - ${prefilledPack.pack.priceUsd}
+                                        </span>
+                                    </div>
+                                    
+                                    {prefilledPack.entitlement && (
+                                        <div className="mt-3 space-y-3">
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-gray-300">Status:</span>
+                                                <span className={`font-medium ${
+                                                    prefilledPack.isActive ? 'text-green-400' : 'text-red-400'
+                                                }`}>
+                                                    {prefilledPack.isActive ? '✅ Active' : '❌ Inactive'}
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-gray-300">Remaining Quota:</span>
+                                                <span className={`font-medium ${
+                                                    prefilledPack.remainingQuota > 0 ? 'text-green-400' : 'text-red-400'
+                                                }`}>
+                                                    {prefilledPack.remainingQuota} / {prefilledPack.pack.tweets} tweets
+                                                </span>
+                                            </div>
+                                            
+                                            {/* Progress bar for quota usage */}
+                                            <div className="w-full">
+                                                <div className="flex justify-between text-xs mb-1">
+                                                    <span className="text-gray-300">Usage:</span>
+                                                    <span className="text-gray-300">
+                                                        {prefilledPack.entitlement.usage.tweetsUsed} / {prefilledPack.pack.tweets}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-gray-700 rounded-full h-2">
+                                                    <div 
+                                                        className={`h-2 rounded-full transition-all duration-300 ${
+                                                            prefilledPack.remainingQuota > 0 ? 'bg-green-500' : 'bg-red-500'
+                                                        }`}
+                                                        style={{ 
+                                                            width: `${Math.min(100, (prefilledPack.entitlement.usage.tweetsUsed / prefilledPack.pack.tweets) * 100)}%` 
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                            
+                                            {prefilledPack.entitlement.endsAt && (
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-gray-300">Expires:</span>
+                                                    <span className="text-yellow-400">
+                                                        {new Date(prefilledPack.entitlement.endsAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Additional quota breakdown */}
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-300">Likes:</span>
+                                                    <span className="text-blue-400">
+                                                        {prefilledPack.entitlement.usage.likes} / {prefilledPack.pack.quotas.likes}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-300">Retweets:</span>
+                                                    <span className="text-purple-400">
+                                                        {prefilledPack.entitlement.usage.retweets} / {prefilledPack.pack.quotas.retweets}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {!prefilledPack.entitlement && (
+                                        <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded">
+                                            <p className="text-yellow-400 text-xs">
+                                                ⚠️ No active entitlement found for this pack. You may need to purchase it first.
+                                            </p>
+                                        </div>
+                                    )}
+                                    
+                                    {prefilledPack.entitlement && prefilledPack.remainingQuota <= 1 && prefilledPack.remainingQuota > 0 && (
+                                        <div className="mt-2 p-2 bg-orange-500/10 border border-orange-500/20 rounded">
+                                            <p className="text-orange-400 text-xs">
+                                                ⚠️ Low quota remaining! Only {prefilledPack.remainingQuota} tweet{prefilledPack.remainingQuota !== 1 ? 's' : ''} left.
+                                            </p>
+                                        </div>
+                                    )}
+                                    
+                                    {prefilledPack.entitlement && prefilledPack.remainingQuota === 0 && (
+                                        <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded">
+                                            <p className="text-red-400 text-xs">
+                                                ❌ No quota remaining! This pack cannot be used for new missions.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -127,9 +340,23 @@ export default function CreateMissionClient() {
                             />
                         </div>
 
+
                         <div>
-                            <label className="block text-sm font-medium mb-2">Description</label>
+                            <label className="block text-sm font-medium mb-2">Target URL</label>
+                            <input
+                                type="url"
+                                value={tweetLink}
+                                onChange={(e) => setTweetLink(e.target.value)}
+                                placeholder="https://example.com/post"
+                                className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Instructions</label>
                             <textarea
+                                value={instructions}
+                                onChange={(e) => setInstructions(e.target.value)}
                                 placeholder="Describe what users need to do"
                                 rows={4}
                                 className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -137,15 +364,66 @@ export default function CreateMissionClient() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2">Target URL</label>
-                            <input
-                                type="url"
-                                placeholder="https://example.com/post"
-                                className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            />
+                            <label className="block text-sm font-medium mb-2">Tasks</label>
+                            <div className="space-y-2">
+                                {tasks.map((task, index) => (
+                                    <input
+                                        key={index}
+                                        type="text"
+                                        value={task}
+                                        onChange={(e) => {
+                                            const newTasks = [...tasks];
+                                            newTasks[index] = e.target.value;
+                                            setTasks(newTasks);
+                                        }}
+                                        placeholder={`Task ${index + 1}`}
+                                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    />
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => setTasks([...tasks, ''])}
+                                    className="text-green-400 hover:text-green-300 text-sm"
+                                >
+                                    + Add Task
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Participant Cap</label>
+                                <input
+                                    type="number"
+                                    value={cap}
+                                    onChange={(e) => setCap(parseInt(e.target.value) || 10)}
+                                    min="1"
+                                    max="1000"
+                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Duration (hours)</label>
+                                <input
+                                    type="number"
+                                    value={durationHours}
+                                    onChange={(e) => setDurationHours(parseInt(e.target.value) || 24)}
+                                    min="1"
+                                    max="168"
+                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                />
+                            </div>
                         </div>
                     </div>
                 </ModernCard>
+
+                {submitError && (
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <p className="text-red-400 text-sm">
+                            ❌ {submitError}
+                        </p>
+                    </div>
+                )}
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link href="/missions">
@@ -153,8 +431,13 @@ export default function CreateMissionClient() {
                             ← Back to Missions
                         </ModernButton>
                     </Link>
-                    <ModernButton variant="success" size="lg">
-                        🚀 Create Mission
+                    <ModernButton 
+                        variant="success" 
+                        size="lg"
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? '⏳ Creating...' : '🚀 Create Mission'}
                     </ModernButton>
                 </div>
             </div>
