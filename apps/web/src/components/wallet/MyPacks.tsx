@@ -1,29 +1,17 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
-import { apiGetEntitlements } from '../../hooks/useApi'
+import { usePacks } from '../../hooks/useApi'
 import { ModernCard } from '../ui/ModernCard'
 import { ModernButton } from '../ui/ModernButton'
 import { SectionHeader } from '../ui/SectionHeader'
 
 export default function MyPacks() {
-  const [items, setItems] = React.useState<any[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+  const { entitlements, loading, error, fetchEntitlements } = usePacks()
 
-  const load = async () => {
-    setLoading(true); setError(null)
-    try {
-      const e = await apiGetEntitlements()
-      setItems(e)
-    } catch (err) {
-      console.error('Failed to load entitlements:', err)
-      // Graceful fallback: show empty state
-      setItems([])
-      setError(null)
-    } finally { setLoading(false) }
-  }
-  React.useEffect(() => { load() }, [])
+  React.useEffect(() => { 
+    fetchEntitlements() 
+  }, [fetchEntitlements])
 
   if (loading) {
     return (
@@ -45,7 +33,7 @@ export default function MyPacks() {
       </div>
     );
   }
-  if (!items.length) {
+  if (!entitlements.length) {
     return (
       <div className="text-center py-10">
         <div className="text-4xl mb-3">🎒</div>
@@ -66,136 +54,92 @@ export default function MyPacks() {
           </div>
         </div>
 
-        {items.filter(i => i.status === 'active').length === 0 ? (
+        {entitlements.filter(i => i.status === 'active').length === 0 ? (
           <div className="text-center py-10 opacity-70">No active packs yet.</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Active Pack 1 */}
-            <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 border-2 border-green-500/30 hover:scale-105 transition-all duration-300">
-              <div className="flex justify-between items-start mb-4">
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
-                  ACTIVE
-                </span>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-400/15 text-blue-300 border border-blue-400/30">
-                  3 days left
-                </span>
-              </div>
-
-              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-2xl">
-                🚀
-              </div>
-
-              <h3 className="text-lg font-semibold mb-2 text-center">Engagement Boost</h3>
-              <p className="text-sm text-gray-400 text-center mb-4">200 users × 3 missions</p>
-
-              {/* Mission Selection Status */}
-              <div className="bg-blue-900/20 rounded-lg p-3 mb-4">
-                <div className="text-xs text-blue-400 mb-2">Mission Selection Status</div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span>Selected Missions:</span>
-                    <span className="font-semibold text-teal-400">3/3</span>
+            {entitlements.filter(i => i.status === 'active').map((entitlement, index) => {
+              const isExpired = entitlement.expiresAt && new Date(entitlement.expiresAt) < new Date()
+              const daysLeft = entitlement.expiresAt 
+                ? Math.ceil((new Date(entitlement.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                : null
+              
+              const usagePercentage = Math.round((entitlement.usage.tweetsUsed / entitlement.quotas.tweets) * 100)
+              const remainingQuota = entitlement.quotas.tweets - entitlement.usage.tweetsUsed
+              
+              return (
+                <div key={entitlement.id} className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 border-2 border-green-500/30 hover:scale-105 transition-all duration-300">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
+                      {isExpired ? 'EXPIRED' : 'ACTIVE'}
+                    </span>
+                    {daysLeft !== null && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-400/15 text-blue-300 border border-blue-400/30">
+                        {daysLeft > 0 ? `${daysLeft} days left` : 'Expired'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span>Completed Missions:</span>
-                    <span className="font-semibold text-blue-400">1/3</span>
+
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-2xl">
+                    {entitlement.packId.includes('sub_') ? '📅' : '🚀'}
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span>Remaining Missions:</span>
-                    <span className="font-semibold text-indigo-400">2</span>
+
+                  <h3 className="text-lg font-semibold mb-2 text-center">{entitlement.packLabel}</h3>
+                  <p className="text-sm text-gray-400 text-center mb-4">
+                    {entitlement.quotas.tweets} mission{entitlement.quotas.tweets > 1 ? 's' : ''} • {entitlement.quotas.likes} users
+                  </p>
+
+                  {/* Usage Status */}
+                  <div className="bg-blue-900/20 rounded-lg p-3 mb-4">
+                    <div className="text-xs text-blue-400 mb-2">Usage Status</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span>Missions Used:</span>
+                        <span className="font-semibold text-blue-300">{entitlement.usage.tweetsUsed}/{entitlement.quotas.tweets}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span>Remaining:</span>
+                        <span className="font-semibold text-green-300">{remainingQuota} missions</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-gray-400 mb-2">
-                  <span>Overall Progress</span>
-                  <span>33%</span>
-                </div>
-                <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-green-500 to-blue-500 rounded-full" style={{ width: '33%' }}></div>
-                </div>
-              </div>
-
-              {/* Mission Details */}
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300">Mission 1: Social Media Post</span>
-                  <span className="text-teal-400">✅ Completed</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300">Mission 2: Content Creation</span>
-                  <span className="text-indigo-400">⏳ In Progress</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300">Mission 3: Brand Awareness</span>
-                  <span className="text-gray-400">⏸️ Pending</span>
-                </div>
-              </div>
-
-              <button className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold transition-all duration-200">
-                Continue Mission →
-              </button>
-            </div>
-
-            {/* Active Pack 2 */}
-            <div className="relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 border-2 border-purple-500/30 hover:scale-105 transition-all duration-300">
-              <div className="flex justify-between items-start mb-4">
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-400/15 text-green-300 border border-green-400/30">
-                  ACTIVE
-                </span>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-400/15 text-purple-300 border border-purple-400/30">
-                  12 days left
-                </span>
-              </div>
-
-              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center text-2xl">
-                🌟
-              </div>
-
-              <h3 className="text-lg font-semibold mb-2 text-center">Monthly Mastery</h3>
-              <p className="text-sm text-gray-400 text-center mb-4">Unlimited missions subscription</p>
-
-              {/* Usage Statistics */}
-              <div className="bg-purple-900/20 rounded-lg p-3 mb-4">
-                <div className="text-xs text-purple-400 mb-2">This Month's Usage</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Missions Completed:</span>
-                    <span className="font-semibold text-teal-400">24</span>
+                  {/* Progress Bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <span>Progress</span>
+                      <span>{usagePercentage}%</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full" style={{ width: `${usagePercentage}%` }}></div>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Total Engagement:</span>
-                    <span className="font-semibold text-blue-400">4,800</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Success Rate:</span>
-                    <span className="font-semibold text-teal-400">96%</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Recent Missions */}
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300">Latest: Social Media Campaign</span>
-                  <span className="text-teal-400">✅ 200 users</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300">Previous: Content Creation</span>
-                  <span className="text-teal-400">✅ 200 users</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300">Earlier: Brand Awareness</span>
-                  <span className="text-teal-400">✅ 200 users</span>
-                </div>
-              </div>
+                  {/* Quota Details */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400">Likes:</span>
+                      <span className="text-green-300">{entitlement.usage.likesUsed}/{entitlement.quotas.likes}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400">Retweets:</span>
+                      <span className="text-blue-300">{entitlement.usage.retweetsUsed}/{entitlement.quotas.retweets}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400">Comments:</span>
+                      <span className="text-purple-300">{entitlement.usage.commentsUsed}/{entitlement.quotas.comments}</span>
+                    </div>
+                  </div>
 
-              <button className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200">
-                Start New Mission →
-              </button>
-            </div>
+                  <button 
+                    disabled={isExpired || remainingQuota === 0}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isExpired ? 'Expired' : remainingQuota === 0 ? 'Fully Used' : 'Use Pack →'}
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -211,7 +155,7 @@ export default function MyPacks() {
           </div>
         </div>
 
-        {items.length === 0 ? (
+        {entitlements.length === 0 ? (
           <div className="text-center py-8 opacity-70">No purchases yet.</div>
         ) : (
           <div className="overflow-x-auto">
