@@ -33,6 +33,6 @@ export function usePrefilledPack() {
         entitlement,
         isActive: entitlement?.status === 'active',
         remainingQuota: entitlement ? entitlement.quotas.tweets - entitlement.usage.tweetsUsed : 0,
-        isExpired: entitlement?.expiresAt ? new Date(entitlement.expiresAt) < new Date() : false
+        isExpired: entitlement?.endsAt ? new Date(entitlement.endsAt) < new Date() : false
     }
 }
