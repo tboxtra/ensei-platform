@@ -199,14 +199,14 @@ export default function CreateMissionClient() {
                             return (
                                 <div key={step} className="flex items-center">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${isActive ? 'bg-green-500 text-white' :
-                                            isCompleted ? 'bg-green-400 text-white' :
-                                                'bg-gray-700 text-gray-400'
+                                        isCompleted ? 'bg-green-400 text-white' :
+                                            'bg-gray-700 text-gray-400'
                                         }`}>
                                         {isCompleted ? '✓' : index + 1}
                                     </div>
                                     <span className={`ml-2 text-sm ${isActive ? 'text-green-400' :
-                                            isCompleted ? 'text-green-300' :
-                                                'text-gray-500'
+                                        isCompleted ? 'text-green-300' :
+                                            'text-gray-500'
                                         }`}>
                                         {stepNames[index]}
                                     </span>
@@ -279,8 +279,8 @@ export default function CreateMissionClient() {
                                     <div
                                         key={index}
                                         className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected
-                                                ? 'border-green-500 bg-green-500/10'
-                                                : 'border-gray-700 hover:border-gray-600'
+                                            ? 'border-green-500 bg-green-500/10'
+                                            : 'border-gray-700 hover:border-gray-600'
                                             }`}
                                         onClick={() => {
                                             if (isSelected) {
@@ -345,8 +345,8 @@ export default function CreateMissionClient() {
                                         <div
                                             key={key}
                                             className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${participantCap === key
-                                                    ? 'border-green-500 bg-green-500/10'
-                                                    : 'border-gray-700 hover:border-gray-600'
+                                                ? 'border-green-500 bg-green-500/10'
+                                                : 'border-gray-700 hover:border-gray-600'
                                                 }`}
                                             onClick={() => setParticipantCap(key as any)}
                                         >
