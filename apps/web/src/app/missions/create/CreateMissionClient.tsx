@@ -29,7 +29,7 @@ export default function CreateMissionClient() {
     // Available tasks for selection
     const availableTasks = [
         'Like the post',
-        'Retweet the post', 
+        'Retweet the post',
         'Comment on the post',
         'Follow the account',
         'Share to story'
@@ -53,24 +53,24 @@ export default function CreateMissionClient() {
     // Validation function
     const validateCurrentStep = () => {
         setSubmitError(null);
-        
+
         switch (currentStep) {
             case 'mission-type':
                 return true; // Mission type is always selected
-                
+
             case 'tasks':
                 if (selectedTasks.length !== 3) {
                     setSubmitError('Please select exactly 3 tasks');
                     return false;
                 }
                 return true;
-                
+
             case 'settings':
                 if (!tweetLink.trim()) {
                     setSubmitError('Please provide a tweet link');
                     return false;
                 }
-                
+
                 // Validate URL format
                 try {
                     new URL(tweetLink);
@@ -78,28 +78,28 @@ export default function CreateMissionClient() {
                     setSubmitError('Please provide a valid URL for the tweet link');
                     return false;
                 }
-                
+
                 if (!instructions.trim()) {
                     setSubmitError('Please provide mission instructions');
                     return false;
                 }
-                
+
                 if (instructions.trim().length < 10) {
                     setSubmitError('Mission instructions must be at least 10 characters long');
                     return false;
                 }
-                
+
                 if (durationHours < 1 || durationHours > 168) {
                     setSubmitError('Duration must be between 1 and 168 hours (1 week)');
                     return false;
                 }
-                
+
                 return true;
-                
+
             case 'payment':
                 // Payment validation will be handled in the payment step
                 return true;
-                
+
             default:
                 return false;
         }
@@ -126,13 +126,13 @@ export default function CreateMissionClient() {
     // Form submission handler
     const handleSubmit = async () => {
         setSubmitError(null);
-        
+
         if (!validateCurrentStep()) {
             return;
         }
-        
+
         setIsSubmitting(true);
-        
+
         try {
             const missionData: any = {
                 platform: 'twitter', // Default to twitter for now
@@ -150,16 +150,16 @@ export default function CreateMissionClient() {
             if (missionType === 'fixed') {
                 missionData.packId = packId;
             }
-            
+
             console.log('Creating mission with pack validation:', missionData);
-            
+
             const createdMission = await api.createMission(missionData);
-            
+
             console.log('Mission created successfully:', createdMission);
-            
+
             // Redirect to the created mission or missions list
             router.push(`/missions/${createdMission.id}`);
-            
+
         } catch (error) {
             console.error('Mission creation failed:', error);
             setSubmitError(error instanceof Error ? error.message : 'Failed to create mission');
@@ -168,15 +168,23 @@ export default function CreateMissionClient() {
         }
     };
 
+    // Debug logging
+    console.log('Current step:', currentStep);
+    console.log('Mission type:', missionType);
+    console.log('Selected tasks:', selectedTasks);
+
     return (
         <ModernLayout currentPage="/missions/create">
             <div className="max-w-4xl mx-auto px-4 py-6">
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-4">
-                        Create Mission
+                        Create Mission (Updated)
                     </h1>
                     <p className="text-gray-400 text-lg">
                         Launch your engagement campaign across social media platforms
+                    </p>
+                    <p className="text-xs text-yellow-400 mt-2">
+                        Current Step: {currentStep} | Mission Type: {missionType}
                     </p>
                 </div>
 
@@ -187,27 +195,24 @@ export default function CreateMissionClient() {
                             const stepNames = ['Mission Type', 'Tasks', 'Settings', 'Payment'];
                             const isActive = currentStep === step;
                             const isCompleted = ['mission-type', 'tasks', 'settings', 'payment'].indexOf(currentStep) > index;
-                            
+
                             return (
                                 <div key={step} className="flex items-center">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                                        isActive ? 'bg-green-500 text-white' :
-                                        isCompleted ? 'bg-green-400 text-white' :
-                                        'bg-gray-700 text-gray-400'
-                                    }`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${isActive ? 'bg-green-500 text-white' :
+                                            isCompleted ? 'bg-green-400 text-white' :
+                                                'bg-gray-700 text-gray-400'
+                                        }`}>
                                         {isCompleted ? '✓' : index + 1}
                                     </div>
-                                    <span className={`ml-2 text-sm ${
-                                        isActive ? 'text-green-400' :
-                                        isCompleted ? 'text-green-300' :
-                                        'text-gray-500'
-                                    }`}>
+                                    <span className={`ml-2 text-sm ${isActive ? 'text-green-400' :
+                                            isCompleted ? 'text-green-300' :
+                                                'text-gray-500'
+                                        }`}>
                                         {stepNames[index]}
                                     </span>
                                     {index < 3 && (
-                                        <div className={`w-8 h-0.5 mx-4 ${
-                                            isCompleted ? 'bg-green-400' : 'bg-gray-700'
-                                        }`} />
+                                        <div className={`w-8 h-0.5 mx-4 ${isCompleted ? 'bg-green-400' : 'bg-gray-700'
+                                            }`} />
                                     )}
                                 </div>
                             );
@@ -273,11 +278,10 @@ export default function CreateMissionClient() {
                                 return (
                                     <div
                                         key={index}
-                                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                                            isSelected
+                                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected
                                                 ? 'border-green-500 bg-green-500/10'
                                                 : 'border-gray-700 hover:border-gray-600'
-                                        }`}
+                                            }`}
                                         onClick={() => {
                                             if (isSelected) {
                                                 setSelectedTasks(selectedTasks.filter(t => t !== task));
@@ -340,11 +344,10 @@ export default function CreateMissionClient() {
                                     {Object.entries(capOptions).map(([key, option]) => (
                                         <div
                                             key={key}
-                                            className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                                                participantCap === key
+                                            className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${participantCap === key
                                                     ? 'border-green-500 bg-green-500/10'
                                                     : 'border-gray-700 hover:border-gray-600'
-                                            }`}
+                                                }`}
                                             onClick={() => setParticipantCap(key as any)}
                                         >
                                             <div className="text-center">
@@ -448,17 +451,17 @@ export default function CreateMissionClient() {
                             </ModernButton>
                         )}
                     </div>
-                    
+
                     <div className="flex gap-4">
                         <Link href="/missions">
                             <ModernButton variant="secondary" size="lg">
                                 Cancel
                             </ModernButton>
                         </Link>
-                        
+
                         {currentStep === 'payment' ? (
-                            <ModernButton 
-                                variant="success" 
+                            <ModernButton
+                                variant="success"
                                 size="lg"
                                 onClick={handleSubmit}
                                 disabled={isSubmitting}
