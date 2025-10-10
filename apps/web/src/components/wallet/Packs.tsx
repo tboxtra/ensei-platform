@@ -16,7 +16,7 @@ export default function Packs({ onPurchased }: Props) {
 
     React.useEffect(() => {
         fetchPacks()
-    }, [fetchPacks])
+    }, []) // Only run once on mount
 
     // Use fallback data if API fails and no packs are loaded
     const displayPacks = packs.length > 0 ? packs : PACKS_FALLBACK

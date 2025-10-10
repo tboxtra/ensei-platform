@@ -1027,7 +1027,7 @@ export function usePacks() {
         } finally {
             setLoading(false);
         }
-    }, [api]);
+    }, [api.getPacks]);
 
     const fetchEntitlements = useCallback(async () => {
         try {
@@ -1036,7 +1036,7 @@ export function usePacks() {
         } catch (err) {
             console.error('Failed to fetch entitlements:', err);
         }
-    }, [api]);
+    }, [api.getEntitlements]);
 
     const purchasePack = useCallback(async (packId: string) => {
         try {
@@ -1048,7 +1048,7 @@ export function usePacks() {
             console.error('Failed to purchase pack:', err);
             throw err;
         }
-    }, [api, fetchEntitlements]);
+    }, [api.purchasePack, fetchEntitlements]);
 
     return {
         packs,
