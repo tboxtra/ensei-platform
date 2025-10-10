@@ -37,36 +37,34 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button
                         onClick={() => handlePaymentSelect('single-use')}
-                        className={`p-6 rounded-xl text-left transition ${
-                            state.paymentType === 'single-use'
-                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                        }`}
+                        className={`p-6 rounded-xl text-left transition ${state.paymentType === 'single-use'
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                            }`}
                     >
                         <div className="text-3xl mb-2">💳</div>
                         <div className="font-bold text-lg mb-1">Single Use</div>
                         <div className="text-sm opacity-90 mb-3">Pay once for this mission only</div>
                         <div className="text-sm">
-                            • No recurring charges<br/>
-                            • Pay per mission<br/>
+                            • No recurring charges<br />
+                            • Pay per mission<br />
                             • Full control
                         </div>
                     </button>
 
                     <button
                         onClick={() => handlePaymentSelect('pack')}
-                        className={`p-6 rounded-xl text-left transition ${
-                            state.paymentType === 'pack'
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                        }`}
+                        className={`p-6 rounded-xl text-left transition ${state.paymentType === 'pack'
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                            }`}
                     >
                         <div className="text-3xl mb-2">📦</div>
                         <div className="font-bold text-lg mb-1">Pack Purchase</div>
                         <div className="text-sm opacity-90 mb-3">Buy a pack for multiple missions</div>
                         <div className="text-sm">
-                            • Better value<br/>
-                            • Multiple missions<br/>
+                            • Better value<br />
+                            • Multiple missions<br />
                             • Bulk pricing
                         </div>
                     </button>
@@ -88,11 +86,10 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <button
                                     key={pack.id}
                                     onClick={() => handlePackSelect(pack.id)}
-                                    className={`p-4 rounded-xl text-left transition ${
-                                        isSelected
-                                            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                                    }`}
+                                    className={`p-4 rounded-xl text-left transition ${isSelected
+                                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                                        : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                                        }`}
                                 >
                                     <div className="font-semibold text-lg mb-1">{pack.name}</div>
                                     <div className="text-sm opacity-90 mb-2">{pack.description}</div>
@@ -130,7 +127,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                             <div className="flex justify-between text-lg font-bold">
                                 <span>Total Cost:</span>
                                 <span className="text-green-400">
-                                    {state.model === 'fixed' 
+                                    {state.model === 'fixed'
                                         ? `$${((state.cap || 0) * (state.tasks?.length || 0) * 0.1).toFixed(2)}`
                                         : 'Variable (based on engagement)'
                                     }
@@ -146,11 +143,10 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                 <button
                     onClick={onSubmit}
                     disabled={isLoading || !state.paymentType || (state.model === 'fixed' && state.paymentType === 'pack' && !state.packId)}
-                    className={`px-8 py-3 rounded-lg font-semibold transition ${
-                        isLoading || !state.paymentType || (state.model === 'fixed' && state.paymentType === 'pack' && !state.packId)
-                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg'
-                    }`}
+                    className={`px-8 py-3 rounded-lg font-semibold transition ${isLoading || !state.paymentType || (state.model === 'fixed' && state.paymentType === 'pack' && !state.packId)
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg'
+                        }`}
                 >
                     {isLoading ? 'Creating Mission...' : 'Create Mission'}
                 </button>
