@@ -1012,13 +1012,20 @@ export function usePacks() {
     const api = useApi();
     const [packs, setPacks] = useState<any[]>([]);
     const [entitlements, setEntitlements] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchPacks = useCallback(async () => {
+        setLoading(true);
+        setError(null);
         try {
             const data = await api.getPacks();
             setPacks(data);
         } catch (err) {
             console.error('Failed to fetch packs:', err);
+            setError(err instanceof Error ? err.message : 'Failed to fetch packs');
+        } finally {
+            setLoading(false);
         }
     }, [api]);
 
@@ -1049,8 +1056,8 @@ export function usePacks() {
         fetchPacks,
         fetchEntitlements,
         purchasePack,
-        loading: api.loading,
-        error: api.error,
+        loading,
+        error,
     };
 }
 

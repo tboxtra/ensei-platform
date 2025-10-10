@@ -14,9 +14,12 @@ export default function Packs({ onPurchased }: Props) {
     const [purchasing, setPurchasing] = React.useState<string | null>(null)
     const [purchaseError, setPurchaseError] = React.useState<string | null>(null)
 
-    React.useEffect(() => { 
-        fetchPacks() 
+    React.useEffect(() => {
+        fetchPacks()
     }, [fetchPacks])
+
+    // Use fallback data if API fails and no packs are loaded
+    const displayPacks = packs.length > 0 ? packs : PACKS_FALLBACK
 
     const handlePurchase = async (packId: string) => {
         setPurchasing(packId)
@@ -73,7 +76,7 @@ export default function Packs({ onPurchased }: Props) {
     return (
         <div className="space-y-8">
             <PacksHeader />
-            
+
             {/* Error Display */}
             {purchaseError && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
@@ -139,7 +142,7 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={() => handlePurchase('single_1_small')}
                                 disabled={purchasing === 'single_1_small'}
                                 className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -190,7 +193,7 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={() => handlePurchase('single_1_medium')}
                                 disabled={purchasing === 'single_1_medium'}
                                 className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -241,7 +244,7 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={() => handlePurchase('single_1_large')}
                                 disabled={purchasing === 'single_1_large'}
                                 className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -607,7 +610,7 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-teal-400">Cancel anytime</div>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={() => handlePurchase('sub_week_small')}
                                 disabled={purchasing === 'sub_week_small'}
                                 className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"

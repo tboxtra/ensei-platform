@@ -1536,7 +1536,7 @@ app.post('/v1/wallet/claim/:rewardId', verifyFirebaseToken, async (req: any, res
 app.get('/v1/packs', async (req, res) => {
   try {
     console.log('Fetching packs catalog');
-    
+
     // For now, return the fallback packs data
     // In production, this would come from a database or configuration
     const packs = [
@@ -1544,23 +1544,23 @@ app.get('/v1/packs', async (req, res) => {
       { id: 'single_1_small', kind: 'single', label: 'Growth Sprout', group: 'Single Mission Packs', tweets: 1, priceUsd: 10, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
       { id: 'single_1_medium', kind: 'single', label: 'Engagement Boost', group: 'Single Mission Packs', tweets: 1, priceUsd: 15, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
       { id: 'single_1_large', kind: 'single', label: 'Viral Explosion', group: 'Single Mission Packs', tweets: 1, priceUsd: 25, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
-      
+
       // 3 Mission Packs
       { id: 'single_3_small', kind: 'single', label: 'Triple Growth', group: '3 Mission Packs', tweets: 3, priceUsd: 25, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
       { id: 'single_3_medium', kind: 'single', label: 'Triple Fire', group: '3 Mission Packs', tweets: 3, priceUsd: 40, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { originalUsd: 48, discountPct: 17 } },
       { id: 'single_3_large', kind: 'single', label: 'Triple Volcano', group: '3 Mission Packs', tweets: 3, priceUsd: 60, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
-      
+
       // 10 Mission Packs
       { id: 'single_10_small', kind: 'single', label: 'Mega Growth', group: '10 Mission Packs', tweets: 10, priceUsd: 75, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
       { id: 'single_10_medium', kind: 'single', label: 'Mega Lightning', group: '10 Mission Packs', tweets: 10, priceUsd: 120, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
       { id: 'single_10_large', kind: 'single', label: 'Mega Rocket', group: '10 Mission Packs', tweets: 10, priceUsd: 180, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
-      
+
       // Subscription Packs
       { id: 'sub_week_small', kind: 'subscription', label: 'Weekly Momentum', group: 'Subscription Packs', tweets: 1, priceUsd: 500, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 }, meta: { maxPerHour: 1, durationDays: 7 } },
       { id: 'sub_month_medium', kind: 'subscription', label: 'Monthly Mastery', group: 'Subscription Packs', tweets: 1, priceUsd: 2000, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 30, originalUsd: 2200, discountPct: 9 } },
       { id: 'sub_week_medium', kind: 'subscription', label: 'Weekly Thunder', group: 'Subscription Packs', tweets: 1, priceUsd: 750, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 7 } }
     ];
-    
+
     res.json(packs);
   } catch (error) {
     console.error('Error fetching packs:', error);
@@ -1573,15 +1573,15 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
     const packId = req.params.id;
     const userId = req.user.uid;
     const { clientRequestId } = req.body;
-    
+
     console.log('Purchasing pack:', packId, 'for user:', userId);
-    
+
     // Validate required fields
     if (!clientRequestId) {
       res.status(400).json({ error: 'Client request ID is required for idempotency' });
       return;
     }
-    
+
     // Check for duplicate purchase using clientRequestId
     const existingTransaction = await db.collection('transactions')
       .where('user_id', '==', userId)
@@ -1589,7 +1589,7 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
       .where('type', '==', 'purchase')
       .limit(1)
       .get();
-    
+
     if (!existingTransaction.empty) {
       const existingTx = existingTransaction.docs[0].data();
       res.json({
@@ -1600,7 +1600,7 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
       });
       return;
     }
-    
+
     // Get pack details (in production, this would come from database)
     const packCatalog = [
       { id: 'single_1_small', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
@@ -1616,33 +1616,33 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
       { id: 'sub_month_medium', priceUsd: 2000, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
       { id: 'sub_week_medium', priceUsd: 750, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } }
     ];
-    
+
     const pack = packCatalog.find(p => p.id === packId);
     if (!pack) {
       res.status(404).json({ error: 'Pack not found' });
       return;
     }
-    
+
     // Get user wallet
     const walletDoc = await db.collection('wallets').doc(userId).get();
     if (!walletDoc.exists) {
       res.status(400).json({ error: 'Wallet not found' });
       return;
     }
-    
+
     const wallet = walletDoc.data();
     if (!wallet) {
       res.status(400).json({ error: 'Wallet data not found' });
       return;
     }
-    
+
     // Check if user has sufficient balance (convert USD to honors at 450 honors per USD)
     const requiredHonors = pack.priceUsd * 450;
     if (wallet.honors < requiredHonors) {
       res.status(400).json({ error: 'Insufficient balance' });
       return;
     }
-    
+
     // Use Firestore transaction for atomic operations
     const result = await db.runTransaction(async (transaction) => {
       // Create entitlement record
@@ -1660,15 +1660,15 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
         },
         quotas: pack.quotas,
         // Set expiration for subscription packs (7 days for weekly, 30 days for monthly)
-        expiresAt: packId.includes('sub_week') 
+        expiresAt: packId.includes('sub_week')
           ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
           : packId.includes('sub_month')
-          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          : null
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            : null
       };
-      
+
       transaction.set(entitlementRef, entitlementData);
-      
+
       // Create transaction record
       const transactionRef = db.collection('transactions').doc();
       const transactionData = {
@@ -1682,29 +1682,29 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
         entitlementId: entitlementRef.id,
         description: `Purchased ${packId} pack`
       };
-      
+
       transaction.set(transactionRef, transactionData);
-      
+
       // Update wallet balance
       transaction.update(db.collection('wallets').doc(userId), {
         honors: firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
         usd: firebaseAdmin.firestore.FieldValue.increment(-pack.priceUsd),
         updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
       });
-      
+
       return {
         entitlementId: entitlementRef.id,
         transactionId: transactionRef.id
       };
     });
-    
+
     res.json({
       success: true,
       message: 'Pack purchased successfully',
       entitlementId: result.entitlementId,
       transactionId: result.transactionId
     });
-    
+
   } catch (error) {
     console.error('Error purchasing pack:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -1715,13 +1715,13 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req: any, res) => {
   try {
     const userId = req.user.uid;
     console.log('Fetching entitlements for user:', userId);
-    
+
     // Get user's entitlements
     const entitlementsSnapshot = await db.collection('entitlements')
       .where('userId', '==', userId)
       .orderBy('purchasedAt', 'desc')
       .get();
-    
+
     const entitlements = entitlementsSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -1736,7 +1736,7 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req: any, res) => {
         packLabel: data.packId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
       };
     });
-    
+
     res.json(entitlements);
   } catch (error) {
     console.error('Error fetching entitlements:', error);
