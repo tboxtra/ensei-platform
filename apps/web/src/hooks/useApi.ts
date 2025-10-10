@@ -768,6 +768,68 @@ export function useApi() {
         });
     }, [makeRequest]);
 
+    // Pack methods
+    const getPacks = useCallback(async (): Promise<any[]> => {
+        console.log('getPacks: Starting to fetch packs catalog...');
+        try {
+            const response = await makeRequest<any[]>('/v1/packs');
+            console.log('getPacks: Successfully fetched packs:', {
+                count: response?.length || 0,
+                packs: response
+            });
+            return response || [];
+        } catch (error) {
+            console.error('getPacks: Failed to fetch packs:', error);
+            throw error;
+        }
+    }, [makeRequest]);
+
+    const purchasePack = useCallback(async (packId: string): Promise<any> => {
+        console.log('purchasePack: Starting purchase for pack:', packId);
+        try {
+            const clientRequestId = crypto.randomUUID();
+            const response = await makeRequest<any>(`/v1/packs/${packId}/purchase`, {
+                method: 'POST',
+                body: JSON.stringify({ clientRequestId }),
+            });
+            console.log('purchasePack: Successfully purchased pack:', {
+                packId,
+                response
+            });
+            return response;
+        } catch (error) {
+            console.error('purchasePack: Failed to purchase pack:', error);
+            // Convert backend errors to user-friendly messages
+            if (error instanceof Error) {
+                if (error.message.includes('Insufficient balance')) {
+                    throw new Error('Insufficient balance');
+                } else if (error.message.includes('Pack not found')) {
+                    throw new Error('Pack not available');
+                } else if (error.message.includes('already purchased')) {
+                    throw new Error('Pack already purchased');
+                } else if (error.message.includes('Network error')) {
+                    throw new Error('Network error, please retry');
+                }
+            }
+            throw new Error('Purchase failed, please try again');
+        }
+    }, [makeRequest]);
+
+    const getEntitlements = useCallback(async (): Promise<any[]> => {
+        console.log('getEntitlements: Starting to fetch user entitlements...');
+        try {
+            const response = await makeRequest<any[]>('/v1/entitlements');
+            console.log('getEntitlements: Successfully fetched entitlements:', {
+                count: response?.length || 0,
+                entitlements: response
+            });
+            return response || [];
+        } catch (error) {
+            console.error('getEntitlements: Failed to fetch entitlements:', error);
+            throw error;
+        }
+    }, [makeRequest]);
+
     return {
         loading,
         error,
@@ -806,6 +868,10 @@ export function useApi() {
         getWalletBalance,
         getTransactions,
         withdrawFunds,
+        // Pack methods
+        getPacks,
+        purchasePack,
+        getEntitlements,
         // Meta methods
         getDegenPresets,
         getTaskCatalog,
@@ -937,6 +1003,52 @@ export function useRewards() {
         fetchClaimableRewards,
         claimReward: api.claimReward,
         claimAllRewards: api.claimAllRewards,
+        loading: api.loading,
+        error: api.error,
+    };
+}
+
+export function usePacks() {
+    const api = useApi();
+    const [packs, setPacks] = useState<any[]>([]);
+    const [entitlements, setEntitlements] = useState<any[]>([]);
+
+    const fetchPacks = useCallback(async () => {
+        try {
+            const data = await api.getPacks();
+            setPacks(data);
+        } catch (err) {
+            console.error('Failed to fetch packs:', err);
+        }
+    }, [api]);
+
+    const fetchEntitlements = useCallback(async () => {
+        try {
+            const data = await api.getEntitlements();
+            setEntitlements(data);
+        } catch (err) {
+            console.error('Failed to fetch entitlements:', err);
+        }
+    }, [api]);
+
+    const purchasePack = useCallback(async (packId: string) => {
+        try {
+            const result = await api.purchasePack(packId);
+            // Refresh entitlements after successful purchase
+            await fetchEntitlements();
+            return result;
+        } catch (err) {
+            console.error('Failed to purchase pack:', err);
+            throw err;
+        }
+    }, [api, fetchEntitlements]);
+
+    return {
+        packs,
+        entitlements,
+        fetchPacks,
+        fetchEntitlements,
+        purchasePack,
         loading: api.loading,
         error: api.error,
     };

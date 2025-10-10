@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { apiGetPacks } from '../../hooks/useApi'
+import { usePacks } from '../../hooks/useApi'
 import PackCard from './PackCard'
 import PackDetailsModal from './PackDetailsModal'
 import PacksHeader from './PacksHeader'
@@ -9,26 +9,27 @@ import { PACKS_FALLBACK } from '../../shared/config/packs.fallback'
 type Props = { onPurchased?: () => void }
 
 export default function Packs({ onPurchased }: Props) {
-    const [items, setItems] = React.useState<any[]>([])
-    const [loading, setLoading] = React.useState(true)
-    const [error, setError] = React.useState<string | null>(null)
+    const { packs, loading, error, fetchPacks, purchasePack } = usePacks()
     const [selectedPack, setSelectedPack] = React.useState<any>(null)
+    const [purchasing, setPurchasing] = React.useState<string | null>(null)
+    const [purchaseError, setPurchaseError] = React.useState<string | null>(null)
 
-    const load = async () => {
-        setLoading(true); setError(null)
+    React.useEffect(() => { 
+        fetchPacks() 
+    }, [fetchPacks])
+
+    const handlePurchase = async (packId: string) => {
+        setPurchasing(packId)
+        setPurchaseError(null)
         try {
-            const data = await apiGetPacks()
-            setItems(Array.isArray(data) ? data : [])
-        } catch (e) {
-            // Use local fallback instead of hard error
-            setItems(PACKS_FALLBACK)
-            setError(null)
+            await purchasePack(packId)
+            onPurchased?.()
+        } catch (error) {
+            setPurchaseError(error instanceof Error ? error.message : 'Purchase failed')
         } finally {
-            setLoading(false)
+            setPurchasing(null)
         }
     }
-
-    React.useEffect(() => { load() }, [])
 
     // Category grouping logic
     const singleGroups = [
@@ -60,7 +61,7 @@ export default function Packs({ onPurchased }: Props) {
         );
     }
 
-    if (!items.length) {
+    if (!packs.length) {
         return (
             <div className="text-center py-10">
                 <div className="text-4xl mb-3">📦</div>
@@ -72,6 +73,16 @@ export default function Packs({ onPurchased }: Props) {
     return (
         <div className="space-y-8">
             <PacksHeader />
+            
+            {/* Error Display */}
+            {purchaseError && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-red-400">⚠️</span>
+                        <span className="text-red-300">{purchaseError}</span>
+                    </div>
+                </div>
+            )}
 
             {/* Pack Categories */}
             <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
@@ -128,8 +139,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchase('single_1_small')}
+                                disabled={purchasing === 'single_1_small'}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_1_small' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
 
@@ -175,8 +190,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchase('single_1_medium')}
+                                disabled={purchasing === 'single_1_medium'}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_1_medium' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
 
@@ -222,8 +241,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchase('single_1_large')}
+                                disabled={purchasing === 'single_1_large'}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_1_large' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
                     </div>
@@ -584,8 +607,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-teal-400">Cancel anytime</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
-                                Start Weekly Plan
+                            <button 
+                                onClick={() => handlePurchase('sub_week_small')}
+                                disabled={purchasing === 'sub_week_small'}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'sub_week_small' ? 'Starting...' : 'Start Weekly Plan'}
                             </button>
                         </div>
 
