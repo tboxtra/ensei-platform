@@ -183,7 +183,7 @@ export function testIdempotency() {
 
     // Check if all fields are identical (except timestamps)
     const fieldsToCheck = ['id', 'email', 'name', 'twitter_handle', 'twitter'];
-    const differences = fieldsToCheck.filter(field => merged1[field] !== merged2[field]);
+    const differences = fieldsToCheck.filter(field => (merged1 as any)[field] !== (merged2 as any)[field]);
 
     const passed = differences.length === 0;
     console.log(passed ? '✅ Idempotency test PASSED' : '❌ Idempotency test FAILED');
