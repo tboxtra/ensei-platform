@@ -31,11 +31,25 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     }, []);
 
     // Check if user has active entitlements
-    const activeEntitlements = entitlements.filter(entitlement =>
-        entitlement.status === 'active' &&
-        entitlement.endsAt &&
+    const activeEntitlements = entitlements.filter(entitlement => 
+        entitlement.status === 'active' && 
+        entitlement.endsAt && 
         new Date(entitlement.endsAt) > new Date()
     );
+
+    // Feature flags for rollback/guardrails
+    const SHOW_ACTIVE_ENTITLEMENTS = true; // Can be toggled to false for rollback
+    const ENABLE_PACK_PURCHASE = !packsError; // Disable purchase if API fails
+
+    // Fallback catalog for when API is unreachable
+    const FALLBACK_PACKS = [
+        { id: 'single_1_small', label: 'Single Small', description: '1 mission • 100 likes', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
+        { id: 'single_1_medium', label: 'Single Medium', description: '1 mission • 200 likes', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
+        { id: 'single_1_large', label: 'Single Large', description: '1 mission • 500 likes', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
+    ];
+
+    // Use fallback packs if API fails
+    const displayPacks = packsError ? FALLBACK_PACKS : packs;
 
     const handlePaymentSelect = (paymentType: 'single-use' | 'pack') => {
         updateState({ paymentType });
@@ -110,7 +124,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
             </div>
 
             {/* Active Entitlements */}
-            {state.model === 'fixed' && state.paymentType === 'pack' && activeEntitlements.length > 0 && (
+            {state.model === 'fixed' && state.paymentType === 'pack' && SHOW_ACTIVE_ENTITLEMENTS && activeEntitlements.length > 0 && (
                 <div>
                     <label className="block text-xs font-medium mb-3">Your Active Packs</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -204,12 +218,12 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                         </div>
                     ) : packsError ? (
                         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
-                            <p className="text-amber-400 text-sm mb-2">Couldn't load packs. Purchase is temporarily disabled.</p>
+                            <p className="text-amber-400 text-sm mb-2">Using offline pack catalog. Purchase is temporarily disabled.</p>
                             <p className="text-amber-300 text-xs">You can still use "Single Use" payment for this mission.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {packs.map((pack) => {
+                            {displayPacks.map((pack) => {
                                 const isSelected = state.packId === pack.id;
                                 const isPurchasing = purchasing && state.packId === pack.id;
 
@@ -230,13 +244,14 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                         {!isSelected && (
                                             <button
                                                 onClick={() => handlePackPurchase(pack.id)}
-                                                disabled={purchasing}
-                                                className={`w-full mt-3 py-2 px-4 rounded-lg text-sm font-medium transition ${purchasing
+                                                disabled={purchasing || !ENABLE_PACK_PURCHASE}
+                                                className={`w-full mt-3 py-2 px-4 rounded-lg text-sm font-medium transition ${purchasing || !ENABLE_PACK_PURCHASE
                                                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                                                     }`}
                                             >
-                                                {isPurchasing ? 'Purchasing...' : 'Purchase Pack'}
+                                                {!ENABLE_PACK_PURCHASE ? 'Purchase Disabled' : 
+                                                 isPurchasing ? 'Purchasing...' : 'Purchase Pack'}
                                             </button>
                                         )}
 
