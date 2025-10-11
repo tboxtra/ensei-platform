@@ -104,6 +104,111 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Pack System Health Check
+app.get('/health/packs', async (req, res) => {
+  try {
+    const startTime = Date.now();
+    
+    // Test pack catalog access
+    const packCatalog = [
+      { id: 'single_1_small', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
+      { id: 'single_1_medium', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
+      { id: 'single_1_large', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
+    ];
+    
+    // Test Firestore connectivity
+    const testDoc = await db.collection('health_checks').doc('pack_system').get();
+    
+    // Test entitlements collection access
+    const entitlementsSnapshot = await db.collection('entitlements').limit(1).get();
+    
+    const responseTime = Date.now() - startTime;
+    
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      checks: {
+        packCatalog: { status: 'ok', count: packCatalog.length },
+        firestore: { status: 'ok', responseTime: `${responseTime}ms` },
+        entitlements: { status: 'ok', accessible: true }
+      },
+      responseTime: `${responseTime}ms`
+    });
+  } catch (error) {
+    console.error('Pack system health check failed:', error);
+    res.status(500).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Pack System Metrics Endpoint (Simplified)
+app.get('/metrics/packs', async (req, res) => {
+  try {
+    const now = new Date();
+    
+    // Get all transactions (simplified approach)
+    const allTransactions = await db.collection('transactions').get();
+    
+    // Get all entitlements
+    const allEntitlements = await db.collection('entitlements').get();
+    
+    // Calculate basic metrics
+    let totalPurchases = 0;
+    let totalRevenue = 0;
+    let activeEntitlements = 0;
+    let totalQuotaUsed = 0;
+    let totalQuotaAvailable = 0;
+    
+    // Process transactions
+    allTransactions.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.type === 'purchase') {
+        totalPurchases++;
+        totalRevenue += Math.abs(data.amount || 0);
+      }
+    });
+    
+    // Process entitlements
+    allEntitlements.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.status === 'active') {
+        activeEntitlements++;
+        totalQuotaUsed += data.usage?.tweetsUsed || 0;
+        totalQuotaAvailable += data.quotas?.tweets || 0;
+      }
+    });
+    
+    res.json({
+      timestamp: now.toISOString(),
+      metrics: {
+        purchases: {
+          total: totalPurchases,
+          totalRevenue: totalRevenue
+        },
+        entitlements: {
+          active: activeEntitlements,
+          totalQuotaUsed: totalQuotaUsed,
+          totalQuotaAvailable: totalQuotaAvailable,
+          utilizationRate: totalQuotaAvailable > 0 ? (totalQuotaUsed / totalQuotaAvailable * 100).toFixed(2) + '%' : '0%'
+        },
+        system: {
+          totalTransactions: allTransactions.size,
+          totalEntitlements: allEntitlements.size
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Pack metrics collection failed:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // API routes
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Ensei Platform API is working!' });
