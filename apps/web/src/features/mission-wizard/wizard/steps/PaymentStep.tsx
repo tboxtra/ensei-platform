@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { WizardState } from '../types/wizard.types';
+import { usePacks } from '../../../../hooks/useApi';
 
 interface PaymentStepProps {
     state: WizardState;
@@ -20,12 +21,45 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     onReset,
     isLoading = false,
 }) => {
+    const { packs, entitlements, purchasePack, loading: packsLoading, error: packsError } = usePacks();
+    const [purchasing, setPurchasing] = useState(false);
+    const [purchaseError, setPurchaseError] = useState<string | null>(null);
+
+    // Fetch packs when component mounts
+    useEffect(() => {
+        // Packs will be fetched automatically by usePacks hook
+    }, []);
+
+    // Check if user has active entitlements
+    const activeEntitlements = entitlements.filter(entitlement => 
+        entitlement.status === 'active' && 
+        entitlement.endsAt && 
+        new Date(entitlement.endsAt) > new Date()
+    );
+
     const handlePaymentSelect = (paymentType: 'single-use' | 'pack') => {
         updateState({ paymentType });
+        setPurchaseError(null);
     };
 
     const handlePackSelect = (packId: string) => {
         updateState({ packId });
+        setPurchaseError(null);
+    };
+
+    const handlePackPurchase = async (packId: string) => {
+        setPurchasing(true);
+        setPurchaseError(null);
+        try {
+            await purchasePack(packId);
+            // Pack purchased successfully, update state
+            updateState({ packId });
+        } catch (error) {
+            console.error('Pack purchase failed:', error);
+            setPurchaseError(error instanceof Error ? error.message : 'Failed to purchase pack');
+        } finally {
+            setPurchasing(false);
+        }
     };
 
     return (
@@ -75,34 +109,129 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                 </div>
             </div>
 
+            {/* Active Entitlements */}
+            {state.model === 'fixed' && state.paymentType === 'pack' && activeEntitlements.length > 0 && (
+                <div>
+                    <label className="block text-xs font-medium mb-3">Your Active Packs</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {activeEntitlements.map((entitlement) => {
+                            const pack = packs.find(p => p.id === entitlement.packId);
+                            if (!pack) return null;
+                            
+                            const isSelected = state.packId === entitlement.packId;
+                            const remainingQuota = entitlement.quotas?.tweetsUsed - entitlement.usage?.tweetsUsed || 0;
+                            
+                            return (
+                                <div
+                                    key={entitlement.id}
+                                    className={`p-4 rounded-xl text-left transition ${
+                                        isSelected
+                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                                    }`}
+                                >
+                                    <div className="font-semibold text-lg mb-1">{pack.label}</div>
+                                    <div className="text-sm opacity-90 mb-2">{pack.description}</div>
+                                    <div className="text-sm mb-2">
+                                        <div className="text-green-400">Remaining: {remainingQuota} missions</div>
+                                        <div className="text-xs opacity-75">
+                                            Expires: {new Date(entitlement.endsAt).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                    
+                                    {remainingQuota > 0 && (
+                                        <button
+                                            onClick={() => handlePackSelect(entitlement.packId)}
+                                            className={`w-full mt-3 py-2 px-4 rounded-lg text-sm font-medium transition ${
+                                                isSelected
+                                                    ? 'bg-green-600 text-white'
+                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                            }`}
+                                        >
+                                            {isSelected ? '✓ Selected' : 'Use This Pack'}
+                                        </button>
+                                    )}
+                                    
+                                    {remainingQuota === 0 && (
+                                        <div className="w-full mt-3 py-2 px-4 rounded-lg text-sm font-medium bg-gray-600 text-gray-400 text-center">
+                                            Exhausted
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Pack Selection (only for fixed missions with pack payment) */}
             {state.model === 'fixed' && state.paymentType === 'pack' && (
                 <div>
                     <label className="block text-xs font-medium mb-3">Available Packs</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[
-                            { id: 'starter-pack', name: 'Starter Pack', price: 50, missions: 5, description: 'Perfect for testing' },
-                            { id: 'growth-pack', name: 'Growth Pack', price: 200, missions: 25, description: 'Scale your campaigns' },
-                            { id: 'enterprise-pack', name: 'Enterprise Pack', price: 500, missions: 100, description: 'Maximum reach' }
-                        ].map((pack) => {
-                            const isSelected = state.packId === pack.id;
-                            return (
-                                <button
-                                    key={pack.id}
-                                    onClick={() => handlePackSelect(pack.id)}
-                                    className={`p-4 rounded-xl text-left transition ${isSelected
-                                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                                        : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                    
+                    {/* Error Display */}
+                    {purchaseError && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
+                            <p className="text-red-400 text-sm">{purchaseError}</p>
+                        </div>
+                    )}
+
+                    {/* Loading State */}
+                    {packsLoading ? (
+                        <div className="text-center py-6">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
+                            <p className="text-gray-400 text-sm">Loading packs...</p>
+                        </div>
+                    ) : packsError ? (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                            <p className="text-red-400 text-sm">Failed to load packs: {packsError}</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {packs.map((pack) => {
+                                const isSelected = state.packId === pack.id;
+                                const isPurchasing = purchasing && state.packId === pack.id;
+                                
+                                return (
+                                    <div
+                                        key={pack.id}
+                                        className={`p-4 rounded-xl text-left transition ${
+                                            isSelected
+                                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                                         }`}
-                                >
-                                    <div className="font-semibold text-lg mb-1">{pack.name}</div>
-                                    <div className="text-sm opacity-90 mb-2">{pack.description}</div>
-                                    <div className="text-lg font-bold text-green-400">${pack.price}</div>
-                                    <div className="text-xs opacity-75">{pack.missions} missions</div>
-                                </button>
-                            );
-                        })}
-                    </div>
+                                    >
+                                        <div className="font-semibold text-lg mb-1">{pack.label}</div>
+                                        <div className="text-sm opacity-90 mb-2">{pack.description}</div>
+                                        <div className="text-lg font-bold text-green-400">${pack.priceUsd}</div>
+                                        <div className="text-xs opacity-75">{pack.quotas?.tweetsUsed || 0} missions</div>
+                                        
+                                        {/* Purchase Button */}
+                                        {!isSelected && (
+                                            <button
+                                                onClick={() => handlePackPurchase(pack.id)}
+                                                disabled={purchasing}
+                                                className={`w-full mt-3 py-2 px-4 rounded-lg text-sm font-medium transition ${
+                                                    purchasing
+                                                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                }`}
+                                            >
+                                                {isPurchasing ? 'Purchasing...' : 'Purchase Pack'}
+                                            </button>
+                                        )}
+                                        
+                                        {/* Selected State */}
+                                        {isSelected && (
+                                            <div className="w-full mt-3 py-2 px-4 rounded-lg text-sm font-medium bg-green-600 text-white text-center">
+                                                ✓ Selected
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             )}
 

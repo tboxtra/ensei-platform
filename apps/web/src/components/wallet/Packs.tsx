@@ -208,8 +208,8 @@ export default function Packs({ onPurchased }: Props) {
                                             onClick={() => handlePurchase('single_1_small')}
                                             disabled={isDisabled}
                                             className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${isDisabled
-                                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                                    : 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white'
+                                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                                : 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white'
                                                 }`}
                                         >
                                             {purchasing === 'single_1_small' ? 'Purchasing...' :

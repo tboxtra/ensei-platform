@@ -91,9 +91,13 @@ export const MissionWizard: React.FC<MissionWizardProps> = ({
             isPremium: wizard.state.isPremium,
             contentLink: wizard.state.contentLink,
             instructions: wizard.state.instructions,
+            paymentType: wizard.state.paymentType,
             ...(wizard.state.model === 'fixed' && {
                 cap: wizard.state.cap,
                 rewardPerUser: wizard.state.rewardPerUser,
+                ...(wizard.state.paymentType === 'pack' && {
+                    packId: wizard.state.packId,
+                }),
             }),
             ...(wizard.state.model === 'degen' && {
                 selectedDegenPreset: wizard.state.selectedDegenPreset,
