@@ -111,11 +111,17 @@ interface WalletBalance {
     usd: number;
     pendingHonors: number;
     pendingUsd: number;
+    crypto?: {
+        ETH: number;
+        BTC: number;
+        USDC: number;
+        USDT: number;
+    };
 }
 
 interface Transaction {
     id: string;
-    type: 'earned' | 'withdrawn' | 'pending';
+    type: 'earned' | 'deposited' | 'withdrawn' | 'pending';
     amount: number;
     description: string;
     date: string;
@@ -751,6 +757,17 @@ export function useApi() {
         });
     }, [makeRequest]);
 
+    const depositCrypto = useCallback(async (amount: number, currency: string, txHash: string, address: string): Promise<any> => {
+        return makeRequest('/v1/wallet/deposit', {
+            method: 'POST',
+            body: JSON.stringify({ amount, currency, txHash, address }),
+        });
+    }, [makeRequest]);
+
+    const getDashboardSummary = useCallback(async (): Promise<any> => {
+        return makeRequest('/v1/dashboard/summary');
+    }, [makeRequest]);
+
     // Meta APIs
     const getDegenPresets = useCallback(async (): Promise<any[]> => {
         return makeRequest<any[]>('/v1/presets');
@@ -868,6 +885,8 @@ export function useApi() {
         getWalletBalance,
         getTransactions,
         withdrawFunds,
+        depositCrypto,
+        getDashboardSummary,
         // Pack methods
         getPacks,
         purchasePack,
@@ -958,6 +977,28 @@ export function useWallet() {
         fetchBalance,
         fetchTransactions,
         withdrawFunds: api.withdrawFunds,
+        depositCrypto: api.depositCrypto,
+        loading: api.loading,
+        error: api.error,
+    };
+}
+
+export function useDashboardSummary() {
+    const api = useApi();
+    const [summary, setSummary] = useState<any>(null);
+
+    const fetchSummary = useCallback(async () => {
+        try {
+            const data = await api.getDashboardSummary();
+            setSummary(data);
+        } catch (err) {
+            console.error('Failed to fetch dashboard summary:', err);
+        }
+    }, [api]);
+
+    return {
+        summary,
+        fetchSummary,
         loading: api.loading,
         error: api.error,
     };

@@ -21,8 +21,11 @@ export default function Packs({ onPurchased }: Props) {
 
     React.useEffect(() => {
         fetchPacks()
+    }, [fetchPacks]) // Only include fetchPacks in dependencies
+
+    React.useEffect(() => {
         fetchBalance()
-    }, [fetchPacks, fetchBalance]) // Include fetchPacks and fetchBalance in dependencies
+    }, [fetchBalance]) // Include fetchBalance in dependencies
 
     // Use fallback data if API fails and no packs are loaded
     const displayPacks = packs.length > 0 ? packs : PACKS_FALLBACK
@@ -85,13 +88,13 @@ export default function Packs({ onPurchased }: Props) {
             await purchasePack(packToPurchase.id)
             setPurchaseSuccess(`Successfully purchased ${packToPurchase.label}!`)
             onPurchased?.()
-            
+
             // Refresh balance after successful purchase
             await fetchBalance()
 
             // Log successful purchase
-            console.log('pack_purchase_succeeded', { 
-                packId: packToPurchase.id, 
+            console.log('pack_purchase_succeeded', {
+                packId: packToPurchase.id,
                 priceUsd: packToPurchase.priceUsd,
                 timestamp: new Date().toISOString()
             })
@@ -209,113 +212,6 @@ export default function Packs({ onPurchased }: Props) {
     return (
         <div className="space-y-8">
             <PacksHeader />
-            
-            {/* Wallet Balance Display */}
-            {balance && (
-                <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-white">Your Wallet Balance</h3>
-                        <div className="text-sm text-gray-400">Available for purchases</div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-white/5 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-2xl font-bold text-white">{balance.honors?.toLocaleString() || '0'}</div>
-                                    <div className="text-sm text-teal-400">Honors</div>
-                                </div>
-                                <div className="w-12 h-12 rounded-lg bg-teal-500/20 flex items-center justify-center">
-                                    <span className="text-xl">💰</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-white/5 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-2xl font-bold text-white">${balance.usd?.toFixed(2) || '0.00'}</div>
-                                    <div className="text-sm text-blue-400">USD Value</div>
-                                </div>
-                                <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                                    <span className="text-xl">💵</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {balance.honors === 0 && (
-                        <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                            <div className="flex items-center gap-2">
-                                <span className="text-amber-400">⚠️</span>
-                                <div className="text-amber-300 text-sm">
-                                    <p className="font-medium">No Honors Available</p>
-                                    <p className="text-xs mt-1">Complete missions to earn Honors and purchase packs.</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Earn Honors Section */}
-            {balance && balance.honors < 1000 && (
-                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-white">Earn More Honors</h3>
-                        <div className="text-sm text-emerald-400">Complete missions to earn</div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-white/5 rounded-lg p-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                                    <span className="text-emerald-400">🎯</span>
-                                </div>
-                                <div>
-                                    <div className="font-semibold text-white">Complete Missions</div>
-                                    <div className="text-xs text-emerald-400">Earn 50-200 Honors</div>
-                                </div>
-                            </div>
-                            <p className="text-xs text-gray-400">Participate in missions and complete tasks to earn Honors.</p>
-                        </div>
-                        <div className="bg-white/5 rounded-lg p-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                                    <span className="text-blue-400">📝</span>
-                                </div>
-                                <div>
-                                    <div className="font-semibold text-white">Review Submissions</div>
-                                    <div className="text-xs text-blue-400">Earn 10-25 Honors</div>
-                                </div>
-                            </div>
-                            <p className="text-xs text-gray-400">Help review and verify mission submissions.</p>
-                        </div>
-                        <div className="bg-white/5 rounded-lg p-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                                    <span className="text-purple-400">⭐</span>
-                                </div>
-                                <div>
-                                    <div className="font-semibold text-white">High Quality</div>
-                                    <div className="text-xs text-purple-400">Bonus rewards</div>
-                                </div>
-                            </div>
-                            <p className="text-xs text-gray-400">Get bonus Honors for high-quality submissions.</p>
-                        </div>
-                    </div>
-                    <div className="mt-4 flex gap-3">
-                        <a 
-                            href="/missions" 
-                            className="flex-1 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition text-center"
-                        >
-                            Browse Missions →
-                        </a>
-                        <a 
-                            href="/review-and-earn" 
-                            className="flex-1 py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition text-center"
-                        >
-                            Review & Earn →
-                        </a>
-                    </div>
-                </div>
-            )}
 
             {purchaseError && (
                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-6">

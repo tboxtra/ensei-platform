@@ -1228,6 +1228,76 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       console.log('calculated rewards:', missionData.rewards);
       console.log('================================');
 
+      // ✅ DEGEN MISSION PAYMENT PROCESSING
+      if (costUSD > 0) {
+        console.log('=== DEGEN MISSION PAYMENT PROCESSING ===');
+
+        // Get user's wallet
+        const walletDoc = await db.collection('wallets').doc(userId).get();
+        if (!walletDoc.exists) {
+          res.status(400).json({ error: 'Wallet not found. Please contact support.' });
+          return;
+        }
+
+        const wallet = walletDoc.data();
+        if (!wallet) {
+          res.status(400).json({ error: 'Wallet data not found' });
+          return;
+        }
+
+        // Check if user has sufficient balance (convert USD to honors at 450 honors per USD)
+        const requiredHonors = Math.round(costUSD * 450);
+        console.log('Required Honors for degen mission:', requiredHonors);
+        console.log('User wallet Honors:', wallet.honors);
+
+        if (wallet.honors < requiredHonors) {
+          res.status(400).json({
+            error: `Insufficient balance. You need ${requiredHonors} Honors ($${costUSD}) to create this degen mission. You have ${wallet.honors} Honors.`
+          });
+          return;
+        }
+
+        // Deduct payment atomically using Firestore transaction
+        await db.runTransaction(async (transaction) => {
+          // Re-read the wallet to ensure we have the latest data
+          const freshWalletDoc = await transaction.get(walletDoc.ref);
+          const freshWallet = freshWalletDoc.data();
+
+          if (!freshWallet) {
+            throw new Error('Wallet not found during transaction');
+          }
+
+          // Double-check balance again (concurrency safety)
+          if (freshWallet.honors < requiredHonors) {
+            throw new Error('Insufficient balance (concurrent transaction detected)');
+          }
+
+          // Update wallet balance
+          transaction.update(walletDoc.ref, {
+            honors: firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
+            usd: firebaseAdmin.firestore.FieldValue.increment(-costUSD),
+            updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+          });
+
+          // Create transaction record
+          const transactionRef = db.collection('transactions').doc();
+          transaction.set(transactionRef, {
+            user_id: userId,
+            type: 'mission_creation',
+            amount: -requiredHonors,
+            currency: 'honors',
+            description: `Created degen mission (${durationH}h duration)`,
+            mission_type: 'degen',
+            cost_usd: costUSD,
+            created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+          });
+
+          console.log('Successfully deducted payment for degen mission creation');
+        });
+
+        console.log('==========================================');
+      }
+
       // ✅ Canonical winners cap for degen missions is mission-wide
       missionData.winnersPerMission =
         missionData.winnersPerMission ??
@@ -1726,6 +1796,128 @@ app.get('/v1/wallet/rewards', verifyFirebaseToken, async (req: any, res) => {
     res.json(rewards);
   } catch (error) {
     console.error('Error fetching rewards:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Crypto deposit endpoint
+app.post('/v1/wallet/deposit', verifyFirebaseToken, async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    const { amount, currency, txHash, address } = req.body;
+
+    console.log('Processing crypto deposit:', { userId, amount, currency, txHash, address });
+
+    // Validate required fields
+    if (!amount || !currency || !txHash || !address) {
+      res.status(400).json({ error: 'Missing required fields: amount, currency, txHash, address' });
+      return;
+    }
+
+    // Validate amount
+    const depositAmount = parseFloat(amount);
+    if (isNaN(depositAmount) || depositAmount <= 0) {
+      res.status(400).json({ error: 'Invalid deposit amount' });
+      return;
+    }
+
+    // Check for duplicate deposit using txHash
+    const existingDeposit = await db.collection('transactions')
+      .where('user_id', '==', userId)
+      .where('txHash', '==', txHash)
+      .where('type', '==', 'deposited')
+      .limit(1)
+      .get();
+
+    if (!existingDeposit.empty) {
+      res.status(400).json({ error: 'Deposit already processed' });
+      return;
+    }
+
+    // Get system configuration for conversion rates
+    const configDoc = await db.collection('system_config').doc('main').get();
+    const rawConfig = configDoc.exists ? configDoc.data() : {};
+    const systemConfig = readCfg(rawConfig);
+
+    // Convert crypto to Honors (example rates - in production, use real-time rates)
+    const conversionRates: { [key: string]: number } = {
+      'ETH': 0.0003, // 1 ETH = 0.0003 USD (example)
+      'BTC': 0.00002, // 1 BTC = 0.00002 USD (example)
+      'USDC': 1, // 1 USDC = 1 USD
+      'USDT': 1, // 1 USDT = 1 USD
+    };
+
+    const usdValue = depositAmount * (conversionRates[currency.toUpperCase()] || 0);
+    const honorsValue = Math.round(usdValue * systemConfig.honorsPerUsd);
+
+    if (honorsValue <= 0) {
+      res.status(400).json({ error: 'Invalid currency or conversion rate' });
+      return;
+    }
+
+    // Process deposit atomically
+    const result = await db.runTransaction(async (transaction) => {
+      // Get or create wallet
+      const walletRef = db.collection('wallets').doc(userId);
+      const walletDoc = await transaction.get(walletRef);
+
+      const currentWallet = walletDoc.exists ? walletDoc.data() : {
+        honors: 0,
+        usd: 0,
+        crypto: {
+          ETH: 0,
+          BTC: 0,
+          USDC: 0,
+          USDT: 0
+        },
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+      };
+
+      // Update wallet with crypto deposit and converted Honors
+      transaction.set(walletRef, {
+        honors: firebaseAdmin.firestore.FieldValue.increment(honorsValue),
+        usd: firebaseAdmin.firestore.FieldValue.increment(usdValue),
+        crypto: {
+          ...currentWallet.crypto,
+          [currency.toUpperCase()]: firebaseAdmin.firestore.FieldValue.increment(depositAmount)
+        },
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      // Create transaction record
+      const transactionRef = db.collection('transactions').doc();
+      transaction.set(transactionRef, {
+        user_id: userId,
+        type: 'deposited',
+        amount: honorsValue,
+        currency: 'honors',
+        crypto_amount: depositAmount,
+        crypto_currency: currency.toUpperCase(),
+        usd_value: usdValue,
+        txHash: txHash,
+        address: address,
+        description: `Deposited ${depositAmount} ${currency.toUpperCase()} (converted to ${honorsValue} Honors)`,
+        status: 'completed',
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+      });
+
+      return {
+        transactionId: transactionRef.id,
+        honorsAdded: honorsValue,
+        usdValue: usdValue,
+        cryptoAmount: depositAmount,
+        cryptoCurrency: currency.toUpperCase()
+      };
+    });
+
+    res.json({
+      success: true,
+      message: 'Deposit processed successfully',
+      ...result
+    });
+
+  } catch (error) {
+    console.error('Error processing deposit:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -4373,13 +4565,14 @@ export const onVerificationWrite = functions.firestore
       const becameVerified = afterStatus === 'verified' && beforeStatus !== 'verified';
       if (!becameVerified) return;
 
-      const { uid, missionId, taskId, missionType, honorsPerTask, tasksRequired } = after as {
+      const { uid, missionId, taskId, missionType, honorsPerTask, tasksRequired, rewardPerUser } = after as {
         uid: string;
         missionId: string;
         taskId: string;
         missionType: 'fixed' | 'degen';
         honorsPerTask: number;
         tasksRequired?: number;
+        rewardPerUser?: number;
       };
 
       if (!uid || !missionId || !taskId) {
@@ -4440,6 +4633,35 @@ export const onVerificationWrite = functions.firestore
           // if mission just completed for this user, bump missionsCompleted once
           if (completed && !prog.completed) {
             newStats.missionsCompleted = (newStats.missionsCompleted ?? 0) + 1;
+
+            // Award mission completion bonus (for fixed missions)
+            if (missionType === 'fixed' && rewardPerUser) {
+              // Update user stats
+              tx.set(
+                userStatsRef,
+                { totalEarned: firebaseAdmin.firestore.FieldValue.increment(rewardPerUser) },
+                { merge: true }
+              );
+
+              // Update wallet balance
+              const walletRef = db.collection('wallets').doc(uid);
+              tx.set(walletRef, {
+                honors: firebaseAdmin.firestore.FieldValue.increment(rewardPerUser),
+                usd: firebaseAdmin.firestore.FieldValue.increment(rewardPerUser * 0.0022), // Convert to USD
+                updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+              }, { merge: true });
+
+              // Create transaction record
+              tx.set(db.collection('transactions').doc(), {
+                user_id: uid,
+                type: 'earned',
+                amount: rewardPerUser,
+                currency: 'honors',
+                description: `Mission completion bonus`,
+                mission_id: missionId,
+                created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+              });
+            }
           }
         }
 
@@ -4448,11 +4670,32 @@ export const onVerificationWrite = functions.firestore
 
         // if fixed mission and per-task honors pay immediately:
         if (missionType === 'fixed' && honorsPerTask) {
+          // Update user stats
           tx.set(
             userStatsRef,
             { totalEarned: firebaseAdmin.firestore.FieldValue.increment(honorsPerTask) },
             { merge: true }
           );
+
+          // Update wallet balance
+          const walletRef = db.collection('wallets').doc(uid);
+          tx.set(walletRef, {
+            honors: firebaseAdmin.firestore.FieldValue.increment(honorsPerTask),
+            usd: firebaseAdmin.firestore.FieldValue.increment(honorsPerTask * 0.0022), // Convert to USD (1 Honor = $0.0022)
+            updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+
+          // Create transaction record
+          tx.set(db.collection('transactions').doc(), {
+            user_id: uid,
+            type: 'earned',
+            amount: honorsPerTask,
+            currency: 'honors',
+            description: `Earned from mission task completion`,
+            mission_id: missionId,
+            task_id: taskId,
+            created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+          });
         }
       });
 

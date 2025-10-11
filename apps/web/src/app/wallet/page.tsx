@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useWallet } from '../../hooks/useApi';
+import { useWallet, useDashboardSummary } from '../../hooks/useApi';
 import { ModernLayout } from '../../components/layout/ModernLayout';
 import { ModernCard } from '../../components/ui/ModernCard';
 import { ModernButton } from '../../components/ui/ModernButton';
@@ -12,7 +12,8 @@ import Packs from '../../components/wallet/Packs';
 import MyPacks from '../../components/wallet/MyPacks';
 
 export default function WalletPage() {
-  const { balance, transactions, fetchBalance, fetchTransactions, withdrawFunds, loading, error } = useWallet();
+  const { balance, transactions, fetchBalance, fetchTransactions, withdrawFunds, depositCrypto, loading, error } = useWallet();
+  const { summary, fetchSummary } = useDashboardSummary();
   const params = useSearchParams();
   const router = useRouter();
 
@@ -22,11 +23,18 @@ export default function WalletPage() {
   useEffect(() => {
     fetchBalance();
     fetchTransactions();
-  }, [fetchBalance, fetchTransactions]);
+    fetchSummary();
+  }, [fetchBalance, fetchTransactions, fetchSummary]);
 
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAddress, setWithdrawAddress] = useState('');
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositCurrency, setDepositCurrency] = useState('USDC');
+  const [depositAddress, setDepositAddress] = useState('');
+  const [depositTxHash, setDepositTxHash] = useState('');
+  const [depositProcessing, setDepositProcessing] = useState(false);
 
   const setTabAndSync = (t: typeof tab) => {
     setTab(t);
@@ -50,9 +58,30 @@ export default function WalletPage() {
     }
   };
 
+  const handleDeposit = async () => {
+    const amount = parseFloat(depositAmount);
+    if (amount > 0 && depositAddress.trim() && depositTxHash.trim()) {
+      setDepositProcessing(true);
+      try {
+        await depositCrypto(amount, depositCurrency, depositTxHash, depositAddress);
+        setShowDepositModal(false);
+        setDepositAmount('');
+        setDepositAddress('');
+        setDepositTxHash('');
+        fetchBalance();
+        fetchTransactions();
+      } catch (err) {
+        console.error('Deposit failed:', err);
+      } finally {
+        setDepositProcessing(false);
+      }
+    }
+  };
+
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'earned': return '💰';
+      case 'deposited': return '📥';
       case 'withdrawn': return '💸';
       case 'refunded': return '↩️';
       case 'pending': return '⏳';
@@ -63,6 +92,7 @@ export default function WalletPage() {
   const getTransactionColor = (type: string) => {
     switch (type) {
       case 'earned': return 'text-green-400';
+      case 'deposited': return 'text-blue-400';
       case 'withdrawn': return 'text-red-400';
       case 'refunded': return 'text-blue-400';
       case 'pending': return 'text-yellow-400';
@@ -98,7 +128,7 @@ export default function WalletPage() {
         {tab === 'wallet' && (
           <>
             {/* Balance Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
@@ -110,15 +140,15 @@ export default function WalletPage() {
                   </div>
                 </div>
                 <div className="mb-2">
-                  <div className="text-3xl font-bold text-white">{balance?.honors?.toLocaleString() || '2,450'}</div>
+                  <div className="text-3xl font-bold text-white">{balance?.honors?.toLocaleString() || '0'}</div>
                   <div className="text-sm text-teal-400">Honors</div>
                 </div>
                 <div className="text-sm text-gray-300 mb-3">
-                  ${balance?.usd?.toFixed(2) || '5.44'} USD
+                  ${balance?.usd?.toFixed(2) || '0.00'} USD
                 </div>
                 <div className="flex items-center text-xs text-teal-400">
-                  <span className="mr-1">↗</span>
-                  +12.5% this week
+                  <span className="mr-1">💰</span>
+                  Available balance
                 </div>
               </div>
 
@@ -133,15 +163,15 @@ export default function WalletPage() {
                   </div>
                 </div>
                 <div className="mb-2">
-                  <div className="text-3xl font-bold text-white">{balance?.pendingHonors?.toLocaleString() || '850'}</div>
+                  <div className="text-3xl font-bold text-white">0</div>
                   <div className="text-sm text-indigo-400">Honors</div>
                 </div>
                 <div className="text-sm text-gray-300 mb-3">
-                  ${balance?.pendingUsd?.toFixed(2) || '1.89'} USD
+                  $0.00 USD
                 </div>
                 <div className="flex items-center text-xs text-indigo-400">
                   <span className="mr-1">⏱</span>
-                  2-3 days
+                  No pending rewards
                 </div>
               </div>
 
@@ -156,15 +186,15 @@ export default function WalletPage() {
                   </div>
                 </div>
                 <div className="mb-2">
-                  <div className="text-3xl font-bold text-white">{((balance?.honors || 0) + (balance?.pendingHonors || 0) + 5450).toLocaleString()}</div>
+                  <div className="text-3xl font-bold text-white">{summary?.honorsEarned?.toLocaleString() || '0'}</div>
                   <div className="text-sm text-blue-400">Honors</div>
                 </div>
                 <div className="text-sm text-gray-300 mb-3">
-                  ${(((balance?.honors || 0) + (balance?.pendingHonors || 0) + 5450) / 450).toFixed(2)} USD
+                  ${((summary?.honorsEarned || 0) * 0.0022).toFixed(2)} USD
                 </div>
                 <div className="flex items-center text-xs text-blue-400">
                   <span className="mr-1">📊</span>
-                  +45% this month
+                  Total earned
                 </div>
               </div>
 
@@ -190,12 +220,61 @@ export default function WalletPage() {
                   Last: 3 days ago
                 </div>
               </div>
+
+              {/* Crypto Balance Card */}
+              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                    <span className="text-lg">₿</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-orange-400 font-medium">Crypto</div>
+                    <div className="text-xs text-gray-400">Deposited</div>
+                  </div>
+                </div>
+                <div className="mb-2">
+                  <div className="text-3xl font-bold text-white">
+                    {balance?.crypto ?
+                      Object.values(balance.crypto).reduce((sum, val) => sum + (val || 0), 0).toFixed(4) :
+                      '0.0000'
+                    }
+                  </div>
+                  <div className="text-sm text-orange-400">Total Crypto</div>
+                </div>
+                <div className="text-sm text-gray-300 mb-3">
+                  {balance?.crypto && (
+                    <div className="space-y-1">
+                      {Object.entries(balance.crypto).map(([currency, amount]) =>
+                        amount > 0 ? (
+                          <div key={currency} className="text-xs">
+                            {amount.toFixed(4)} {currency}
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center text-xs text-orange-400">
+                  <span className="mr-1">📥</span>
+                  Deposited funds
+                </div>
+              </div>
             </div>
 
             {/* Quick Actions */}
             <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 mb-6 sm:mb-8">
               <h3 className="text-lg font-semibold mb-6">Quick Actions</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button
+                  onClick={() => setShowDepositModal(true)}
+                  className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all duration-200"
+                >
+                  <span className="text-xl">💰</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-sm">Deposit</div>
+                    <div className="text-xs opacity-90">Add crypto</div>
+                  </div>
+                </button>
                 <button
                   onClick={() => setShowWithdrawModal(true)}
                   className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white transition-all duration-200"
@@ -217,20 +296,6 @@ export default function WalletPage() {
                     <div className="text-xs text-gray-400">View insights</div>
                   </div>
                 </button>
-                <button className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-200">
-                  <span className="text-xl">📄</span>
-                  <div className="text-left">
-                    <div className="font-semibold text-sm">Export</div>
-                    <div className="text-xs text-gray-400">Download data</div>
-                  </div>
-                </button>
-                <button className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-200">
-                  <span className="text-xl">⚙️</span>
-                  <div className="text-left">
-                    <div className="font-semibold text-sm">Settings</div>
-                    <div className="text-xs text-gray-400">Preferences</div>
-                  </div>
-                </button>
               </div>
             </div>
 
@@ -241,6 +306,7 @@ export default function WalletPage() {
                 <div className="flex gap-2">
                   <button className="px-3 py-1 rounded-lg bg-white/10 text-xs">All</button>
                   <button className="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Earnings</button>
+                  <button className="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Deposits</button>
                   <button className="px-3 py-1 rounded-lg text-xs text-gray-400 hover:text-white">Withdrawals</button>
                 </div>
               </div>
@@ -267,41 +333,43 @@ export default function WalletPage() {
                           <span className="text-lg">{getTransactionIcon(transaction.type)}</span>
                         </div>
                         <div>
-                          <h4 className="font-semibold text-sm">{transaction.description}</h4>
+                          <h4 className="font-semibold text-sm">{transaction.description || 'Transaction'}</h4>
                           <p className="text-xs text-gray-400">
-                            {new Date(transaction.date).toLocaleDateString()} • {new Date(transaction.date).toLocaleTimeString()}
+                            {transaction.date ?
+                              `${new Date(transaction.date).toLocaleDateString()} • ${new Date(transaction.date).toLocaleTimeString()}` :
+                              'Recent transaction'
+                            }
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-emerald-400">
-                          {transaction.type === 'withdrawn' ? '-' : '+'}{transaction.amount.toLocaleString()}
+                        <div className={`text-lg font-bold ${getTransactionColor(transaction.type)}`}>
+                          {transaction.type === 'withdrawn' ? '-' : '+'}{transaction.amount?.toLocaleString() || '0'}
                         </div>
                         <div className="text-xs text-gray-400">Honors</div>
                       </div>
                     </div>
                   ))}
-
-                  {/* Skeleton loading state */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 animate-pulse">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-white/5"></div>
-                      <div className="space-y-2">
-                        <div className="bg-white/5 h-4 rounded w-32"></div>
-                        <div className="bg-white/5 h-3 rounded w-24"></div>
-                      </div>
-                    </div>
-                    <div className="text-right space-y-2">
-                      <div className="bg-white/5 h-4 rounded w-16 ml-auto"></div>
-                      <div className="bg-white/5 h-3 rounded w-12 ml-auto"></div>
-                    </div>
-                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8 sm:py-12">
-                  <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">📊</div>
+                  <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">💳</div>
                   <h3 className="text-lg sm:text-xl font-semibold mb-2">No transactions yet</h3>
-                  <p className="text-sm sm:text-base text-gray-400">Complete missions to start earning Honors!</p>
+                  <p className="text-sm sm:text-base text-gray-400 mb-4">Your transaction history will appear here once you start earning or spending Honors.</p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button
+                      onClick={() => setTabAndSync('packs')}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm transition-colors"
+                    >
+                      Browse Packs
+                    </button>
+                    <button
+                      onClick={() => window.location.href = '/missions'}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm transition-colors"
+                    >
+                      View Missions
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -375,6 +443,109 @@ export default function WalletPage() {
                 </div>
               </div>
             )}
+
+            {/* Deposit Modal */}
+            {showDepositModal && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="bg-gray-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full border border-gray-700">
+                  <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center">
+                    <span className="mr-2">📥</span>
+                    Deposit Funds
+                  </h3>
+
+                  <div className="space-y-3 sm:space-y-4">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium mb-2">Currency</label>
+                      <select
+                        value={depositCurrency}
+                        onChange={(e) => setDepositCurrency(e.target.value)}
+                        className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg sm:rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                      >
+                        <option value="USDC">USDC</option>
+                        <option value="USDT">USDT</option>
+                        <option value="ETH">ETH</option>
+                        <option value="BTC">BTC</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium mb-2">Amount</label>
+                      <input
+                        type="number"
+                        value={depositAmount}
+                        onChange={(e) => setDepositAmount(e.target.value)}
+                        placeholder={`Enter amount in ${depositCurrency}`}
+                        min="0.000001"
+                        step="0.000001"
+                        className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg sm:rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium mb-2">Transaction Hash</label>
+                      <input
+                        type="text"
+                        value={depositTxHash}
+                        onChange={(e) => setDepositTxHash(e.target.value)}
+                        placeholder="Enter transaction hash from blockchain"
+                        className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg sm:rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium mb-2">Your Wallet Address</label>
+                      <input
+                        type="text"
+                        value={depositAddress}
+                        onChange={(e) => setDepositAddress(e.target.value)}
+                        placeholder="Enter your wallet address"
+                        className="w-full p-3 sm:p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg sm:rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                      />
+                    </div>
+
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-400 text-sm">ℹ️</span>
+                        <div className="text-xs text-blue-300">
+                          <p className="font-medium mb-1">Deposit Instructions:</p>
+                          <ul className="space-y-1 text-blue-200">
+                            <li>• Send {depositCurrency} to your wallet</li>
+                            <li>• Enter the transaction hash from blockchain</li>
+                            <li>• Deposits are converted to Honors automatically</li>
+                            <li>• Processing time: 5-15 minutes</li>
+                            <li>• Minimum deposit: $1 USD worth</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <ModernButton
+                      variant="secondary"
+                      onClick={() => {
+                        setShowDepositModal(false);
+                        setDepositAmount('');
+                        setDepositAddress('');
+                        setDepositTxHash('');
+                      }}
+                      className="flex-1"
+                      disabled={depositProcessing}
+                    >
+                      Cancel
+                    </ModernButton>
+                    <ModernButton
+                      variant="primary"
+                      onClick={handleDeposit}
+                      className="flex-1"
+                      disabled={!depositAmount || !depositAddress.trim() || !depositTxHash.trim() || parseFloat(depositAmount) <= 0 || depositProcessing}
+                    >
+                      {depositProcessing ? 'Processing...' : 'Process Deposit'}
+                    </ModernButton>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -409,12 +580,16 @@ export default function WalletPage() {
               <div className="space-y-4">
                 <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 hover:scale-105 transition-transform">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-sm">Today's Performance</h4>
-                    <span className="text-2xl">📊</span>
+                    <h4 className="font-semibold text-sm">Total Earned</h4>
+                    <span className="text-2xl">💰</span>
                   </div>
-                  <div className="text-2xl font-bold text-teal-400">+125</div>
+                  <div className="text-2xl font-bold text-teal-400">
+                    {summary?.totalEarned ? `+${summary.totalEarned.toLocaleString()}` : '0'}
+                  </div>
                   <div className="text-xs text-gray-400">Honors earned</div>
-                  <div className="mt-2 text-xs text-teal-400">+8% vs yesterday</div>
+                  <div className="mt-2 text-xs text-teal-400">
+                    {summary?.missionsCompleted ? `${summary.missionsCompleted} missions completed` : 'No missions yet'}
+                  </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 hover:scale-105 transition-transform">
@@ -422,19 +597,30 @@ export default function WalletPage() {
                     <h4 className="font-semibold text-sm">Mission Success Rate</h4>
                     <span className="text-2xl">🎯</span>
                   </div>
-                  <div className="text-2xl font-bold text-blue-400">94.2%</div>
+                  <div className="text-2xl font-bold text-blue-400">
+                    {summary?.missionsCompleted && summary?.missionsAttempted ?
+                      `${Math.round((summary.missionsCompleted / summary.missionsAttempted) * 100)}%` :
+                      '0%'
+                    }
+                  </div>
                   <div className="text-xs text-gray-400">Completion rate</div>
-                  <div className="mt-2 text-xs text-blue-400">+2.1% vs last week</div>
+                  <div className="mt-2 text-xs text-blue-400">
+                    {summary?.missionsAttempted ? `${summary.missionsAttempted} total attempts` : 'No attempts yet'}
+                  </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 hover:scale-105 transition-transform">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-sm">Active Missions</h4>
-                    <span className="text-2xl">⚡</span>
+                    <h4 className="font-semibold text-sm">Current Balance</h4>
+                    <span className="text-2xl">💳</span>
                   </div>
-                  <div className="text-2xl font-bold text-purple-400">2</div>
-                  <div className="text-xs text-gray-400">Currently running</div>
-                  <div className="mt-2 text-xs text-purple-400">1 completing soon</div>
+                  <div className="text-2xl font-bold text-purple-400">
+                    {balance?.honors ? balance.honors.toLocaleString() : '0'}
+                  </div>
+                  <div className="text-xs text-gray-400">Honors available</div>
+                  <div className="mt-2 text-xs text-purple-400">
+                    ${balance?.usd ? balance.usd.toFixed(2) : '0.00'} USD
+                  </div>
                 </div>
               </div>
             </div>

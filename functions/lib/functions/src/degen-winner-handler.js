@@ -123,7 +123,25 @@ exports.onDegenWinnersChosen = functions.firestore
                 tasksDone: newTasksDone,
                 updatedAt: new Date()
             });
-            console.log(`Updated user ${winner.userId} stats: +${winner.payout} Honors for task ${winner.taskId}`);
+            // Update wallet balance
+            const walletRef = db.collection('wallets').doc(winner.userId);
+            batch.set(walletRef, {
+                honors: firebaseAdmin.firestore.FieldValue.increment(winner.payout),
+                usd: firebaseAdmin.firestore.FieldValue.increment(winner.payout * 0.0022), // Convert to USD
+                updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            // Create transaction record
+            batch.set(db.collection('transactions').doc(), {
+                user_id: winner.userId,
+                type: 'earned',
+                amount: winner.payout,
+                currency: 'honors',
+                description: `Earned from degen mission completion`,
+                mission_id: missionId,
+                task_id: winner.taskId,
+                created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`Updated user ${winner.userId} stats and wallet: +${winner.payout} Honors for task ${winner.taskId}`);
         }
         // Commit all user stat updates
         await batch.commit();
