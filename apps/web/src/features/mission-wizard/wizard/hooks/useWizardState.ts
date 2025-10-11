@@ -17,7 +17,7 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
-                    
+
                     // Check version compatibility
                     if (parsed.v !== WIZARD_STATE_VERSION) {
                         console.log('Wizard state version mismatch, resetting');
@@ -25,7 +25,7 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
                         sessionStorage.removeItem(WIZARD_STEP_KEY);
                         return INITIAL_WIZARD_STATE;
                     }
-                    
+
                     // Check tab token for multi-tab safety
                     const currentTabToken = sessionStorage.getItem('mission-wizard-tab-token');
                     if (parsed.tabToken && currentTabToken && parsed.tabToken !== currentTabToken) {
@@ -34,13 +34,13 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
                         sessionStorage.removeItem(WIZARD_STEP_KEY);
                         return INITIAL_WIZARD_STATE;
                     }
-                    
+
                     // Set tab token if not exists
                     if (!currentTabToken) {
                         const newTabToken = generateTabToken();
                         sessionStorage.setItem('mission-wizard-tab-token', newTabToken);
                     }
-                    
+
                     return { ...INITIAL_WIZARD_STATE, ...parsed.state };
                 } catch (e) {
                     console.warn('Failed to parse saved wizard state:', e);
@@ -109,13 +109,13 @@ export const useWizardState = (totalSteps: number): WizardContextType => {
     const resetWizard = useCallback((reason: string = 'manual') => {
         setState(INITIAL_WIZARD_STATE);
         setCurrentStep(1);
-        
+
         // Clear sessionStorage
         if (typeof window !== 'undefined') {
             sessionStorage.removeItem(WIZARD_STORAGE_KEY);
             sessionStorage.removeItem(WIZARD_STEP_KEY);
             sessionStorage.removeItem('mission-wizard-tab-token');
-            
+
             // Telemetry: Log wizard reset
             console.log('=== WIZARD RESET TELEMETRY ===');
             console.log('Event: create_wizard_reset');

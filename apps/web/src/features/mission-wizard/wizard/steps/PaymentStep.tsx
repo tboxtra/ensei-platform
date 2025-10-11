@@ -68,9 +68,9 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
             let maxParticipants = 100; // default small
             if (pack.size === 'medium') maxParticipants = 200;
             if (pack.size === 'large') maxParticipants = 500;
-            
+
             // Auto-configure mission settings based on pack
-            updateState({ 
+            updateState({
                 packId,
                 cap: Math.min(state.cap || 100, maxParticipants), // Don't exceed pack limit
                 // Keep existing tasks and other settings
@@ -93,9 +93,9 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                 let maxParticipants = 100; // default small
                 if (pack.size === 'medium') maxParticipants = 200;
                 if (pack.size === 'large') maxParticipants = 500;
-                
+
                 // Auto-configure mission settings based on pack
-                updateState({ 
+                updateState({
                     packId,
                     cap: Math.min(state.cap || 100, maxParticipants), // Don't exceed pack limit
                     // Keep existing tasks and other settings
@@ -119,7 +119,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
 
     // For degen missions, only show single use payment
     const isDegenMission = state.model === 'degen';
-    
+
     return (
         <div className="space-y-6">
             <div className="text-center">
@@ -127,8 +127,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                     {isDegenMission ? 'Payment Required' : 'Payment Options'}
                 </h2>
                 <p className="text-gray-400 text-sm">
-                    {isDegenMission 
-                        ? 'Pay for your degen mission based on duration' 
+                    {isDegenMission
+                        ? 'Pay for your degen mission based on duration'
                         : 'Choose how you want to pay for this mission'
                     }
                 </p>
@@ -227,7 +227,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
 
                                     <div className="font-semibold text-lg mb-1">{pack.label}</div>
                                     <div className="text-sm opacity-90 mb-2">{pack.description}</div>
-                                    
+
                                     {/* Pack Constraints Info */}
                                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-3">
                                         <div className="text-xs text-blue-400 font-medium mb-1">Pack Constraints:</div>
@@ -236,7 +236,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                             <div>• Engagement: {pack.quotas?.likes || 0} likes, {pack.quotas?.retweets || 0} retweets, {pack.quotas?.comments || 0} comments</div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="text-sm mb-2">
                                         <div className="text-xs opacity-75">
                                             Expires: {new Date(entitlement.endsAt).toLocaleDateString()}
@@ -377,7 +377,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <span className="text-green-400">
                                     {state.model === 'fixed'
                                         ? '$10.00'
-                                        : state.selectedDegenPreset?.costUSD 
+                                        : state.selectedDegenPreset?.costUSD
                                             ? `$${state.selectedDegenPreset.costUSD}`
                                             : 'Variable (based on engagement)'
                                     }
@@ -467,7 +467,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                         <span className="font-medium text-green-400">
                                             {state.model === 'fixed'
                                                 ? '$10.00'
-                                                : state.selectedDegenPreset?.costUSD 
+                                                : state.selectedDegenPreset?.costUSD
                                                     ? `$${state.selectedDegenPreset.costUSD}`
                                                     : 'Variable'
                                             }
@@ -487,7 +487,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 const costUSD = state.model === 'fixed' ? 10 : (state.selectedDegenPreset?.costUSD || 0);
                                 const requiredHonors = Math.round(costUSD * 450);
                                 const hasEnoughBalance = balance?.honors && balance.honors >= requiredHonors;
-                                
+
                                 if (!hasEnoughBalance && state.paymentType === 'single-use') {
                                     return (
                                         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
@@ -534,7 +534,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 disabled={isLoading || (() => {
                                     const costUSD = state.model === 'fixed' ? 10 : (state.selectedDegenPreset?.costUSD || 0);
                                     const requiredHonors = Math.round(costUSD * 450);
-                                    return state.paymentType === 'single-use' && balance?.honors && balance.honors < requiredHonors;
+                                    return !!(state.paymentType === 'single-use' && balance?.honors && balance.honors < requiredHonors);
                                 })()}
                                 className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >

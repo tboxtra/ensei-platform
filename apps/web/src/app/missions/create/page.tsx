@@ -18,12 +18,12 @@ export default function CreateMissionPage() {
         // Read URL params first (for prefill)
         const packId = searchParams.get('packId');
         const type = searchParams.get('type');
-        
+
         // Clear sessionStorage wizard state (but preserve other app state)
         sessionStorage.removeItem('mission-wizard-state');
         sessionStorage.removeItem('mission-wizard-step');
         sessionStorage.removeItem('mission-wizard-tab-token');
-        
+
         // Telemetry: Log wizard reset
         console.log('=== WIZARD RESET TELEMETRY ===');
         console.log('Event: create_wizard_reset');
@@ -31,16 +31,16 @@ export default function CreateMissionPage() {
         console.log('URL params:', { packId, type });
         console.log('Timestamp:', new Date().toISOString());
         console.log('=============================');
-        
+
         // Also clear on page unload (when user navigates away)
         const handleBeforeUnload = () => {
             sessionStorage.removeItem('mission-wizard-state');
             sessionStorage.removeItem('mission-wizard-step');
             sessionStorage.removeItem('mission-wizard-tab-token');
         };
-        
+
         window.addEventListener('beforeunload', handleBeforeUnload);
-        
+
         // Cleanup
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
