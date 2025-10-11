@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApi } from '../../../hooks/useApi';
-import { useAuthUser } from '../../../hooks/useAuthUser';
+import { useAuth } from '../../../contexts/AdminAuthContext';
 import { useRouter } from 'next/navigation';
 
 interface PackHealthData {
@@ -38,7 +38,7 @@ interface PackMetricsData {
 
 export default function MonitoringPage() {
     const api = useApi();
-    const { user, loading: authLoading } = useAuthUser();
+    const { user, isLoading: authLoading, isAuthenticated } = useAuth();
     const router = useRouter();
     const [packHealth, setPackHealth] = useState<PackHealthData | null>(null);
     const [packMetrics, setPackMetrics] = useState<PackMetricsData | null>(null);
@@ -47,17 +47,11 @@ export default function MonitoringPage() {
 
     // Authentication check
     useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/auth/login');
+        if (!authLoading && !isAuthenticated) {
+            router.push('/admin');
             return;
         }
-        
-        // Check if user is admin (you can implement your own admin check logic)
-        if (user && !user.isAdmin) {
-            router.push('/dashboard');
-            return;
-        }
-    }, [user, authLoading, router]);
+    }, [isAuthenticated, authLoading, router]);
 
     const fetchMonitoringData = async () => {
         try {
@@ -106,8 +100,8 @@ export default function MonitoringPage() {
         );
     }
 
-    // Don't render if not authenticated or not admin
-    if (!user || !user.isAdmin) {
+    // Don't render if not authenticated
+    if (!isAuthenticated) {
         return null;
     }
 
@@ -137,8 +131,8 @@ export default function MonitoringPage() {
                                 <div className="flex items-center justify-between">
                                     <span className="text-gray-300">Overall Status</span>
                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${packHealth.status === 'healthy'
-                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                            : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                        : 'bg-red-500/20 text-red-300 border border-red-500/30'
                                         }`}>
                                         {packHealth.status.toUpperCase()}
                                     </span>

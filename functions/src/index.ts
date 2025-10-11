@@ -117,8 +117,8 @@ app.get('/health/packs', async (req, res) => {
         { id: 'single_1_medium', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
         { id: 'single_1_large', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
       ];
-      healthChecks.packCatalog = { 
-        status: 'ok', 
+      healthChecks.packCatalog = {
+        status: 'ok',
         count: packCatalog.length,
         expectedCount: 3,
         catalogValid: packCatalog.every(p => p.id && p.priceUsd && p.quotas)
@@ -130,8 +130,8 @@ app.get('/health/packs', async (req, res) => {
     // Test 2: Firestore connectivity
     try {
       const testDoc = await db.collection('health_checks').doc('pack_system').get();
-      healthChecks.firestore = { 
-        status: 'ok', 
+      healthChecks.firestore = {
+        status: 'ok',
         accessible: true,
         readLatency: Date.now() - startTime
       };
@@ -142,8 +142,8 @@ app.get('/health/packs', async (req, res) => {
     // Test 3: Entitlements collection access
     try {
       const entitlementsSnapshot = await db.collection('entitlements').limit(1).get();
-      healthChecks.entitlements = { 
-        status: 'ok', 
+      healthChecks.entitlements = {
+        status: 'ok',
         accessible: true,
         documentCount: entitlementsSnapshot.size
       };
@@ -154,8 +154,8 @@ app.get('/health/packs', async (req, res) => {
     // Test 4: Transactions collection access
     try {
       const transactionsSnapshot = await db.collection('transactions').limit(1).get();
-      healthChecks.transactions = { 
-        status: 'ok', 
+      healthChecks.transactions = {
+        status: 'ok',
         accessible: true,
         documentCount: transactionsSnapshot.size
       };
@@ -167,7 +167,7 @@ app.get('/health/packs', async (req, res) => {
     try {
       const syntheticPack = { id: 'health_check_pack', priceUsd: 0, quotas: { tweets: 1, likes: 1, retweets: 1, comments: 1 } };
       const isValidPack = syntheticPack.id && syntheticPack.priceUsd >= 0 && syntheticPack.quotas;
-      healthChecks.syntheticValidation = { 
+      healthChecks.syntheticValidation = {
         status: isValidPack ? 'ok' : 'error',
         packValid: isValidPack
       };
@@ -1976,30 +1976,30 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
       };
     });
 
-        // Enhanced Telemetry: Log pack purchase for analytics and alerting
-        const telemetryData = {
-            event: 'pack_purchased',
-            userId,
-            packId,
-            packPrice: pack.priceUsd,
-            requiredHonors,
-            entitlementId: result.entitlementId,
-            transactionId: result.transactionId,
-            clientRequestId,
-            timestamp: new Date().toISOString(),
-            latencyMs: Date.now() - startTime,
-            userAgent: req.headers['user-agent'] || 'unknown',
-            ip: req.ip || req.connection.remoteAddress || 'unknown'
-        };
+    // Enhanced Telemetry: Log pack purchase for analytics and alerting
+    const telemetryData = {
+      event: 'pack_purchased',
+      userId,
+      packId,
+      packPrice: pack.priceUsd,
+      requiredHonors,
+      entitlementId: result.entitlementId,
+      transactionId: result.transactionId,
+      clientRequestId,
+      timestamp: new Date().toISOString(),
+      latencyMs: Date.now() - startTime,
+      userAgent: req.headers['user-agent'] || 'unknown',
+      ip: req.ip || req.connection.remoteAddress || 'unknown'
+    };
 
-        console.log('=== PACK PURCHASE TELEMETRY ===');
-        console.log(JSON.stringify(telemetryData, null, 2));
-        console.log('===============================');
+    console.log('=== PACK PURCHASE TELEMETRY ===');
+    console.log(JSON.stringify(telemetryData, null, 2));
+    console.log('===============================');
 
-        // Alert thresholds
-        if (telemetryData.latencyMs > 1500) {
-            console.warn('HIGH_LATENCY_PURCHASE:', telemetryData);
-        }
+    // Alert thresholds
+    if (telemetryData.latencyMs > 1500) {
+      console.warn('HIGH_LATENCY_PURCHASE:', telemetryData);
+    }
 
     res.json({
       success: true,
@@ -2030,7 +2030,7 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
 
     // Alert on critical errors
     if (error instanceof Error && (
-      error.message.includes('insufficient') || 
+      error.message.includes('insufficient') ||
       error.message.includes('balance') ||
       error.message.includes('transaction')
     )) {

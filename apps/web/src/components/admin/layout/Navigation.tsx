@@ -48,6 +48,12 @@ export const Navigation: React.FC = () => {
               Analytics
             </Link>
             <Link
+              href="/admin/monitoring"
+              className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+            >
+              Monitoring
+            </Link>
+            <Link
               href="/admin/settings"
               className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
             >
