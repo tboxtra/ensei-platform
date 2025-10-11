@@ -36,7 +36,7 @@ export function testNormalizationParity() {
 
     // All valid inputs should normalize to the same value
     const validResults = results.filter(r => r.isValid).map(r => r.output);
-    const uniqueOutputs = [...new Set(validResults)];
+    const uniqueOutputs = Array.from(new Set(validResults));
 
     const passed = uniqueOutputs.length === 1 && uniqueOutputs[0] === 'alice123';
 
