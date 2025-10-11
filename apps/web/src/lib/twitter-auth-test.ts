@@ -71,7 +71,8 @@ export function testProfileDataMerging() {
         email: 'user@example.com',
         name: 'Test User',
         twitter: 'old_twitter',
-        twitter_handle: 'old_twitter'
+        twitter_handle: 'old_twitter',
+        twitterUsername: 'old_twitter'
     };
 
     const twitterUsername = 'new_twitter_user';

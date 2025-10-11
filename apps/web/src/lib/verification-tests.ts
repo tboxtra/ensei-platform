@@ -102,6 +102,7 @@ export function testConflictResolutionRules() {
         avatar: 'existing-avatar.jpg',
         twitter_handle: 'existing_twitter',
         twitter: 'existing_twitter',
+        twitterUsername: 'existing_twitter',
         bio: 'Existing bio'
     };
 
@@ -112,6 +113,7 @@ export function testConflictResolutionRules() {
         avatar: 'oauth-avatar.jpg', // Should be ignored (existing is non-empty)
         twitter_handle: 'oauth_twitter', // Should be ignored (existing is non-empty)
         twitter: 'oauth_twitter', // Should be ignored (existing is non-empty)
+        twitterUsername: 'oauth_twitter', // Should be ignored (existing is non-empty)
         firstName: 'OAuth', // Should be filled (existing is empty)
         lastName: 'User' // Should be filled (existing is empty)
     };
