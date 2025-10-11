@@ -1846,6 +1846,7 @@ app.get('/v1/packs', async (req, res) => {
 });
 
 app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) => {
+  const startTime = Date.now();
   try {
     const packId = req.params.id;
     const userId = req.user.uid;

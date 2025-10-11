@@ -111,30 +111,84 @@ const upload = (0, multer_1.default)({
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-// Pack System Health Check
+// Enhanced Pack System Health Check with Synthetic Probes
 app.get('/health/packs', async (req, res) => {
     try {
         const startTime = Date.now();
-        // Test pack catalog access
-        const packCatalog = [
-            { id: 'single_1_small', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
-            { id: 'single_1_medium', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
-            { id: 'single_1_large', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
-        ];
-        // Test Firestore connectivity
-        const testDoc = await db.collection('health_checks').doc('pack_system').get();
-        // Test entitlements collection access
-        const entitlementsSnapshot = await db.collection('entitlements').limit(1).get();
+        const healthChecks = {};
+        // Test 1: Pack catalog access
+        try {
+            const packCatalog = [
+                { id: 'single_1_small', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
+                { id: 'single_1_medium', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
+                { id: 'single_1_large', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
+            ];
+            healthChecks.packCatalog = {
+                status: 'ok',
+                count: packCatalog.length,
+                expectedCount: 3,
+                catalogValid: packCatalog.every(p => p.id && p.priceUsd && p.quotas)
+            };
+        }
+        catch (error) {
+            healthChecks.packCatalog = { status: 'error', error: error.message };
+        }
+        // Test 2: Firestore connectivity
+        try {
+            const testDoc = await db.collection('health_checks').doc('pack_system').get();
+            healthChecks.firestore = {
+                status: 'ok',
+                accessible: true,
+                readLatency: Date.now() - startTime
+            };
+        }
+        catch (error) {
+            healthChecks.firestore = { status: 'error', error: error.message };
+        }
+        // Test 3: Entitlements collection access
+        try {
+            const entitlementsSnapshot = await db.collection('entitlements').limit(1).get();
+            healthChecks.entitlements = {
+                status: 'ok',
+                accessible: true,
+                documentCount: entitlementsSnapshot.size
+            };
+        }
+        catch (error) {
+            healthChecks.entitlements = { status: 'error', error: error.message };
+        }
+        // Test 4: Transactions collection access
+        try {
+            const transactionsSnapshot = await db.collection('transactions').limit(1).get();
+            healthChecks.transactions = {
+                status: 'ok',
+                accessible: true,
+                documentCount: transactionsSnapshot.size
+            };
+        }
+        catch (error) {
+            healthChecks.transactions = { status: 'error', error: error.message };
+        }
+        // Test 5: Synthetic pack validation
+        try {
+            const syntheticPack = { id: 'health_check_pack', priceUsd: 0, quotas: { tweets: 1, likes: 1, retweets: 1, comments: 1 } };
+            const isValidPack = syntheticPack.id && syntheticPack.priceUsd >= 0 && syntheticPack.quotas;
+            healthChecks.syntheticValidation = {
+                status: isValidPack ? 'ok' : 'error',
+                packValid: isValidPack
+            };
+        }
+        catch (error) {
+            healthChecks.syntheticValidation = { status: 'error', error: error.message };
+        }
         const responseTime = Date.now() - startTime;
+        const overallStatus = Object.values(healthChecks).every((check) => check.status === 'ok') ? 'healthy' : 'unhealthy';
         res.json({
-            status: 'healthy',
+            status: overallStatus,
             timestamp: new Date().toISOString(),
-            checks: {
-                packCatalog: { status: 'ok', count: packCatalog.length },
-                firestore: { status: 'ok', responseTime: `${responseTime}ms` },
-                entitlements: { status: 'ok', accessible: true }
-            },
-            responseTime: `${responseTime}ms`
+            checks: healthChecks,
+            responseTime: `${responseTime}ms`,
+            version: '1.0.0'
         });
     }
     catch (error) {
@@ -142,7 +196,8 @@ app.get('/health/packs', async (req, res) => {
         res.status(500).json({
             status: 'unhealthy',
             timestamp: new Date().toISOString(),
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
+            version: '1.0.0'
         });
     }
 });
@@ -1630,6 +1685,7 @@ app.get('/v1/packs', async (req, res) => {
     }
 });
 app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
+    const startTime = Date.now();
     try {
         const packId = req.params.id;
         const userId = req.user.uid;
@@ -1743,18 +1799,28 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
                 transactionId: transactionRef.id
             };
         });
-        // Telemetry: Log pack purchase for analytics
+        // Enhanced Telemetry: Log pack purchase for analytics and alerting
+        const telemetryData = {
+            event: 'pack_purchased',
+            userId,
+            packId,
+            packPrice: pack.priceUsd,
+            requiredHonors,
+            entitlementId: result.entitlementId,
+            transactionId: result.transactionId,
+            clientRequestId,
+            timestamp: new Date().toISOString(),
+            latencyMs: Date.now() - startTime,
+            userAgent: req.headers['user-agent'] || 'unknown',
+            ip: req.ip || req.connection.remoteAddress || 'unknown'
+        };
         console.log('=== PACK PURCHASE TELEMETRY ===');
-        console.log('Event: pack_purchased');
-        console.log('UserId:', userId);
-        console.log('PackId:', packId);
-        console.log('PackPrice:', pack.priceUsd);
-        console.log('RequiredHonors:', requiredHonors);
-        console.log('EntitlementId:', result.entitlementId);
-        console.log('TransactionId:', result.transactionId);
-        console.log('ClientRequestId:', clientRequestId);
-        console.log('Timestamp:', new Date().toISOString());
+        console.log(JSON.stringify(telemetryData, null, 2));
         console.log('===============================');
+        // Alert thresholds
+        if (telemetryData.latencyMs > 1500) {
+            console.warn('HIGH_LATENCY_PURCHASE:', telemetryData);
+        }
         res.json({
             success: true,
             message: 'Pack purchased successfully',
@@ -1764,14 +1830,27 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
     }
     catch (error) {
         console.error('Error purchasing pack:', error);
-        // Telemetry: Log pack purchase error for analytics
+        // Enhanced Error Telemetry: Log pack purchase failure for analytics and alerting
+        const errorTelemetryData = {
+            event: 'pack_purchase_failed',
+            userId: req.user?.uid || 'unknown',
+            packId: req.params.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            errorStack: error instanceof Error ? error.stack : undefined,
+            clientRequestId: req.body?.clientRequestId,
+            timestamp: new Date().toISOString(),
+            userAgent: req.headers['user-agent'] || 'unknown',
+            ip: req.ip || req.connection?.remoteAddress || 'unknown'
+        };
         console.log('=== PACK PURCHASE ERROR TELEMETRY ===');
-        console.log('Event: pack_purchase_failed');
-        console.log('UserId:', req.user?.uid || 'unknown');
-        console.log('PackId:', req.params.id);
-        console.log('Error:', error.message || 'Unknown error');
-        console.log('Timestamp:', new Date().toISOString());
+        console.log(JSON.stringify(errorTelemetryData, null, 2));
         console.log('=====================================');
+        // Alert on critical errors
+        if (error instanceof Error && (error.message.includes('insufficient') ||
+            error.message.includes('balance') ||
+            error.message.includes('transaction'))) {
+            console.error('CRITICAL_PURCHASE_ERROR:', errorTelemetryData);
+        }
         res.status(500).json({ error: 'Internal server error' });
     }
 });
