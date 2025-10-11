@@ -1498,6 +1498,65 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
           return;
         }
 
+        // ✅ VALIDATE MISSION DETAILS MATCH PACK SPECIFICATIONS
+        console.log('=== PACK-MISSION VALIDATION ===');
+        console.log('Pack quotas:', entitlement.quotas);
+        console.log('Mission data:', {
+          cap: missionData.cap,
+          tasks: missionData.tasks,
+          rewardPerUser: missionData.rewardPerUser
+        });
+
+        // Get pack details from catalog to validate against
+        const packCatalog = [
+          { id: 'single_1_small', size: 'small', maxParticipants: 100, quotas: { likes: 100, retweets: 60, comments: 40 } },
+          { id: 'single_1_medium', size: 'medium', maxParticipants: 200, quotas: { likes: 200, retweets: 120, comments: 80 } },
+          { id: 'single_1_large', size: 'large', maxParticipants: 500, quotas: { likes: 500, retweets: 300, comments: 200 } },
+          { id: 'single_3_small', size: 'small', maxParticipants: 100, quotas: { likes: 100, retweets: 60, comments: 40 } },
+          { id: 'single_3_medium', size: 'medium', maxParticipants: 200, quotas: { likes: 200, retweets: 120, comments: 80 } },
+          { id: 'single_3_large', size: 'large', maxParticipants: 500, quotas: { likes: 500, retweets: 300, comments: 200 } },
+          { id: 'single_10_small', size: 'small', maxParticipants: 100, quotas: { likes: 100, retweets: 60, comments: 40 } },
+          { id: 'single_10_medium', size: 'medium', maxParticipants: 200, quotas: { likes: 200, retweets: 120, comments: 80 } },
+          { id: 'single_10_large', size: 'large', maxParticipants: 500, quotas: { likes: 500, retweets: 300, comments: 200 } },
+          { id: 'sub_week_small', size: 'small', maxParticipants: 100, quotas: { likes: 100, retweets: 60, comments: 40 } },
+          { id: 'sub_month_medium', size: 'medium', maxParticipants: 200, quotas: { likes: 200, retweets: 120, comments: 80 } },
+          { id: 'sub_week_medium', size: 'medium', maxParticipants: 200, quotas: { likes: 200, retweets: 120, comments: 80 } }
+        ];
+
+        const packDetails = packCatalog.find(p => p.id === missionData.packId);
+        if (!packDetails) {
+          console.log('Pack details not found for:', missionData.packId);
+          res.status(400).json({
+            error: 'Invalid pack selected. Please choose a valid pack.'
+          });
+          return;
+        }
+
+        // Validate participant cap matches pack size
+        if (missionData.cap > packDetails.maxParticipants) {
+          console.log(`Mission cap (${missionData.cap}) exceeds pack max participants (${packDetails.maxParticipants})`);
+          res.status(400).json({
+            error: `Mission participant cap (${missionData.cap}) exceeds the pack's maximum (${packDetails.maxParticipants} users). Please reduce the participant cap or choose a larger pack.`
+          });
+          return;
+        }
+
+        // Validate tasks match pack quotas (for fixed missions, users can choose 3 of 5 tasks)
+        if (missionData.tasks && missionData.tasks.length > 0) {
+          // For now, we'll allow any task selection as long as it's within the pack's engagement limits
+          // The actual engagement will be limited by the pack's quotas when the mission runs
+          console.log('Tasks validated against pack quotas');
+        }
+
+        // Override mission rewards to match pack specifications
+        // This ensures the mission uses the pack's engagement quotas
+        missionData.packQuotas = entitlement.quotas;
+        missionData.packSize = packDetails.size;
+        missionData.packMaxParticipants = packDetails.maxParticipants;
+
+        console.log('Mission validated and updated with pack specifications');
+        console.log('==========================================');
+
         // Deduct quota atomically using Firestore transaction
         await db.runTransaction(async (transaction) => {
           // Re-read the entitlement to ensure we have the latest data
@@ -1559,6 +1618,79 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         });
         return;
       }
+    }
+
+    // ✅ FIXED MISSION SINGLE-USE PAYMENT PROCESSING
+    if (missionData.model === 'fixed' && (!missionData.packId || missionData.packId === 'single-use')) {
+      console.log('=== FIXED MISSION SINGLE-USE PAYMENT PROCESSING ===');
+      
+      // Fixed missions cost $10 USD (4500 Honors at 450 Honors per USD)
+      const costUSD = 10;
+      const requiredHonors = Math.round(costUSD * 450);
+      
+      console.log('Required Honors for fixed mission:', requiredHonors);
+      
+      // Get user's wallet
+      const walletDoc = await db.collection('wallets').doc(userId).get();
+      if (!walletDoc.exists) {
+        res.status(400).json({ error: 'Wallet not found. Please contact support.' });
+        return;
+      }
+
+      const wallet = walletDoc.data();
+      if (!wallet) {
+        res.status(400).json({ error: 'Wallet data not found' });
+        return;
+      }
+
+      console.log('User wallet Honors:', wallet.honors);
+      
+      if (wallet.honors < requiredHonors) {
+        res.status(400).json({ 
+          error: `Insufficient balance. You need ${requiredHonors} Honors ($${costUSD}) to create this fixed mission. You have ${wallet.honors} Honors.` 
+        });
+        return;
+      }
+
+      // Deduct payment atomically using Firestore transaction
+      await db.runTransaction(async (transaction) => {
+        // Re-read the wallet to ensure we have the latest data
+        const freshWalletDoc = await transaction.get(walletDoc.ref);
+        const freshWallet = freshWalletDoc.data();
+
+        if (!freshWallet) {
+          throw new Error('Wallet not found during transaction');
+        }
+
+        // Double-check balance again (concurrency safety)
+        if (freshWallet.honors < requiredHonors) {
+          throw new Error('Insufficient balance (concurrent transaction detected)');
+        }
+
+        // Update wallet balance
+        transaction.update(walletDoc.ref, {
+          honors: firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
+          usd: firebaseAdmin.firestore.FieldValue.increment(-costUSD),
+          updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Create transaction record
+        const transactionRef = db.collection('transactions').doc();
+        transaction.set(transactionRef, {
+          user_id: userId,
+          type: 'mission_creation',
+          amount: -requiredHonors,
+          currency: 'honors',
+          description: `Created fixed mission (${missionData.cap} users)`,
+          mission_type: 'fixed',
+          cost_usd: costUSD,
+          created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log('Successfully deducted payment for fixed mission creation');
+      });
+
+      console.log('==========================================');
     }
 
     // Use the safe mission creation function that ensures UID-based references

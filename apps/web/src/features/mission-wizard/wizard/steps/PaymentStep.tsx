@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { WizardState } from '../types/wizard.types';
 import { usePacks } from '../../../../hooks/useApi';
 
@@ -21,6 +22,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     onReset,
     isLoading = false,
 }) => {
+    const router = useRouter();
     const { packs, entitlements, purchasePack, loading: packsLoading, error: packsError } = usePacks();
     const [purchasing, setPurchasing] = useState(false);
     const [purchaseError, setPurchaseError] = useState<string | null>(null);
@@ -57,7 +59,23 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     };
 
     const handlePackSelect = (packId: string) => {
-        updateState({ packId });
+        // Get pack details to auto-configure mission settings
+        const pack = packs.find(p => p.id === packId);
+        if (pack) {
+            // Determine participant cap based on pack size
+            let maxParticipants = 100; // default small
+            if (pack.size === 'medium') maxParticipants = 200;
+            if (pack.size === 'large') maxParticipants = 500;
+            
+            // Auto-configure mission settings based on pack
+            updateState({ 
+                packId,
+                cap: Math.min(state.cap || 100, maxParticipants), // Don't exceed pack limit
+                // Keep existing tasks and other settings
+            });
+        } else {
+            updateState({ packId });
+        }
         setPurchaseError(null);
     };
 
@@ -66,14 +84,35 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
         setPurchaseError(null);
         try {
             await purchasePack(packId);
-            // Pack purchased successfully, update state
-            updateState({ packId });
+            // Pack purchased successfully, update state with pack-specific settings
+            const pack = packs.find(p => p.id === packId);
+            if (pack) {
+                // Determine participant cap based on pack size
+                let maxParticipants = 100; // default small
+                if (pack.size === 'medium') maxParticipants = 200;
+                if (pack.size === 'large') maxParticipants = 500;
+                
+                // Auto-configure mission settings based on pack
+                updateState({ 
+                    packId,
+                    cap: Math.min(state.cap || 100, maxParticipants), // Don't exceed pack limit
+                    // Keep existing tasks and other settings
+                });
+            } else {
+                updateState({ packId });
+            }
         } catch (error) {
             console.error('Pack purchase failed:', error);
             setPurchaseError(error instanceof Error ? error.message : 'Failed to purchase pack');
         } finally {
             setPurchasing(false);
         }
+    };
+
+    const handleBuyPackRedirect = () => {
+        // Redirect to packs page with a return URL
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        router.push(`/wallet?tab=packs&return=${returnUrl}`);
     };
 
     // For degen missions, only show single use payment
@@ -186,6 +225,16 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
 
                                     <div className="font-semibold text-lg mb-1">{pack.label}</div>
                                     <div className="text-sm opacity-90 mb-2">{pack.description}</div>
+                                    
+                                    {/* Pack Constraints Info */}
+                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-3">
+                                        <div className="text-xs text-blue-400 font-medium mb-1">Pack Constraints:</div>
+                                        <div className="text-xs text-blue-300 space-y-1">
+                                            <div>• Max Participants: {pack.size === 'small' ? '100' : pack.size === 'medium' ? '200' : '500'} users</div>
+                                            <div>• Engagement: {pack.quotas?.likes || 0} likes, {pack.quotas?.retweets || 0} retweets, {pack.quotas?.comments || 0} comments</div>
+                                        </div>
+                                    </div>
+                                    
                                     <div className="text-sm mb-2">
                                         <div className="text-xs opacity-75">
                                             Expires: {new Date(entitlement.endsAt).toLocaleDateString()}

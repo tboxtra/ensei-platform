@@ -521,8 +521,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchaseClick('single_3_small')}
+                                disabled={purchasing === 'single_3_small' || purchaseInProgress}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_3_small' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
 
@@ -571,8 +575,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-teal-400">Save $8.00 (17%)</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchaseClick('single_3_medium')}
+                                disabled={purchasing === 'single_3_medium' || purchaseInProgress}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_3_medium' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
 
@@ -618,8 +626,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchaseClick('single_3_large')}
+                                disabled={purchasing === 'single_3_large' || purchaseInProgress}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_3_large' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
                     </div>
@@ -674,8 +686,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchaseClick('single_10_small')}
+                                disabled={purchasing === 'single_10_small' || purchaseInProgress}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_10_small' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
 
@@ -721,8 +737,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchaseClick('single_10_medium')}
+                                disabled={purchasing === 'single_10_medium' || purchaseInProgress}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_10_medium' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
 
@@ -768,8 +788,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-gray-400">One-time purchase</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200">
-                                Purchase Pack
+                            <button 
+                                onClick={() => handlePurchaseClick('single_10_large')}
+                                disabled={purchasing === 'single_10_large' || purchaseInProgress}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'single_10_large' ? 'Purchasing...' : 'Purchase Pack'}
                             </button>
                         </div>
                     </div>
@@ -885,8 +909,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-teal-400">Save 9% vs weekly</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200">
-                                Start Monthly Plan
+                            <button 
+                                onClick={() => handlePurchaseClick('sub_month_medium')}
+                                disabled={purchasing === 'sub_month_medium' || purchaseInProgress}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'sub_month_medium' ? 'Starting...' : 'Start Monthly Plan'}
                             </button>
                         </div>
 
@@ -916,8 +944,12 @@ export default function Packs({ onPurchased }: Props) {
                                 <div className="text-xs text-teal-400">Cancel anytime</div>
                             </div>
 
-                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200">
-                                Start Weekly Plan
+                            <button 
+                                onClick={() => handlePurchaseClick('sub_week_medium')}
+                                disabled={purchasing === 'sub_week_medium' || purchaseInProgress}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {purchasing === 'sub_week_medium' ? 'Starting...' : 'Start Weekly Plan'}
                             </button>
                         </div>
                     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { MissionWizard } from '../../../features/mission-wizard/wizard';
@@ -9,6 +9,25 @@ export default function CreateMissionPage() {
     const { createMission, loading, error } = useApi();
     const [success, setSuccess] = useState(false);
     const [createdMissionId, setCreatedMissionId] = useState<string | null>(null);
+
+    // Clear wizard state on page load to ensure fresh start
+    useEffect(() => {
+        localStorage.removeItem('mission-wizard-state');
+        localStorage.removeItem('mission-wizard-step');
+        
+        // Also clear on page unload (when user navigates away)
+        const handleBeforeUnload = () => {
+            localStorage.removeItem('mission-wizard-state');
+            localStorage.removeItem('mission-wizard-step');
+        };
+        
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        
+        // Cleanup
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, []);
 
     const handleWizardSubmit = async (missionData: any) => {
         try {
