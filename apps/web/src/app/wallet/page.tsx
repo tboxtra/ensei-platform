@@ -24,7 +24,7 @@ export default function WalletPage() {
     fetchBalance();
     fetchTransactions();
     fetchSummary();
-  }, [fetchBalance, fetchTransactions, fetchSummary]);
+  }, []); // Remove dependencies to prevent flickering
 
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -128,7 +128,7 @@ export default function WalletPage() {
         {tab === 'wallet' && (
           <>
             {/* Balance Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
@@ -154,29 +154,6 @@ export default function WalletPage() {
 
               <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                    <span className="text-lg">⏳</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-indigo-400 font-medium">Pending</div>
-                    <div className="text-xs text-gray-400">Processing</div>
-                  </div>
-                </div>
-                <div className="mb-2">
-                  <div className="text-3xl font-bold text-white">0</div>
-                  <div className="text-sm text-indigo-400">Honors</div>
-                </div>
-                <div className="text-sm text-gray-300 mb-3">
-                  $0.00 USD
-                </div>
-                <div className="flex items-center text-xs text-indigo-400">
-                  <span className="mr-1">⏱</span>
-                  No pending rewards
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
                   <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
                     <span className="text-lg">📈</span>
                   </div>
@@ -195,29 +172,6 @@ export default function WalletPage() {
                 <div className="flex items-center text-xs text-blue-400">
                   <span className="mr-1">📊</span>
                   Total earned
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <span className="text-lg">💸</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-purple-400 font-medium">Withdrawn</div>
-                    <div className="text-xs text-gray-400">Total (all-time)</div>
-                  </div>
-                </div>
-                <div className="mb-2">
-                  <div className="text-3xl font-bold text-white">1,200</div>
-                  <div className="text-sm text-purple-400">Honors</div>
-                </div>
-                <div className="text-sm text-gray-300 mb-3">
-                  $2.67 USD
-                </div>
-                <div className="flex items-center text-xs text-purple-400">
-                  <span className="mr-1">💳</span>
-                  Last: 3 days ago
                 </div>
               </div>
 
@@ -355,21 +309,7 @@ export default function WalletPage() {
                 <div className="text-center py-8 sm:py-12">
                   <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">💳</div>
                   <h3 className="text-lg sm:text-xl font-semibold mb-2">No transactions yet</h3>
-                  <p className="text-sm sm:text-base text-gray-400 mb-4">Your transaction history will appear here once you start earning or spending Honors.</p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <button
-                      onClick={() => setTabAndSync('packs')}
-                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm transition-colors"
-                    >
-                      Browse Packs
-                    </button>
-                    <button
-                      onClick={() => window.location.href = '/missions'}
-                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm transition-colors"
-                    >
-                      View Missions
-                    </button>
-                  </div>
+                  <p className="text-sm sm:text-base text-gray-400">Your transaction history will appear here once you start earning or spending Honors.</p>
                 </div>
               )}
             </div>
