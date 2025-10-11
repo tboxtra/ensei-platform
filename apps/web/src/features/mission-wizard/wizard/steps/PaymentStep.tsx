@@ -38,8 +38,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     );
 
     // Feature flags for rollback/guardrails
-    const SHOW_ACTIVE_ENTITLEMENTS = true; // Can be toggled to false for rollback
-    const ENABLE_PACK_PURCHASE = !packsError; // Disable purchase if API fails
+    const SHOW_ACTIVE_ENTITLEMENTS = process.env.NEXT_PUBLIC_SHOW_ACTIVE_ENTITLEMENTS !== 'false'; // Default ON, can be disabled
+    const ENABLE_PACK_PURCHASE = !packsError && process.env.NEXT_PUBLIC_ENABLE_PACK_PURCHASE !== 'false'; // Default ON, can be disabled
 
     // Fallback catalog for when API is unreachable
     const FALLBACK_PACKS = [
@@ -146,10 +146,10 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                     {/* Status Badge */}
                                     <div className="flex justify-between items-start mb-4">
                                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${remainingQuota > 5
-                                                ? 'bg-emerald-400/15 text-emerald-300 border border-emerald-400/30'
-                                                : remainingQuota > 0
-                                                    ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
-                                                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                            ? 'bg-emerald-400/15 text-emerald-300 border border-emerald-400/30'
+                                            : remainingQuota > 0
+                                                ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
+                                                : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                                             }`}>
                                             {remainingQuota > 5 ? 'ACTIVE' : remainingQuota > 0 ? 'LOW QUOTA' : 'EXHAUSTED'}
                                         </span>
@@ -219,6 +219,11 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
                             <p className="text-amber-400 text-sm mb-2">Using offline pack catalog. Purchase is temporarily disabled.</p>
                             <p className="text-amber-300 text-xs">You can still use &quot;Single Use&quot; payment for this mission.</p>
+                        </div>
+                    ) : !ENABLE_PACK_PURCHASE ? (
+                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                            <p className="text-blue-400 text-sm mb-2">Pack purchases are temporarily disabled for maintenance.</p>
+                            <p className="text-blue-300 text-xs">You can still use &quot;Single Use&quot; payment for this mission.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
