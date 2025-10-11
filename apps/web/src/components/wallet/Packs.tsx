@@ -42,51 +42,51 @@ export default function Packs({ onPurchased }: Props) {
     const handlePurchaseClick = (packId: string) => {
         // Prevent opening modal if purchase is in progress
         if (purchaseInProgress) return
-        
+
         // Find the pack details
         const pack = displayPacks.find(p => p.id === packId) || {
             id: packId,
-            label: packId === 'single_1_small' ? 'Growth Sprout' : 
-                   packId === 'single_1_medium' ? 'Engagement Boost' : 
-                   packId === 'single_1_large' ? 'Viral Explosion' : 'Pack',
-            priceUsd: packId === 'single_1_small' ? 10 : 
-                     packId === 'single_1_medium' ? 15 : 
-                     packId === 'single_1_large' ? 25 : 0,
+            label: packId === 'single_1_small' ? 'Growth Sprout' :
+                packId === 'single_1_medium' ? 'Engagement Boost' :
+                    packId === 'single_1_large' ? 'Viral Explosion' : 'Pack',
+            priceUsd: packId === 'single_1_small' ? 10 :
+                packId === 'single_1_medium' ? 15 :
+                    packId === 'single_1_large' ? 25 : 0,
             description: 'Engagement pack for mission creation'
         }
-        
+
         setPackToPurchase(pack)
         setShowPurchaseModal(true)
         setPurchaseError(null)
-        
+
         // Log modal opened for telemetry
         console.log('pack_modal_opened', { packId, priceUsd: pack.priceUsd })
     }
 
     const handlePurchaseConfirm = async () => {
         if (!packToPurchase || purchaseInProgress) return
-        
+
         setPurchaseInProgress(true)
         setPurchasing(packToPurchase.id)
         setPurchaseError(null)
         setPurchaseSuccess(null)
         setShowPurchaseModal(false)
-        
+
         // Log purchase confirmed for telemetry
-        console.log('pack_purchase_confirmed', { 
-            packId: packToPurchase.id, 
+        console.log('pack_purchase_confirmed', {
+            packId: packToPurchase.id,
             priceUsd: packToPurchase.priceUsd,
             timestamp: new Date().toISOString()
         })
-        
+
         try {
             await purchasePack(packToPurchase.id)
             setPurchaseSuccess(`Successfully purchased ${packToPurchase.label}!`)
             onPurchased?.()
 
             // Log successful purchase
-            console.log('pack_purchase_succeeded', { 
-                packId: packToPurchase.id, 
+            console.log('pack_purchase_succeeded', {
+                packId: packToPurchase.id,
                 priceUsd: packToPurchase.priceUsd,
                 timestamp: new Date().toISOString()
             })
@@ -95,14 +95,14 @@ export default function Packs({ onPurchased }: Props) {
             setTimeout(() => setPurchaseSuccess(null), 5000)
         } catch (error) {
             // Log failed purchase
-            console.log('pack_purchase_failed', { 
-                packId: packToPurchase.id, 
+            console.log('pack_purchase_failed', {
+                packId: packToPurchase.id,
                 priceUsd: packToPurchase.priceUsd,
                 error: error instanceof Error ? error.message : 'Unknown error',
                 timestamp: new Date().toISOString()
             })
             let errorMessage = 'Couldn\'t complete purchase. Check your connection and try again.'
-            
+
             if (error instanceof Error) {
                 // Map specific error messages to user-friendly copy
                 if (error.message.includes('Insufficient balance') || error.message.includes('402') || error.message.includes('422')) {
@@ -121,7 +121,7 @@ export default function Packs({ onPurchased }: Props) {
                     errorMessage = 'Couldn\'t complete purchase. Check your connection and try again.'
                 }
             }
-            
+
             setPurchaseError(errorMessage)
         } finally {
             setPurchasing(null)
@@ -229,10 +229,25 @@ export default function Packs({ onPurchased }: Props) {
             )}
 
             {purchaseSuccess && (
-                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                    <p className="text-green-400 text-sm">
-                        ✅ {purchaseSuccess}
-                    </p>
+                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg mb-6">
+                    <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-lg">✅</span>
+                        <div className="flex-1">
+                            <p className="text-green-400 font-medium mb-2">{purchaseSuccess}</p>
+                            <a 
+                                href="/missions/create?type=fixed&packId=active"
+                                className="inline-flex items-center gap-1 text-green-300 hover:text-green-200 text-sm font-medium transition-colors"
+                            >
+                                Use in a mission →
+                            </a>
+                        </div>
+                        <button
+                            onClick={() => setPurchaseSuccess(null)}
+                            className="text-green-400 hover:text-green-300 text-sm"
+                        >
+                            ✕
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -911,7 +926,7 @@ export default function Packs({ onPurchased }: Props) {
 
             {/* Purchase Confirmation Modal */}
             {showPurchaseModal && packToPurchase && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                     role="dialog"
                     aria-labelledby="purchase-modal-title"
@@ -932,7 +947,7 @@ export default function Packs({ onPurchased }: Props) {
                                 <h4 className="font-semibold text-white">{packToPurchase.label}</h4>
                                 <span className="text-emerald-400 font-bold">Total: ${packToPurchase.priceUsd}</span>
                             </div>
-                            
+
                             {/* What's Included */}
                             <div className="space-y-2">
                                 <p className="text-xs text-gray-500">Includes per-tweet quota:</p>
