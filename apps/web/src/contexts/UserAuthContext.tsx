@@ -79,8 +79,8 @@ export const UserAuthProvider: React.FC<UserAuthProviderProps> = ({ children }) 
                 const profileData = await profileResponse.json();
                 // Merge profile data into store (preserve existing user data)
                 setStoreUser({
-                    twitter: profileData.twitter || '',
-                    twitter_handle: profileData.twitter_handle || '',
+                    twitter: profileData.twitter || profileData.twitter_handle || '',
+                    twitter_handle: profileData.twitter_handle || profileData.twitter || '',
                     updated_at: profileData.updated_at || new Date().toISOString(),
                 });
             }

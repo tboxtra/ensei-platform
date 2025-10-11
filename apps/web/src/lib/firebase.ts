@@ -1,7 +1,7 @@
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, connectAuthEmulator, sendEmailVerification, applyActionCode, checkActionCode, setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, TwitterAuthProvider, connectAuthEmulator, sendEmailVerification, applyActionCode, checkActionCode, setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
@@ -135,6 +135,7 @@ if (typeof window !== "undefined") {
 }
 
 export const googleProvider = new GoogleAuthProvider();
+export const twitterProvider = new TwitterAuthProvider();
 
 // Email verification utilities
 export const sendVerificationEmail = async (user: any) => {

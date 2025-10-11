@@ -6,9 +6,10 @@ import Link from 'next/link';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { ModernCard } from '../../../components/ui/ModernCard';
 import { ModernButton } from '../../../components/ui/ModernButton';
-import { getFirebaseAuth, googleProvider } from '../../../lib/firebase';
+import { getFirebaseAuth, googleProvider, twitterProvider } from '../../../lib/firebase';
 import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '../../../contexts/UserAuthContext';
+import { validateUsername } from '../../../lib/validation';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -77,42 +78,147 @@ export default function LoginPage() {
         setLoading(true);
         setApiError('');
 
+        // Simple rate limiting check (can be enhanced later)
+        const lastAttempt = localStorage.getItem('lastOAuthAttempt');
+        const now = Date.now();
+        if (lastAttempt && (now - parseInt(lastAttempt)) < 5000) { // 5 second cooldown
+            setApiError('Please wait a moment before trying again.');
+            setLoading(false);
+            return;
+        }
+        localStorage.setItem('lastOAuthAttempt', now.toString());
+
+        // Log OAuth start
+        console.log('OAuth start logged:', {
+            event: 'oauth_twitter_start',
+            provider: provider,
+            timestamp: new Date().toISOString()
+        });
+
         try {
+            const auth = getFirebaseAuth();
+            let result;
+            let user;
+
             if (provider === 'google') {
-                const auth = getFirebaseAuth();
-                const result = await signInWithPopup(auth, googleProvider);
-                const user = result.user;
-
-                // Get the ID token
-                const token = await user.getIdToken();
-
-                localStorage.setItem('user', JSON.stringify({
-                    id: user.uid,
-                    email: user.email,
-                    name: user.displayName || user.email?.split('@')[0] || 'User',
-                    avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
-                    joinedAt: new Date().toISOString()
-                }));
-
-                // Store the Firebase token
-                localStorage.setItem('firebaseToken', token);
-
-                router.push('/dashboard');
-                return;
+                result = await signInWithPopup(auth, googleProvider);
+                user = result.user;
+            } else if (provider === 'twitter') {
+                result = await signInWithPopup(auth, twitterProvider);
+                user = result.user;
+            } else {
+                throw new Error('Unsupported provider');
             }
+
+            // Get the ID token
+            const token = await user.getIdToken();
+
+            // Extract and validate Twitter username from provider data if available
+            let twitterUsername = '';
+            if (provider === 'twitter' && result.additionalUserInfo?.username) {
+                const validation = validateUsername(result.additionalUserInfo.username, 'twitter');
+                if (validation.isValid && validation.data?.username) {
+                    twitterUsername = validation.data.username;
+                }
+            }
+
+            // Get existing user data from localStorage
+            const existingUserData = JSON.parse(localStorage.getItem('user') || '{}');
+
+            // Create user data with Twitter username if available
+            const userData = {
+                id: user.uid,
+                email: user.email,
+                name: user.displayName || user.email?.split('@')[0] || 'User',
+                avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
+                joinedAt: existingUserData.joinedAt || new Date().toISOString(),
+                ...(twitterUsername && { twitterUsername, twitter_handle: twitterUsername, twitter: twitterUsername })
+            };
+
+            // Merge with existing data to preserve any existing Twitter info (conflict resolution)
+            const mergedUserData = {
+                ...existingUserData,
+                ...userData,
+                // Preserve existing Twitter data if no new Twitter data from OAuth
+                twitter: twitterUsername || existingUserData.twitter || '',
+                twitter_handle: twitterUsername || existingUserData.twitter_handle || '',
+                twitterUsername: twitterUsername || existingUserData.twitterUsername || ''
+            };
+
+            localStorage.setItem('user', JSON.stringify(mergedUserData));
+
+            // Store the Firebase token
+            localStorage.setItem('firebaseToken', token);
+
+            // If Twitter login, update profile with Twitter username
+            if (provider === 'twitter' && twitterUsername) {
+                try {
+                    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
+                    await fetch(`${API_BASE_URL}/v1/user/profile`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            twitter_handle: twitterUsername,
+                            twitter: twitterUsername
+                        })
+                    });
+
+                    // Log successful profile sync
+                    console.log('OAuth success logged:', {
+                        event: 'oauth_twitter_success',
+                        provider: provider,
+                        hasTwitterHandle: !!twitterUsername,
+                        timestamp: new Date().toISOString()
+                    });
+                } catch (profileError) {
+                    console.warn('Failed to update profile with Twitter username:', profileError);
+                    // Don't block login if profile update fails
+                }
+            } else {
+                // Log successful OAuth without Twitter handle
+                console.log('OAuth success logged:', {
+                    event: 'oauth_twitter_success',
+                    provider: provider,
+                    hasTwitterHandle: false,
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            router.push('/dashboard');
+            return;
         } catch (err: any) {
             console.error('Firebase social login failed:', err);
             let errorMessage = 'Social login failed';
+            let showLinkOption = false;
 
             if (err.code === 'auth/popup-closed-by-user') {
                 errorMessage = 'Login popup was closed';
             } else if (err.code === 'auth/popup-blocked') {
-                errorMessage = 'Login popup was blocked by browser';
+                errorMessage = 'Login popup was blocked by browser. Please allow popups and try again.';
+            } else if (err.code === 'auth/account-exists-with-different-credential') {
+                errorMessage = 'An account already exists with this email using a different sign-in method.';
+                showLinkOption = true;
+            } else if (err.code === 'auth/credential-already-in-use') {
+                errorMessage = 'This account is already linked to another user. Please sign in with your existing method first, then link this account.';
+                showLinkOption = true;
+            } else if (err.code === 'auth/email-already-in-use') {
+                errorMessage = 'This email is already associated with another account.';
             } else if (err.message) {
                 errorMessage = err.message;
             }
 
             setApiError(errorMessage);
+
+            // Log the error for telemetry
+            console.log('OAuth error logged:', {
+                event: 'oauth_twitter_error',
+                error_code: err.code,
+                provider: provider,
+                timestamp: new Date().toISOString()
+            });
         } finally {
             setLoading(false);
         }
