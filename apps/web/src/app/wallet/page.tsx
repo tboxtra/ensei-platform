@@ -175,44 +175,6 @@ export default function WalletPage() {
                 </div>
               </div>
 
-              {/* Crypto Balance Card */}
-              <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                    <span className="text-lg">₿</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-orange-400 font-medium">Crypto</div>
-                    <div className="text-xs text-gray-400">Deposited</div>
-                  </div>
-                </div>
-                <div className="mb-2">
-                  <div className="text-3xl font-bold text-white">
-                    {balance?.crypto ?
-                      Object.values(balance.crypto).reduce((sum, val) => sum + (val || 0), 0).toFixed(4) :
-                      '0.0000'
-                    }
-                  </div>
-                  <div className="text-sm text-orange-400">Total Crypto</div>
-                </div>
-                <div className="text-sm text-gray-300 mb-3">
-                  {balance?.crypto && (
-                    <div className="space-y-1">
-                      {Object.entries(balance.crypto).map(([currency, amount]) =>
-                        amount > 0 ? (
-                          <div key={currency} className="text-xs">
-                            {amount.toFixed(4)} {currency}
-                          </div>
-                        ) : null
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center text-xs text-orange-400">
-                  <span className="mr-1">📥</span>
-                  Deposited funds
-                </div>
-              </div>
             </div>
 
             {/* Quick Actions */}

@@ -3920,32 +3920,28 @@ app.get('/v1/dashboard/summary', async (req: any, res) => {
     const tasksDoneRaw = (verVerifiedSnap.size || 0) + (verApprovedSnap.size || 0);
     const tasksDone = tasksDoneRaw === 0 ? (stats?.tasksDone ?? stats?.tasksCompleted ?? 0) : tasksDoneRaw;
 
-    // 4) Honors earned
-    // Priority: wallet.honors → sum of verified verifications honors → stats rollup
-    const walletDoc = await db.collection('wallets').doc(userId).get();
-    const wallet = walletDoc.exists ? (walletDoc.data() as any) : null;
+    // 4) Honors earned (ONLY from platform activities, not deposits)
+    // Calculate from verified verifications to get actual earned rewards
+    let honorsEarned = 0;
+    verVerifiedSnap.forEach(v => {
+      const vd = v.data();
+      const h = vd?.rewards?.honors ?? vd?.honors ?? 0;
+      honorsEarned += Number(h) || 0;
+    });
+    verApprovedSnap.forEach(v => {
+      const vd = v.data();
+      const h = vd?.rewards?.honors ?? vd?.honors ?? 0;
+      honorsEarned += Number(h) || 0;
+    });
 
-    let honorsEarned: number | null = wallet?.honors ?? null;
-
-    if (!honorsEarned || honorsEarned === 0) {
-      // Sum honors from verified verifications as a reliable fallback
-      let verifiedHonors = 0;
-      verVerifiedSnap.forEach(v => {
-        const vd = v.data();
-        const h = vd?.rewards?.honors ?? vd?.honors ?? 0;
-        verifiedHonors += Number(h) || 0;
-      });
-      verApprovedSnap.forEach(v => {
-        const vd = v.data();
-        const h = vd?.rewards?.honors ?? vd?.honors ?? 0;
-        verifiedHonors += Number(h) || 0;
-      });
-      honorsEarned = verifiedHonors > 0 ? verifiedHonors : null;
-    }
-
-    if (!honorsEarned) {
+    // Fallback to stats if no verifications found
+    if (honorsEarned === 0) {
       honorsEarned = Number(stats?.totalEarned ?? stats?.totalEarnings ?? 0) || 0;
     }
+
+    // Get wallet for USD balance (but don't use wallet.honors for earned calculation)
+    const walletDoc = await db.collection('wallets').doc(userId).get();
+    const wallet = walletDoc.exists ? (walletDoc.data() as any) : null;
 
     // 5) USD spent = sum of rewards.usd on my missions
     let usdSpent = 0;

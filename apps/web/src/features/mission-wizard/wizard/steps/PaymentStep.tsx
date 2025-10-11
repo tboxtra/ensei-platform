@@ -76,52 +76,78 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
         }
     };
 
+    // For degen missions, only show single use payment
+    const isDegenMission = state.model === 'degen';
+    
     return (
         <div className="space-y-6">
             <div className="text-center">
-                <h2 className="text-xl font-semibold mb-1">Payment Options</h2>
-                <p className="text-gray-400 text-sm">Choose how you want to pay for this mission</p>
+                <h2 className="text-xl font-semibold mb-1">
+                    {isDegenMission ? 'Payment Required' : 'Payment Options'}
+                </h2>
+                <p className="text-gray-400 text-sm">
+                    {isDegenMission 
+                        ? 'Pay for your degen mission based on duration' 
+                        : 'Choose how you want to pay for this mission'
+                    }
+                </p>
             </div>
 
-            {/* Payment Type Selection */}
-            <div>
-                <label className="block text-xs font-medium mb-3">Payment Method</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                        onClick={() => handlePaymentSelect('single-use')}
-                        className={`p-6 rounded-xl text-left transition ${state.paymentType === 'single-use'
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                            }`}
-                    >
-                        <div className="text-3xl mb-2">💳</div>
-                        <div className="font-bold text-lg mb-1">Single Use</div>
-                        <div className="text-sm opacity-90 mb-3">Pay once for this mission only</div>
-                        <div className="text-sm">
-                            • No recurring charges<br />
-                            • Pay per mission<br />
-                            • Full control
-                        </div>
-                    </button>
+            {/* Payment Type Selection - Only show for fixed missions */}
+            {!isDegenMission && (
+                <div>
+                    <label className="block text-xs font-medium mb-3">Payment Method</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button
+                            onClick={() => handlePaymentSelect('single-use')}
+                            className={`p-6 rounded-xl text-left transition ${state.paymentType === 'single-use'
+                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                                }`}
+                        >
+                            <div className="text-3xl mb-2">💳</div>
+                            <div className="font-bold text-lg mb-1">Single Use</div>
+                            <div className="text-sm opacity-90 mb-3">Pay once for this mission only</div>
+                            <div className="text-sm">
+                                • No recurring charges<br />
+                                • Pay per mission<br />
+                                • Full control
+                            </div>
+                        </button>
 
-                    <button
-                        onClick={() => handlePaymentSelect('pack')}
-                        className={`p-6 rounded-xl text-left transition ${state.paymentType === 'pack'
-                            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                            : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
-                            }`}
-                    >
-                        <div className="text-3xl mb-2">📦</div>
-                        <div className="font-bold text-lg mb-1">Pack Purchase</div>
-                        <div className="text-sm opacity-90 mb-3">Buy a pack for multiple missions</div>
-                        <div className="text-sm">
-                            • Better value<br />
-                            • Multiple missions<br />
-                            • Bulk pricing
-                        </div>
-                    </button>
+                        <button
+                            onClick={() => handlePaymentSelect('pack')}
+                            className={`p-6 rounded-xl text-left transition ${state.paymentType === 'pack'
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
+                                }`}
+                        >
+                            <div className="text-3xl mb-2">📦</div>
+                            <div className="font-bold text-lg mb-1">Pack Purchase</div>
+                            <div className="text-sm opacity-90 mb-3">Buy a pack for multiple missions</div>
+                            <div className="text-sm">
+                                • Better value<br />
+                                • Multiple missions<br />
+                                • Bulk pricing
+                            </div>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* For degen missions, automatically set to single-use */}
+            {isDegenMission && (
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white">
+                    <div className="text-3xl mb-2">💳</div>
+                    <div className="font-bold text-lg mb-1">Single Use Payment</div>
+                    <div className="text-sm opacity-90 mb-3">Pay once for this degen mission</div>
+                    <div className="text-sm">
+                        • Duration-based pricing<br />
+                        • No recurring charges<br />
+                        • Full control
+                    </div>
+                </div>
+            )}
 
             {/* Active Entitlements */}
             {state.model === 'fixed' && state.paymentType === 'pack' && SHOW_ACTIVE_ENTITLEMENTS && activeEntitlements.length > 0 && (
@@ -300,10 +326,17 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <span className="text-green-400">
                                     {state.model === 'fixed'
                                         ? '$10.00'
-                                        : 'Variable (based on engagement)'
+                                        : state.selectedDegenPreset?.costUSD 
+                                            ? `$${state.selectedDegenPreset.costUSD}`
+                                            : 'Variable (based on engagement)'
                                     }
                                 </span>
                             </div>
+                            {state.model === 'degen' && state.selectedDegenPreset && (
+                                <div className="text-sm text-gray-400 mt-1">
+                                    Duration: {state.selectedDegenPreset.hours}h • Max Winners: {state.selectedDegenPreset.maxWinners}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

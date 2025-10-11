@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useApi } from '../../hooks/useApi';
+import { useApi, useWallet } from '../../hooks/useApi';
 import { useUserStore } from '../../store/userStore';
 import { useAuthStore } from '../../store/authStore';
 import { useDashboardSummary } from '../../hooks/useDashboardSummary';
@@ -20,6 +20,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
     const { logout, getMissions } = useApi();
+    const { balance } = useWallet();
     const { user: storeUser, stats } = useUserStore();
     const { user: authUser } = useAuthStore();
 
@@ -148,8 +149,12 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                             <>
                                 {/* Hide honors on very small screens */}
                                 <div className="hidden sm:block text-center">
-                                    <div className="text-base sm:text-lg font-semibold text-green-400">0 Honors</div>
-                                    <div className="text-xs text-gray-400">≈ $0.00 USD</div>
+                                    <div className="text-base sm:text-lg font-semibold text-green-400">
+                                        {balance?.honors?.toLocaleString() || '0'} Honors
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                        ≈ ${balance?.usd?.toFixed(2) || '0.00'} USD
+                                    </div>
                                 </div>
                                 <div className="relative">
                                     <button
