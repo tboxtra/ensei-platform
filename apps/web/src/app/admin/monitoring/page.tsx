@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useApi } from '../../../hooks/useApi';
 import { useAuth } from '../../../contexts/AdminAuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -37,7 +36,6 @@ interface PackMetricsData {
 }
 
 export default function MonitoringPage() {
-    const api = useApi();
     const { user, isLoading: authLoading, isAuthenticated } = useAuth();
     const router = useRouter();
     const [packHealth, setPackHealth] = useState<PackHealthData | null>(null);
