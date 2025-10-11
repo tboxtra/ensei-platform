@@ -58,15 +58,18 @@ export default function MonitoringPage() {
             setLoading(true);
             setError(null);
 
+            // Use the same API base URL as the useApi hook
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
+
             // Fetch pack health data
-            const healthResponse = await fetch(`${api.baseUrl}/health/packs`);
+            const healthResponse = await fetch(`${API_BASE_URL}/health/packs`);
             if (healthResponse.ok) {
                 const healthData = await healthResponse.json();
                 setPackHealth(healthData);
             }
 
             // Fetch pack metrics data
-            const metricsResponse = await fetch(`${api.baseUrl}/metrics/packs`);
+            const metricsResponse = await fetch(`${API_BASE_URL}/metrics/packs`);
             if (metricsResponse.ok) {
                 const metricsData = await metricsResponse.json();
                 setPackMetrics(metricsData);
