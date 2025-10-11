@@ -376,8 +376,17 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <span>Total Cost:</span>
                                 <span className="text-green-400">
                                     {state.model === 'fixed'
-                                        ? '$10.00'
-                                        : state.selectedDegenPreset?.costUSD
+                                        ? (() => {
+                                            // Fixed mission pricing varies by participant cap
+                                            let costUSD = 5; // default small
+                                            if (state.cap >= 500) {
+                                                costUSD = 20; // large
+                                            } else if (state.cap >= 200) {
+                                                costUSD = 10; // medium
+                                            }
+                                            return `$${costUSD}.00`;
+                                        })()
+                                        : state.selectedDegenPreset?.costUSD 
                                             ? `$${state.selectedDegenPreset.costUSD}`
                                             : 'Variable (based on engagement)'
                                     }
@@ -466,8 +475,17 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                         <span>Cost:</span>
                                         <span className="font-medium text-green-400">
                                             {state.model === 'fixed'
-                                                ? '$10.00'
-                                                : state.selectedDegenPreset?.costUSD
+                                                ? (() => {
+                                                    // Fixed mission pricing varies by participant cap
+                                                    let costUSD = 5; // default small
+                                                    if (state.cap >= 500) {
+                                                        costUSD = 20; // large
+                                                    } else if (state.cap >= 200) {
+                                                        costUSD = 10; // medium
+                                                    }
+                                                    return `$${costUSD}.00`;
+                                                })()
+                                                : state.selectedDegenPreset?.costUSD 
                                                     ? `$${state.selectedDegenPreset.costUSD}`
                                                     : 'Variable'
                                             }
@@ -484,7 +502,18 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
 
                             {/* Balance Warning */}
                             {(() => {
-                                const costUSD = state.model === 'fixed' ? 10 : (state.selectedDegenPreset?.costUSD || 0);
+                                const costUSD = state.model === 'fixed' 
+                                    ? (() => {
+                                        // Fixed mission pricing varies by participant cap
+                                        let cost = 5; // default small
+                                        if (state.cap >= 500) {
+                                            cost = 20; // large
+                                        } else if (state.cap >= 200) {
+                                            cost = 10; // medium
+                                        }
+                                        return cost;
+                                    })()
+                                    : (state.selectedDegenPreset?.costUSD || 0);
                                 const requiredHonors = Math.round(costUSD * 450);
                                 const hasEnoughBalance = balance?.honors && balance.honors >= requiredHonors;
 
@@ -532,7 +561,18 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                     onSubmit();
                                 }}
                                 disabled={isLoading || (() => {
-                                    const costUSD = state.model === 'fixed' ? 10 : (state.selectedDegenPreset?.costUSD || 0);
+                                    const costUSD = state.model === 'fixed' 
+                                        ? (() => {
+                                            // Fixed mission pricing varies by participant cap
+                                            let cost = 5; // default small
+                                            if (state.cap >= 500) {
+                                                cost = 20; // large
+                                            } else if (state.cap >= 200) {
+                                                cost = 10; // medium
+                                            }
+                                            return cost;
+                                        })()
+                                        : (state.selectedDegenPreset?.costUSD || 0);
                                     const requiredHonors = Math.round(costUSD * 450);
                                     return !!(state.paymentType === 'single-use' && balance?.honors && balance.honors < requiredHonors);
                                 })()}

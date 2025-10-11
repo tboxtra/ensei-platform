@@ -1501,8 +1501,15 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req, res) => {
         // ✅ FIXED MISSION SINGLE-USE PAYMENT PROCESSING
         if (missionData.model === 'fixed' && (!missionData.packId || missionData.packId === 'single-use')) {
             console.log('=== FIXED MISSION SINGLE-USE PAYMENT PROCESSING ===');
-            // Fixed missions cost $10 USD (4500 Honors at 450 Honors per USD)
-            const costUSD = 10;
+            // Fixed missions cost varies by participant cap
+            // Small (100 users): $5, Medium (200 users): $10, Large (500 users): $20
+            let costUSD = 5; // default small
+            if (missionData.cap >= 500) {
+                costUSD = 20; // large
+            }
+            else if (missionData.cap >= 200) {
+                costUSD = 10; // medium
+            }
             const requiredHonors = Math.round(costUSD * 450);
             console.log('Required Honors for fixed mission:', requiredHonors);
             // Get user's wallet
@@ -1731,10 +1738,17 @@ app.get('/v1/wallet/balance', verifyFirebaseToken, async (req, res) => {
             .orderBy('created_at', 'desc')
             .limit(20)
             .get();
-        const transactions = transactionsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        const transactions = transactionsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                // Convert Firestore timestamp to ISO string for frontend
+                date: data.created_at?.toDate ? data.created_at.toDate().toISOString() :
+                    data.created_at?._seconds ? new Date(data.created_at._seconds * 1000).toISOString() :
+                        data.created_at || new Date().toISOString()
+            };
+        });
         res.json({
             ...wallet,
             transactions
@@ -2144,10 +2158,9 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req, res) => {
     try {
         const userId = req.user.uid;
         console.log('Fetching entitlements for user:', userId);
-        // Get user's entitlements
+        // Get user's entitlements (simplified query to avoid index issues)
         const entitlementsSnapshot = await db.collection('entitlements')
             .where('userId', '==', userId)
-            .orderBy('purchasedAt', 'desc')
             .get();
         const entitlements = entitlementsSnapshot.docs.map(doc => {
             const data = doc.data();
@@ -2162,6 +2175,11 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req, res) => {
                 // Add pack label for display
                 packLabel: data.packId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
             };
+        }).sort((a, b) => {
+            // Sort by purchasedAt descending (most recent first)
+            const aTime = a.purchasedAt?.toDate ? a.purchasedAt.toDate() : new Date(a.purchasedAt || 0);
+            const bTime = b.purchasedAt?.toDate ? b.purchasedAt.toDate() : new Date(b.purchasedAt || 0);
+            return bTime.getTime() - aTime.getTime();
         });
         // Telemetry: Log entitlements access for analytics
         console.log('=== ENTITLEMENTS ACCESS TELEMETRY ===');

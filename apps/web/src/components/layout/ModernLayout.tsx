@@ -20,7 +20,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
     const { logout, getMissions } = useApi();
-    const { balance } = useWallet();
+    const { balance, fetchBalance } = useWallet();
     const { user: storeUser, stats } = useUserStore();
     const { user: authUser } = useAuthStore();
 
@@ -38,14 +38,18 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
                 lastName: authUser.lastName || '',
                 avatar: authUser.photoURL || '',
             });
+            // Fetch wallet balance when user is authenticated
+            fetchBalance();
         } else {
             const userData = localStorage.getItem('user');
             if (userData) {
                 setUser(JSON.parse(userData));
+                // Also fetch balance if user data exists in localStorage
+                fetchBalance();
             }
         }
         setIsLoading(false);
-    }, [authUser]);
+    }, [authUser, fetchBalance]);
 
     // Stats are now handled by useQuickStats hook
 
