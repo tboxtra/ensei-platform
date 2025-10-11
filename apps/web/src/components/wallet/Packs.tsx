@@ -16,6 +16,7 @@ export default function Packs({ onPurchased }: Props) {
     const [purchaseSuccess, setPurchaseSuccess] = React.useState<string | null>(null)
     const [showPurchaseModal, setShowPurchaseModal] = React.useState(false)
     const [packToPurchase, setPackToPurchase] = React.useState<any>(null)
+    const [purchaseInProgress, setPurchaseInProgress] = React.useState(false)
 
     React.useEffect(() => {
         fetchPacks()
@@ -39,6 +40,9 @@ export default function Packs({ onPurchased }: Props) {
     }
 
     const handlePurchaseClick = (packId: string) => {
+        // Prevent opening modal if purchase is in progress
+        if (purchaseInProgress) return
+        
         // Find the pack details
         const pack = displayPacks.find(p => p.id === packId) || {
             id: packId,
@@ -54,39 +58,67 @@ export default function Packs({ onPurchased }: Props) {
         setPackToPurchase(pack)
         setShowPurchaseModal(true)
         setPurchaseError(null)
+        
+        // Log modal opened for telemetry
+        console.log('pack_modal_opened', { packId, priceUsd: pack.priceUsd })
     }
 
     const handlePurchaseConfirm = async () => {
-        if (!packToPurchase) return
+        if (!packToPurchase || purchaseInProgress) return
         
+        setPurchaseInProgress(true)
         setPurchasing(packToPurchase.id)
         setPurchaseError(null)
         setPurchaseSuccess(null)
         setShowPurchaseModal(false)
+        
+        // Log purchase confirmed for telemetry
+        console.log('pack_purchase_confirmed', { 
+            packId: packToPurchase.id, 
+            priceUsd: packToPurchase.priceUsd,
+            timestamp: new Date().toISOString()
+        })
         
         try {
             await purchasePack(packToPurchase.id)
             setPurchaseSuccess(`Successfully purchased ${packToPurchase.label}!`)
             onPurchased?.()
 
+            // Log successful purchase
+            console.log('pack_purchase_succeeded', { 
+                packId: packToPurchase.id, 
+                priceUsd: packToPurchase.priceUsd,
+                timestamp: new Date().toISOString()
+            })
+
             // Clear success message after 5 seconds
             setTimeout(() => setPurchaseSuccess(null), 5000)
         } catch (error) {
-            let errorMessage = 'Purchase failed, please try again'
+            // Log failed purchase
+            console.log('pack_purchase_failed', { 
+                packId: packToPurchase.id, 
+                priceUsd: packToPurchase.priceUsd,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString()
+            })
+            let errorMessage = 'Couldn\'t complete purchase. Check your connection and try again.'
             
             if (error instanceof Error) {
-                if (error.message.includes('Insufficient balance')) {
-                    errorMessage = 'Insufficient balance. You need more Honors to purchase this pack.'
-                } else if (error.message.includes('Pack not available')) {
-                    errorMessage = 'This pack is currently not available.'
-                } else if (error.message.includes('already purchased')) {
-                    errorMessage = 'You have already purchased this pack.'
-                } else if (error.message.includes('Network error')) {
-                    errorMessage = 'Network error. Please check your connection and try again.'
-                } else if (error.message.includes('Unauthorized')) {
-                    errorMessage = 'Please log in to purchase packs.'
+                // Map specific error messages to user-friendly copy
+                if (error.message.includes('Insufficient balance') || error.message.includes('402') || error.message.includes('422')) {
+                    errorMessage = 'Insufficient balance. Add funds or earn more Honors.'
+                } else if (error.message.includes('Pack not available') || error.message.includes('404')) {
+                    errorMessage = 'This pack isn\'t available right now.'
+                } else if (error.message.includes('already purchased') || error.message.includes('409')) {
+                    errorMessage = 'Duplicate purchase detected. This pack is already active.'
+                } else if (error.message.includes('Unauthorized') || error.message.includes('401') || error.message.includes('403')) {
+                    errorMessage = 'You\'re not signed in. Please log in to continue.'
+                } else if (error.message.includes('Network error') || error.message.includes('fetch')) {
+                    errorMessage = 'Couldn\'t complete purchase. Check your connection and try again.'
                 } else {
-                    errorMessage = error.message
+                    // Log the raw error for debugging but show safe message to user
+                    console.error('Purchase error details:', error.message)
+                    errorMessage = 'Couldn\'t complete purchase. Check your connection and try again.'
                 }
             }
             
@@ -94,6 +126,7 @@ export default function Packs({ onPurchased }: Props) {
         } finally {
             setPurchasing(null)
             setPackToPurchase(null)
+            setPurchaseInProgress(false)
         }
     }
 
@@ -102,6 +135,32 @@ export default function Packs({ onPurchased }: Props) {
         setPackToPurchase(null)
         setPurchaseError(null)
     }
+
+    // Keyboard navigation for modal
+    React.useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (showPurchaseModal) {
+                if (event.key === 'Escape') {
+                    handlePurchaseCancel()
+                } else if (event.key === 'Enter' && !purchasing) {
+                    handlePurchaseConfirm()
+                }
+            }
+        }
+
+        if (showPurchaseModal) {
+            document.addEventListener('keydown', handleKeyDown)
+            // Focus the confirm button when modal opens
+            const confirmButton = document.querySelector('[data-purchase-confirm]') as HTMLButtonElement
+            if (confirmButton) {
+                confirmButton.focus()
+            }
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [showPurchaseModal, purchasing])
 
     // Category grouping logic
     const singleGroups = [
@@ -270,8 +329,8 @@ export default function Packs({ onPurchased }: Props) {
 
                                         <button
                                             onClick={() => handlePurchaseClick('single_1_small')}
-                                            disabled={isDisabled || purchasing === 'single_1_small'}
-                                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${isDisabled || purchasing === 'single_1_small'
+                                            disabled={isDisabled || purchasing === 'single_1_small' || purchaseInProgress}
+                                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${isDisabled || purchasing === 'single_1_small' || purchaseInProgress
                                                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                                 : 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white'
                                                 }`}
@@ -330,7 +389,7 @@ export default function Packs({ onPurchased }: Props) {
 
                             <button
                                 onClick={() => handlePurchaseClick('single_1_medium')}
-                                disabled={purchasing === 'single_1_medium'}
+                                disabled={purchasing === 'single_1_medium' || purchaseInProgress}
                                 className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {purchasing === 'single_1_medium' ? 'Purchasing...' : 'Purchase Pack'}
@@ -746,8 +805,8 @@ export default function Packs({ onPurchased }: Props) {
                             </div>
 
                             <button
-                                onClick={() => handlePurchase('sub_week_small')}
-                                disabled={purchasing === 'sub_week_small'}
+                                onClick={() => handlePurchaseClick('sub_week_small')}
+                                disabled={purchasing === 'sub_week_small' || purchaseInProgress}
                                 className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {purchasing === 'sub_week_small' ? 'Starting...' : 'Start Weekly Plan'}
@@ -852,42 +911,45 @@ export default function Packs({ onPurchased }: Props) {
 
             {/* Purchase Confirmation Modal */}
             {showPurchaseModal && packToPurchase && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div 
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    role="dialog"
+                    aria-labelledby="purchase-modal-title"
+                    aria-describedby="purchase-modal-description"
+                >
                     <div className="bg-gray-900 rounded-xl sm:rounded-2xl p-6 sm:p-8 max-w-md w-full border border-gray-700">
                         <div className="text-center mb-6">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center text-2xl">
                                 📦
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">Confirm Purchase</h3>
-                            <p className="text-gray-400 text-sm">Are you sure you want to purchase this pack?</p>
+                            <h3 id="purchase-modal-title" className="text-xl font-bold text-white mb-2">Confirm purchase</h3>
+                            <p id="purchase-modal-description" className="text-gray-400 text-sm">You&apos;re buying {packToPurchase.label}</p>
                         </div>
 
                         {/* Pack Details */}
                         <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-white">{packToPurchase.label}</h4>
-                                <span className="text-emerald-400 font-bold">${packToPurchase.priceUsd}</span>
+                                <span className="text-emerald-400 font-bold">Total: ${packToPurchase.priceUsd}</span>
                             </div>
-                            <p className="text-gray-400 text-sm">{packToPurchase.description}</p>
                             
                             {/* What's Included */}
-                            <div className="mt-3 pt-3 border-t border-gray-700">
-                                <p className="text-xs text-gray-500 mb-2">What&apos;s included:</p>
+                            <div className="space-y-2">
+                                <p className="text-xs text-gray-500">Includes per-tweet quota:</p>
                                 <div className="text-xs text-gray-400 space-y-1">
-                                    <div>• 1 mission creation</div>
-                                    <div>• {packToPurchase.priceUsd === 10 ? '100' : packToPurchase.priceUsd === 15 ? '200' : '500'} engagement actions</div>
-                                    <div>• 7-day validity</div>
+                                    <div>• {packToPurchase.priceUsd === 10 ? '100' : packToPurchase.priceUsd === 15 ? '200' : '500'} likes</div>
+                                    <div>• {packToPurchase.priceUsd === 10 ? '60' : packToPurchase.priceUsd === 15 ? '120' : '300'} retweets</div>
+                                    <div>• {packToPurchase.priceUsd === 10 ? '40' : packToPurchase.priceUsd === 15 ? '80' : '200'} comments</div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Balance Warning */}
-                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-6">
+                        {/* Help Info */}
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-6">
                             <div className="flex items-start gap-2">
-                                <span className="text-amber-400 text-sm">⚠️</span>
-                                <div className="text-amber-300 text-sm">
-                                    <p className="font-medium">Balance Check</p>
-                                    <p className="text-xs mt-1">Make sure you have enough Honors in your wallet to complete this purchase.</p>
+                                <span className="text-blue-400 text-sm">ℹ️</span>
+                                <div className="text-blue-300 text-sm">
+                                    <p className="text-xs">Need more Honors? Complete missions to earn more.</p>
                                 </div>
                             </div>
                         </div>
@@ -902,9 +964,18 @@ export default function Packs({ onPurchased }: Props) {
                             </button>
                             <button
                                 onClick={handlePurchaseConfirm}
-                                className="flex-1 py-3 px-4 rounded-lg font-semibold transition bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white"
+                                disabled={purchasing === packToPurchase.id}
+                                data-purchase-confirm
+                                className="flex-1 py-3 px-4 rounded-lg font-semibold transition bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                Confirm Purchase
+                                {purchasing === packToPurchase.id ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Purchasing...
+                                    </>
+                                ) : (
+                                    `Buy $${packToPurchase.priceUsd}`
+                                )}
                             </button>
                         </div>
                     </div>
