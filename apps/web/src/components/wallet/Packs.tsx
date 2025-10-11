@@ -17,7 +17,7 @@ export default function Packs({ onPurchased }: Props) {
 
     React.useEffect(() => {
         fetchPacks()
-    }, []) // Only run once on mount
+    }, [fetchPacks]) // Include fetchPacks in dependencies
 
     // Use fallback data if API fails and no packs are loaded
     const displayPacks = packs.length > 0 ? packs : PACKS_FALLBACK
@@ -656,7 +656,7 @@ export default function Packs({ onPurchased }: Props) {
 
                             {/* Features */}
                             <div className="bg-blue-900/20 rounded-lg p-3 mb-4">
-                                <div className="text-xs text-blue-400 mb-2">What's Included</div>
+                                <div className="text-xs text-blue-400 mb-2">What&apos;s Included</div>
                                 <div className="space-y-1">
                                     <div className="flex items-center text-xs text-gray-300">
                                         <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></span>
@@ -710,7 +710,7 @@ export default function Packs({ onPurchased }: Props) {
 
                             {/* Features */}
                             <div className="bg-purple-900/20 rounded-lg p-3 mb-4">
-                                <div className="text-xs text-purple-400 mb-2">What's Included</div>
+                                <div className="text-xs text-purple-400 mb-2">What&apos;s Included</div>
                                 <div className="space-y-1">
                                     <div className="flex items-center text-xs text-gray-300">
                                         <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></span>

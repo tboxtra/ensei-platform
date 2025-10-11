@@ -1136,6 +1136,98 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req, res) => {
             res.status(400).json({ error: 'At least one task must be selected' });
             return;
         }
+        // Pack validation and entitlement deduction for fixed missions
+        if (missionData.model === 'fixed' && missionData.packId) {
+            console.log('=== PACK VALIDATION DEBUG ===');
+            console.log('Pack ID:', missionData.packId);
+            console.log('User ID:', userId);
+            try {
+                // Find the user's active entitlement for this pack
+                const entitlementsSnapshot = await db.collection('entitlements')
+                    .where('userId', '==', userId)
+                    .where('packId', '==', missionData.packId)
+                    .where('status', '==', 'active')
+                    .get();
+                if (entitlementsSnapshot.empty) {
+                    console.log('No active entitlement found for pack:', missionData.packId);
+                    res.status(400).json({
+                        error: 'No active entitlement found for the selected pack. Please purchase the pack first.'
+                    });
+                    return;
+                }
+                const entitlementDoc = entitlementsSnapshot.docs[0];
+                const entitlement = entitlementDoc.data();
+                console.log('Found entitlement:', entitlement);
+                // Check if entitlement is expired
+                if (entitlement.endsAt && new Date(entitlement.endsAt.toDate()) < new Date()) {
+                    console.log('Entitlement expired:', entitlement.endsAt);
+                    res.status(400).json({
+                        error: 'The selected pack entitlement has expired'
+                    });
+                    return;
+                }
+                // Check remaining quota
+                const remainingQuota = entitlement.quotas.tweets - entitlement.usage.tweetsUsed;
+                console.log('Remaining quota:', remainingQuota);
+                if (remainingQuota <= 0) {
+                    console.log('Insufficient quota remaining');
+                    res.status(400).json({
+                        error: `Insufficient quota remaining in the selected pack. You have ${remainingQuota} tweets remaining, but need at least 1.`
+                    });
+                    return;
+                }
+                // Deduct quota atomically using Firestore transaction
+                await db.runTransaction(async (transaction) => {
+                    // Re-read the entitlement to ensure we have the latest data
+                    const freshEntitlementDoc = await transaction.get(entitlementDoc.ref);
+                    const freshEntitlement = freshEntitlementDoc.data();
+                    if (!freshEntitlement) {
+                        throw new Error('Entitlement not found during transaction');
+                    }
+                    // Double-check quota again (concurrency safety)
+                    const freshRemainingQuota = freshEntitlement.quotas.tweets - freshEntitlement.usage.tweetsUsed;
+                    if (freshRemainingQuota <= 0) {
+                        throw new Error('Insufficient quota remaining (concurrent usage detected)');
+                    }
+                    // Update entitlement usage
+                    const updatedUsage = {
+                        ...freshEntitlement.usage,
+                        tweetsUsed: freshEntitlement.usage.tweetsUsed + 1
+                    };
+                    transaction.update(entitlementDoc.ref, {
+                        usage: updatedUsage,
+                        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log('Updated entitlement usage:', updatedUsage);
+                });
+                console.log('Successfully deducted quota for pack:', missionData.packId);
+                // Telemetry: Log pack usage for analytics
+                console.log('=== PACK USAGE TELEMETRY ===');
+                console.log('Event: pack_quota_deducted');
+                console.log('UserId:', userId);
+                console.log('PackId:', missionData.packId);
+                console.log('MissionType:', missionData.model);
+                console.log('RemainingQuota:', remainingQuota - 1);
+                console.log('Timestamp:', new Date().toISOString());
+                console.log('=============================');
+                console.log('=====================================');
+            }
+            catch (error) {
+                console.error('Pack validation/entitlement deduction failed:', error);
+                // Telemetry: Log pack validation error for analytics
+                console.log('=== PACK VALIDATION ERROR TELEMETRY ===');
+                console.log('Event: pack_validation_failed');
+                console.log('UserId:', userId);
+                console.log('PackId:', missionData.packId);
+                console.log('Error:', error.message || 'Unknown error');
+                console.log('Timestamp:', new Date().toISOString());
+                console.log('=======================================');
+                res.status(400).json({
+                    error: error.message || 'Failed to validate pack entitlement'
+                });
+                return;
+            }
+        }
         // Use the safe mission creation function that ensures UID-based references
         const result = await (0, user_data_integrity_1.createMissionWithUidReferences)(userId, missionData);
         if (!result.success) {
@@ -1428,6 +1520,14 @@ app.get('/v1/packs', async (req, res) => {
             { id: 'sub_month_medium', kind: 'subscription', label: 'Monthly Mastery', group: 'Subscription Packs', tweets: 1, priceUsd: 2000, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 30, originalUsd: 2200, discountPct: 9 } },
             { id: 'sub_week_medium', kind: 'subscription', label: 'Weekly Thunder', group: 'Subscription Packs', tweets: 1, priceUsd: 750, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 7 } }
         ];
+        // Telemetry: Log packs catalog access for analytics
+        console.log('=== PACKS CATALOG ACCESS TELEMETRY ===');
+        console.log('Event: packs_catalog_accessed');
+        console.log('PacksCount:', packs.length);
+        console.log('SinglePacks:', packs.filter(p => p.kind === 'single').length);
+        console.log('SubscriptionPacks:', packs.filter(p => p.kind === 'subscription').length);
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('======================================');
         res.json(packs);
     }
     catch (error) {
@@ -1549,6 +1649,18 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
                 transactionId: transactionRef.id
             };
         });
+        // Telemetry: Log pack purchase for analytics
+        console.log('=== PACK PURCHASE TELEMETRY ===');
+        console.log('Event: pack_purchased');
+        console.log('UserId:', userId);
+        console.log('PackId:', packId);
+        console.log('PackPrice:', pack.priceUsd);
+        console.log('RequiredHonors:', requiredHonors);
+        console.log('EntitlementId:', result.entitlementId);
+        console.log('TransactionId:', result.transactionId);
+        console.log('ClientRequestId:', clientRequestId);
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('===============================');
         res.json({
             success: true,
             message: 'Pack purchased successfully',
@@ -1558,6 +1670,14 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
     }
     catch (error) {
         console.error('Error purchasing pack:', error);
+        // Telemetry: Log pack purchase error for analytics
+        console.log('=== PACK PURCHASE ERROR TELEMETRY ===');
+        console.log('Event: pack_purchase_failed');
+        console.log('UserId:', req.user?.uid || 'unknown');
+        console.log('PackId:', req.params.id);
+        console.log('Error:', error.message || 'Unknown error');
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('=====================================');
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -1584,6 +1704,14 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req, res) => {
                 packLabel: data.packId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
             };
         });
+        // Telemetry: Log entitlements access for analytics
+        console.log('=== ENTITLEMENTS ACCESS TELEMETRY ===');
+        console.log('Event: entitlements_accessed');
+        console.log('UserId:', userId);
+        console.log('EntitlementsCount:', entitlements.length);
+        console.log('ActiveEntitlements:', entitlements.filter(e => e.status === 'active').length);
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('=====================================');
         res.json(entitlements);
     }
     catch (error) {

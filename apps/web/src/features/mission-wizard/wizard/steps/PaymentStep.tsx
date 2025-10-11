@@ -31,9 +31,9 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     }, []);
 
     // Check if user has active entitlements
-    const activeEntitlements = entitlements.filter(entitlement => 
-        entitlement.status === 'active' && 
-        entitlement.endsAt && 
+    const activeEntitlements = entitlements.filter(entitlement =>
+        entitlement.status === 'active' &&
+        entitlement.endsAt &&
         new Date(entitlement.endsAt) > new Date()
     );
 
@@ -139,19 +139,18 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <div
                                     key={entitlement.id}
                                     className={`relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 text-left transition-all duration-300 ${isSelected
-                                            ? 'border-2 border-emerald-500/50 shadow-lg scale-105'
-                                            : 'hover:scale-105'
+                                        ? 'border-2 border-emerald-500/50 shadow-lg scale-105'
+                                        : 'hover:scale-105'
                                         }`}
                                 >
                                     {/* Status Badge */}
                                     <div className="flex justify-between items-start mb-4">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                            remainingQuota > 5 
+                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${remainingQuota > 5
                                                 ? 'bg-emerald-400/15 text-emerald-300 border border-emerald-400/30'
                                                 : remainingQuota > 0
-                                                ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
-                                                : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                                        }`}>
+                                                    ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
+                                                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                            }`}>
                                             {remainingQuota > 5 ? 'ACTIVE' : remainingQuota > 0 ? 'LOW QUOTA' : 'EXHAUSTED'}
                                         </span>
                                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-400/15 text-blue-300 border border-blue-400/30">
@@ -171,8 +170,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                         <button
                                             onClick={() => handlePackSelect(entitlement.packId)}
                                             className={`w-full mt-3 py-2 px-4 rounded-lg text-sm font-medium transition ${isSelected
-                                                    ? 'bg-green-600 text-white'
-                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                ? 'bg-green-600 text-white'
+                                                : 'bg-blue-600 hover:bg-blue-700 text-white'
                                                 }`}
                                         >
                                             {isSelected ? '✓ Pack selected' : 'Use This Pack'}
@@ -200,11 +199,11 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                     {purchaseError && (
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
                             <p className="text-red-400 text-sm">
-                                {purchaseError.includes('network') || purchaseError.includes('fetch') 
+                                {purchaseError.includes('network') || purchaseError.includes('fetch')
                                     ? "Couldn't complete purchase. Try again."
                                     : purchaseError.includes('insufficient') || purchaseError.includes('balance')
-                                    ? "Insufficient balance for this purchase."
-                                    : purchaseError
+                                        ? "Insufficient balance for this purchase."
+                                        : purchaseError
                                 }
                             </p>
                         </div>
@@ -219,7 +218,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                     ) : packsError ? (
                         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
                             <p className="text-amber-400 text-sm mb-2">Using offline pack catalog. Purchase is temporarily disabled.</p>
-                            <p className="text-amber-300 text-xs">You can still use "Single Use" payment for this mission.</p>
+                            <p className="text-amber-300 text-xs">You can still use &quot;Single Use&quot; payment for this mission.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -231,8 +230,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                     <div
                                         key={pack.id}
                                         className={`relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-10 border border-white/10 rounded-2xl p-6 text-left transition-all duration-300 ${isSelected
-                                                ? 'border-2 border-emerald-500/50 shadow-lg scale-105'
-                                                : 'hover:scale-105'
+                                            ? 'border-2 border-emerald-500/50 shadow-lg scale-105'
+                                            : 'hover:scale-105'
                                             }`}
                                     >
                                         <div className="font-semibold text-lg mb-1">{pack.label}</div>
@@ -246,12 +245,12 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                                 onClick={() => handlePackPurchase(pack.id)}
                                                 disabled={purchasing || !ENABLE_PACK_PURCHASE}
                                                 className={`w-full mt-3 py-2 px-4 rounded-lg text-sm font-medium transition ${purchasing || !ENABLE_PACK_PURCHASE
-                                                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
                                                     }`}
                                             >
-                                                {!ENABLE_PACK_PURCHASE ? 'Purchase Disabled' : 
-                                                 isPurchasing ? 'Purchasing...' : 'Purchase Pack'}
+                                                {!ENABLE_PACK_PURCHASE ? 'Purchase Disabled' :
+                                                    isPurchasing ? 'Purchasing...' : 'Purchase Pack'}
                                             </button>
                                         )}
 
