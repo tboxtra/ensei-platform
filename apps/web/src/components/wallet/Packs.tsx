@@ -14,6 +14,8 @@ export default function Packs({ onPurchased }: Props) {
     const [purchasing, setPurchasing] = React.useState<string | null>(null)
     const [purchaseError, setPurchaseError] = React.useState<string | null>(null)
     const [purchaseSuccess, setPurchaseSuccess] = React.useState<string | null>(null)
+    const [showPurchaseModal, setShowPurchaseModal] = React.useState(false)
+    const [packToPurchase, setPackToPurchase] = React.useState<any>(null)
 
     React.useEffect(() => {
         fetchPacks()
@@ -36,22 +38,69 @@ export default function Packs({ onPurchased }: Props) {
         return { status: 'active', remainingQuota, isExpired: false }
     }
 
-    const handlePurchase = async (packId: string) => {
-        setPurchasing(packId)
+    const handlePurchaseClick = (packId: string) => {
+        // Find the pack details
+        const pack = displayPacks.find(p => p.id === packId) || {
+            id: packId,
+            label: packId === 'single_1_small' ? 'Growth Sprout' : 
+                   packId === 'single_1_medium' ? 'Engagement Boost' : 
+                   packId === 'single_1_large' ? 'Viral Explosion' : 'Pack',
+            priceUsd: packId === 'single_1_small' ? 10 : 
+                     packId === 'single_1_medium' ? 15 : 
+                     packId === 'single_1_large' ? 25 : 0,
+            description: 'Engagement pack for mission creation'
+        }
+        
+        setPackToPurchase(pack)
+        setShowPurchaseModal(true)
+        setPurchaseError(null)
+    }
+
+    const handlePurchaseConfirm = async () => {
+        if (!packToPurchase) return
+        
+        setPurchasing(packToPurchase.id)
         setPurchaseError(null)
         setPurchaseSuccess(null)
+        setShowPurchaseModal(false)
+        
         try {
-            await purchasePack(packId)
-            setPurchaseSuccess(`Successfully purchased ${packId}!`)
+            await purchasePack(packToPurchase.id)
+            setPurchaseSuccess(`Successfully purchased ${packToPurchase.label}!`)
             onPurchased?.()
 
-            // Clear success message after 3 seconds
-            setTimeout(() => setPurchaseSuccess(null), 3000)
+            // Clear success message after 5 seconds
+            setTimeout(() => setPurchaseSuccess(null), 5000)
         } catch (error) {
-            setPurchaseError(error instanceof Error ? error.message : 'Purchase failed')
+            let errorMessage = 'Purchase failed, please try again'
+            
+            if (error instanceof Error) {
+                if (error.message.includes('Insufficient balance')) {
+                    errorMessage = 'Insufficient balance. You need more Honors to purchase this pack.'
+                } else if (error.message.includes('Pack not available')) {
+                    errorMessage = 'This pack is currently not available.'
+                } else if (error.message.includes('already purchased')) {
+                    errorMessage = 'You have already purchased this pack.'
+                } else if (error.message.includes('Network error')) {
+                    errorMessage = 'Network error. Please check your connection and try again.'
+                } else if (error.message.includes('Unauthorized')) {
+                    errorMessage = 'Please log in to purchase packs.'
+                } else {
+                    errorMessage = error.message
+                }
+            }
+            
+            setPurchaseError(errorMessage)
         } finally {
             setPurchasing(null)
+            setPackToPurchase(null)
         }
+    }
+
+    const handlePurchaseCancel = () => {
+        setShowPurchaseModal(false)
+        setPackToPurchase(null)
+        setPurchaseError(null)
     }
 
     // Category grouping logic
@@ -98,10 +147,25 @@ export default function Packs({ onPurchased }: Props) {
             <PacksHeader />
 
             {purchaseError && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <p className="text-red-400 text-sm">
-                        ❌ {purchaseError}
-                    </p>
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-6">
+                    <div className="flex items-start gap-3">
+                        <span className="text-red-400 text-lg">❌</span>
+                        <div className="flex-1">
+                            <p className="text-red-400 font-medium mb-1">Purchase Failed</p>
+                            <p className="text-red-300 text-sm">{purchaseError}</p>
+                            {purchaseError.includes('Insufficient balance') && (
+                                <div className="mt-2 text-xs text-red-200">
+                                    💡 <strong>Tip:</strong> Complete missions to earn Honors, or check your wallet balance.
+                                </div>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setPurchaseError(null)}
+                            className="text-red-400 hover:text-red-300 text-sm"
+                        >
+                            ✕
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -205,9 +269,9 @@ export default function Packs({ onPurchased }: Props) {
                                         )}
 
                                         <button
-                                            onClick={() => handlePurchase('single_1_small')}
-                                            disabled={isDisabled}
-                                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${isDisabled
+                                            onClick={() => handlePurchaseClick('single_1_small')}
+                                            disabled={isDisabled || purchasing === 'single_1_small'}
+                                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${isDisabled || purchasing === 'single_1_small'
                                                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                                 : 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white'
                                                 }`}
@@ -265,7 +329,7 @@ export default function Packs({ onPurchased }: Props) {
                             </div>
 
                             <button
-                                onClick={() => handlePurchase('single_1_medium')}
+                                onClick={() => handlePurchaseClick('single_1_medium')}
                                 disabled={purchasing === 'single_1_medium'}
                                 className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
@@ -316,7 +380,7 @@ export default function Packs({ onPurchased }: Props) {
                             </div>
 
                             <button
-                                onClick={() => handlePurchase('single_1_large')}
+                                onClick={() => handlePurchaseClick('single_1_large')}
                                 disabled={purchasing === 'single_1_large'}
                                 className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
@@ -710,7 +774,7 @@ export default function Packs({ onPurchased }: Props) {
 
                             {/* Features */}
                             <div className="bg-purple-900/20 rounded-lg p-3 mb-4">
-                                <div className="text-xs text-purple-400 mb-2">What&apos;s Included</div>
+                                <div className="text-xs text-purple-400 mb-2">What's Included</div>
                                 <div className="space-y-1">
                                     <div className="flex items-center text-xs text-gray-300">
                                         <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></span>
@@ -785,6 +849,67 @@ export default function Packs({ onPurchased }: Props) {
                 onClose={() => setSelectedPack(null)}
                 onPurchased={onPurchased}
             />
+
+            {/* Purchase Confirmation Modal */}
+            {showPurchaseModal && packToPurchase && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 rounded-xl sm:rounded-2xl p-6 sm:p-8 max-w-md w-full border border-gray-700">
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center text-2xl">
+                                📦
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2">Confirm Purchase</h3>
+                            <p className="text-gray-400 text-sm">Are you sure you want to purchase this pack?</p>
+                        </div>
+
+                        {/* Pack Details */}
+                        <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-white">{packToPurchase.label}</h4>
+                                <span className="text-emerald-400 font-bold">${packToPurchase.priceUsd}</span>
+                            </div>
+                            <p className="text-gray-400 text-sm">{packToPurchase.description}</p>
+                            
+                            {/* What's Included */}
+                            <div className="mt-3 pt-3 border-t border-gray-700">
+                                <p className="text-xs text-gray-500 mb-2">What&apos;s included:</p>
+                                <div className="text-xs text-gray-400 space-y-1">
+                                    <div>• 1 mission creation</div>
+                                    <div>• {packToPurchase.priceUsd === 10 ? '100' : packToPurchase.priceUsd === 15 ? '200' : '500'} engagement actions</div>
+                                    <div>• 7-day validity</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Balance Warning */}
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-6">
+                            <div className="flex items-start gap-2">
+                                <span className="text-amber-400 text-sm">⚠️</span>
+                                <div className="text-amber-300 text-sm">
+                                    <p className="font-medium">Balance Check</p>
+                                    <p className="text-xs mt-1">Make sure you have enough Honors in your wallet to complete this purchase.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handlePurchaseCancel}
+                                className="flex-1 py-3 px-4 rounded-lg font-semibold transition bg-gray-700/50 text-gray-300 hover:bg-gray-600/50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handlePurchaseConfirm}
+                                className="flex-1 py-3 px-4 rounded-lg font-semibold transition bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white"
+                            >
+                                Confirm Purchase
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
