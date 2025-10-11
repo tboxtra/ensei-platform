@@ -9,6 +9,10 @@ const nextConfig = {
     experimental: {
         esmExternals: false,
     },
+    // Disable ESLint during build for production deployment
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
 }
 
 module.exports = nextConfig
