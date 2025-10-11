@@ -115,8 +115,8 @@ export default function LoginPage() {
 
             // Extract and validate Twitter username from provider data if available
             let twitterUsername = '';
-            if (provider === 'twitter' && result.additionalUserInfo?.username) {
-                const validation = validateUsername(result.additionalUserInfo.username, 'twitter');
+            if (provider === 'twitter' && (result as any).additionalUserInfo?.username) {
+                const validation = validateUsername((result as any).additionalUserInfo.username, 'twitter');
                 if (validation.isValid && validation.data?.username) {
                     twitterUsername = validation.data.username;
                 }
