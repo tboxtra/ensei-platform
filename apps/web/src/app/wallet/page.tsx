@@ -486,7 +486,7 @@ export default function WalletPage() {
                     <span className="text-2xl">💰</span>
                   </div>
                   <div className="text-2xl font-bold text-teal-400">
-                    {summary?.totalEarned ? `+${summary.totalEarned.toLocaleString()}` : '0'}
+                    {summary?.honorsEarned ? `+${summary.honorsEarned.toLocaleString()}` : '0'}
                   </div>
                   <div className="text-xs text-gray-400">Honors earned</div>
                   <div className="mt-2 text-xs text-teal-400">

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { WizardState } from '../types/wizard.types';
-import { usePacks } from '../../../../hooks/useApi';
+import { usePacks, useWallet } from '../../../../hooks/useApi';
 
 interface PaymentStepProps {
     state: WizardState;
@@ -24,8 +24,10 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
 }) => {
     const router = useRouter();
     const { packs, entitlements, purchasePack, loading: packsLoading, error: packsError } = usePacks();
+    const { balance, fetchBalance } = useWallet();
     const [purchasing, setPurchasing] = useState(false);
     const [purchaseError, setPurchaseError] = useState<string | null>(null);
+    const [showPurchaseConfirmation, setShowPurchaseConfirmation] = useState(false);
 
     // Fetch packs when component mounts
     useEffect(() => {
@@ -394,7 +396,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
             {/* Submit Button */}
             <div className="flex justify-center pt-6">
                 <button
-                    onClick={onSubmit}
+                    onClick={() => setShowPurchaseConfirmation(true)}
                     disabled={isLoading || !state.paymentType || (state.model === 'fixed' && state.paymentType === 'pack' && !state.packId)}
                     className={`px-8 py-3 rounded-lg font-semibold transition ${isLoading || !state.paymentType || (state.model === 'fixed' && state.paymentType === 'pack' && !state.packId)
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -404,6 +406,144 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                     {isLoading ? 'Creating Mission...' : 'Create Mission'}
                 </button>
             </div>
+
+            {/* Purchase Confirmation Modal */}
+            {showPurchaseConfirmation && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full border border-gray-700">
+                        <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center">
+                            <span className="mr-2">💳</span>
+                            Confirm Mission Creation
+                        </h3>
+
+                        <div className="space-y-3 sm:space-y-4">
+                            {/* Mission Details */}
+                            <div className="bg-gray-800/30 rounded-lg p-3">
+                                <h4 className="font-semibold text-sm mb-2">Mission Details</h4>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                        <span>Type:</span>
+                                        <span className="font-medium">{state.model === 'fixed' ? 'Fixed Mission' : 'Degen Mission'}</span>
+                                    </div>
+                                    {state.model === 'fixed' && (
+                                        <>
+                                            <div className="flex justify-between">
+                                                <span>Participants:</span>
+                                                <span className="font-medium">{state.cap} users</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Tasks:</span>
+                                                <span className="font-medium">{state.tasks?.length || 0} tasks</span>
+                                            </div>
+                                        </>
+                                    )}
+                                    {state.model === 'degen' && state.selectedDegenPreset && (
+                                        <>
+                                            <div className="flex justify-between">
+                                                <span>Duration:</span>
+                                                <span className="font-medium">{state.selectedDegenPreset.hours}h</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Max Winners:</span>
+                                                <span className="font-medium">{state.selectedDegenPreset.maxWinners}</span>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Payment Details */}
+                            <div className="bg-gray-800/30 rounded-lg p-3">
+                                <h4 className="font-semibold text-sm mb-2">Payment Details</h4>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                        <span>Payment Method:</span>
+                                        <span className="font-medium">
+                                            {state.paymentType === 'single-use' ? 'Single Use' : 'Pack Usage'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Cost:</span>
+                                        <span className="font-medium text-green-400">
+                                            {state.model === 'fixed'
+                                                ? '$10.00'
+                                                : state.selectedDegenPreset?.costUSD 
+                                                    ? `$${state.selectedDegenPreset.costUSD}`
+                                                    : 'Variable'
+                                            }
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Your Balance:</span>
+                                        <span className="font-medium">
+                                            {balance?.honors?.toLocaleString() || '0'} Honors
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Balance Warning */}
+                            {(() => {
+                                const costUSD = state.model === 'fixed' ? 10 : (state.selectedDegenPreset?.costUSD || 0);
+                                const requiredHonors = Math.round(costUSD * 450);
+                                const hasEnoughBalance = balance?.honors && balance.honors >= requiredHonors;
+                                
+                                if (!hasEnoughBalance && state.paymentType === 'single-use') {
+                                    return (
+                                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                                            <div className="flex items-start gap-2">
+                                                <span className="text-red-400 text-sm">⚠️</span>
+                                                <div className="text-xs text-red-300">
+                                                    <p className="font-medium mb-1">Insufficient Balance</p>
+                                                    <p>You need {requiredHonors} Honors (${costUSD}) to create this mission.</p>
+                                                    <p>You have {balance?.honors || 0} Honors available.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+
+                            {/* Confirmation Message */}
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                                <div className="flex items-start gap-2">
+                                    <span className="text-blue-400 text-sm">ℹ️</span>
+                                    <div className="text-xs text-blue-300">
+                                        <p className="font-medium mb-1">Confirmation Required</p>
+                                        <p>This will deduct the required Honors from your wallet and create your mission immediately.</p>
+                                        <p>Make sure all details are correct before proceeding.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => setShowPurchaseConfirmation(false)}
+                                className="flex-1 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition-colors"
+                                disabled={isLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowPurchaseConfirmation(false);
+                                    onSubmit();
+                                }}
+                                disabled={isLoading || (() => {
+                                    const costUSD = state.model === 'fixed' ? 10 : (state.selectedDegenPreset?.costUSD || 0);
+                                    const requiredHonors = Math.round(costUSD * 450);
+                                    return state.paymentType === 'single-use' && balance?.honors && balance.honors < requiredHonors;
+                                })()}
+                                className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoading ? 'Creating...' : 'Confirm & Create Mission'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

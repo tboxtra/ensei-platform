@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useApi } from '../../../hooks/useApi';
 import { ModernLayout } from '../../../components/layout/ModernLayout';
 import { MissionWizard } from '../../../features/mission-wizard/wizard';
@@ -9,16 +10,33 @@ export default function CreateMissionPage() {
     const { createMission, loading, error } = useApi();
     const [success, setSuccess] = useState(false);
     const [createdMissionId, setCreatedMissionId] = useState<string | null>(null);
+    const searchParams = useSearchParams();
 
     // Clear wizard state on page load to ensure fresh start
+    // But preserve URL params for prefill functionality
     useEffect(() => {
-        localStorage.removeItem('mission-wizard-state');
-        localStorage.removeItem('mission-wizard-step');
+        // Read URL params first (for prefill)
+        const packId = searchParams.get('packId');
+        const type = searchParams.get('type');
+        
+        // Clear sessionStorage wizard state (but preserve other app state)
+        sessionStorage.removeItem('mission-wizard-state');
+        sessionStorage.removeItem('mission-wizard-step');
+        sessionStorage.removeItem('mission-wizard-tab-token');
+        
+        // Telemetry: Log wizard reset
+        console.log('=== WIZARD RESET TELEMETRY ===');
+        console.log('Event: create_wizard_reset');
+        console.log('Reason: page_load');
+        console.log('URL params:', { packId, type });
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('=============================');
         
         // Also clear on page unload (when user navigates away)
         const handleBeforeUnload = () => {
-            localStorage.removeItem('mission-wizard-state');
-            localStorage.removeItem('mission-wizard-step');
+            sessionStorage.removeItem('mission-wizard-state');
+            sessionStorage.removeItem('mission-wizard-step');
+            sessionStorage.removeItem('mission-wizard-tab-token');
         };
         
         window.addEventListener('beforeunload', handleBeforeUnload);
@@ -27,7 +45,7 @@ export default function CreateMissionPage() {
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, []);
+    }, [searchParams]);
 
     const handleWizardSubmit = async (missionData: any) => {
         try {
@@ -35,8 +53,9 @@ export default function CreateMissionPage() {
             console.log('Mission created successfully:', result);
 
             // Clear wizard state on successful creation
-            localStorage.removeItem('mission-wizard-state');
-            localStorage.removeItem('mission-wizard-step');
+            sessionStorage.removeItem('mission-wizard-state');
+            sessionStorage.removeItem('mission-wizard-step');
+            sessionStorage.removeItem('mission-wizard-tab-token');
 
             // Set success state
             setSuccess(true);
