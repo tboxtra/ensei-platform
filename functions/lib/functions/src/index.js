@@ -39,6 +39,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onDegenMissionCompleted = exports.onDegenWinnersChosenV2 = exports.onMissionCreateV2 = exports.onParticipationUpdateV2 = exports.getReviewQueue = exports.submitReview = exports.checkExpiredFixedMissions = exports.deriveUserStatsAggregates = exports.syncMissionProgress = exports.onMissionCreate = exports.onDegenWinnersChosen = exports.onVerificationWrite = exports.updateMissionAggregates = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.setAdminClaim = exports.api = void 0;
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
+// Cold start tracking
+let COLD = true;
 // Helper functions for safe defaults
 const emptyStats = () => ({
     missionsCreated: 0,
@@ -109,10 +111,22 @@ const upload = (0, multer_1.default)({
 });
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    const t0 = Date.now();
+    const response = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        latencyMs: Date.now() - t0,
+        coldStart: COLD
+    };
+    // Mark as warm after first response
+    if (COLD) {
+        COLD = false;
+    }
+    res.json(response);
 });
 // Enhanced Pack System Health Check with Synthetic Probes
 app.get('/health/packs', async (req, res) => {
+    const t0 = Date.now();
     try {
         const startTime = Date.now();
         const healthChecks = {};
@@ -183,22 +197,36 @@ app.get('/health/packs', async (req, res) => {
         }
         const responseTime = Date.now() - startTime;
         const overallStatus = Object.values(healthChecks).every((check) => check.status === 'ok') ? 'healthy' : 'unhealthy';
-        res.json({
+        const response = {
             status: overallStatus,
             timestamp: new Date().toISOString(),
             checks: healthChecks,
             responseTime: `${responseTime}ms`,
+            latencyMs: Date.now() - t0,
+            coldStart: COLD,
             version: '1.0.0'
-        });
+        };
+        // Mark as warm after first response
+        if (COLD) {
+            COLD = false;
+        }
+        res.json(response);
     }
     catch (error) {
         console.error('Pack system health check failed:', error);
-        res.status(500).json({
+        const response = {
             status: 'unhealthy',
             timestamp: new Date().toISOString(),
             error: error instanceof Error ? error.message : 'Unknown error',
+            latencyMs: Date.now() - t0,
+            coldStart: COLD,
             version: '1.0.0'
-        });
+        };
+        // Mark as warm after first response
+        if (COLD) {
+            COLD = false;
+        }
+        res.status(500).json(response);
     }
 });
 // Pack System Metrics Endpoint (Simplified)

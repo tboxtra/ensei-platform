@@ -1,6 +1,9 @@
 import * as functions from 'firebase-functions';
 import * as firebaseAdmin from 'firebase-admin';
 
+// Cold start tracking
+let COLD = true;
+
 // Type definitions for user stats
 type UserStats = {
   missionsCreated: number;
@@ -101,11 +104,25 @@ const upload = multer({
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  const t0 = Date.now();
+  const response = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    latencyMs: Date.now() - t0,
+    coldStart: COLD
+  };
+  
+  // Mark as warm after first response
+  if (COLD) {
+    COLD = false;
+  }
+  
+  res.json(response);
 });
 
 // Enhanced Pack System Health Check with Synthetic Probes
 app.get('/health/packs', async (req, res) => {
+  const t0 = Date.now();
   try {
     const startTime = Date.now();
     const healthChecks: any = {};
@@ -178,21 +195,39 @@ app.get('/health/packs', async (req, res) => {
     const responseTime = Date.now() - startTime;
     const overallStatus = Object.values(healthChecks).every((check: any) => check.status === 'ok') ? 'healthy' : 'unhealthy';
 
-    res.json({
+    const response = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       checks: healthChecks,
       responseTime: `${responseTime}ms`,
+      latencyMs: Date.now() - t0,
+      coldStart: COLD,
       version: '1.0.0'
-    });
+    };
+    
+    // Mark as warm after first response
+    if (COLD) {
+      COLD = false;
+    }
+    
+    res.json(response);
   } catch (error) {
     console.error('Pack system health check failed:', error);
-    res.status(500).json({
+    const response = {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       error: error instanceof Error ? error.message : 'Unknown error',
+      latencyMs: Date.now() - t0,
+      coldStart: COLD,
       version: '1.0.0'
-    });
+    };
+    
+    // Mark as warm after first response
+    if (COLD) {
+      COLD = false;
+    }
+    
+    res.status(500).json(response);
   }
 });
 

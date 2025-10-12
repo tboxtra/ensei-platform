@@ -44,7 +44,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
             const userData = localStorage.getItem('user');
             if (userData) {
                 setUser(JSON.parse(userData));
-                // Also fetch balance if user data exists in localStorage
+                // Only fetch balance if user data exists in localStorage (authenticated user)
                 fetchBalance();
             }
         }

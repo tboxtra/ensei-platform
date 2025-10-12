@@ -7,7 +7,11 @@ import { ModernButton } from '../ui/ModernButton'
 import { SectionHeader } from '../ui/SectionHeader'
 
 export default function MyPacks() {
-  const { entitlements, refreshEntitlements, loading, error } = usePacks()
+  const { entitlements, fetchEntitlements, refreshEntitlements, loading, error } = usePacks()
+
+  React.useEffect(() => {
+    fetchEntitlements('my_packs_page_load')
+  }, []) // Remove dependencies to prevent infinite loops
 
   if (loading) {
     return (

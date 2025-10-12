@@ -45,12 +45,21 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     const SHOW_ACTIVE_ENTITLEMENTS = process.env.NEXT_PUBLIC_SHOW_ACTIVE_ENTITLEMENTS !== 'false'; // Default ON, can be disabled
     const ENABLE_PACK_PURCHASE = !packsError && process.env.NEXT_PUBLIC_ENABLE_PACK_PURCHASE !== 'false'; // Default ON, can be disabled
 
-    // Fallback catalog for when API is unreachable
+    // Fallback catalog for when API is unreachable - enforce cap→price mapping
     const FALLBACK_PACKS = [
-        { id: 'single_1_small', label: 'Single Small', description: '1 mission • 100 likes', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
-        { id: 'single_1_medium', label: 'Single Medium', description: '1 mission • 200 likes', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
-        { id: 'single_1_large', label: 'Single Large', description: '1 mission • 500 likes', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
+        { id: 'single_1_small', label: 'Single Small', description: '1 mission • 100 participants', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 }, size: 'small' },
+        { id: 'single_1_medium', label: 'Single Medium', description: '1 mission • 200 participants', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 }, size: 'medium' },
+        { id: 'single_1_large', label: 'Single Large', description: '1 mission • 500 participants', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 }, size: 'large' }
     ];
+
+    // Cap→price mapping constants
+    const CAP_PRICE_MAPPING = {
+        100: 10,  // $10 for 100 participants
+        200: 15,  // $15 for 200 participants  
+        500: 25   // $25 for 500 participants
+    } as const;
+
+    const HONORS_PER_USD = 450;
 
     // Use fallback packs if API fails
     const displayPacks = packsError ? FALLBACK_PACKS : packs;
@@ -377,13 +386,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <span className="text-green-400">
                                     {state.model === 'fixed'
                                         ? (() => {
-                                            // Fixed mission pricing varies by participant cap (aligned with single-use pack pricing)
-                                            let costUSD = 10; // default small
-                                            if (state.cap >= 500) {
-                                                costUSD = 25; // large
-                                            } else if (state.cap >= 200) {
-                                                costUSD = 15; // medium
-                                            }
+                                            // Enforce cap→price mapping: 100→$10, 200→$15, 500→$25
+                                            const costUSD = CAP_PRICE_MAPPING[state.cap as keyof typeof CAP_PRICE_MAPPING] || 10;
                                             return `$${costUSD}.00`;
                                         })()
                                         : state.selectedDegenPreset?.costUSD
@@ -476,13 +480,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                         <span className="font-medium text-green-400">
                                             {state.model === 'fixed'
                                                 ? (() => {
-                                                    // Fixed mission pricing varies by participant cap (aligned with single-use pack pricing)
-                                                    let costUSD = 10; // default small
-                                                    if (state.cap >= 500) {
-                                                        costUSD = 25; // large
-                                                    } else if (state.cap >= 200) {
-                                                        costUSD = 15; // medium
-                                                    }
+                                                    // Enforce cap→price mapping: 100→$10, 200→$15, 500→$25
+                                                    const costUSD = CAP_PRICE_MAPPING[state.cap as keyof typeof CAP_PRICE_MAPPING] || 10;
                                                     return `$${costUSD}.00`;
                                                 })()
                                                 : state.selectedDegenPreset?.costUSD
@@ -504,17 +503,11 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                             {(() => {
                                 const costUSD = state.model === 'fixed'
                                     ? (() => {
-                                        // Fixed mission pricing varies by participant cap
-                                        let cost = 5; // default small
-                                        if (state.cap >= 500) {
-                                            cost = 20; // large
-                                        } else if (state.cap >= 200) {
-                                            cost = 10; // medium
-                                        }
-                                        return cost;
+                                        // Enforce cap→price mapping: 100→$10, 200→$15, 500→$25
+                                        return CAP_PRICE_MAPPING[state.cap as keyof typeof CAP_PRICE_MAPPING] || 10;
                                     })()
                                     : (state.selectedDegenPreset?.costUSD || 0);
-                                const requiredHonors = Math.round(costUSD * 450);
+                                const requiredHonors = Math.round(costUSD * HONORS_PER_USD);
                                 const hasEnoughBalance = balance?.honors && balance.honors >= requiredHonors;
 
                                 if (!hasEnoughBalance && state.paymentType === 'single-use') {
@@ -563,17 +556,11 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 disabled={isLoading || (() => {
                                     const costUSD = state.model === 'fixed'
                                         ? (() => {
-                                            // Fixed mission pricing varies by participant cap
-                                            let cost = 5; // default small
-                                            if (state.cap >= 500) {
-                                                cost = 20; // large
-                                            } else if (state.cap >= 200) {
-                                                cost = 10; // medium
-                                            }
-                                            return cost;
+                                            // Enforce cap→price mapping: 100→$10, 200→$15, 500→$25
+                                            return CAP_PRICE_MAPPING[state.cap as keyof typeof CAP_PRICE_MAPPING] || 10;
                                         })()
                                         : (state.selectedDegenPreset?.costUSD || 0);
-                                    const requiredHonors = Math.round(costUSD * 450);
+                                    const requiredHonors = Math.round(costUSD * HONORS_PER_USD);
                                     return !!(state.paymentType === 'single-use' && balance?.honors && balance.honors < requiredHonors);
                                 })()}
                                 className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"

@@ -1,0 +1,17 @@
+name: Keep Functions Warm
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: "*/5 * * * *"
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  keep-warm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Health Endpoint
+        run: |
+          echo "Pinging health endpoint to keep functions warm..."
+          curl -fsS https://us-central1-ensei-6c8e0.cloudfunctions.net/api/health || true
+          echo "Health endpoint pinged successfully"

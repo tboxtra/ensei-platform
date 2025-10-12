@@ -9,7 +9,7 @@ import { PACKS_FALLBACK } from '../../shared/config/packs.fallback'
 type Props = { onPurchased?: () => void }
 
 export default function Packs({ onPurchased }: Props) {
-    const { packs, entitlements, loading, error, fetchPacks, purchasePack } = usePacks()
+    const { packs, entitlements, loading, error, fetchPacks, fetchEntitlements, purchasePack } = usePacks()
     const { balance, fetchBalance } = useWallet()
     const [selectedPack, setSelectedPack] = React.useState<any>(null)
     const [purchasing, setPurchasing] = React.useState<string | null>(null)
@@ -22,11 +22,12 @@ export default function Packs({ onPurchased }: Props) {
     React.useEffect(() => {
         console.log('Packs component: Starting to fetch packs...');
         fetchPacks()
-    }, []) // Remove fetchPacks from dependencies to prevent infinite loops
+        fetchEntitlements('packs_page_load')
+    }, []) // Remove dependencies to prevent infinite loops
 
     React.useEffect(() => {
         fetchBalance()
-    }, []) // Remove fetchBalance from dependencies to prevent infinite loops
+    }, []) // Remove dependencies to prevent infinite loops
 
     // Use fallback data only if API fails, not when API returns empty array
     const displayPacks = packs.length > 0 ? packs : (error ? PACKS_FALLBACK : [])
