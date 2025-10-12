@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/UserAuthContext';
 import { Pack, Entitlement } from '../types/packs';
 
@@ -1081,7 +1081,7 @@ export function usePacks() {
         setEntitlementsInFlight(true);
         const startTime = Date.now();
         console.log(`fetchEntitlements: Starting fetch from ${source}...`);
-        
+
         try {
             const data = await api.getEntitlements();
             const duration = Date.now() - startTime;

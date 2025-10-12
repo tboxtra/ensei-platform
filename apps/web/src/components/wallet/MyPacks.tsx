@@ -40,7 +40,7 @@ export default function MyPacks() {
           </Link>
           <ModernButton
             onClick={refreshEntitlements}
-            variant="outline"
+            variant="secondary"
             size="sm"
             disabled={loading}
           >
