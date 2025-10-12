@@ -380,6 +380,8 @@ app.get('/api/test', (req, res) => {
 });
 // Middleware to verify Firebase Auth token
 const verifyFirebaseToken = async (req, res, next) => {
+    // Add noStore header to all responses from authenticated endpoints
+    noStore(res);
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
