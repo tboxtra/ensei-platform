@@ -40,6 +40,10 @@ exports.onDegenMissionCompleted = exports.onDegenWinnersChosenV2 = exports.onMis
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
 const pricing_1 = require("./lib/pricing");
+// Helper to prevent caching of user-scoped endpoints
+function noStore(res) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+}
 class SimpleCache {
     constructor() {
         this.cache = new Map();
@@ -1822,6 +1826,7 @@ app.post('/v1/missions/:id/participate', verifyFirebaseToken, async (req, res) =
 // Wallet endpoints
 app.get('/v1/wallet/balance', verifyFirebaseToken, async (req, res) => {
     try {
+        noStore(res); // Prevent caching of user-scoped data
         const userId = req.user.uid;
         console.log('Fetching wallet balance for user:', userId);
         // Get or create user wallet
@@ -1848,15 +1853,13 @@ app.get('/v1/wallet/balance', verifyFirebaseToken, async (req, res) => {
             .orderBy('created_at', 'desc')
             .limit(20)
             .get();
+        // Convert Firestore Timestamp -> ISO for transactions
         const transactions = transactionsSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
                 ...data,
-                // Convert Firestore timestamp to ISO string for frontend
-                date: data.created_at?.toDate ? data.created_at.toDate().toISOString() :
-                    data.created_at?._seconds ? new Date(data.created_at._seconds * 1000).toISOString() :
-                        data.created_at || new Date().toISOString()
+                date: data.created_at?.toDate?.().toISOString?.() ?? null
             };
         });
         res.json({
@@ -1866,6 +1869,7 @@ app.get('/v1/wallet/balance', verifyFirebaseToken, async (req, res) => {
     }
     catch (error) {
         console.error('Error fetching wallet balance:', error);
+        noStore(res);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -2287,11 +2291,14 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
     }
 });
 app.get('/v1/entitlements', verifyFirebaseToken, async (req, res) => {
+    const t0 = Date.now();
     try {
+        noStore(res); // Prevent caching of user-scoped data
         const userId = req.user.uid;
         console.log('Fetching entitlements for user:', userId);
         // Check circuit breaker
         if (circuitBreaker.isOpen()) {
+            noStore(res);
             res.status(503).json({
                 error: 'Service temporarily unavailable',
                 message: 'Entitlements service is experiencing issues. Please try again later.',
@@ -2315,15 +2322,22 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req, res) => {
                 status: data.status,
                 usage: data.usage,
                 quotas: data.quotas,
+                remaining: data.remaining,
                 // Add pack label for display
                 packLabel: data.packId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
             };
         }).sort((a, b) => {
-            // Sort by purchasedAt descending (most recent first)
+            // Ensure stable sort (newest first)
             const aTime = a.purchasedAt?.toDate ? a.purchasedAt.toDate() : new Date(a.purchasedAt || 0);
             const bTime = b.purchasedAt?.toDate ? b.purchasedAt.toDate() : new Date(b.purchasedAt || 0);
             return bTime.getTime() - aTime.getTime();
         });
+        // Normalize dates for UI
+        const normalized = entitlements.map(e => ({
+            ...e,
+            purchasedAtIso: e.purchasedAt?.toDate?.().toISOString?.() ?? null,
+            expiresAtIso: e.expiresAt?.toDate?.().toISOString?.() ?? null,
+        }));
         // Telemetry: Log entitlements access for analytics
         console.log('=== ENTITLEMENTS ACCESS TELEMETRY ===');
         console.log('Event: entitlements_accessed');
@@ -2332,11 +2346,12 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req, res) => {
         console.log('ActiveEntitlements:', entitlements.filter(e => e.status === 'active').length);
         console.log('Timestamp:', new Date().toISOString());
         console.log('=====================================');
-        res.json(entitlements);
+        return res.status(200).json({ items: normalized, latencyMs: Date.now() - t0 });
     }
     catch (error) {
         console.error('Error fetching entitlements:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        noStore(res);
+        return res.status(500).json({ error: 'ENTITLEMENTS_FAILED' });
     }
 });
 // User profile endpoints

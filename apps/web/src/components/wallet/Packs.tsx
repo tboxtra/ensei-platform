@@ -9,8 +9,8 @@ import { PACKS_FALLBACK } from '../../shared/config/packs.fallback'
 type Props = { onPurchased?: () => void }
 
 export default function Packs({ onPurchased }: Props) {
-    const { packs, entitlements, loading, error, fetchPacks, purchasePack } = usePacks()
-    const { balance, fetchBalance } = useWallet()
+    const { packs, entitlements, loading, error, fetchPacks, purchasePack, refreshEntitlements } = usePacks()
+    const { balance, fetchBalance, refreshWallet } = useWallet()
     const [selectedPack, setSelectedPack] = React.useState<any>(null)
     const [purchasing, setPurchasing] = React.useState<string | null>(null)
     const [purchaseError, setPurchaseError] = React.useState<string | null>(null)
@@ -90,8 +90,11 @@ export default function Packs({ onPurchased }: Props) {
             setPurchaseSuccess(`Successfully purchased ${packToPurchase.label}!`)
             onPurchased?.()
 
-            // Refresh balance after successful purchase
-            await fetchBalance()
+            // Hard refresh of user data:
+            await Promise.all([
+                refreshEntitlements(),
+                refreshWallet(),
+            ]);
 
             // Log successful purchase
             console.log('pack_purchase_succeeded', {

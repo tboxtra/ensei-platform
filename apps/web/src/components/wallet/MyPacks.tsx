@@ -7,29 +7,18 @@ import { ModernButton } from '../ui/ModernButton'
 import { SectionHeader } from '../ui/SectionHeader'
 
 export default function MyPacks() {
-  const { entitlements, refreshEntitlements, loading, error } = usePacks()
+  const { entitlements, isLoadingEntitlements, refreshEntitlements } = usePacks();
 
-  if (loading) {
+  if (isLoadingEntitlements) {
     return (
-      <div className="space-y-10">
-        <section>
-          <div className="text-2xl font-semibold mb-1">Your Active Packs</div>
-          <p className="text-sm text-white/60 mb-6">Your purchased packs with remaining missions</p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy={true}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.04] h-40 animate-pulse" />
-            ))}
-          </div>
-        </section>
-        <section>
-          <div className="text-2xl font-semibold mb-1">Purchase History</div>
-          <p className="text-sm text-white/60 mb-4">Your recent pack purchases</p>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] h-32 animate-pulse" />
-        </section>
+      <div className="text-center py-6">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
+        <p className="text-gray-400 text-sm">Loading your packs…</p>
       </div>
     );
   }
-  if (!entitlements.length) {
+
+  if (!entitlements?.length) {
     return (
       <div className="text-center py-10">
         <div className="text-4xl mb-3">🎒</div>
@@ -42,13 +31,13 @@ export default function MyPacks() {
             onClick={refreshEntitlements}
             variant="secondary"
             size="sm"
-            disabled={loading}
+            disabled={isLoadingEntitlements}
           >
             🔄 Refresh
           </ModernButton>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -58,14 +47,17 @@ export default function MyPacks() {
         <div className="text-2xl font-semibold mb-1">Your Active Packs</div>
         <p className="text-sm text-white/60 mb-6">Your purchased packs with remaining missions</p>
 
-        {entitlements.filter(i => i.status === 'active').length === 0 ? (
+        {entitlements.filter(e => e.status === 'active' && (e.remaining ?? 0) > 0).length === 0 ? (
           <div className="text-center py-10 opacity-70">No active packs yet.</div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {entitlements
-              .filter(i => i.status === 'active')
+              .filter(e => e.status === 'active' && (e.remaining ?? 0) > 0)
               .map((ent) => {
-                const pct = Math.min(100, Math.round((ent.usage.tweetsUsed / ent.quotas.tweets) * 100))
+                const remaining = ent.remaining ?? 0;
+                const total = ent.quotas?.tweets ?? 1;
+                const used = total - remaining;
+                const pct = Math.min(100, Math.round((used / total) * 100));
                 return (
                   <ModernCard key={ent.id} className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
@@ -77,6 +69,10 @@ export default function MyPacks() {
 
                     <div className="h-2 bg-white/10 rounded">
                       <div className="h-2 bg-gradient-to-r from-green-500 to-blue-500 rounded" style={{ width: `${pct}%` }} />
+                    </div>
+
+                    <div className="text-xs text-white/60">
+                      {used}/{total} tweets used
                     </div>
 
                     <a

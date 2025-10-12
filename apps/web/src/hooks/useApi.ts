@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/UserAuthContext';
 import { Pack, Entitlement } from '../types/packs';
 
@@ -950,6 +950,7 @@ export function useMissions() {
 
 export function useWallet() {
     const api = useApi();
+    const { user } = useAuth();
     const [balance, setBalance] = useState<WalletBalance | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -971,11 +972,24 @@ export function useWallet() {
         }
     }, [api]);
 
+    // on auth ready
+    useEffect(() => {
+        if (!user) return;
+        fetchBalance();        // pulls honors + usd
+        fetchTransactions();   // pulls ledger
+    }, [user, fetchBalance, fetchTransactions]);
+
+    // expose after-purchase refresh
+    const refreshWallet = useCallback(async () => {
+        await Promise.all([fetchBalance(), fetchTransactions()]);
+    }, [fetchBalance, fetchTransactions]);
+
     return {
         balance,
         transactions,
         fetchBalance,
         fetchTransactions,
+        refreshWallet,
         withdrawFunds: api.withdrawFunds,
         depositCrypto: api.depositCrypto,
         loading: api.loading,
@@ -1051,11 +1065,13 @@ export function useRewards() {
 
 export function usePacks() {
     const api = useApi();
+    const { user } = useAuth();
     const [packs, setPacks] = useState<any[]>([]);
     const [entitlements, setEntitlements] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [entitlementsInFlight, setEntitlementsInFlight] = useState(false);
+    const [isLoadingEntitlements, setIsLoadingEntitlements] = useState(false);
+    const inFlight = useRef<Promise<void> | null>(null);
 
     const fetchPacks = useCallback(async () => {
         setLoading(true);
@@ -1071,81 +1087,39 @@ export function usePacks() {
         }
     }, [api.getPacks]);
 
-    const fetchEntitlements = useCallback(async (source: string = 'unknown') => {
-        // Prevent concurrent fetches
-        if (entitlementsInFlight) {
-            console.log(`fetchEntitlements: Skipping fetch from ${source} - already in flight`);
-            return;
-        }
-
-        setEntitlementsInFlight(true);
-        const startTime = Date.now();
-        console.log(`fetchEntitlements: Starting fetch from ${source}...`);
-
-        try {
-            // Exponential backoff: 3 tries with delays 0ms, 250ms, 750ms
-            const delays = [0, 250, 750];
-            let lastError: any;
-
-            for (let attempt = 0; attempt < delays.length; attempt++) {
-                try {
-                    if (attempt > 0) {
-                        console.log(`fetchEntitlements: Retry attempt ${attempt + 1}/${delays.length} after ${delays[attempt]}ms delay`);
-                        await new Promise(resolve => setTimeout(resolve, delays[attempt]));
-                    }
-
-                    const data = await api.getEntitlements();
-                    const duration = Date.now() - startTime;
-                    console.log(`fetchEntitlements: Successfully fetched from ${source} in ${duration}ms (attempt ${attempt + 1}):`, {
-                        count: data?.length || 0,
-                        source,
-                        duration,
-                        attempt: attempt + 1
-                    });
-                    setEntitlements(data);
-                    return; // Success, exit retry loop
-                } catch (err) {
-                    lastError = err;
-                    const duration = Date.now() - startTime;
-                    console.error(`fetchEntitlements: Attempt ${attempt + 1} failed from ${source} after ${duration}ms:`, err);
-
-                    // If this is the last attempt, don't continue
-                    if (attempt === delays.length - 1) {
-                        break;
-                    }
-                }
+    const fetchEntitlements = useCallback(async (source: 'page_load'|'visibility'|'purchase'|'route'|'manual' = 'page_load', force = false) => {
+        if (inFlight.current && !force) return;
+        setIsLoadingEntitlements(true);
+        const p = (async () => {
+            try {
+                const res = await apiGetEntitlements(); // ensure fresh
+                setEntitlements(res?.items ?? []);
+            } finally {
+                setIsLoadingEntitlements(false);
+                inFlight.current = null;
             }
+        })();
+        inFlight.current = p;
+        await p;
+    }, []);
 
-            // All attempts failed
-            const duration = Date.now() - startTime;
-            console.error(`fetchEntitlements: All ${delays.length} attempts failed from ${source} after ${duration}ms:`, lastError);
-            throw lastError;
-        } finally {
-            setEntitlementsInFlight(false);
-        }
-    }, [api.getEntitlements, entitlementsInFlight]);
-
-    // Add visibility change and focus listeners for proper refetch rules
+    // on auth ready + mount
     useEffect(() => {
-        const onFocus = () => fetchEntitlements('visibility');
+        if (user) fetchEntitlements('page_load', true);
+    }, [user, fetchEntitlements]);
+
+    // on tab focus
+    useEffect(() => {
         const onVis = () => document.visibilityState === 'visible' && fetchEntitlements('visibility');
-        window.addEventListener('focus', onFocus);
         document.addEventListener('visibilitychange', onVis);
-        return () => {
-            window.removeEventListener('focus', onFocus);
-            document.removeEventListener('visibilitychange', onVis);
-        };
+        return () => document.removeEventListener('visibilitychange', onVis);
     }, [fetchEntitlements]);
 
     const purchasePack = useCallback(async (packId: string) => {
         try {
             const result = await api.purchasePack(packId);
-            // Refresh entitlements, wallet balance, and transactions after successful purchase
-            await Promise.all([
-                fetchEntitlements('purchase'),
-                // Note: wallet.fetchBalance() and wallet.fetchTransactions() would need to be imported
-                // For now, we'll just refresh entitlements
-            ]);
+            // Refresh entitlements after successful purchase
+            await fetchEntitlements('purchase', true);
             return result;
         } catch (err) {
             console.error('Failed to purchase pack:', err);
@@ -1154,7 +1128,7 @@ export function usePacks() {
     }, [api.purchasePack, fetchEntitlements]);
 
     const refreshEntitlements = useCallback(() => {
-        fetchEntitlements('manual_refresh');
+        fetchEntitlements('manual', true);
     }, [fetchEntitlements]);
 
     return {
@@ -1166,7 +1140,7 @@ export function usePacks() {
         purchasePack,
         loading,
         error,
-        isLoadingEntitlements: entitlementsInFlight,
+        isLoadingEntitlements,
     };
 }
 
@@ -1177,7 +1151,7 @@ export async function apiGetPacks(): Promise<Pack[]> {
     return res.json();
 }
 
-export async function apiGetEntitlements(): Promise<Entitlement[]> {
+export async function apiGetEntitlements(): Promise<{ items: Entitlement[] }> {
     const res = await fetch(`${API_BASE_FOR_PACKS}/v1/entitlements`, { cache: 'no-store', credentials: 'include' });
     if (!res.ok) throw new Error('Failed to load entitlements');
     return res.json();

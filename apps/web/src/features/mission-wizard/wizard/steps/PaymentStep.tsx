@@ -31,8 +31,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     const [showPurchaseConfirmation, setShowPurchaseConfirmation] = useState(false);
 
     // Fetch entitlements when component mounts
-    useEffect(() => { 
-        fetchEntitlements('wizard_step_payment'); 
+    useEffect(() => {
+        fetchEntitlements('page_load');
     }, [fetchEntitlements]);
 
     // Calculate pricing using shared constants
@@ -61,7 +61,15 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     const usingPack = state.paymentType === 'pack';
     const selectedEntitlement = usable.find(e => e.packId === state.packId);
     const canAffordSingle = (balance?.honors ?? 0) >= honorsRequired;
-    const canCreate = (usingPack && !!selectedEntitlement) || (!usingPack && canAffordSingle);
+    const canCreate = !isLoadingEntitlements && 
+        ((usingPack && !!selectedEntitlement) || (!usingPack && canAffordSingle));
+
+    // Default to 'single-use' if no active packs; otherwise keep last selection
+    useEffect(() => {
+        if (!isLoadingEntitlements && usable.length === 0 && state.paymentType === 'pack') {
+            updateState({ paymentType: 'single-use', packId: undefined });
+        }
+    }, [isLoadingEntitlements, usable.length, state.paymentType, updateState]);
 
     const handlePaymentSelect = (paymentType: 'single-use' | 'pack') => {
         updateState({ paymentType });
@@ -373,7 +381,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <span>Total Cost:</span>
                                 <span className="text-green-400">
                                     {state.model === 'fixed'
-                                        ? `$${priceUsd}.00`
+                                        ? `$${priceUsd}.00 (${honorsRequired} Honors)`
                                         : state.selectedDegenPreset?.costUSD
                                             ? `$${state.selectedDegenPreset.costUSD}`
                                             : 'Variable (based on engagement)'
