@@ -410,7 +410,7 @@ app.get('/api/test', (req, res) => {
 const verifyFirebaseToken = async (req: any, res: any, next: any) => {
   // Add noStore header to all responses from authenticated endpoints
   noStore(res);
-  
+
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

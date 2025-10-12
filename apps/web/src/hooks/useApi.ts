@@ -1094,6 +1094,9 @@ export function usePacks() {
             try {
                 const res = await apiGetEntitlements(); // ensure fresh
                 setEntitlements(res?.items ?? []);
+            } catch (error) {
+                console.error('Failed to fetch entitlements:', error);
+                setEntitlements([]);
             } finally {
                 setIsLoadingEntitlements(false);
                 inFlight.current = null;
@@ -1152,7 +1155,25 @@ export async function apiGetPacks(): Promise<Pack[]> {
 }
 
 export async function apiGetEntitlements(): Promise<{ items: Entitlement[] }> {
-    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/entitlements`, { cache: 'no-store', credentials: 'include' });
+    // Get the current user's auth token
+    const { getAuth } = await import('firebase/auth');
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+        throw new Error('User not authenticated');
+    }
+    
+    const token = await user.getIdToken();
+    
+    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/entitlements`, { 
+        cache: 'no-store',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
     if (!res.ok) throw new Error('Failed to load entitlements');
     return res.json();
 }
