@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as firebaseAdmin from 'firebase-admin';
+import { getFixedMissionPriceUSD, usdToHonors } from './lib/pricing';
 
 // Production hardening: Caching and rate limiting
 interface CacheEntry<T> {
@@ -2425,8 +2426,8 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
       return;
     }
 
-    // Check if user has sufficient balance (convert USD to honors at 450 honors per USD)
-    const requiredHonors = pack.priceUsd * 450;
+    // Check if user has sufficient balance (convert USD to honors using shared pricing)
+    const requiredHonors = usdToHonors(pack.priceUsd);
     if (wallet.honors < requiredHonors) {
       res.status(400).json({ error: 'Insufficient balance' });
       return;
@@ -2458,27 +2459,25 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
 
       transaction.set(entitlementRef, entitlementData);
 
-      // Create transaction record
+      // Create transaction record (ledger format)
       const transactionRef = db.collection('transactions').doc();
       const transactionData = {
+        id: transactionRef.id,
         userId,
-        type: 'purchase',
-        amount: -requiredHonors, // Negative for purchase
-        packId,
+        kind: 'pack_purchase',
+        amountHonors: -requiredHonors,
+        amountUsd: -pack.priceUsd,
         status: 'completed',
-        timestamp: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-        clientRequestId,
-        entitlementId: entitlementRef.id,
-        description: `Purchased ${packId} pack`
+        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        meta: { packId, label: packId, clientRequestId }
       };
 
       transaction.set(transactionRef, transactionData);
 
       // Update wallet balance
-      transaction.update(db.collection('wallets').doc(userId), {
-        honors: firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
-        usd: firebaseAdmin.firestore.FieldValue.increment(-pack.priceUsd),
-        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+      transaction.update(db.collection('users').doc(userId), {
+        'wallet.honors': firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
+        'wallet.usd': firebaseAdmin.firestore.FieldValue.increment(-pack.priceUsd)
       });
 
       return {

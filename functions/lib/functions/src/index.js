@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onDegenMissionCompleted = exports.onDegenWinnersChosenV2 = exports.onMissionCreateV2 = exports.onParticipationUpdateV2 = exports.getReviewQueue = exports.submitReview = exports.checkExpiredFixedMissions = exports.deriveUserStatsAggregates = exports.syncMissionProgress = exports.onMissionCreate = exports.onDegenWinnersChosen = exports.onVerificationWrite = exports.updateMissionAggregates = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.setAdminClaim = exports.api = void 0;
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
+const pricing_1 = require("./lib/pricing");
 class SimpleCache {
     constructor() {
         this.cache = new Map();
@@ -2177,8 +2178,8 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
             res.status(400).json({ error: 'Wallet data not found' });
             return;
         }
-        // Check if user has sufficient balance (convert USD to honors at 450 honors per USD)
-        const requiredHonors = pack.priceUsd * 450;
+        // Check if user has sufficient balance (convert USD to honors using shared pricing)
+        const requiredHonors = (0, pricing_1.usdToHonors)(pack.priceUsd);
         if (wallet.honors < requiredHonors) {
             res.status(400).json({ error: 'Insufficient balance' });
             return;
@@ -2207,25 +2208,23 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
                         : null
             };
             transaction.set(entitlementRef, entitlementData);
-            // Create transaction record
+            // Create transaction record (ledger format)
             const transactionRef = db.collection('transactions').doc();
             const transactionData = {
+                id: transactionRef.id,
                 userId,
-                type: 'purchase',
-                amount: -requiredHonors, // Negative for purchase
-                packId,
+                kind: 'pack_purchase',
+                amountHonors: -requiredHonors,
+                amountUsd: -pack.priceUsd,
                 status: 'completed',
-                timestamp: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-                clientRequestId,
-                entitlementId: entitlementRef.id,
-                description: `Purchased ${packId} pack`
+                created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                meta: { packId, label: packId, clientRequestId }
             };
             transaction.set(transactionRef, transactionData);
             // Update wallet balance
-            transaction.update(db.collection('wallets').doc(userId), {
-                honors: firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
-                usd: firebaseAdmin.firestore.FieldValue.increment(-pack.priceUsd),
-                updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
+            transaction.update(db.collection('users').doc(userId), {
+                'wallet.honors': firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
+                'wallet.usd': firebaseAdmin.firestore.FieldValue.increment(-pack.priceUsd)
             });
             return {
                 entitlementId: entitlementRef.id,

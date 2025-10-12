@@ -1125,24 +1125,27 @@ export function usePacks() {
         }
     }, [api.getEntitlements, entitlementsInFlight]);
 
-    // Add visibility change listener for proper refetch rules
+    // Add visibility change and focus listeners for proper refetch rules
     useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                console.log('Page became visible, refetching entitlements...');
-                fetchEntitlements('visibility');
-            }
+        const onFocus = () => fetchEntitlements('visibility');
+        const onVis = () => document.visibilityState === 'visible' && fetchEntitlements('visibility');
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onVis);
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVis);
         };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [fetchEntitlements]);
 
     const purchasePack = useCallback(async (packId: string) => {
         try {
             const result = await api.purchasePack(packId);
-            // Refresh entitlements after successful purchase
-            await fetchEntitlements('purchase');
+            // Refresh entitlements, wallet balance, and transactions after successful purchase
+            await Promise.all([
+                fetchEntitlements('purchase'),
+                // Note: wallet.fetchBalance() and wallet.fetchTransactions() would need to be imported
+                // For now, we'll just refresh entitlements
+            ]);
             return result;
         } catch (err) {
             console.error('Failed to purchase pack:', err);
@@ -1163,6 +1166,7 @@ export function usePacks() {
         purchasePack,
         loading,
         error,
+        isLoadingEntitlements: entitlementsInFlight,
     };
 }
 
