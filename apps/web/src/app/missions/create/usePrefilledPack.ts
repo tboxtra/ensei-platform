@@ -13,7 +13,7 @@ export function usePrefilledPack() {
 
     useEffect(() => {
         fetchPacks()
-        fetchEntitlements()
+        fetchEntitlements('page_load')
     }, []) // Remove dependencies to prevent infinite loops
 
     useEffect(() => {

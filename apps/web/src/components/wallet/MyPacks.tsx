@@ -1,29 +1,13 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
-import { apiGetEntitlements } from '../../hooks/useApi'
+import { usePacks } from '../../hooks/useApi'
 import { ModernCard } from '../ui/ModernCard'
 import { ModernButton } from '../ui/ModernButton'
 import { SectionHeader } from '../ui/SectionHeader'
 
 export default function MyPacks() {
-  const [items, setItems] = React.useState<any[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
-
-  const load = async () => {
-    setLoading(true); setError(null)
-    try {
-      const e = await apiGetEntitlements()
-      setItems(e)
-    } catch (err) {
-      console.error('Failed to load entitlements:', err)
-      // Graceful fallback: show empty state
-      setItems([])
-      setError(null)
-    } finally { setLoading(false) }
-  }
-  React.useEffect(() => { load() }, [])
+  const { entitlements, refreshEntitlements, loading, error } = usePacks()
 
   if (loading) {
     return (
@@ -45,11 +29,24 @@ export default function MyPacks() {
       </div>
     );
   }
-  if (!items.length) {
+  if (!entitlements.length) {
     return (
       <div className="text-center py-10">
         <div className="text-4xl mb-3">🎒</div>
         <h3 className="text-lg font-semibold mb-1">No packs yet — browse packs to start.</h3>
+        <div className="space-y-3 mt-4">
+          <Link href="/wallet?tab=packs" className="text-teal-400 hover:text-teal-300 block">
+            Browse available packs →
+          </Link>
+          <ModernButton
+            onClick={refreshEntitlements}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+          >
+            🔄 Refresh
+          </ModernButton>
+        </div>
       </div>
     )
   }
@@ -61,11 +58,11 @@ export default function MyPacks() {
         <div className="text-2xl font-semibold mb-1">Your Active Packs</div>
         <p className="text-sm text-white/60 mb-6">Your purchased packs with remaining missions</p>
 
-        {items.filter(i => i.status === 'active').length === 0 ? (
+        {entitlements.filter(i => i.status === 'active').length === 0 ? (
           <div className="text-center py-10 opacity-70">No active packs yet.</div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items
+            {entitlements
               .filter(i => i.status === 'active')
               .map((ent) => {
                 const pct = Math.min(100, Math.round((ent.usage.tweetsUsed / ent.quotas.tweets) * 100))
@@ -100,7 +97,7 @@ export default function MyPacks() {
         <div className="text-2xl font-semibold mb-1">Purchase History</div>
         <p className="text-sm text-white/60 mb-4">Your recent pack purchases</p>
 
-        {items.length === 0 ? (
+        {entitlements.length === 0 ? (
           <div className="text-center py-8 opacity-70">No purchases yet.</div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-white/10">
@@ -113,7 +110,7 @@ export default function MyPacks() {
                 </tr>
               </thead>
               <tbody>
-                {items
+                {entitlements
                   .map(x => ({
                     ...x,
                     _date: x.startsAt || x.endsAt || ''

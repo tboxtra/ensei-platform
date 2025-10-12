@@ -1055,6 +1055,7 @@ export function usePacks() {
     const [entitlements, setEntitlements] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [entitlementsInFlight, setEntitlementsInFlight] = useState(false);
 
     const fetchPacks = useCallback(async () => {
         setLoading(true);
@@ -1070,20 +1071,53 @@ export function usePacks() {
         }
     }, [api.getPacks]);
 
-    const fetchEntitlements = useCallback(async () => {
+    const fetchEntitlements = useCallback(async (source: string = 'unknown') => {
+        // Prevent concurrent fetches
+        if (entitlementsInFlight) {
+            console.log(`fetchEntitlements: Skipping fetch from ${source} - already in flight`);
+            return;
+        }
+
+        setEntitlementsInFlight(true);
+        const startTime = Date.now();
+        console.log(`fetchEntitlements: Starting fetch from ${source}...`);
+        
         try {
             const data = await api.getEntitlements();
+            const duration = Date.now() - startTime;
+            console.log(`fetchEntitlements: Successfully fetched from ${source} in ${duration}ms:`, {
+                count: data?.length || 0,
+                source,
+                duration
+            });
             setEntitlements(data);
         } catch (err) {
-            console.error('Failed to fetch entitlements:', err);
+            const duration = Date.now() - startTime;
+            console.error(`fetchEntitlements: Failed to fetch from ${source} after ${duration}ms:`, err);
+            throw err;
+        } finally {
+            setEntitlementsInFlight(false);
         }
-    }, [api.getEntitlements]);
+    }, [api.getEntitlements, entitlementsInFlight]);
+
+    // Add visibility change listener for proper refetch rules
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log('Page became visible, refetching entitlements...');
+                fetchEntitlements('visibility');
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [fetchEntitlements]);
 
     const purchasePack = useCallback(async (packId: string) => {
         try {
             const result = await api.purchasePack(packId);
             // Refresh entitlements after successful purchase
-            await fetchEntitlements();
+            await fetchEntitlements('purchase');
             return result;
         } catch (err) {
             console.error('Failed to purchase pack:', err);
@@ -1091,11 +1125,16 @@ export function usePacks() {
         }
     }, [api.purchasePack, fetchEntitlements]);
 
+    const refreshEntitlements = useCallback(() => {
+        fetchEntitlements('manual_refresh');
+    }, [fetchEntitlements]);
+
     return {
         packs,
         entitlements,
         fetchPacks,
         fetchEntitlements,
+        refreshEntitlements,
         purchasePack,
         loading,
         error,
