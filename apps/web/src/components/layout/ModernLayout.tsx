@@ -49,7 +49,7 @@ export function ModernLayout({ children, currentPage }: ModernLayoutProps) {
             }
         }
         setIsLoading(false);
-    }, [authUser, fetchBalance]);
+    }, [authUser]); // Remove fetchBalance from dependencies to prevent infinite loops
 
     // Stats are now handled by useQuickStats hook
 

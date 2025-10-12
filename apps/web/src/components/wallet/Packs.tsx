@@ -25,7 +25,7 @@ export default function Packs({ onPurchased }: Props) {
 
     React.useEffect(() => {
         fetchBalance()
-    }, [fetchBalance]) // Include fetchBalance in dependencies
+    }, []) // Remove fetchBalance from dependencies to prevent infinite loops
 
     // Use fallback data if API fails and no packs are loaded
     const displayPacks = packs.length > 0 ? packs : PACKS_FALLBACK
@@ -319,7 +319,7 @@ export default function Packs({ onPurchased }: Props) {
                                 const packStatus = getPackStatus('single_1_small')
                                 const isDisabled = purchasing === 'single_1_small' || packStatus.status === 'exhausted' || packStatus.status === 'expired'
 
-                                return (
+                    return (
                                     <>
                                         {packStatus.status === 'exhausted' && (
                                             <div className="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
