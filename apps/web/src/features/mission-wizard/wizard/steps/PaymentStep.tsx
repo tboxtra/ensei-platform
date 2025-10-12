@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { WizardState } from '../types/wizard.types';
 import { usePacks, useWallet } from '../../../../hooks/useApi';
+import { MISSION_PRICING_MAP } from '../../../../shared/pricing';
 
 interface PaymentStepProps {
     state: WizardState;
@@ -45,11 +46,11 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     const SHOW_ACTIVE_ENTITLEMENTS = process.env.NEXT_PUBLIC_SHOW_ACTIVE_ENTITLEMENTS !== 'false'; // Default ON, can be disabled
     const ENABLE_PACK_PURCHASE = !packsError && process.env.NEXT_PUBLIC_ENABLE_PACK_PURCHASE !== 'false'; // Default ON, can be disabled
 
-    // Fallback catalog for when API is unreachable
+    // Fallback catalog for when API is unreachable - uses shared pricing
     const FALLBACK_PACKS = [
-        { id: 'single_1_small', label: 'Single Small', description: '1 mission • 100 likes', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
-        { id: 'single_1_medium', label: 'Single Medium', description: '1 mission • 200 likes', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
-        { id: 'single_1_large', label: 'Single Large', description: '1 mission • 500 likes', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
+        { id: 'single_1_small', label: 'Single Small', description: '1 mission • 100 likes', priceUsd: MISSION_PRICING_MAP[100].priceUsd, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
+        { id: 'single_1_medium', label: 'Single Medium', description: '1 mission • 200 likes', priceUsd: MISSION_PRICING_MAP[200].priceUsd, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
+        { id: 'single_1_large', label: 'Single Large', description: '1 mission • 500 likes', priceUsd: MISSION_PRICING_MAP[500].priceUsd, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
     ];
 
     // Use fallback packs if API fails
