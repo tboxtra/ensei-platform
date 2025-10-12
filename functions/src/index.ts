@@ -2618,7 +2618,7 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req: any, res) => {
     console.log('Timestamp:', new Date().toISOString());
     console.log('=====================================');
 
-    return res.status(200).json({ items: normalized, latencyMs: Date.now()-t0 });
+    return res.status(200).json({ items: normalized, latencyMs: Date.now() - t0 });
   } catch (error) {
     console.error('Error fetching entitlements:', error);
     noStore(res);

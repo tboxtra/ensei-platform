@@ -1087,7 +1087,7 @@ export function usePacks() {
         }
     }, [api.getPacks]);
 
-    const fetchEntitlements = useCallback(async (source: 'page_load'|'visibility'|'purchase'|'route'|'manual' = 'page_load', force = false) => {
+    const fetchEntitlements = useCallback(async (source: 'page_load' | 'visibility' | 'purchase' | 'route' | 'manual' = 'page_load', force = false) => {
         if (inFlight.current && !force) return;
         setIsLoadingEntitlements(true);
         const p = (async () => {

@@ -61,7 +61,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     const usingPack = state.paymentType === 'pack';
     const selectedEntitlement = usable.find(e => e.packId === state.packId);
     const canAffordSingle = (balance?.honors ?? 0) >= honorsRequired;
-    const canCreate = !isLoadingEntitlements && 
+    const canCreate = !isLoadingEntitlements &&
         ((usingPack && !!selectedEntitlement) || (!usingPack && canAffordSingle));
 
     // Default to 'single-use' if no active packs; otherwise keep last selection
