@@ -377,13 +377,13 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <span className="text-green-400">
                                     {state.model === 'fixed'
                                         ? (() => {
-                                            // Fixed mission pricing varies by participant cap
-                                            let costUSD = 5; // default small
-                                            if (state.cap >= 500) {
-                                                costUSD = 20; // large
-                                            } else if (state.cap >= 200) {
-                                                costUSD = 10; // medium
-                                            }
+                            // Fixed mission pricing varies by participant cap (aligned with single-use pack pricing)
+                            let costUSD = 10; // default small
+                            if (state.cap >= 500) {
+                                costUSD = 25; // large
+                            } else if (state.cap >= 200) {
+                                costUSD = 15; // medium
+                            }
                                             return `$${costUSD}.00`;
                                         })()
                                         : state.selectedDegenPreset?.costUSD 
@@ -476,13 +476,13 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                         <span className="font-medium text-green-400">
                                             {state.model === 'fixed'
                                                 ? (() => {
-                                                    // Fixed mission pricing varies by participant cap
-                                                    let costUSD = 5; // default small
-                                                    if (state.cap >= 500) {
-                                                        costUSD = 20; // large
-                                                    } else if (state.cap >= 200) {
-                                                        costUSD = 10; // medium
-                                                    }
+                            // Fixed mission pricing varies by participant cap (aligned with single-use pack pricing)
+                            let costUSD = 10; // default small
+                            if (state.cap >= 500) {
+                                costUSD = 25; // large
+                            } else if (state.cap >= 200) {
+                                costUSD = 15; // medium
+                            }
                                                     return `$${costUSD}.00`;
                                                 })()
                                                 : state.selectedDegenPreset?.costUSD 
