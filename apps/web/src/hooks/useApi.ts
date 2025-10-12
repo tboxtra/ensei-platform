@@ -1108,7 +1108,7 @@ export function usePacks() {
                     lastError = err;
                     const duration = Date.now() - startTime;
                     console.error(`fetchEntitlements: Attempt ${attempt + 1} failed from ${source} after ${duration}ms:`, err);
-                    
+
                     // If this is the last attempt, don't continue
                     if (attempt === delays.length - 1) {
                         break;

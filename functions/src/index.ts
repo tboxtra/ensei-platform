@@ -22,12 +22,12 @@ class SimpleCache {
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
-    
+
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return entry.data;
   }
 
@@ -50,7 +50,7 @@ class RateLimiter {
   isAllowed(userId: string): boolean {
     const now = Date.now();
     let bucket = this.buckets.get(userId);
-    
+
     if (!bucket) {
       bucket = { tokens: this.maxTokens, lastRefill: now };
       this.buckets.set(userId, bucket);
@@ -67,7 +67,7 @@ class RateLimiter {
       bucket.tokens -= 1;
       return true;
     }
-    
+
     return false;
   }
 }
@@ -108,7 +108,7 @@ class CircuitBreaker {
   private onFailure(): void {
     this.failures++;
     this.lastFailureTime = Date.now();
-    
+
     if (this.failures >= this.failureThreshold) {
       this.state = 'OPEN';
     }
@@ -2290,10 +2290,10 @@ app.get('/v1/packs', async (req, res) => {
     // Check cache first
     const cacheKey = 'packs_catalog';
     let packs: any[] = cache.get(cacheKey);
-    
+
     if (!packs) {
       console.log('Fetching packs catalog from source');
-      
+
       // For now, return the fallback packs data
       // In production, this would come from a database or configuration
       packs = [
@@ -2355,8 +2355,8 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
 
     // Rate limiting
     if (!rateLimiter.isAllowed(userId)) {
-      res.status(429).json({ 
-        error: 'Rate limit exceeded', 
+      res.status(429).json({
+        error: 'Rate limit exceeded',
         message: 'Too many requests. Please try again later.',
         retryAfter: 300 // 5 minutes
       });
@@ -2559,8 +2559,8 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req: any, res) => {
 
     // Check circuit breaker
     if (circuitBreaker.isOpen()) {
-      res.status(503).json({ 
-        error: 'Service temporarily unavailable', 
+      res.status(503).json({
+        error: 'Service temporarily unavailable',
         message: 'Entitlements service is experiencing issues. Please try again later.',
         retryAfter: 30
       });
