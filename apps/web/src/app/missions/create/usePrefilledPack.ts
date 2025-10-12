@@ -14,7 +14,7 @@ export function usePrefilledPack() {
     useEffect(() => {
         fetchPacks()
         fetchEntitlements()
-    }, [fetchPacks, fetchEntitlements])
+    }, []) // Remove dependencies to prevent infinite loops
 
     useEffect(() => {
         if (!packId || !packs.length) return

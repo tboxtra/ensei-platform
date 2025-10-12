@@ -1501,14 +1501,14 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req, res) => {
         // ✅ FIXED MISSION SINGLE-USE PAYMENT PROCESSING
         if (missionData.model === 'fixed' && (!missionData.packId || missionData.packId === 'single-use')) {
             console.log('=== FIXED MISSION SINGLE-USE PAYMENT PROCESSING ===');
-            // Fixed missions cost varies by participant cap
-            // Small (100 users): $5, Medium (200 users): $10, Large (500 users): $20
-            let costUSD = 5; // default small
+            // Fixed missions cost varies by participant cap (aligned with single-use pack pricing)
+            // Small (100 users): $10, Medium (200 users): $15, Large (500 users): $25
+            let costUSD = 10; // default small
             if (missionData.cap >= 500) {
-                costUSD = 20; // large
+                costUSD = 25; // large
             }
             else if (missionData.cap >= 200) {
-                costUSD = 10; // medium
+                costUSD = 15; // medium
             }
             const requiredHonors = Math.round(costUSD * 450);
             console.log('Required Honors for fixed mission:', requiredHonors);

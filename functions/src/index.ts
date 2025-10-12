@@ -276,7 +276,7 @@ const verifyFirebaseToken = async (req: any, res: any, next: any) => {
     }
 
     const token = authHeader.split('Bearer ')[1];
-    
+
     // Check for demo tokens first
     if (token === 'demo_admin_token' || token === 'demo_moderator_token') {
       req.user = {
@@ -1636,7 +1636,7 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
     // ✅ FIXED MISSION SINGLE-USE PAYMENT PROCESSING
     if (missionData.model === 'fixed' && (!missionData.packId || missionData.packId === 'single-use')) {
       console.log('=== FIXED MISSION SINGLE-USE PAYMENT PROCESSING ===');
-      
+
       // Fixed missions cost varies by participant cap (aligned with single-use pack pricing)
       // Small (100 users): $10, Medium (200 users): $15, Large (500 users): $25
       let costUSD = 10; // default small
@@ -1646,9 +1646,9 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
         costUSD = 15; // medium
       }
       const requiredHonors = Math.round(costUSD * 450);
-      
+
       console.log('Required Honors for fixed mission:', requiredHonors);
-      
+
       // Get user's wallet
       const walletDoc = await db.collection('wallets').doc(userId).get();
       if (!walletDoc.exists) {
@@ -1663,10 +1663,10 @@ app.post('/v1/missions', verifyFirebaseToken, rateLimit, async (req: any, res) =
       }
 
       console.log('User wallet Honors:', wallet.honors);
-      
+
       if (wallet.honors < requiredHonors) {
-        res.status(400).json({ 
-          error: `Insufficient balance. You need ${requiredHonors} Honors ($${costUSD}) to create this fixed mission. You have ${wallet.honors} Honors.` 
+        res.status(400).json({
+          error: `Insufficient balance. You need ${requiredHonors} Honors ($${costUSD}) to create this fixed mission. You have ${wallet.honors} Honors.`
         });
         return;
       }
@@ -1919,9 +1919,9 @@ app.get('/v1/wallet/balance', verifyFirebaseToken, async (req: any, res) => {
         id: doc.id,
         ...data,
         // Convert Firestore timestamp to ISO string for frontend
-        date: data.created_at?.toDate ? data.created_at.toDate().toISOString() : 
-              data.created_at?._seconds ? new Date(data.created_at._seconds * 1000).toISOString() :
-              data.created_at || new Date().toISOString()
+        date: data.created_at?.toDate ? data.created_at.toDate().toISOString() :
+          data.created_at?._seconds ? new Date(data.created_at._seconds * 1000).toISOString() :
+            data.created_at || new Date().toISOString()
       };
     });
 

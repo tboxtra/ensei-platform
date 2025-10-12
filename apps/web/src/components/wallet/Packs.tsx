@@ -20,6 +20,7 @@ export default function Packs({ onPurchased }: Props) {
     const [purchaseInProgress, setPurchaseInProgress] = React.useState(false)
 
     React.useEffect(() => {
+        console.log('Packs component: Starting to fetch packs...');
         fetchPacks()
     }, []) // Remove fetchPacks from dependencies to prevent infinite loops
 
@@ -27,8 +28,8 @@ export default function Packs({ onPurchased }: Props) {
         fetchBalance()
     }, []) // Remove fetchBalance from dependencies to prevent infinite loops
 
-    // Use fallback data if API fails and no packs are loaded
-    const displayPacks = packs.length > 0 ? packs : PACKS_FALLBACK
+    // Use fallback data only if API fails, not when API returns empty array
+    const displayPacks = packs.length > 0 ? packs : (error ? PACKS_FALLBACK : [])
 
     // Helper function to get pack status
     const getPackStatus = (packId: string) => {
@@ -200,11 +201,13 @@ export default function Packs({ onPurchased }: Props) {
         );
     }
 
-    if (!packs.length) {
+    // Show empty state only if not loading and no packs (not an error)
+    if (!loading && displayPacks.length === 0 && !error) {
         return (
             <div className="text-center py-10">
                 <div className="text-4xl mb-3">📦</div>
                 <h3 className="text-lg font-semibold mb-1">No packs available right now.</h3>
+                <p className="text-gray-400">Check back later for new pack options.</p>
             </div>
         )
     }
