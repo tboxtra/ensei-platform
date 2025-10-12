@@ -1083,18 +1083,43 @@ export function usePacks() {
         console.log(`fetchEntitlements: Starting fetch from ${source}...`);
 
         try {
-            const data = await api.getEntitlements();
+            // Exponential backoff: 3 tries with delays 0ms, 250ms, 750ms
+            const delays = [0, 250, 750];
+            let lastError: any;
+
+            for (let attempt = 0; attempt < delays.length; attempt++) {
+                try {
+                    if (attempt > 0) {
+                        console.log(`fetchEntitlements: Retry attempt ${attempt + 1}/${delays.length} after ${delays[attempt]}ms delay`);
+                        await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+                    }
+
+                    const data = await api.getEntitlements();
+                    const duration = Date.now() - startTime;
+                    console.log(`fetchEntitlements: Successfully fetched from ${source} in ${duration}ms (attempt ${attempt + 1}):`, {
+                        count: data?.length || 0,
+                        source,
+                        duration,
+                        attempt: attempt + 1
+                    });
+                    setEntitlements(data);
+                    return; // Success, exit retry loop
+                } catch (err) {
+                    lastError = err;
+                    const duration = Date.now() - startTime;
+                    console.error(`fetchEntitlements: Attempt ${attempt + 1} failed from ${source} after ${duration}ms:`, err);
+                    
+                    // If this is the last attempt, don't continue
+                    if (attempt === delays.length - 1) {
+                        break;
+                    }
+                }
+            }
+
+            // All attempts failed
             const duration = Date.now() - startTime;
-            console.log(`fetchEntitlements: Successfully fetched from ${source} in ${duration}ms:`, {
-                count: data?.length || 0,
-                source,
-                duration
-            });
-            setEntitlements(data);
-        } catch (err) {
-            const duration = Date.now() - startTime;
-            console.error(`fetchEntitlements: Failed to fetch from ${source} after ${duration}ms:`, err);
-            throw err;
+            console.error(`fetchEntitlements: All ${delays.length} attempts failed from ${source} after ${duration}ms:`, lastError);
+            throw lastError;
         } finally {
             setEntitlementsInFlight(false);
         }

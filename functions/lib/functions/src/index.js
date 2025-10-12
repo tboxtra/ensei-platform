@@ -39,6 +39,105 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onDegenMissionCompleted = exports.onDegenWinnersChosenV2 = exports.onMissionCreateV2 = exports.onParticipationUpdateV2 = exports.getReviewQueue = exports.submitReview = exports.checkExpiredFixedMissions = exports.deriveUserStatsAggregates = exports.syncMissionProgress = exports.onMissionCreate = exports.onDegenWinnersChosen = exports.onVerificationWrite = exports.updateMissionAggregates = exports.sendCustomVerificationEmail = exports.adminApi = exports.missions = exports.auth = exports.migrateToUidBasedKeys = exports.setAdminClaim = exports.api = void 0;
 const functions = __importStar(require("firebase-functions"));
 const firebaseAdmin = __importStar(require("firebase-admin"));
+class SimpleCache {
+    constructor() {
+        this.cache = new Map();
+    }
+    set(key, data, ttlMs = 300000) {
+        this.cache.set(key, {
+            data,
+            timestamp: Date.now(),
+            ttl: ttlMs
+        });
+    }
+    get(key) {
+        const entry = this.cache.get(key);
+        if (!entry)
+            return null;
+        if (Date.now() - entry.timestamp > entry.ttl) {
+            this.cache.delete(key);
+            return null;
+        }
+        return entry.data;
+    }
+    clear() {
+        this.cache.clear();
+    }
+}
+class RateLimiter {
+    constructor() {
+        this.buckets = new Map();
+        this.maxTokens = 30;
+        this.refillRate = 30 / (5 * 60 * 1000); // 30 tokens per 5 minutes
+    }
+    isAllowed(userId) {
+        const now = Date.now();
+        let bucket = this.buckets.get(userId);
+        if (!bucket) {
+            bucket = { tokens: this.maxTokens, lastRefill: now };
+            this.buckets.set(userId, bucket);
+            return true;
+        }
+        // Refill tokens
+        const timePassed = now - bucket.lastRefill;
+        const tokensToAdd = timePassed * this.refillRate;
+        bucket.tokens = Math.min(this.maxTokens, bucket.tokens + tokensToAdd);
+        bucket.lastRefill = now;
+        if (bucket.tokens >= 1) {
+            bucket.tokens -= 1;
+            return true;
+        }
+        return false;
+    }
+}
+// Circuit breaker for Firestore
+class CircuitBreaker {
+    constructor() {
+        this.failures = 0;
+        this.lastFailureTime = 0;
+        this.state = 'CLOSED';
+        this.failureThreshold = 5;
+        this.timeout = 60000; // 60 seconds
+        this.resetTimeout = 30000; // 30 seconds
+    }
+    async execute(operation) {
+        if (this.state === 'OPEN') {
+            if (Date.now() - this.lastFailureTime > this.resetTimeout) {
+                this.state = 'HALF_OPEN';
+            }
+            else {
+                throw new Error('Circuit breaker is OPEN');
+            }
+        }
+        try {
+            const result = await operation();
+            this.onSuccess();
+            return result;
+        }
+        catch (error) {
+            this.onFailure();
+            throw error;
+        }
+    }
+    onSuccess() {
+        this.failures = 0;
+        this.state = 'CLOSED';
+    }
+    onFailure() {
+        this.failures++;
+        this.lastFailureTime = Date.now();
+        if (this.failures >= this.failureThreshold) {
+            this.state = 'OPEN';
+        }
+    }
+    isOpen() {
+        return this.state === 'OPEN';
+    }
+}
+// Global instances
+const cache = new SimpleCache();
+const rateLimiter = new RateLimiter();
+const circuitBreaker = new CircuitBreaker();
 // Helper functions for safe defaults
 const emptyStats = () => ({
     missionsCreated: 0,
@@ -109,6 +208,11 @@ const upload = (0, multer_1.default)({
 });
 // Health check endpoint
 app.get('/health', (req, res) => {
+    // Set no-store headers for health endpoints
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Content-Type': 'application/json'
+    });
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 // Enhanced Pack System Health Check with Synthetic Probes
@@ -183,6 +287,11 @@ app.get('/health/packs', async (req, res) => {
         }
         const responseTime = Date.now() - startTime;
         const overallStatus = Object.values(healthChecks).every((check) => check.status === 'ok') ? 'healthy' : 'unhealthy';
+        // Set no-store headers for health endpoints
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Content-Type': 'application/json'
+        });
         res.json({
             status: overallStatus,
             timestamp: new Date().toISOString(),
@@ -1948,27 +2057,37 @@ app.post('/v1/wallet/claim/:rewardId', verifyFirebaseToken, async (req, res) => 
 // Pack endpoints
 app.get('/v1/packs', async (req, res) => {
     try {
-        console.log('Fetching packs catalog');
-        // For now, return the fallback packs data
-        // In production, this would come from a database or configuration
-        const packs = [
-            // Single Mission Packs
-            { id: 'single_1_small', kind: 'single', label: 'Growth Sprout', group: 'Single Mission Packs', tweets: 1, priceUsd: 10, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
-            { id: 'single_1_medium', kind: 'single', label: 'Engagement Boost', group: 'Single Mission Packs', tweets: 1, priceUsd: 15, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
-            { id: 'single_1_large', kind: 'single', label: 'Viral Explosion', group: 'Single Mission Packs', tweets: 1, priceUsd: 25, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
-            // 3 Mission Packs
-            { id: 'single_3_small', kind: 'single', label: 'Triple Growth', group: '3 Mission Packs', tweets: 3, priceUsd: 25, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
-            { id: 'single_3_medium', kind: 'single', label: 'Triple Fire', group: '3 Mission Packs', tweets: 3, priceUsd: 40, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { originalUsd: 48, discountPct: 17 } },
-            { id: 'single_3_large', kind: 'single', label: 'Triple Volcano', group: '3 Mission Packs', tweets: 3, priceUsd: 60, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
-            // 10 Mission Packs
-            { id: 'single_10_small', kind: 'single', label: 'Mega Growth', group: '10 Mission Packs', tweets: 10, priceUsd: 75, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
-            { id: 'single_10_medium', kind: 'single', label: 'Mega Lightning', group: '10 Mission Packs', tweets: 10, priceUsd: 120, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
-            { id: 'single_10_large', kind: 'single', label: 'Mega Rocket', group: '10 Mission Packs', tweets: 10, priceUsd: 180, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
-            // Subscription Packs
-            { id: 'sub_week_small', kind: 'subscription', label: 'Weekly Momentum', group: 'Subscription Packs', tweets: 1, priceUsd: 500, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 }, meta: { maxPerHour: 1, durationDays: 7 } },
-            { id: 'sub_month_medium', kind: 'subscription', label: 'Monthly Mastery', group: 'Subscription Packs', tweets: 1, priceUsd: 2000, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 30, originalUsd: 2200, discountPct: 9 } },
-            { id: 'sub_week_medium', kind: 'subscription', label: 'Weekly Thunder', group: 'Subscription Packs', tweets: 1, priceUsd: 750, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 7 } }
-        ];
+        // Check cache first
+        const cacheKey = 'packs_catalog';
+        let packs = cache.get(cacheKey);
+        if (!packs) {
+            console.log('Fetching packs catalog from source');
+            // For now, return the fallback packs data
+            // In production, this would come from a database or configuration
+            packs = [
+                // Single Mission Packs
+                { id: 'single_1_small', kind: 'single', label: 'Growth Sprout', group: 'Single Mission Packs', tweets: 1, priceUsd: 10, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
+                { id: 'single_1_medium', kind: 'single', label: 'Engagement Boost', group: 'Single Mission Packs', tweets: 1, priceUsd: 15, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
+                { id: 'single_1_large', kind: 'single', label: 'Viral Explosion', group: 'Single Mission Packs', tweets: 1, priceUsd: 25, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
+                // 3 Mission Packs
+                { id: 'single_3_small', kind: 'single', label: 'Triple Growth', group: '3 Mission Packs', tweets: 3, priceUsd: 25, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
+                { id: 'single_3_medium', kind: 'single', label: 'Triple Fire', group: '3 Mission Packs', tweets: 3, priceUsd: 40, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { originalUsd: 48, discountPct: 17 } },
+                { id: 'single_3_large', kind: 'single', label: 'Triple Volcano', group: '3 Mission Packs', tweets: 3, priceUsd: 60, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
+                // 10 Mission Packs
+                { id: 'single_10_small', kind: 'single', label: 'Mega Growth', group: '10 Mission Packs', tweets: 10, priceUsd: 75, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
+                { id: 'single_10_medium', kind: 'single', label: 'Mega Lightning', group: '10 Mission Packs', tweets: 10, priceUsd: 120, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
+                { id: 'single_10_large', kind: 'single', label: 'Mega Rocket', group: '10 Mission Packs', tweets: 10, priceUsd: 180, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
+                // Subscription Packs
+                { id: 'sub_week_small', kind: 'subscription', label: 'Weekly Momentum', group: 'Subscription Packs', tweets: 1, priceUsd: 500, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 }, meta: { maxPerHour: 1, durationDays: 7 } },
+                { id: 'sub_month_medium', kind: 'subscription', label: 'Monthly Mastery', group: 'Subscription Packs', tweets: 1, priceUsd: 2000, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 30, originalUsd: 2200, discountPct: 9 } },
+                { id: 'sub_week_medium', kind: 'subscription', label: 'Weekly Thunder', group: 'Subscription Packs', tweets: 1, priceUsd: 750, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 7 } }
+            ];
+            // Cache for 5 minutes
+            cache.set(cacheKey, packs, 300000);
+        }
+        else {
+            console.log('Serving packs catalog from cache');
+        }
         // Telemetry: Log packs catalog access for analytics
         console.log('=== PACKS CATALOG ACCESS TELEMETRY ===');
         console.log('Event: packs_catalog_accessed');
@@ -1977,6 +2096,11 @@ app.get('/v1/packs', async (req, res) => {
         console.log('SubscriptionPacks:', packs.filter(p => p.kind === 'subscription').length);
         console.log('Timestamp:', new Date().toISOString());
         console.log('======================================');
+        // Set HTTP caching headers
+        res.set({
+            'Cache-Control': 'public, max-age=300, s-maxage=300',
+            'Content-Type': 'application/json'
+        });
         res.json(packs);
     }
     catch (error) {
@@ -1990,6 +2114,15 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req, res) => {
         const packId = req.params.id;
         const userId = req.user.uid;
         const { clientRequestId } = req.body;
+        // Rate limiting
+        if (!rateLimiter.isAllowed(userId)) {
+            res.status(429).json({
+                error: 'Rate limit exceeded',
+                message: 'Too many requests. Please try again later.',
+                retryAfter: 300 // 5 minutes
+            });
+            return;
+        }
         console.log('Purchasing pack:', packId, 'for user:', userId);
         // Validate required fields
         if (!clientRequestId) {
@@ -2158,10 +2291,21 @@ app.get('/v1/entitlements', verifyFirebaseToken, async (req, res) => {
     try {
         const userId = req.user.uid;
         console.log('Fetching entitlements for user:', userId);
-        // Get user's entitlements (simplified query to avoid index issues)
-        const entitlementsSnapshot = await db.collection('entitlements')
-            .where('userId', '==', userId)
-            .get();
+        // Check circuit breaker
+        if (circuitBreaker.isOpen()) {
+            res.status(503).json({
+                error: 'Service temporarily unavailable',
+                message: 'Entitlements service is experiencing issues. Please try again later.',
+                retryAfter: 30
+            });
+            return;
+        }
+        // Get user's entitlements with circuit breaker protection
+        const entitlementsSnapshot = await circuitBreaker.execute(async () => {
+            return await db.collection('entitlements')
+                .where('userId', '==', userId)
+                .get();
+        });
         const entitlements = entitlementsSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
