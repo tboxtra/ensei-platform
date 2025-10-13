@@ -7,57 +7,61 @@ import { ModernButton } from '../ui/ModernButton'
 import { SectionHeader } from '../ui/SectionHeader'
 
 export default function MyPacks() {
-  const { entitlements, isLoadingEntitlements, refreshEntitlements } = usePacks();
+  const { entitlements, isLoadingEntitlements, refreshEntitlements } = usePacks()
 
   if (isLoadingEntitlements) {
     return (
-      <div className="text-center py-6">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
-        <p className="text-gray-400 text-sm">Loading your packs…</p>
+      <div className="space-y-10">
+        <section>
+          <div className="text-2xl font-semibold mb-1">Your Active Packs</div>
+          <p className="text-sm text-white/60 mb-6">Your purchased packs with remaining missions</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy={true}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.04] h-40 animate-pulse" />
+            ))}
+          </div>
+        </section>
+        <section>
+          <div className="text-2xl font-semibold mb-1">Purchase History</div>
+          <p className="text-sm text-white/60 mb-4">Your recent pack purchases</p>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] h-32 animate-pulse" />
+        </section>
       </div>
     );
   }
-
-  if (!entitlements?.length) {
+  if (!entitlements.length) {
     return (
       <div className="text-center py-10">
         <div className="text-4xl mb-3">🎒</div>
         <h3 className="text-lg font-semibold mb-1">No packs yet — browse packs to start.</h3>
-        <div className="space-y-3 mt-4">
-          <Link href="/wallet?tab=packs" className="text-teal-400 hover:text-teal-300 block">
-            Browse available packs →
-          </Link>
-          <ModernButton
-            onClick={refreshEntitlements}
-            variant="secondary"
-            size="sm"
-            disabled={isLoadingEntitlements}
-          >
-            🔄 Refresh
-          </ModernButton>
-        </div>
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-10">
       {/* Active */}
       <section>
-        <div className="text-2xl font-semibold mb-1">Your Active Packs</div>
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-2xl font-semibold">Your Active Packs</div>
+          <ModernButton
+            onClick={refreshEntitlements}
+            disabled={isLoadingEntitlements}
+            className="text-xs px-3 py-1"
+          >
+            {isLoadingEntitlements ? 'Refreshing...' : 'Refresh'}
+          </ModernButton>
+        </div>
         <p className="text-sm text-white/60 mb-6">Your purchased packs with remaining missions</p>
 
-        {entitlements.filter(e => e.status === 'active' && (e.remaining ?? 0) > 0).length === 0 ? (
+        {entitlements.filter(i => i.status === 'active').length === 0 ? (
           <div className="text-center py-10 opacity-70">No active packs yet.</div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {entitlements
-              .filter(e => e.status === 'active' && (e.remaining ?? 0) > 0)
+              .filter(i => i.status === 'active')
               .map((ent) => {
-                const remaining = ent.remaining ?? 0;
-                const total = ent.quotas?.tweets ?? 1;
-                const used = total - remaining;
-                const pct = Math.min(100, Math.round((used / total) * 100));
+                const pct = Math.min(100, Math.round((ent.usage.tweetsUsed / ent.quotas.tweets) * 100))
                 return (
                   <ModernCard key={ent.id} className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
@@ -69,10 +73,6 @@ export default function MyPacks() {
 
                     <div className="h-2 bg-white/10 rounded">
                       <div className="h-2 bg-gradient-to-r from-green-500 to-blue-500 rounded" style={{ width: `${pct}%` }} />
-                    </div>
-
-                    <div className="text-xs text-white/60">
-                      {used}/{total} tweets used
                     </div>
 
                     <a

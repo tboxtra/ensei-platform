@@ -1,134 +1,5 @@
 import * as functions from 'firebase-functions';
 import * as firebaseAdmin from 'firebase-admin';
-import { getFixedMissionPriceUSD, usdToHonors } from './lib/pricing';
-
-// Helper to prevent caching of user-scoped endpoints
-function noStore(res: any) {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-}
-
-// Production hardening: Caching and rate limiting
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-  ttl: number;
-}
-
-class SimpleCache {
-  private cache = new Map<string, CacheEntry<any>>();
-
-  set<T>(key: string, data: T, ttlMs: number = 300000): void { // 5 min default
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl: ttlMs
-    });
-  }
-
-  get<T>(key: string): T | null {
-    const entry = this.cache.get(key);
-    if (!entry) return null;
-
-    if (Date.now() - entry.timestamp > entry.ttl) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return entry.data;
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-}
-
-// Rate limiting: Token bucket per user
-interface TokenBucket {
-  tokens: number;
-  lastRefill: number;
-}
-
-class RateLimiter {
-  private buckets = new Map<string, TokenBucket>();
-  private readonly maxTokens = 30;
-  private readonly refillRate = 30 / (5 * 60 * 1000); // 30 tokens per 5 minutes
-
-  isAllowed(userId: string): boolean {
-    const now = Date.now();
-    let bucket = this.buckets.get(userId);
-
-    if (!bucket) {
-      bucket = { tokens: this.maxTokens, lastRefill: now };
-      this.buckets.set(userId, bucket);
-      return true;
-    }
-
-    // Refill tokens
-    const timePassed = now - bucket.lastRefill;
-    const tokensToAdd = timePassed * this.refillRate;
-    bucket.tokens = Math.min(this.maxTokens, bucket.tokens + tokensToAdd);
-    bucket.lastRefill = now;
-
-    if (bucket.tokens >= 1) {
-      bucket.tokens -= 1;
-      return true;
-    }
-
-    return false;
-  }
-}
-
-// Circuit breaker for Firestore
-class CircuitBreaker {
-  private failures = 0;
-  private lastFailureTime = 0;
-  private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
-  private readonly failureThreshold = 5;
-  private readonly timeout = 60000; // 60 seconds
-  private readonly resetTimeout = 30000; // 30 seconds
-
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.state === 'OPEN') {
-      if (Date.now() - this.lastFailureTime > this.resetTimeout) {
-        this.state = 'HALF_OPEN';
-      } else {
-        throw new Error('Circuit breaker is OPEN');
-      }
-    }
-
-    try {
-      const result = await operation();
-      this.onSuccess();
-      return result;
-    } catch (error) {
-      this.onFailure();
-      throw error;
-    }
-  }
-
-  private onSuccess(): void {
-    this.failures = 0;
-    this.state = 'CLOSED';
-  }
-
-  private onFailure(): void {
-    this.failures++;
-    this.lastFailureTime = Date.now();
-
-    if (this.failures >= this.failureThreshold) {
-      this.state = 'OPEN';
-    }
-  }
-
-  isOpen(): boolean {
-    return this.state === 'OPEN';
-  }
-}
-
-// Global instances
-const cache = new SimpleCache();
-const rateLimiter = new RateLimiter();
-const circuitBreaker = new CircuitBreaker();
 
 // Type definitions for user stats
 type UserStats = {
@@ -230,11 +101,6 @@ const upload = multer({
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  // Set no-store headers for health endpoints
-  res.set({
-    'Cache-Control': 'no-store, no-cache, must-revalidate',
-    'Content-Type': 'application/json'
-  });
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -311,12 +177,6 @@ app.get('/health/packs', async (req, res) => {
 
     const responseTime = Date.now() - startTime;
     const overallStatus = Object.values(healthChecks).every((check: any) => check.status === 'ok') ? 'healthy' : 'unhealthy';
-
-    // Set no-store headers for health endpoints
-    res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Content-Type': 'application/json'
-    });
 
     res.json({
       status: overallStatus,
@@ -408,9 +268,6 @@ app.get('/api/test', (req, res) => {
 
 // Middleware to verify Firebase Auth token
 const verifyFirebaseToken = async (req: any, res: any, next: any) => {
-  // Add noStore header to all responses from authenticated endpoints
-  noStore(res);
-
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -434,6 +291,10 @@ const verifyFirebaseToken = async (req: any, res: any, next: any) => {
     // Verify real Firebase token
     const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
     req.user = decodedToken;
+
+    // Small delay for Firestore sync to ensure writes are complete before reads
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     next();
   } catch (error) {
     console.error('Token verification error:', error);
@@ -2022,9 +1883,52 @@ app.post('/v1/missions/:id/participate', verifyFirebaseToken, async (req: any, r
 });
 
 // Wallet endpoints
+app.get('/v1/wallet/summary', verifyFirebaseToken, async (req: any, res) => {
+  const t0 = Date.now();
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  const uid = (req as any).user.uid;
+
+  const userRef = firebaseAdmin.firestore().collection('users').doc(uid);
+  const snap = await userRef.get();
+
+  const wallet = snap.exists && snap.get('wallet') || { availableHonors: 0, totalEarnedHonors: 0 };
+  res.status(200).json({
+    availableHonors: wallet.availableHonors || 0,
+    totalEarnedHonors: wallet.totalEarnedHonors || 0,
+    serverTime: new Date().toISOString(),
+    latencyMs: Date.now() - t0,
+  });
+});
+
+app.get('/v1/wallet/transactions', verifyFirebaseToken, async (req: any, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  const uid = (req as any).user.uid;
+
+  const qs = await firebaseAdmin.firestore()
+    .collection('transactions')
+    .where('userId', '==', uid)
+    .orderBy('createdAt', 'desc')
+    .limit(50)
+    .get();
+
+  const items = qs.docs.map(d => {
+    const x = d.data();
+    return {
+      id: d.id,
+      type: x.type,               // 'pack_purchase' | 'mission_cost_single' | 'mission_cost_pack' | 'deposit' | 'withdrawal'
+      amountHonors: x.amountHonors ?? 0, // negatives for spends
+      amountUsd: x.amountUsd ?? 0,
+      description: x.description ?? '',
+      createdAt: x.createdAt?.toDate?.()?.toISOString?.() ?? null,
+      status: x.status ?? 'completed',
+    };
+  });
+
+  res.status(200).json({ items });
+});
+
 app.get('/v1/wallet/balance', verifyFirebaseToken, async (req: any, res) => {
   try {
-    noStore(res); // Prevent caching of user-scoped data
     const userId = req.user.uid;
     console.log('Fetching wallet balance for user:', userId);
 
@@ -2057,13 +1961,15 @@ app.get('/v1/wallet/balance', verifyFirebaseToken, async (req: any, res) => {
       .limit(20)
       .get();
 
-    // Convert Firestore Timestamp -> ISO for transactions
     const transactions = transactionsSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
         ...data,
-        date: data.created_at?.toDate?.().toISOString?.() ?? null
+        // Convert Firestore timestamp to ISO string for frontend
+        date: data.created_at?.toDate ? data.created_at.toDate().toISOString() :
+          data.created_at?._seconds ? new Date(data.created_at._seconds * 1000).toISOString() :
+            data.created_at || new Date().toISOString()
       };
     });
 
@@ -2073,7 +1979,6 @@ app.get('/v1/wallet/balance', verifyFirebaseToken, async (req: any, res) => {
     });
   } catch (error) {
     console.error('Error fetching wallet balance:', error);
-    noStore(res);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -2296,42 +2201,31 @@ app.post('/v1/wallet/claim/:rewardId', verifyFirebaseToken, async (req: any, res
 // Pack endpoints
 app.get('/v1/packs', async (req, res) => {
   try {
-    // Check cache first
-    const cacheKey = 'packs_catalog';
-    let packs: any[] = cache.get(cacheKey);
+    console.log('Fetching packs catalog');
 
-    if (!packs) {
-      console.log('Fetching packs catalog from source');
+    // For now, return the fallback packs data
+    // In production, this would come from a database or configuration
+    const packs = [
+      // Single Mission Packs
+      { id: 'single_1_small', kind: 'single', label: 'Growth Sprout', group: 'Single Mission Packs', tweets: 1, priceUsd: 10, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
+      { id: 'single_1_medium', kind: 'single', label: 'Engagement Boost', group: 'Single Mission Packs', tweets: 1, priceUsd: 15, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
+      { id: 'single_1_large', kind: 'single', label: 'Viral Explosion', group: 'Single Mission Packs', tweets: 1, priceUsd: 25, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
 
-      // For now, return the fallback packs data
-      // In production, this would come from a database or configuration
-      packs = [
-        // Single Mission Packs
-        { id: 'single_1_small', kind: 'single', label: 'Growth Sprout', group: 'Single Mission Packs', tweets: 1, priceUsd: 10, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
-        { id: 'single_1_medium', kind: 'single', label: 'Engagement Boost', group: 'Single Mission Packs', tweets: 1, priceUsd: 15, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
-        { id: 'single_1_large', kind: 'single', label: 'Viral Explosion', group: 'Single Mission Packs', tweets: 1, priceUsd: 25, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
+      // 3 Mission Packs
+      { id: 'single_3_small', kind: 'single', label: 'Triple Growth', group: '3 Mission Packs', tweets: 3, priceUsd: 25, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
+      { id: 'single_3_medium', kind: 'single', label: 'Triple Fire', group: '3 Mission Packs', tweets: 3, priceUsd: 40, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { originalUsd: 48, discountPct: 17 } },
+      { id: 'single_3_large', kind: 'single', label: 'Triple Volcano', group: '3 Mission Packs', tweets: 3, priceUsd: 60, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
 
-        // 3 Mission Packs
-        { id: 'single_3_small', kind: 'single', label: 'Triple Growth', group: '3 Mission Packs', tweets: 3, priceUsd: 25, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
-        { id: 'single_3_medium', kind: 'single', label: 'Triple Fire', group: '3 Mission Packs', tweets: 3, priceUsd: 40, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { originalUsd: 48, discountPct: 17 } },
-        { id: 'single_3_large', kind: 'single', label: 'Triple Volcano', group: '3 Mission Packs', tweets: 3, priceUsd: 60, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
+      // 10 Mission Packs
+      { id: 'single_10_small', kind: 'single', label: 'Mega Growth', group: '10 Mission Packs', tweets: 10, priceUsd: 75, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
+      { id: 'single_10_medium', kind: 'single', label: 'Mega Lightning', group: '10 Mission Packs', tweets: 10, priceUsd: 120, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
+      { id: 'single_10_large', kind: 'single', label: 'Mega Rocket', group: '10 Mission Packs', tweets: 10, priceUsd: 180, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
 
-        // 10 Mission Packs
-        { id: 'single_10_small', kind: 'single', label: 'Mega Growth', group: '10 Mission Packs', tweets: 10, priceUsd: 75, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 } },
-        { id: 'single_10_medium', kind: 'single', label: 'Mega Lightning', group: '10 Mission Packs', tweets: 10, priceUsd: 120, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 } },
-        { id: 'single_10_large', kind: 'single', label: 'Mega Rocket', group: '10 Mission Packs', tweets: 10, priceUsd: 180, size: 'large', quotas: { likes: 500, retweets: 300, comments: 200 } },
-
-        // Subscription Packs
-        { id: 'sub_week_small', kind: 'subscription', label: 'Weekly Momentum', group: 'Subscription Packs', tweets: 1, priceUsd: 500, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 }, meta: { maxPerHour: 1, durationDays: 7 } },
-        { id: 'sub_month_medium', kind: 'subscription', label: 'Monthly Mastery', group: 'Subscription Packs', tweets: 1, priceUsd: 2000, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 30, originalUsd: 2200, discountPct: 9 } },
-        { id: 'sub_week_medium', kind: 'subscription', label: 'Weekly Thunder', group: 'Subscription Packs', tweets: 1, priceUsd: 750, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 7 } }
-      ];
-
-      // Cache for 5 minutes
-      cache.set(cacheKey, packs, 300000);
-    } else {
-      console.log('Serving packs catalog from cache');
-    }
+      // Subscription Packs
+      { id: 'sub_week_small', kind: 'subscription', label: 'Weekly Momentum', group: 'Subscription Packs', tweets: 1, priceUsd: 500, size: 'small', quotas: { likes: 100, retweets: 60, comments: 40 }, meta: { maxPerHour: 1, durationDays: 7 } },
+      { id: 'sub_month_medium', kind: 'subscription', label: 'Monthly Mastery', group: 'Subscription Packs', tweets: 1, priceUsd: 2000, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 30, originalUsd: 2200, discountPct: 9 } },
+      { id: 'sub_week_medium', kind: 'subscription', label: 'Weekly Thunder', group: 'Subscription Packs', tweets: 1, priceUsd: 750, size: 'medium', quotas: { likes: 200, retweets: 120, comments: 80 }, meta: { maxPerHour: 1, durationDays: 7 } }
+    ];
 
     // Telemetry: Log packs catalog access for analytics
     console.log('=== PACKS CATALOG ACCESS TELEMETRY ===');
@@ -2341,12 +2235,6 @@ app.get('/v1/packs', async (req, res) => {
     console.log('SubscriptionPacks:', packs.filter(p => p.kind === 'subscription').length);
     console.log('Timestamp:', new Date().toISOString());
     console.log('======================================');
-
-    // Set HTTP caching headers
-    res.set({
-      'Cache-Control': 'public, max-age=300, s-maxage=300',
-      'Content-Type': 'application/json'
-    });
 
     res.json(packs);
   } catch (error) {
@@ -2361,16 +2249,6 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
     const packId = req.params.id;
     const userId = req.user.uid;
     const { clientRequestId } = req.body;
-
-    // Rate limiting
-    if (!rateLimiter.isAllowed(userId)) {
-      res.status(429).json({
-        error: 'Rate limit exceeded',
-        message: 'Too many requests. Please try again later.',
-        retryAfter: 300 // 5 minutes
-      });
-      return;
-    }
 
     console.log('Purchasing pack:', packId, 'for user:', userId);
 
@@ -2434,8 +2312,8 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
       return;
     }
 
-    // Check if user has sufficient balance (convert USD to honors using shared pricing)
-    const requiredHonors = usdToHonors(pack.priceUsd);
+    // Check if user has sufficient balance (convert USD to honors at 450 honors per USD)
+    const requiredHonors = pack.priceUsd * 450;
     if (wallet.honors < requiredHonors) {
       res.status(400).json({ error: 'Insufficient balance' });
       return;
@@ -2467,25 +2345,27 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
 
       transaction.set(entitlementRef, entitlementData);
 
-      // Create transaction record (ledger format)
+      // Create transaction record
       const transactionRef = db.collection('transactions').doc();
       const transactionData = {
-        id: transactionRef.id,
         userId,
-        kind: 'pack_purchase',
-        amountHonors: -requiredHonors,
-        amountUsd: -pack.priceUsd,
+        type: 'purchase',
+        amount: -requiredHonors, // Negative for purchase
+        packId,
         status: 'completed',
-        created_at: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-        meta: { packId, label: packId, clientRequestId }
+        timestamp: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        clientRequestId,
+        entitlementId: entitlementRef.id,
+        description: `Purchased ${packId} pack`
       };
 
       transaction.set(transactionRef, transactionData);
 
       // Update wallet balance
-      transaction.update(db.collection('users').doc(userId), {
-        'wallet.honors': firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
-        'wallet.usd': firebaseAdmin.firestore.FieldValue.increment(-pack.priceUsd)
+      transaction.update(db.collection('wallets').doc(userId), {
+        honors: firebaseAdmin.firestore.FieldValue.increment(-requiredHonors),
+        usd: firebaseAdmin.firestore.FieldValue.increment(-pack.priceUsd),
+        updated_at: firebaseAdmin.firestore.FieldValue.serverTimestamp()
       });
 
       return {
@@ -2560,73 +2440,30 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
 });
 
 app.get('/v1/entitlements', verifyFirebaseToken, async (req: any, res) => {
-  const t0 = Date.now();
-  try {
-    noStore(res); // Prevent caching of user-scoped data
-    const userId = req.user.uid;
-    console.log('Fetching entitlements for user:', userId);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  const uid = (req as any).user.uid;
 
-    // Check circuit breaker
-    if (circuitBreaker.isOpen()) {
-      noStore(res);
-      res.status(503).json({
-        error: 'Service temporarily unavailable',
-        message: 'Entitlements service is experiencing issues. Please try again later.',
-        retryAfter: 30
-      });
-      return;
-    }
+  const qs = await firebaseAdmin.firestore()
+    .collection('entitlements')
+    .where('userId', '==', uid)
+    .orderBy('createdAt', 'desc')
+    .limit(100)
+    .get();
 
-    // Get user's entitlements with circuit breaker protection
-    const entitlementsSnapshot = await circuitBreaker.execute(async () => {
-      return await db.collection('entitlements')
-        .where('userId', '==', userId)
-        .get();
-    });
+  const now = Date.now();
+  const items = qs.docs.map(d => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? data.createdAt ?? null,
+      endsAt: data.endsAt?.toDate?.()?.toISOString?.() ?? data.endsAt ?? null,
+      remaining: Math.max(0, (data.quotas?.tweets ?? 0) - (data.usage?.tweetsUsed ?? 0)),
+    };
+  })
+    .filter((e: any) => e.status === 'active' && (!e.endsAt || new Date(e.endsAt).getTime() > now));
 
-    const entitlements = entitlementsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        packId: data.packId,
-        purchasedAt: data.purchasedAt,
-        expiresAt: data.expiresAt,
-        status: data.status,
-        usage: data.usage,
-        quotas: data.quotas,
-        remaining: data.remaining,
-        // Add pack label for display
-        packLabel: data.packId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      };
-    }).sort((a, b) => {
-      // Ensure stable sort (newest first)
-      const aTime = a.purchasedAt?.toDate ? a.purchasedAt.toDate() : new Date(a.purchasedAt || 0);
-      const bTime = b.purchasedAt?.toDate ? b.purchasedAt.toDate() : new Date(b.purchasedAt || 0);
-      return bTime.getTime() - aTime.getTime();
-    });
-
-    // Normalize dates for UI
-    const normalized = entitlements.map(e => ({
-      ...e,
-      purchasedAtIso: e.purchasedAt?.toDate?.().toISOString?.() ?? null,
-      expiresAtIso: e.expiresAt?.toDate?.().toISOString?.() ?? null,
-    }));
-
-    // Telemetry: Log entitlements access for analytics
-    console.log('=== ENTITLEMENTS ACCESS TELEMETRY ===');
-    console.log('Event: entitlements_accessed');
-    console.log('UserId:', userId);
-    console.log('EntitlementsCount:', entitlements.length);
-    console.log('ActiveEntitlements:', entitlements.filter(e => e.status === 'active').length);
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('=====================================');
-
-    return res.status(200).json({ items: normalized, latencyMs: Date.now() - t0 });
-  } catch (error) {
-    console.error('Error fetching entitlements:', error);
-    noStore(res);
-    return res.status(500).json({ error: 'ENTITLEMENTS_FAILED' });
-  }
+  res.status(200).json({ items, serverTime: new Date().toISOString() });
 });
 
 // User profile endpoints

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/UserAuthContext';
 import { Pack, Entitlement } from '../types/packs';
+import { makeAuthedRequest } from '../lib/api';
 
 interface ApiResponse<T> {
     data: T | null;
@@ -950,38 +951,37 @@ export function useMissions() {
 
 export function useWallet() {
     const api = useApi();
-    const { user } = useAuth();
     const [balance, setBalance] = useState<WalletBalance | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
     const fetchBalance = useCallback(async () => {
         try {
-            const data = await api.getWalletBalance();
-            setBalance(data);
+            const data = await makeAuthedRequest('/v1/wallet/summary');
+            setBalance({
+                honors: data.availableHonors || 0,
+                usd: (data.availableHonors || 0) * 0.0022, // Convert to USD
+                pendingHonors: 0,
+                pendingUsd: 0
+            });
         } catch (err) {
             console.error('Failed to fetch wallet balance:', err);
         }
-    }, [api]);
+    }, []);
 
     const fetchTransactions = useCallback(async () => {
         try {
-            const data = await api.getTransactions();
+            const data = await makeAuthedRequest('/v1/wallet/transactions');
             setTransactions(data);
         } catch (err) {
             console.error('Failed to fetch transactions:', err);
         }
-    }, [api]);
+    }, []);
 
-    // on auth ready
-    useEffect(() => {
-        if (!user) return;
-        fetchBalance();        // pulls honors + usd
-        fetchTransactions();   // pulls ledger
-    }, [user, fetchBalance, fetchTransactions]);
-
-    // expose after-purchase refresh
+    // Sequential refresh to prevent race conditions
     const refreshWallet = useCallback(async () => {
-        await Promise.all([fetchBalance(), fetchTransactions()]);
+        // Sequential refresh – prevents race conditions
+        await fetchBalance();
+        await fetchTransactions();
     }, [fetchBalance, fetchTransactions]);
 
     return {
@@ -1071,7 +1071,7 @@ export function usePacks() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isLoadingEntitlements, setIsLoadingEntitlements] = useState(false);
-    const inFlight = useRef<Promise<void> | null>(null);
+    const inFlight = useRef<Promise<any> | null>(null);
 
     const fetchPacks = useCallback(async () => {
         setLoading(true);
@@ -1092,7 +1092,7 @@ export function usePacks() {
         setIsLoadingEntitlements(true);
         const p = (async () => {
             try {
-                const res = await apiGetEntitlements(); // ensure fresh
+                const res = await makeAuthedRequest('/v1/entitlements');
                 setEntitlements(res?.items ?? []);
             } catch (error) {
                 console.error('Failed to fetch entitlements:', error);
@@ -1104,46 +1104,60 @@ export function usePacks() {
         })();
         inFlight.current = p;
         await p;
+    }, []); // Empty dependency array to prevent infinite loops
+
+    // Sequential refresh function to prevent race conditions
+    const refreshEntitlements = useCallback(async () => {
+        try {
+            const res = await makeAuthedRequest('/v1/entitlements');
+            setEntitlements(res?.items ?? []);
+        } catch (error) {
+            console.error('Failed to refresh entitlements:', error);
+            setEntitlements([]);
+        }
     }, []);
+
+    const purchasePack = useCallback(async (packId: string) => {
+        try {
+            const result = await api.purchasePack(packId);
+            // Sequential refresh after successful purchase
+            await refreshEntitlements();
+            return result;
+        } catch (err) {
+            console.error('Failed to purchase pack:', err);
+            throw err;
+        }
+    }, [refreshEntitlements]);
 
     // on auth ready + mount
     useEffect(() => {
         if (user) fetchEntitlements('page_load', true);
-    }, [user, fetchEntitlements]);
+    }, [user]); // Remove fetchEntitlements from dependencies to prevent infinite loops
 
     // on tab focus
     useEffect(() => {
         const onVis = () => document.visibilityState === 'visible' && fetchEntitlements('visibility');
         document.addEventListener('visibilitychange', onVis);
         return () => document.removeEventListener('visibilitychange', onVis);
-    }, [fetchEntitlements]);
+    }, []); // Empty dependency array to prevent infinite loops
 
-    const purchasePack = useCallback(async (packId: string) => {
-        try {
-            const result = await api.purchasePack(packId);
-            // Refresh entitlements after successful purchase
-            await fetchEntitlements('purchase', true);
-            return result;
-        } catch (err) {
-            console.error('Failed to purchase pack:', err);
-            throw err;
-        }
-    }, [api.purchasePack, fetchEntitlements]);
-
-    const refreshEntitlements = useCallback(() => {
-        fetchEntitlements('manual', true);
-    }, [fetchEntitlements]);
+    // Post-purchase refresh function for external use
+    const postPurchaseRefresh = useCallback(async () => {
+        await refreshEntitlements();
+        // Note: wallet summary refresh should be called separately to avoid circular dependencies
+    }, [refreshEntitlements]);
 
     return {
         packs,
         entitlements,
         fetchPacks,
         fetchEntitlements,
-        refreshEntitlements,
         purchasePack,
+        refreshEntitlements,
+        postPurchaseRefresh,
+        isLoadingEntitlements,
         loading,
         error,
-        isLoadingEntitlements,
     };
 }
 
@@ -1159,21 +1173,21 @@ export async function apiGetEntitlements(): Promise<{ items: Entitlement[] }> {
     const { getAuth } = await import('firebase/auth');
     const auth = getAuth();
     const user = auth.currentUser;
-    
+
     if (!user) {
         throw new Error('User not authenticated');
     }
-    
+
     const token = await user.getIdToken();
-    
-    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/entitlements`, { 
+
+    const res = await fetch(`${API_BASE_FOR_PACKS}/v1/entitlements`, {
         cache: 'no-store',
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         }
     });
-    
+
     if (!res.ok) throw new Error('Failed to load entitlements');
     return res.json();
 }

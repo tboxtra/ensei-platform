@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { WizardState } from '../types/wizard.types';
 import { usePacks, useWallet } from '../../../../hooks/useApi';
-import { getFixedMissionPriceUSD, HONORS_PER_USD, usdToHonors } from '../../../../shared/pricing';
 
 interface PaymentStepProps {
     state: WizardState;
@@ -24,52 +23,37 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     isLoading = false,
 }) => {
     const router = useRouter();
-    const { packs, entitlements, fetchEntitlements, purchasePack, loading: packsLoading, error: packsError, isLoadingEntitlements } = usePacks();
+    const { packs, entitlements, purchasePack, loading: packsLoading, error: packsError } = usePacks();
     const { balance, fetchBalance } = useWallet();
     const [purchasing, setPurchasing] = useState(false);
     const [purchaseError, setPurchaseError] = useState<string | null>(null);
     const [showPurchaseConfirmation, setShowPurchaseConfirmation] = useState(false);
 
-    // Fetch entitlements when component mounts
+    // Fetch packs when component mounts
     useEffect(() => {
-        fetchEntitlements('page_load');
-    }, [fetchEntitlements]);
-
-    // Calculate pricing using shared constants
-    const cap = state.cap ?? 100;
-    const priceUsd = getFixedMissionPriceUSD(cap);
-    const honorsRequired = usdToHonors(priceUsd);
+        // Packs will be fetched automatically by usePacks hook
+    }, []);
 
     // Check if user has active entitlements
-    const usable = entitlements.filter(e => e.status === 'active' && (e.remaining ?? 0) > 0);
+    const activeEntitlements = entitlements.filter(entitlement =>
+        entitlement.status === 'active' &&
+        entitlement.endsAt &&
+        new Date(entitlement.endsAt) > new Date()
+    );
 
     // Feature flags for rollback/guardrails
     const SHOW_ACTIVE_ENTITLEMENTS = process.env.NEXT_PUBLIC_SHOW_ACTIVE_ENTITLEMENTS !== 'false'; // Default ON, can be disabled
     const ENABLE_PACK_PURCHASE = !packsError && process.env.NEXT_PUBLIC_ENABLE_PACK_PURCHASE !== 'false'; // Default ON, can be disabled
 
-    // Fallback catalog for when API is unreachable - uses shared pricing
+    // Fallback catalog for when API is unreachable
     const FALLBACK_PACKS = [
-        { id: 'single_1_small', label: 'Single Small', description: '1 mission • 100 likes', priceUsd: getFixedMissionPriceUSD(100), quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
-        { id: 'single_1_medium', label: 'Single Medium', description: '1 mission • 200 likes', priceUsd: getFixedMissionPriceUSD(200), quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
-        { id: 'single_1_large', label: 'Single Large', description: '1 mission • 500 likes', priceUsd: getFixedMissionPriceUSD(500), quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
+        { id: 'single_1_small', label: 'Single Small', description: '1 mission • 100 likes', priceUsd: 10, quotas: { tweets: 1, likes: 100, retweets: 60, comments: 40 } },
+        { id: 'single_1_medium', label: 'Single Medium', description: '1 mission • 200 likes', priceUsd: 15, quotas: { tweets: 1, likes: 200, retweets: 120, comments: 80 } },
+        { id: 'single_1_large', label: 'Single Large', description: '1 mission • 500 likes', priceUsd: 25, quotas: { tweets: 1, likes: 500, retweets: 300, comments: 200 } }
     ];
 
     // Use fallback packs if API fails
     const displayPacks = packsError ? FALLBACK_PACKS : packs;
-
-    // Payment logic variables
-    const usingPack = state.paymentType === 'pack';
-    const selectedEntitlement = usable.find(e => e.packId === state.packId);
-    const canAffordSingle = (balance?.honors ?? 0) >= honorsRequired;
-    const canCreate = !isLoadingEntitlements &&
-        ((usingPack && !!selectedEntitlement) || (!usingPack && canAffordSingle));
-
-    // Default to 'single-use' if no active packs; otherwise keep last selection
-    useEffect(() => {
-        if (!isLoadingEntitlements && usable.length === 0 && state.paymentType === 'pack') {
-            updateState({ paymentType: 'single-use', packId: undefined });
-        }
-    }, [isLoadingEntitlements, usable.length, state.paymentType, updateState]);
 
     const handlePaymentSelect = (paymentType: 'single-use' | 'pack') => {
         updateState({ paymentType });
@@ -77,7 +61,23 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     };
 
     const handlePackSelect = (packId: string) => {
-        updateState({ packId });
+        // Get pack details to auto-configure mission settings
+        const pack = packs.find(p => p.id === packId);
+        if (pack) {
+            // Determine participant cap based on pack size
+            let maxParticipants = 100; // default small
+            if (pack.size === 'medium') maxParticipants = 200;
+            if (pack.size === 'large') maxParticipants = 500;
+
+            // Auto-configure mission settings based on pack
+            updateState({
+                packId,
+                cap: Math.min(state.cap || 100, maxParticipants), // Don't exceed pack limit
+                // Keep existing tasks and other settings
+            });
+        } else {
+            updateState({ packId });
+        }
         setPurchaseError(null);
     };
 
@@ -191,16 +191,16 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
             )}
 
             {/* Active Entitlements */}
-            {state.model === 'fixed' && state.paymentType === 'pack' && SHOW_ACTIVE_ENTITLEMENTS && usable.length > 0 && (
+            {state.model === 'fixed' && state.paymentType === 'pack' && SHOW_ACTIVE_ENTITLEMENTS && activeEntitlements.length > 0 && (
                 <div>
                     <label className="block text-xs font-medium mb-3">Your Active Packs</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {usable.map((entitlement) => {
+                        {activeEntitlements.map((entitlement) => {
                             const pack = packs.find(p => p.id === entitlement.packId);
                             if (!pack) return null;
 
                             const isSelected = state.packId === entitlement.packId;
-                            const remainingQuota = entitlement.remaining || 0;
+                            const remainingQuota = entitlement.quotas?.tweetsUsed - entitlement.usage?.tweetsUsed || 0;
 
                             return (
                                 <div
@@ -287,12 +287,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                     )}
 
                     {/* Loading State */}
-                    {isLoadingEntitlements ? (
-                        <div className="text-center py-6">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
-                            <p className="text-gray-400 text-sm">Loading entitlements...</p>
-                        </div>
-                    ) : packsLoading ? (
+                    {packsLoading ? (
                         <div className="text-center py-6">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
                             <p className="text-gray-400 text-sm">Loading packs...</p>
@@ -381,7 +376,16 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                 <span>Total Cost:</span>
                                 <span className="text-green-400">
                                     {state.model === 'fixed'
-                                        ? `$${priceUsd}.00 (${honorsRequired} Honors)`
+                                        ? (() => {
+                                            // Fixed mission pricing varies by participant cap
+                                            let costUSD = 5; // default small
+                                            if (state.cap >= 500) {
+                                                costUSD = 20; // large
+                                            } else if (state.cap >= 200) {
+                                                costUSD = 10; // medium
+                                            }
+                                            return `$${costUSD}.00`;
+                                        })()
                                         : state.selectedDegenPreset?.costUSD
                                             ? `$${state.selectedDegenPreset.costUSD}`
                                             : 'Variable (based on engagement)'
@@ -402,13 +406,13 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
             <div className="flex justify-center pt-6">
                 <button
                     onClick={() => setShowPurchaseConfirmation(true)}
-                    disabled={!canCreate || isLoading}
-                    className={`px-8 py-3 rounded-lg font-semibold transition ${!canCreate || isLoading
+                    disabled={isLoading || !state.paymentType || (state.model === 'fixed' && state.paymentType === 'pack' && !state.packId)}
+                    className={`px-8 py-3 rounded-lg font-semibold transition ${isLoading || !state.paymentType || (state.model === 'fixed' && state.paymentType === 'pack' && !state.packId)
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                         : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg'
                         }`}
                 >
-                    {isLoading ? 'Creating Mission...' : 'Confirm & Create Mission'}
+                    {isLoading ? 'Creating Mission...' : 'Create Mission'}
                 </button>
             </div>
 
@@ -471,7 +475,16 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                         <span>Cost:</span>
                                         <span className="font-medium text-green-400">
                                             {state.model === 'fixed'
-                                                ? `$${priceUsd}.00`
+                                                ? (() => {
+                                                    // Fixed mission pricing varies by participant cap
+                                                    let costUSD = 5; // default small
+                                                    if (state.cap >= 500) {
+                                                        costUSD = 20; // large
+                                                    } else if (state.cap >= 200) {
+                                                        costUSD = 10; // medium
+                                                    }
+                                                    return `$${costUSD}.00`;
+                                                })()
                                                 : state.selectedDegenPreset?.costUSD
                                                     ? `$${state.selectedDegenPreset.costUSD}`
                                                     : 'Variable'
@@ -488,18 +501,38 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                             </div>
 
                             {/* Balance Warning */}
-                            {!canAffordSingle && !usingPack && (
-                                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                                    <div className="flex items-start gap-2">
-                                        <span className="text-red-400 text-sm">⚠️</span>
-                                        <div className="text-xs text-red-300">
-                                            <p className="font-medium mb-1">Insufficient Balance</p>
-                                            <p>You need {honorsRequired} Honors (${priceUsd}) to create this mission.</p>
-                                            <p>You have {balance?.honors || 0} Honors available.</p>
+                            {(() => {
+                                const costUSD = state.model === 'fixed'
+                                    ? (() => {
+                                        // Fixed mission pricing varies by participant cap
+                                        let cost = 5; // default small
+                                        if (state.cap >= 500) {
+                                            cost = 20; // large
+                                        } else if (state.cap >= 200) {
+                                            cost = 10; // medium
+                                        }
+                                        return cost;
+                                    })()
+                                    : (state.selectedDegenPreset?.costUSD || 0);
+                                const requiredHonors = Math.round(costUSD * 450);
+                                const hasEnoughBalance = balance?.honors && balance.honors >= requiredHonors;
+
+                                if (!hasEnoughBalance && state.paymentType === 'single-use') {
+                                    return (
+                                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                                            <div className="flex items-start gap-2">
+                                                <span className="text-red-400 text-sm">⚠️</span>
+                                                <div className="text-xs text-red-300">
+                                                    <p className="font-medium mb-1">Insufficient Balance</p>
+                                                    <p>You need {requiredHonors} Honors (${costUSD}) to create this mission.</p>
+                                                    <p>You have {balance?.honors || 0} Honors available.</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            )}
+                                    );
+                                }
+                                return null;
+                            })()}
 
                             {/* Confirmation Message */}
                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
@@ -527,7 +560,22 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                                     setShowPurchaseConfirmation(false);
                                     onSubmit();
                                 }}
-                                disabled={isLoading || !canCreate}
+                                disabled={isLoading || (() => {
+                                    const costUSD = state.model === 'fixed'
+                                        ? (() => {
+                                            // Fixed mission pricing varies by participant cap
+                                            let cost = 5; // default small
+                                            if (state.cap >= 500) {
+                                                cost = 20; // large
+                                            } else if (state.cap >= 200) {
+                                                cost = 10; // medium
+                                            }
+                                            return cost;
+                                        })()
+                                        : (state.selectedDegenPreset?.costUSD || 0);
+                                    const requiredHonors = Math.round(costUSD * 450);
+                                    return !!(state.paymentType === 'single-use' && balance?.honors && balance.honors < requiredHonors);
+                                })()}
                                 className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? 'Creating...' : 'Confirm & Create Mission'}

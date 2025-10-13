@@ -34,3 +34,4 @@ export function isValidMissionPricing(likes: number, priceUsd: number): boolean 
     const pricing = MISSION_PRICING_MAP[likes];
     return pricing ? pricing.priceUsd === priceUsd : false;
 }
+

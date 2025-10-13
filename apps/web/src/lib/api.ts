@@ -1,78 +1,32 @@
-/**
- * API utility functions with proper cache control
- * Ensures missions and user data are always fresh
- */
+import { getAuth } from 'firebase/auth';
 
-export async function apiGet<T>(url: string, token?: string): Promise<T> {
-    const headers: Record<string, string> = {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
+
+export async function makeAuthedRequest(path: string, options: RequestInit = {}) {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+        throw new Error('User not authenticated');
+    }
+
+    const token = await user.getIdToken(true); // Force refresh to ensure fresh token
+
+    const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
     };
 
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-        method: 'GET',
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
         headers,
-        cache: 'no-store', // Critical: never cache API responses
-        next: { revalidate: 0 }, // For Next.js app router
-        credentials: 'include',
     });
 
-    if (!response.ok) {
-        // Bubble up errors so UI can leave loading state
-        const text = await response.text().catch(() => '');
-        throw new Error(`GET ${url} ${response.status} ${response.statusText} :: ${text}`);
+    if (!res.ok) {
+        throw new Error(`${res.status} ${res.statusText}`);
     }
 
-    return response.json();
-}
-
-export async function apiPost<T>(url: string, data: any, token?: string): Promise<T> {
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(data),
-        cache: 'no-store',
-        next: { revalidate: 0 },
-    });
-
-    if (!response.ok) {
-        throw new Error(`POST ${url} failed ${response.status}`);
-    }
-
-    return response.json();
-}
-
-export async function apiPut<T>(url: string, data: any, token?: string): Promise<T> {
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(data),
-        cache: 'no-store',
-        next: { revalidate: 0 },
-    });
-
-    if (!response.ok) {
-        throw new Error(`PUT ${url} failed ${response.status}`);
-    }
-
-    return response.json();
+    return res.json();
 }
