@@ -269,13 +269,11 @@ app.get('/api/test', (req, res) => {
 // Middleware to verify Firebase Auth token
 const verifyFirebaseToken = async (req: any, res: any, next: any) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'No token provided' });
-      return;
-    }
+    const hdr = req.get('Authorization') || '';
+    const match = hdr.match(/^Bearer\s+(.+)$/i);
+    if (!match) return res.status(401).json({ error: 'not_authenticated' });
 
-    const token = authHeader.split('Bearer ')[1];
+    const token = match[1];
 
     // Check for demo tokens first
     if (token === 'demo_admin_token' || token === 'demo_moderator_token') {
@@ -289,16 +287,16 @@ const verifyFirebaseToken = async (req: any, res: any, next: any) => {
     }
 
     // Verify real Firebase token
-    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token, true);
     req.user = decodedToken;
 
     // Small delay for Firestore sync to ensure writes are complete before reads
     await new Promise(resolve => setTimeout(resolve, 100));
 
     next();
-  } catch (error) {
-    console.error('Token verification error:', error);
-    res.status(401).json({ error: 'Invalid token' });
+  } catch (err: any) {
+    console.error('auth_error', err?.message || err);
+    return res.status(401).json({ error: 'not_authenticated' });
   }
 };
 

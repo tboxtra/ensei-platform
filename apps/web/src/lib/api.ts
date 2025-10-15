@@ -1,32 +1,42 @@
-import { getAuth } from 'firebase/auth';
+// apps/web/src/lib/api.ts
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-ensei-6c8e0.cloudfunctions.net/api';
-
-export async function makeAuthedRequest(path: string, options: RequestInit = {}) {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (!user) {
-        throw new Error('User not authenticated');
-    }
-
-    const token = await user.getIdToken(true); // Force refresh to ensure fresh token
-
-    const headers = {
-        ...options.headers,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-    };
-
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-        ...options,
-        headers,
+async function whenAuthReady(): Promise<User> {
+  const auth = getAuth();
+  if (auth.currentUser) return auth.currentUser;
+  return new Promise((resolve, reject) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      unsub();
+      if (u) resolve(u);
+      else reject(new Error('not_authenticated'));
     });
+  });
+}
 
-    if (!res.ok) {
-        throw new Error(`${res.status} ${res.statusText}`);
-    }
+export async function authedFetch(path: string, init: RequestInit = {}) {
+  const base = process.env.NEXT_PUBLIC_API_URL!;
+  const doFetch = async (forceFresh: boolean) => {
+    const user = await whenAuthReady();
+    const token = await user.getIdToken(forceFresh);
+    const res = await fetch(`${base}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-client': 'web',
+        ...(init.headers || {}),
+      },
+      cache: 'no-store',
+    });
+    return res;
+  };
 
-    return res.json();
-}// Cache bust: Wed Oct 15 14:24:21 WAT 2025
+  // first try with cached token, if 401 retry once with a forced fresh token
+  let res = await doFetch(false);
+  if (res.status === 401) res = await doFetch(true);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json();
+}

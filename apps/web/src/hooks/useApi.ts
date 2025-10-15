@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/UserAuthContext';
 import { Pack, Entitlement } from '../types/packs';
-import { makeAuthedRequest } from '../lib/api';
+import { authedFetch } from '../lib/api';
 
 interface ApiResponse<T> {
     data: T | null;
@@ -957,7 +957,7 @@ export function useWallet() {
 
     const fetchBalance = useCallback(async () => {
         try {
-            const data = await makeAuthedRequest('/v1/wallet/summary');
+            const data = await authedFetch('/v1/wallet/summary');
             setBalance({
                 honors: data.availableHonors || 0,
                 usd: (data.availableHonors || 0) * 0.0022, // Convert to USD
@@ -971,7 +971,7 @@ export function useWallet() {
 
     const fetchTransactions = useCallback(async () => {
         try {
-            const data = await makeAuthedRequest('/v1/wallet/transactions');
+            const data = await authedFetch('/v1/wallet/transactions');
             setTransactions(data);
         } catch (err) {
             console.error('Failed to fetch transactions:', err);
@@ -1109,7 +1109,7 @@ export function usePacks() {
         setIsLoadingEntitlements(true);
         const p = (async () => {
             try {
-                const res = await makeAuthedRequest('/v1/entitlements');
+                const res = await authedFetch('/v1/entitlements');
                 setEntitlements(res?.items ?? []);
             } catch (error) {
                 console.error('Failed to fetch entitlements:', error);
@@ -1126,7 +1126,7 @@ export function usePacks() {
     // Sequential refresh function to prevent race conditions
     const refreshEntitlements = useCallback(async () => {
         try {
-            const res = await makeAuthedRequest('/v1/entitlements');
+            const res = await authedFetch('/v1/entitlements');
             setEntitlements(res?.items ?? []);
         } catch (error) {
             console.error('Failed to refresh entitlements:', error);
