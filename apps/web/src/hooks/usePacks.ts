@@ -5,6 +5,7 @@ import { authedFetch } from '@/lib/api';
 export function usePacks() {
   const [entitlements, setEntitlements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [envError, setEnvError] = useState(false);
   const inflight = useRef<Promise<void> | null>(null);
 
   const refreshEntitlements = async () => {
@@ -14,6 +15,12 @@ export function usePacks() {
       try {
         const data = await authedFetch('/v1/entitlements');
         setEntitlements((data?.items || []).filter((e: any) => e.status === 'active'));
+      } catch (e: any) {
+        if (e?.message === 'API_BASE_MISSING') {
+          setEnvError(true);
+        } else {
+          console.error('Entitlements fetch error:', e);
+        }
       } finally {
         setLoading(false);
         inflight.current = null;
@@ -29,5 +36,5 @@ export function usePacks() {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
-  return { entitlements, isLoadingEntitlements: loading, refreshEntitlements };
+  return { entitlements, isLoadingEntitlements: loading, refreshEntitlements, envError };
 }

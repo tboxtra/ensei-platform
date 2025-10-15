@@ -54,40 +54,21 @@ export function useDashboardSummary(): UseDashboardSummaryReturn {
             }
 
             try {
-                // Acquire token (same strategy as useApi)
-                const token =
-                    (typeof window !== 'undefined' && localStorage.getItem('firebaseToken')) ||
-                    (await (async () => {
-                        try {
-                            const { getFirebaseAuth } = await import('../lib/firebase');
-                            const a = getFirebaseAuth();
-                            const u = a.currentUser;
-                            return u ? await u.getIdToken(false) : null;
-                        } catch {
-                            return null;
-                        }
-                    })());
-
-                const url = `${API_BASE_URL}/v1/dashboard/summary`;
-
-                const response = await fetch(url, {
-                    headers: {
-                        ...(token && { 'Authorization': `Bearer ${token}` }),
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                });
-
-                if (!response.ok) {
-                    const text = await response.text().catch(() => '');
-                    throw new Error(`Dashboard summary failed: ${response.status} ${text}`);
-                }
-
-                const data = await response.json();
+                const { authedFetch } = await import('../lib/api');
+                const data = await authedFetch('/v1/dashboard/summary');
                 return data;
             } catch (error) {
-                console.error('Failed to fetch dashboard summary:', error);
-                throw error;
+                console.warn('dashboard summary unavailable', error);
+                // Return a default summary instead of throwing to prevent blocking
+                return {
+                    missionsCreated: 0,
+                    missionsCompleted: 0,
+                    tasksDone: 0,
+                    honorsEarned: 0,
+                    usdSpent: 0,
+                    usdBalance: 0,
+                    lastUpdated: new Date().toISOString()
+                };
             }
         },
         retry: false,

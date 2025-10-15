@@ -6,6 +6,7 @@ export function useWallet() {
   const [balance, setBalance] = useState<{ honors: number } | null>(null);
   const [txs, setTxs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [envError, setEnvError] = useState(false);
   const inflight = useRef<Promise<void> | null>(null);
 
   const fetchBalance = async () => {
@@ -24,6 +25,12 @@ export function useWallet() {
       try {
         await fetchBalance();
         await fetchTransactions();
+      } catch (e: any) {
+        if (e?.message === 'API_BASE_MISSING') {
+          setEnvError(true);
+        } else {
+          console.error('Wallet fetch error:', e);
+        }
       } finally {
         setLoading(false);
         inflight.current = null;
@@ -39,5 +46,5 @@ export function useWallet() {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
-  return { balance, transactions: txs, loading, refreshWallet };
+  return { balance, transactions: txs, loading, refreshWallet, envError };
 }

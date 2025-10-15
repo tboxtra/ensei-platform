@@ -282,3 +282,18 @@ export const serializeMissionResponse = (data: any): any => ({
     endAt: data.endAt || data.deadline || data.expires_at,
     contentLink: data.contentLink || data.tweetLink || data.link || data.url || data.postUrl,
 });
+
+// Single source of truth for API base
+export function getApiBase(): string {
+  const base = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!base) {
+    // Make it obvious in prod if misconfigured
+    if (typeof window !== 'undefined') {
+      console.error('API base URL missing. Set NEXT_PUBLIC_API_URL in Vercel.');
+      // surface in UI once: banner hook can read this flag
+      (window as any).__API_MISCONFIG__ = true;
+    }
+    throw new Error('API_BASE_MISSING');
+  }
+  return base.replace(/\/+$/, ''); // strip trailing slash
+}
