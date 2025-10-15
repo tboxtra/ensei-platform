@@ -1901,30 +1901,35 @@ app.get('/v1/wallet/summary', verifyFirebaseToken, async (req: any, res) => {
 });
 
 app.get('/v1/wallet/transactions', verifyFirebaseToken, async (req: any, res) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  const uid = (req as any).user.uid;
+  try {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const uid = (req as any).user.uid;
 
-  const qs = await firebaseAdmin.firestore()
-    .collection('transactions')
-    .where('userId', '==', uid)
-    .orderBy('createdAt', 'desc')
-    .limit(50)
-    .get();
+    const qs = await firebaseAdmin.firestore()
+      .collection('transactions')
+      .where('userId', '==', uid)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
 
-  const items = qs.docs.map(d => {
-    const x = d.data();
-    return {
-      id: d.id,
-      type: x.type,               // 'pack_purchase' | 'mission_cost_single' | 'mission_cost_pack' | 'deposit' | 'withdrawal'
-      amountHonors: x.amountHonors ?? 0, // negatives for spends
-      amountUsd: x.amountUsd ?? 0,
-      description: x.description ?? '',
-      createdAt: x.createdAt?.toDate?.()?.toISOString?.() ?? null,
-      status: x.status ?? 'completed',
-    };
-  });
+    const items = qs.docs.map(d => {
+      const x = d.data();
+      return {
+        id: d.id,
+        type: x.type,               // 'pack_purchase' | 'mission_cost_single' | 'mission_cost_pack' | 'deposit' | 'withdrawal'
+        amountHonors: x.amountHonors ?? 0, // negatives for spends
+        amountUsd: x.amountUsd ?? 0,
+        description: x.description ?? '',
+        createdAt: x.createdAt?.toDate?.()?.toISOString?.() ?? null,
+        status: x.status ?? 'completed',
+      };
+    });
 
-  res.status(200).json({ items });
+    res.status(200).json({ items });
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
 });
 
 app.get('/v1/wallet/balance', verifyFirebaseToken, async (req: any, res) => {
@@ -2440,30 +2445,35 @@ app.post('/v1/packs/:id/purchase', verifyFirebaseToken, async (req: any, res) =>
 });
 
 app.get('/v1/entitlements', verifyFirebaseToken, async (req: any, res) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  const uid = (req as any).user.uid;
+  try {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const uid = (req as any).user.uid;
 
-  const qs = await firebaseAdmin.firestore()
-    .collection('entitlements')
-    .where('userId', '==', uid)
-    .orderBy('createdAt', 'desc')
-    .limit(100)
-    .get();
+    const qs = await firebaseAdmin.firestore()
+      .collection('entitlements')
+      .where('userId', '==', uid)
+      .orderBy('createdAt', 'desc')
+      .limit(100)
+      .get();
 
-  const now = Date.now();
-  const items = qs.docs.map(d => {
-    const data = d.data();
-    return {
-      id: d.id,
-      ...data,
-      createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? data.createdAt ?? null,
-      endsAt: data.endsAt?.toDate?.()?.toISOString?.() ?? data.endsAt ?? null,
-      remaining: Math.max(0, (data.quotas?.tweets ?? 0) - (data.usage?.tweetsUsed ?? 0)),
-    };
-  })
-    .filter((e: any) => e.status === 'active' && (!e.endsAt || new Date(e.endsAt).getTime() > now));
+    const now = Date.now();
+    const items = qs.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? data.createdAt ?? null,
+        endsAt: data.endsAt?.toDate?.()?.toISOString?.() ?? data.endsAt ?? null,
+        remaining: Math.max(0, (data.quotas?.tweets ?? 0) - (data.usage?.tweetsUsed ?? 0)),
+      };
+    })
+      .filter((e: any) => e.status === 'active' && (!e.endsAt || new Date(e.endsAt).getTime() > now));
 
-  res.status(200).json({ items, serverTime: new Date().toISOString() });
+    res.status(200).json({ items, serverTime: new Date().toISOString() });
+  } catch (error) {
+    console.error('Error fetching entitlements:', error);
+    res.status(500).json({ error: 'Failed to fetch entitlements' });
+  }
 });
 
 // User profile endpoints
