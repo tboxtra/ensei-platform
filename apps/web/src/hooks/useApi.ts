@@ -951,6 +951,7 @@ export function useMissions() {
 
 export function useWallet() {
     const api = useApi();
+    const { user } = useAuth();
     const [balance, setBalance] = useState<WalletBalance | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -984,6 +985,14 @@ export function useWallet() {
         await fetchTransactions();
     }, [fetchBalance, fetchTransactions]);
 
+    // Auto-fetch when user is authenticated
+    useEffect(() => {
+        if (user) {
+            fetchBalance();
+            fetchTransactions();
+        }
+    }, [user, fetchBalance, fetchTransactions]);
+
     return {
         balance,
         transactions,
@@ -999,6 +1008,7 @@ export function useWallet() {
 
 export function useDashboardSummary() {
     const api = useApi();
+    const { user } = useAuth();
     const [summary, setSummary] = useState<any>(null);
 
     const fetchSummary = useCallback(async () => {
@@ -1009,6 +1019,13 @@ export function useDashboardSummary() {
             console.error('Failed to fetch dashboard summary:', err);
         }
     }, [api]);
+
+    // Auto-fetch when user is authenticated
+    useEffect(() => {
+        if (user) {
+            fetchSummary();
+        }
+    }, [user, fetchSummary]);
 
     return {
         summary,
